@@ -10,6 +10,7 @@ import {
   loadLibraryDrills, rateDrill, saveDrillFromLibrary, toggleShareToLibrary,
   isAutoHidden, isFeatured,
 } from '../utils/drillLibrary';
+import DrillDiagram from '../components/drills/DrillDiagram';
 
 const TOPICS: { value: Drill['topic']; label: string }[] = [
   { value: 'dribbling', label: 'Dribbling' },
@@ -1120,7 +1121,7 @@ const LibraryCard: React.FC<{
 
   return (
     <li className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
-      {drill.streamUid && (
+      {drill.streamUid ? (
         <div className="aspect-video w-full bg-line-default/10 relative">
           <img
             src={streamThumbnailUrl(drill.streamUid, { height: 240 })}
@@ -1130,7 +1131,14 @@ const LibraryCard: React.FC<{
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
         </div>
-      )}
+      ) : drill.diagram ? (
+        // Rendered scene graph — cones, players, movement arrows. Same
+        // aspect ratio as a Stream thumbnail so the grid stays even
+        // whether a drill has a demo video or a diagram.
+        <div className="aspect-video w-full bg-black/25">
+          <DrillDiagram spec={drill.diagram} />
+        </div>
+      ) : null}
       {/* Card body is the primary tap-target — opens the preview
           sheet so coaches can read setup + instructions + watch the
           video BEFORE they save (previous flow required saving to
@@ -1288,7 +1296,7 @@ const DrillPreviewSheet: React.FC<{
           </button>
         </div>
 
-        {drill.streamUid && drill.streamReady && (
+        {drill.streamUid && drill.streamReady ? (
           <div className="aspect-video w-full bg-black">
             <iframe
               src={streamIframeUrl(drill.streamUid)}
@@ -1298,7 +1306,11 @@ const DrillPreviewSheet: React.FC<{
               title={`${drill.title} video`}
             />
           </div>
-        )}
+        ) : drill.diagram ? (
+          <div className="aspect-video w-full bg-black/25">
+            <DrillDiagram spec={drill.diagram} />
+          </div>
+        ) : null}
 
         <div className="p-5 space-y-4">
           <div>

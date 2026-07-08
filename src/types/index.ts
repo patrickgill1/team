@@ -2011,6 +2011,49 @@ export interface PlayerPublicShare {
   enabledBy?: string;
 }
 
+// ── Drill diagram ──────────────────────────────────────────────
+// A tiny, drill-agnostic scene graph. The AI generator outputs one
+// of these (structured JSON); DrillDiagram renders it into an SVG
+// deterministically so every drill in the library has the same
+// visual language: green field, orange cone triangles, colored
+// player dots, dashed pass arrows, solid run arrows. Coordinate
+// system: origin top-left, x and y in percent of the canvas
+// (0..100). Renderer maps to whatever SVG viewBox we choose so we
+// can crop or resize freely without re-authoring.
+export interface DrillDiagramSpec {
+  /** Background pitch style. 'none' = plain green field, no lines.
+   *  'half' = one goal + half-line. 'full' = both goals + center
+   *  circle. 'grid' = square training grid with cone corners. */
+  field: 'none' | 'half' | 'full' | 'grid';
+  /** Cone markers (0..100 x/y). Orange triangles by default. */
+  cones?: Array<{ x: number; y: number; color?: 'orange' | 'yellow' | 'red' | 'blue' }>;
+  /** Player dots. Team drives color: attack=cyan, defense=red,
+   *  neutral=amber, keeper=lime. Optional label (jersey number or
+   *  role letter) renders inside the dot. */
+  players?: Array<{
+    x: number;
+    y: number;
+    team: 'attack' | 'defense' | 'neutral' | 'keeper';
+    label?: string;
+  }>;
+  /** Balls as white dots with a black ring. */
+  balls?: Array<{ x: number; y: number }>;
+  /** Goals rendered as small rectangles pointing inward.
+   *  orientation = which side of the field the mouth faces. */
+  goals?: Array<{ x: number; y: number; orientation: 'n' | 's' | 'e' | 'w' }>;
+  /** Movement arrows: solid run, dashed pass, wavy dribble,
+   *  chevron-tipped shot. Optional label ("1", "2", "run") renders
+   *  at the midpoint. */
+  movements?: Array<{
+    from: { x: number; y: number };
+    to: { x: number; y: number };
+    type: 'run' | 'pass' | 'dribble' | 'shot';
+    label?: string;
+  }>;
+  /** Optional caption strip below the diagram. */
+  caption?: string;
+}
+
 export interface Drill {
   id: string;
   /** Which club / team library this drill belongs to. clubId is set if
@@ -2045,6 +2088,12 @@ export interface Drill {
    *  are external (YouTube). */
   streamUid?: string;
   streamReady?: boolean;
+  /** Structured diagram describing the drill layout. Rendered
+   *  deterministically by DrillDiagram into an SVG — the model
+   *  outputs coordinates + element types, not raw markup, so we
+   *  keep a consistent visual language across every drill.
+   *  See DrillDiagramSpec docs for coordinate conventions. */
+  diagram?: DrillDiagramSpec;
   /** How the drill landed in the library — 'manual' (typed), 'ai'
    *  (Claude generated, then reviewed), 'imported' (future: shared
    *  drill catalogs across clubs). */

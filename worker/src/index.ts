@@ -73,6 +73,10 @@ export interface Env {
   FIREBASE_PROJECT_ID?: string;
   GOOGLE_PLACES_API_KEY?: string;
   OPENAI_API_KEY?: string;
+  /** Shared secret so the admin backfill route can call the drill
+   *  diagram generator without a user session (batch job). Optional
+   *  — if unset, only user-session calls are accepted. */
+  ADMIN_API_KEY?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_CONNECT_CLIENT_ID?: string;
   STRIPE_WEBHOOK_SECRET?: string;
@@ -694,7 +698,155 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       }
     }
 
+    if (url.pathname === '/generate-drill-diagram') {
+      // Auth is deliberately looser here — admin backfill runs may
+      // hit this via a service key rather than a user session. We
+      // still require an X-Api-Key that matches ADMIN_API_KEY when
+      // present, else require a user.
+      const providedKey = req.headers.get('x-api-key') || '';
+      if (env.ADMIN_API_KEY && providedKey && providedKey === env.ADMIN_API_KEY) {
+        // service-to-service, no user gate
+      } else {
+        await requireUser(req, env);
+      }
+      if (!env.OPENAI_API_KEY) {
+        return json({ ok: false, error: 'openai-not-configured' }, 503, cors);
+      }
+      const title = String(payload?.title || '').slice(0, 120).trim();
+      const setup = String(payload?.setup || '').slice(0, 500).trim();
+      const instructions = String(payload?.instructions || '').slice(0, 800).trim();
+      const focus = String(payload?.focus || '').slice(0, 200).trim();
+      const topic = String(payload?.topic || '').slice(0, 30);
+      const ageBand = String(payload?.ageBand || 'all').slice(0, 16);
+      if (!title || !setup) return json({ ok: false, error: 'title-and-setup-required' }, 400, cors);
+
+      const systemMsg = [
+        'You are a youth-soccer chalkboard artist.',
+        'Given a drill, output a compact json scene graph the app renders into a diagram.',
+        'Only output strict json. No prose, no markdown, no fences.',
+        '',
+        'Coordinate system: origin top-left. x and y are floats 0..100 (percent of canvas).',
+        'Canvas is landscape 400x240. Leave 8pt of margin — keep values in 5..95 unless the piece belongs on an edge (goal, sideline).',
+        'For "half" pitch, the goal is at the top (small y); attack moves top-to-bottom-ish.',
+        'For "grid" or "none", no goals — just cones marking the box.',
+        '',
+        'Schema:',
+        '{',
+        '  "field": "none" | "half" | "full" | "grid",',
+        '  "cones":     [ { "x": number, "y": number, "color": "orange" | "yellow" | "red" | "blue" } ],',
+        '  "players":   [ { "x": number, "y": number, "team": "attack" | "defense" | "neutral" | "keeper", "label": string } ],',
+        '  "balls":     [ { "x": number, "y": number } ],',
+        '  "goals":     [ { "x": number, "y": number, "orientation": "n" | "s" | "e" | "w" } ],',
+        '  "movements": [ { "from": {"x":number,"y":number}, "to": {"x":number,"y":number}, "type": "run" | "pass" | "dribble" | "shot", "label": string } ],',
+        '  "caption": string',
+        '}',
+        '',
+        'Rules:',
+        '- Every list is optional; omit any that would be empty.',
+        '- Player labels: 1-2 chars max (jersey number or role letter like "A" / "D" / "GK").',
+        '- Movement labels: order number ("1","2","3") when steps happen in sequence, else leave blank.',
+        '- Ball placement: put a ball at the feet of whichever attacker is starting with it.',
+        '- Prefer 4-8 players total. Prefer 2-6 cones. Prefer 1-3 movements. Simple > cluttered.',
+        '- Never invent equipment beyond cones, balls, players, goals.',
+        '- caption: one short line (<= 60 chars) tying the diagram to the drill outcome.',
+      ].join('\n');
+
+      const userMsg = [
+        `Title: ${title}`,
+        `Topic: ${topic || 'unspecified'}`,
+        `Age band: ${ageBand}`,
+        `Setup: ${setup}`,
+        instructions ? `Instructions: ${instructions}` : '',
+        focus ? `Focus: ${focus}` : '',
+      ].filter(Boolean).join('\n');
+
+      try {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${env.OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            max_tokens: 900,
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: systemMsg },
+              { role: 'user', content: userMsg },
+            ],
+          }),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          return json({ ok: false, error: `openai ${res.status}`, detail: txt.slice(0, 300) }, 502, cors);
+        }
+        const data: any = await res.json();
+        const text: string = data?.choices?.[0]?.message?.content || '';
+        let parsed: any;
+        try {
+          parsed = JSON.parse(text);
+        } catch (err: any) {
+          return json({ ok: false, error: 'json-parse-failed', detail: String(err?.message || err).slice(0, 200), raw: text.slice(0, 300) }, 502, cors);
+        }
+        // Light validation — the client-side renderer already
+        // clamps out-of-range values, so we mostly just guard the
+        // top-level shape so we don't store garbage on the drill.
+        const spec = sanitizeDiagram(parsed);
+        return json({ ok: true, diagram: spec }, 200, cors);
+      } catch (err: any) {
+        return json({ ok: false, error: 'openai-fetch-failed', detail: String(err?.message || err).slice(0, 200) }, 502, cors);
+      }
+    }
+
     return json({ ok: false, error: 'not-found' }, 404, cors);
+}
+
+// Trim any keys we don't recognize and coerce values to what the
+// renderer expects. Anything the model misses gets an empty array,
+// never undefined, so Firestore writes don't reject.
+function sanitizeDiagram(raw: any): any {
+  const field = ['none', 'half', 'full', 'grid'].includes(raw?.field) ? raw.field : 'none';
+  const num = (v: any) => (typeof v === 'number' && isFinite(v) ? v : 50);
+  const str = (v: any, max = 80) => (typeof v === 'string' ? v.slice(0, max) : undefined);
+  const point = (p: any) => ({ x: num(p?.x), y: num(p?.y) });
+
+  const cones = Array.isArray(raw?.cones) ? raw.cones.slice(0, 20).map((c: any) => ({
+    x: num(c?.x), y: num(c?.y),
+    ...(str(c?.color, 10) ? { color: c.color } : {}),
+  })) : [];
+  const players = Array.isArray(raw?.players) ? raw.players.slice(0, 22).map((p: any) => {
+    const label = str(p?.label, 3);
+    return {
+      x: num(p?.x), y: num(p?.y),
+      team: ['attack', 'defense', 'neutral', 'keeper'].includes(p?.team) ? p.team : 'attack',
+      ...(label ? { label } : {}),
+    };
+  }) : [];
+  const balls = Array.isArray(raw?.balls) ? raw.balls.slice(0, 10).map((b: any) => ({ x: num(b?.x), y: num(b?.y) })) : [];
+  const goals = Array.isArray(raw?.goals) ? raw.goals.slice(0, 2).map((g: any) => ({
+    x: num(g?.x), y: num(g?.y),
+    orientation: ['n', 's', 'e', 'w'].includes(g?.orientation) ? g.orientation : 'n',
+  })) : [];
+  const movements = Array.isArray(raw?.movements) ? raw.movements.slice(0, 12).map((m: any) => {
+    const label = str(m?.label, 4);
+    return {
+      from: point(m?.from),
+      to: point(m?.to),
+      type: ['run', 'pass', 'dribble', 'shot'].includes(m?.type) ? m.type : 'run',
+      ...(label ? { label } : {}),
+    };
+  }) : [];
+  const caption = str(raw?.caption, 80);
+
+  const out: any = { field };
+  if (cones.length) out.cones = cones;
+  if (players.length) out.players = players;
+  if (balls.length) out.balls = balls;
+  if (goals.length) out.goals = goals;
+  if (movements.length) out.movements = movements;
+  if (caption) out.caption = caption;
+  return out;
 }
 
 async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {

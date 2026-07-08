@@ -267,6 +267,24 @@ const PlayerOfMatch: React.FC = () => {
       setPendingVotingData(null);
       setSelectedCalendarEvent('');
       setNewVotingId(newId || null);
+      // Culture engine: post the voting-open CTA to the Wall so
+      // parents don't need a coach to hand them a link. Fire-and-
+      // forget; wall write failure never blocks the voting create.
+      if (newId && userData && (voting as any).teamId) {
+        void (async () => {
+          try {
+            const { autoPostPotmVotingOpenToWall } = await import('../utils/autoPostToWall');
+            await autoPostPotmVotingOpenToWall(
+              (voting as any).teamId as string,
+              newId,
+              (voting as any).gameTitle || 'Match',
+              { uid: userData.uid, name: userData.name || 'Coach', role: userData.role || 'coach' },
+            );
+          } catch (e) {
+            console.warn('POTM auto-post to wall failed', e);
+          }
+        })();
+      }
       loadData();
     } catch (error) {
       console.error('Error creating voting session:', error);

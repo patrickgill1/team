@@ -154,6 +154,29 @@ export async function autoPostGameRecapToWall(
   await postToWall(event.teamId, actor, lines.join('\n'), { postedFrom: 'game' });
 }
 
+/** Auto-post when POTM voting OPENS. Big CTA, no spoilers — voting
+ *  results are hidden until the coach closes the session, so this
+ *  post is a persistent nudge on the wall rather than a live tally.
+ *  Replaces the old flow where coaches shared a link to Ollie
+ *  manually. */
+export async function autoPostPotmVotingOpenToWall(
+  teamId: string,
+  votingId: string,
+  gameTitle: string,
+  actor: Actor,
+): Promise<void> {
+  if (!teamId || !votingId) return;
+  const lines = [
+    '## Vote for Player of the Match',
+    `**${gameTitle}**`,
+    '',
+    `[Cast your vote →](/vote/${votingId})`,
+    '',
+    '_Results reveal when voting closes. Vote for anyone but your own kid._',
+  ];
+  await postToWall(teamId, actor, lines.join('\n'), { postedFrom: 'potm' });
+}
+
 /** Auto-post a Player of the Match win. One line — the player and
  *  the game. Coach can flesh out details in a comment. */
 export async function autoPostPotmToWall(

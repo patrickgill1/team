@@ -54,7 +54,7 @@ const AdminTeams = React.lazy(() => import('./pages/AdminTeams'));
 const SeasonWizard = React.lazy(() => import('./pages/SeasonWizard'));
 const CoachCockpit = React.lazy(() => import('./pages/CoachCockpit'));
 const StaffManagement = React.lazy(() => import('./pages/StaffManagement'));
-const FamilyHome = React.lazy(() => import('./pages/FamilyHome'));
+// FamilyHome retired 2026-07-08 — see comment on removed /home-v2 route.
 const Products = React.lazy(() => import('./pages/Products'));
 const RegistrationFormBuilder = React.lazy(() => import('./pages/RegistrationFormBuilder'));
 const Tryouts = React.lazy(() => import('./pages/Tryouts'));
@@ -684,13 +684,10 @@ function App() {
               </ProtectedRoute>
             } />
 
-            <Route path="/home-v2" element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <FamilyHome />
-                </AppLayout>
-              </ProtectedRoute>
-            } />
+            {/* /home-v2 (FamilyHome preview) retired 2026-07-08. The
+                surface didn't hit the elegance bar and its best moves
+                (multi-kid strip, cross-team next event) will be folded
+                into classic Home. */}
 
             <Route path="/club/products" element={
               <ProtectedRoute>

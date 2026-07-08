@@ -19,7 +19,7 @@ function useBodyClass(cls: string): boolean {
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
-import WallHeaderButton from './WallHeaderButton';
+// WallHeaderButton retired 2026-07-08 — Wall is a primary bottom tab.
 import ProfileMenuSheet from './ProfileMenuSheet';
 import ChatHeaderButton from './ChatHeaderButton';
 import { useTeam } from '../../contexts/TeamContext';
@@ -164,12 +164,15 @@ const Navigation: React.FC = () => {
   // interior shapes that disappear when filled).
   const bottomTabs: Array<{ name: string; path: string; icon: import('./AppIcon').AppIconName }> = [
     { name: 'Home', path: '/dashboard', icon: 'home' },
-    // Wall lives in the header megaphone now (see WallHeaderButton).
-    // Always one tap away from any page; bottom-tab slot freed up.
-    // "Events" is the most-tapped surface (parents check "what's next"
-    // multiple times a day). Bumped Players to the More sheet.
+    // Wall is the culture spine — game recaps, POTM crowns, tagged
+    // clips, votes, coach news. Elevated from the header megaphone
+    // to a primary tab so parents open it every day instead of
+    // scrolling chat for the game recap. Absorbs Media as an
+    // internal tab (see /wall's tab shape) so per-kid clip archives
+    // still work via Player Profile without a separate Media tab
+    // eating primary real estate.
+    { name: 'Wall', path: '/wall', icon: 'news' },
     { name: 'Events', path: '/calendar', icon: 'calendar' },
-    { name: 'Media', path: '/player-media', icon: 'media' },
     { name: 'Chat', path: '/chat', icon: 'chat' },
     { name: 'More', path: '#more', icon: 'menu' },
   ];
@@ -242,7 +245,7 @@ const Navigation: React.FC = () => {
   // tab bar into logical sections so a parent looking for "Stats" or a
   // coach looking for "Practice Plan" can find them by category, not
   // by scanning a wall of 16 tiles.
-  const bottomTabPaths = new Set(['/dashboard', '/calendar', '/player-media', '/chat', '#more']);
+  const bottomTabPaths = new Set(['/dashboard', '/wall', '/calendar', '/chat', '#more']);
   const inSheet = (path: string) => !bottomTabPaths.has(path);
   // Lookup tolerates renames: a moreSections entry that uses an old
   // label (e.g. 'Players' after renaming to 'Squad') falls back to
@@ -281,13 +284,18 @@ const Navigation: React.FC = () => {
       ].map((n) => findItem(n as string)).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {
+      // Media library is a lens into the same media that surfaces on
+      // Wall (the primary media destination). Kept in More for the
+      // 'give me the grid of everything, by kid' navigation intent.
       label: 'Media',
-      items: ['Full Games', 'Highlights']
+      items: ['Media', 'Full Games', 'Highlights']
         .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {
+      // Wall was promoted to a primary bottom tab 2026-07-08; remove
+      // it from Communications so it doesn't appear twice.
       label: 'Communications',
-      items: ['Wall', 'Surveys', 'Volunteers', 'Directory']
+      items: ['Surveys', 'Volunteers', 'Directory']
         .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {
@@ -541,7 +549,10 @@ const Navigation: React.FC = () => {
           )}
 
           <div className="ml-auto shrink-0 flex items-center gap-2">
-            <WallHeaderButton />
+            {/* Wall used to live here as a megaphone icon. Now it's a
+                primary bottom tab, so we don't need the header
+                shortcut. Chat stays because it's a global
+                right-now-notification affordance, not a destination. */}
             <ChatHeaderButton />
             <button
               type="button"

@@ -36,16 +36,12 @@ const STORAGE_KEY = 'gk.theme';
 // ready, change isPickerVisible() to `return true` to roll out to all.
 export const THEME_PICKER_ENABLED = true;
 
-// Caller passes their userData (or null). Owner sees the toggle, no
-// one else does. Used by Settings → Appearance + Onboarding picker.
-export function isThemePickerVisible(userData: { email?: string } | null | undefined): boolean {
-  if (!THEME_PICKER_ENABLED) return false;
-  // Lazy-import to avoid pulling helpers into the context module's
-  // dependency graph (helpers.ts touches firestore types). Owner check
-  // is a hardcoded allowlist on the email — same as isOwner() in
-  // helpers.ts. Duplicated here to keep the gate evaluation pure.
-  const email = (userData?.email || '').toLowerCase();
-  return email === 'patrickgill4@gmail.com';
+// Caller passes their userData (or null). The picker is now shown to
+// every signed-in user via Settings → Appearance. Kept as a function
+// (not a constant) so we can re-gate it (e.g., to a paid tier) later
+// without touching call sites.
+export function isThemePickerVisible(_userData: { email?: string } | null | undefined): boolean {
+  return THEME_PICKER_ENABLED;
 }
 
 function readStoredMode(): ThemeMode {

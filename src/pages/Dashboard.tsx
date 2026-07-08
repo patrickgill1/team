@@ -43,22 +43,9 @@ function clipThumb(clip: any): string | undefined {
 }
 
 const Dashboard: React.FC = () => {
-  // Family Home preview flag — when the user has opted in via
-  // Settings, this Home route hands off to FamilyHome instead of
-  // rendering the classic Dashboard. Kept as a client-only flag
-  // (localStorage) so a device toggle doesn't affect other family
-  // members' devices. Turn off in Settings to come back here.
-  const familyHomeEnabled = (() => {
-    try { return typeof window !== 'undefined' && localStorage.getItem('familyHomeEnabled') === '1'; } catch { return false; }
-  })();
-  if (familyHomeEnabled) {
-    const FamilyHome = React.lazy(() => import('./FamilyHome'));
-    return (
-      <React.Suspense fallback={null}>
-        <FamilyHome />
-      </React.Suspense>
-    );
-  }
+  // FamilyHome preview retired 2026-07-08 — its best ideas (multi-kid
+  // strip, cross-team next event) will be folded into this Dashboard
+  // itself rather than a parallel route.
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
   // Coach-mode view collapses the dashboard to team/coach context

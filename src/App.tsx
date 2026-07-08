@@ -93,6 +93,12 @@ const AuthAction = React.lazy(() => import('./pages/AuthAction'));
 const AuthImpersonate = React.lazy(() => import('./pages/AuthImpersonate'));
 const PublicPlayerCard = React.lazy(() => import('./pages/PublicPlayerCard'));
 const PublicFixtures = React.lazy(() => import('./pages/PublicFixtures'));
+// Showcase pages — public, unauth'd, screenshot-ready renders of
+// production components with hand-curated demo data. Used to grab
+// marketing screenshots without needing a real season played.
+const PotmShowcase = React.lazy(() => import('./pages/showcase/PotmShowcase'));
+const RecapShowcase = React.lazy(() => import('./pages/showcase/RecapShowcase'));
+const WallShowcase = React.lazy(() => import('./pages/showcase/WallShowcase'));
 const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 const People = React.lazy(() => import('./pages/People'));
 const Helpdesk = React.lazy(() => import('./pages/Helpdesk'));
@@ -540,6 +546,9 @@ function App() {
               <Route path="/p/:playerId" element={<PublicPlayerCard />} />
               <Route path="/f/:teamId" element={<PublicFixtures />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/showcase/potm" element={<PotmShowcase />} />
+              <Route path="/showcase/recap" element={<RecapShowcase />} />
+              <Route path="/showcase/wall" element={<WallShowcase />} />
             
             {/* Root redirect - goes to dashboard if authenticated, auth if not */}
             <Route path="/" element={

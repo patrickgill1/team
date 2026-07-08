@@ -391,10 +391,13 @@ const SimpleAuth: React.FC = () => {
   return (
     <div
       className="relative min-h-screen overflow-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-10 sm:pb-16"
-      // Was 4rem — Patrick reported the logo was riding into the
-      // Dynamic Island on his iPhone. 6.5rem clears the pill on the
-      // largest current iPhone Pro Max plus a comfortable buffer.
-      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 6.5rem)' }}
+      // 6.5rem-plus-safe-area wasn't enough — Patrick screenshotted the
+      // GK shield sitting inside the Dynamic Island. Turns out
+      // env(safe-area-inset-top) evaluates to 0 in this Capacitor
+      // WebView on iPhone Pro Max, so the calc collapsed to just 6.5rem.
+      // Use max() with a hard 9rem floor so the logo clears the island
+      // no matter what env() returns.
+      style={{ paddingTop: 'max(calc(env(safe-area-inset-top) + 5rem), 9rem)' }}
     >
       {/* Top region pure black so it blends with the native
           AppDelegate safe-area strip without a visible seam.

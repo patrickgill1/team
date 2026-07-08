@@ -1530,27 +1530,19 @@ const Wall: React.FC = () => {
                   )}
 
                   {/* Attachments — full-bleed on mobile (no horizontal
-                      padding) so images look like an Instagram card. */}
+                      padding) so images look like an Instagram card.
+                      Videos (type='video' or file extension match)
+                      render as inline playable elements: Cloudflare
+                      Stream URLs get an iframe embed, direct-hosted
+                      MP4/WebM/MOV get a native <video> element with
+                      controls. Photos keep the existing <img> render. */}
                   {p.attachments && p.attachments.length > 0 && (
                     p.attachments.length === 1 ? (
-                      <img
-                        src={p.attachments[0].url}
-                        alt={p.attachments[0].name || 'attachment'}
-                        loading="lazy"
-                        className="block w-full max-h-[520px] object-cover bg-surface-input"
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                      />
+                      <WallAttachment a={p.attachments[0]} single />
                     ) : (
                       <div className="grid grid-cols-2 gap-0.5 bg-surface-input">
                         {p.attachments.slice(0, 4).map((a, i) => (
-                          <img
-                            key={i}
-                            src={a.url}
-                            alt={a.name || 'attachment'}
-                            loading="lazy"
-                            className="block w-full h-44 sm:h-52 object-cover bg-surface-input"
-                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                          />
+                          <WallAttachment key={i} a={a} />
                         ))}
                       </div>
                     )
@@ -2171,6 +2163,75 @@ const SpinnerIcon: React.FC = () => (
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
+
+// ── Attachment renderer ────────────────────────────────────────
+// Photos → <img>. Videos → inline player: Cloudflare Stream URLs
+// get the iframe embed with autoplay disabled (poster/thumbnail
+// shown until tap → controls). Direct-hosted MP4/WebM/MOV get a
+// native <video> with controls + playsInline + poster fallback.
+// `single` = the post has exactly one attachment; render at full
+// height instead of the multi-attachment grid tile.
+const isVideoAttachment = (a: { url: string; type?: string }): boolean => {
+  if ((a.type || '').startsWith('video')) return true;
+  const url = (a.url || '').toLowerCase();
+  return /\.(mp4|webm|mov|m4v)(\?|$)/.test(url) || url.includes('cloudflarestream.com') || url.includes('videodelivery.net') || url.includes('iframe.cloudflarestream.com');
+};
+const isStreamAttachment = (url: string): boolean =>
+  url.includes('cloudflarestream.com') || url.includes('videodelivery.net') || url.includes('iframe.cloudflarestream.com');
+
+const WallAttachment: React.FC<{ a: { url: string; name?: string; type?: string }; single?: boolean }> = ({ a, single }) => {
+  const isVideo = isVideoAttachment(a);
+  if (isVideo) {
+    if (isStreamAttachment(a.url)) {
+      // Extract the Stream uid if we can — the Stream iframe embed
+      // wants uid, not a direct video URL. Falls back to the raw
+      // URL when it's already a full iframe embed link.
+      const uidMatch = a.url.match(/(?:cloudflarestream\.com|videodelivery\.net)\/([A-Za-z0-9]+)/);
+      const embed = uidMatch
+        ? `https://iframe.cloudflarestream.com/${uidMatch[1]}`
+        : a.url;
+      return (
+        <div className={`bg-black ${single ? 'aspect-video w-full' : 'aspect-video w-full'}`}>
+          <iframe
+            src={embed}
+            className="w-full h-full block"
+            allow="accelerometer; gyroscope; encrypted-media; picture-in-picture;"
+            allowFullScreen
+            title={a.name || 'video'}
+          />
+        </div>
+      );
+    }
+    return (
+      <div className={`bg-black ${single ? '' : 'aspect-video'}`}>
+        <video
+          src={a.url}
+          className={`block w-full ${single ? 'max-h-[520px]' : 'aspect-video object-cover'} bg-black`}
+          controls
+          playsInline
+          preload="metadata"
+        />
+      </div>
+    );
+  }
+  return single ? (
+    <img
+      src={a.url}
+      alt={a.name || 'attachment'}
+      loading="lazy"
+      className="block w-full max-h-[520px] object-cover bg-surface-input"
+      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+    />
+  ) : (
+    <img
+      src={a.url}
+      alt={a.name || 'attachment'}
+      loading="lazy"
+      className="block w-full h-44 sm:h-52 object-cover bg-surface-input"
+      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+    />
+  );
+};
 
 // ── Markdown-ish renderer ──────────────────────────────────────
 // Supports: headings (#, ##, ###), bold (**x**), italic (*x*), inline

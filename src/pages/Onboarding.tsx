@@ -94,6 +94,16 @@ const Onboarding: React.FC = () => {
   // than guessing.
   const [homeKitColor, setHomeKitColor] = useState('');
   const [awayKitColor, setAwayKitColor] = useState('');
+  // Practice schedule captured up-front — Heja pattern. Coach picks
+  // which days of the week practice happens on + a default start time.
+  // On team-create we auto-generate 8 weeks of practice events so the
+  // parent joining the team on day one sees a real schedule, not an
+  // empty calendar. Skipping is fine — coach can pick 'none' and add
+  // practices later from Events.
+  const [practiceDays, setPracticeDays] = useState<number[]>([]);        // 0=Sun..6=Sat
+  const [practiceHour, setPracticeHour] = useState(18);                    // 6pm default
+  const [practiceMinute, setPracticeMinute] = useState(0);
+  const [practiceDurationMins, setPracticeDurationMins] = useState(90);
   const [clubName, setClubName] = useState(firstName ? `${firstName}'s club` : '');
   // Club-track only: if the director is ALSO coaching one of the
   // teams from day one, we spin the first team up alongside the
@@ -197,10 +207,46 @@ const Onboarding: React.FC = () => {
         if (autoClubId) setCreatedClubId(autoClubId);
       }
 
+      // Auto-generate 8 weeks of practices from the day-of-week
+      // picker. Heja pattern — team joins day one with a real
+      // schedule, not an empty calendar. Fire-and-forget; a per-event
+      // write failure doesn't block the wizard from advancing.
+      if (practiceDays.length > 0) {
+        try {
+          const nowDate = new Date();
+          const created: Promise<any>[] = [];
+          for (let week = 0; week < 8; week++) {
+            for (const dow of practiceDays) {
+              const evDate = new Date(nowDate);
+              evDate.setDate(evDate.getDate() + ((7 + dow - evDate.getDay()) % 7) + week * 7);
+              evDate.setHours(practiceHour, practiceMinute, 0, 0);
+              // Skip any date that's already in the past (edge case
+              // when the coach picks 'today's' day-of-week after the
+              // configured hour has passed).
+              if (evDate.getTime() < nowDate.getTime()) continue;
+              const endDate = new Date(evDate.getTime() + practiceDurationMins * 60000);
+              created.push(addEvent({
+                title: 'Practice',
+                type: 'practice',
+                date: evDate,
+                endDate,
+                location: '',
+                teamId: newTeamId,
+                createdBy: userData.uid,
+                createdByName: userData.name || 'Coach',
+              } as any));
+            }
+          }
+          await Promise.allSettled(created);
+        } catch (err) {
+          console.warn('Onboarding practice auto-generate failed', err);
+        }
+      }
+
       await refreshUserData?.();
-      // Coach track: team -> roster -> event -> invite -> done
-      // Club track:  team -> club -> roster -> event -> invite -> done
-      setStep(isClubTier ? 'club' : 'roster');
+      // Coach track: team -> invite -> done (roster + event optional).
+      // Club track:  team -> club -> invite -> done.
+      setStep(isClubTier ? 'club' : 'invite');
     } catch (err: any) {
       setError(String(err?.message || err));
     } finally {
@@ -426,47 +472,42 @@ const Onboarding: React.FC = () => {
         {step === 'welcome' && (
           <Card>
             <Kicker>Welcome</Kicker>
-            <H>What are you setting up?</H>
+            <H>{firstName ? `Welcome, ${firstName}` : 'Welcome to GoalKickr'}</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              Pick whichever fits. You can convert from team to club later if it grows.
+              You're a minute away from your team on GoalKickr. Let's get started.
             </p>
 
-            <div className="mt-5 space-y-3">
-              <TrackOption
-                selected={intent === 'team'}
-                onClick={() => setIntent('team')}
-                label="A team"
-                blurb="One team I coach. Roster, RSVPs, chat, gameday, development plans."
-                pricing="Coach $99/yr or $10/mo · 7-day free trial"
-              />
-              <TrackOption
-                selected={intent === 'club'}
-                onClick={() => setIntent('club')}
-                label="A club"
-                blurb="Multiple teams under one organization. Registrations, dues, club admin, financial reporting."
-                pricing="Club $299/yr · waived for clubs running registrations through GoalKickr"
-              />
-            </div>
+            {/* Primary path: coach sets up a team. This is 90%+ of
+                new signups; make it the loud button. Everything else
+                lives as a quiet link below. */}
+            <PrimaryButton
+              onClick={() => { setIntent('team'); setStep('team'); }}
+              className="mt-6 w-full"
+            >
+              Set up a new team
+            </PrimaryButton>
 
-            {/* Escape hatch for users who landed here by mistake.
-                Patrick 2026-06-26: 'what if I was a parent but
-                decided to use a different email? no place for a
-                code?' If they have an invite code (parent OR
-                coach invited as staff), let them out of the
-                team/club setup wizard and into the standard
-                invite consume flow. */}
+            {/* Secondary: parent or assistant coach with an invite
+                code. Escape hatch out of the team-creation wizard. */}
             <div className="mt-5 pt-4 border-t border-line-default/10 space-y-2">
               <p className="text-ink-primary/55 text-xs">
-                Already have an invite code from a coach or club admin?
+                Joining a team? Enter your invite code.
               </p>
               <InviteCodeRow />
             </div>
 
-            {/* Small appearance picker. Defaults to Dark for new users.
-                Owner-only via isThemePickerVisible() until the next
-                iOS + Android binaries ship with the underlay fixes.
-                Sits below the primary CTAs so it reads as a quiet
-                flourish, not competing with the team/club decision. */}
+            {/* Tertiary: club-first setup. Buried as a link because
+                only ~5-10% of new signups run whole clubs, and Heja-
+                simplicity means the solo coach never sees this word.
+                Kept discoverable for the club director who's shopping. */}
+            <button
+              type="button"
+              onClick={() => { setIntent('club'); setStep('club'); }}
+              className="mt-4 w-full text-center text-[11px] font-bold tracking-widest uppercase text-ink-primary/45 hover:text-brand-primary-soft transition"
+            >
+              Running a whole club? Set that up →
+            </button>
+
             {isThemePickerVisible(userData) && <ThemePickerStrip />}
 
             {subscription && (
@@ -481,10 +522,6 @@ const Onboarding: React.FC = () => {
                 }</span>
               </p>
             )}
-
-            <PrimaryButton onClick={() => setStep(isClubTier ? 'club' : 'team')} className="mt-7 w-full">
-              Continue
-            </PrimaryButton>
           </Card>
         )}
 
@@ -518,15 +555,81 @@ const Onboarding: React.FC = () => {
               </Field>
             </div>
 
+            {/* Practice schedule — the highest-leverage onboarding
+                addition. Coach picks days + time; on save we auto-
+                generate 8 weeks of practices so the team joins day
+                one with a real calendar instead of an empty grid.
+                Skipping is fine (leave days empty) — coach can add
+                practices anytime from Events. */}
+            <div className="mt-3">
+              <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5">
+                Practice days <span className="text-ink-primary/40 font-normal normal-case tracking-normal">(we'll auto-generate 8 weeks)</span>
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {(['S','M','T','W','T','F','S']).map((letter, dow) => {
+                  const on = practiceDays.includes(dow);
+                  return (
+                    <button
+                      key={dow}
+                      type="button"
+                      onClick={() => setPracticeDays(prev => on ? prev.filter(d => d !== dow) : [...prev, dow].sort())}
+                      className={`w-10 h-10 rounded-full text-sm font-black transition ring-1 ${
+                        on
+                          ? 'bg-brand-primary text-white ring-brand-primary shadow-sm'
+                          : 'bg-surface-elevated text-ink-primary/70 ring-line-default/15 hover:ring-brand-primary-soft/40'
+                      }`}
+                      aria-label={['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dow]}
+                    >
+                      {letter}
+                    </button>
+                  );
+                })}
+              </div>
+              {practiceDays.length > 0 && (
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <Field label="Start time">
+                    <input
+                      type="time"
+                      value={`${String(practiceHour).padStart(2, '0')}:${String(practiceMinute).padStart(2, '0')}`}
+                      onChange={(e) => {
+                        const [h, m] = e.target.value.split(':').map(Number);
+                        setPracticeHour(h || 0);
+                        setPracticeMinute(m || 0);
+                      }}
+                      className="form-input"
+                    />
+                  </Field>
+                  <Field label="Duration">
+                    <select
+                      value={practiceDurationMins}
+                      onChange={(e) => setPracticeDurationMins(Number(e.target.value))}
+                      className="form-input"
+                    >
+                      <option value={60}>1 hour</option>
+                      <option value={75}>1h 15m</option>
+                      <option value={90}>1h 30m</option>
+                      <option value={105}>1h 45m</option>
+                      <option value={120}>2 hours</option>
+                    </select>
+                  </Field>
+                </div>
+              )}
+              {practiceDays.length > 0 && (
+                <p className="mt-2 text-xs text-ink-primary/50">
+                  {practiceDays.length} practice{practiceDays.length === 1 ? '' : 's'} per week × 8 weeks = <b className="text-ink-primary/85">{practiceDays.length * 8} events</b> on your calendar.
+                </p>
+              )}
+            </div>
+
             {/* Kit colors — free-form so clubs aren't forced into a
                 10-option palette ("Royal Blue / White" beats picking
                 'Blue'). Optional: parents see "Home" / "Away" on the
                 event card when blank, your kit name when set. */}
-            <div className="mt-3">
-              <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5">
-                Kit colors <span className="text-ink-primary/40 font-normal normal-case tracking-normal">(optional, shows on event cards)</span>
-              </p>
-              <div className="grid grid-cols-2 gap-3">
+            <details className="mt-4">
+              <summary className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 cursor-pointer hover:text-ink-primary/85">
+                Kit colors (optional)
+              </summary>
+              <div className="mt-2 grid grid-cols-2 gap-3">
                 <Field label="Home kit">
                   <input
                     type="text"
@@ -546,11 +649,15 @@ const Onboarding: React.FC = () => {
                   />
                 </Field>
               </div>
-            </div>
+            </details>
 
             {error && <ErrorBanner>{error}</ErrorBanner>}
             <PrimaryButton onClick={handleCreateTeam} disabled={busy || !teamName.trim()} className="mt-6 w-full">
-              {busy ? 'Creating team…' : 'Create team'}
+              {busy
+                ? 'Creating team…'
+                : practiceDays.length > 0
+                  ? `Create team + ${practiceDays.length * 8} practices`
+                  : 'Create team'}
             </PrimaryButton>
           </Card>
         )}

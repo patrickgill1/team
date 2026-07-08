@@ -1868,6 +1868,19 @@ export interface WallPost {
     awayKitColor?: string;
     gameDate?: any;
   };
+  /** Structured POTM winner payload. Present on posts written by
+   *  autoPostPotmToWall so the Wall renderer can render a crown
+   *  celebration card (photo, name, game, vote count) instead of a
+   *  plain markdown line. */
+  potmResult?: {
+    playerId: string;
+    playerName: string;
+    playerPhotoUrl?: string | null;
+    voteCount: number;
+    gameTitle: string;
+    isCoWin?: boolean;
+    gameDate?: any;
+  };
 }
 
 export interface WallComment {

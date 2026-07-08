@@ -12,6 +12,7 @@ import EmojiPicker from '../components/chat/EmojiPicker';
 import WallPollCard from '../components/wall/WallPollCard';
 import WallEditor from '../components/wall/WallEditor';
 import GameRecapCard from '../components/wall/GameRecapCard';
+import PotmWinnerCard from '../components/wall/PotmWinnerCard';
 import TrialGateModal from '../components/common/TrialGateModal';
 import { useTrialGate } from '../hooks/useTrialGate';
 import { marked } from 'marked';
@@ -1416,6 +1417,18 @@ const Wall: React.FC = () => {
                 if (myUid && r.userId === myUid) grouped[r.emoji].mine = true;
               }
               const reactionEntries = Object.entries(grouped).sort((a, b) => b[1].count - a[1].count);
+              // Quick-tap reactions — always visible strip so parents
+              // can react in one tap instead of opening the picker.
+              // Any additional emojis added via the picker fall into
+              // reactionEntries alongside these. Ordered: love, fire,
+              // clap, ball (=goal), trophy (=game).
+              const QUICK_EMOJIS = ['❤️', '🔥', '👏', '⚽', '🏆'];
+              const quickReactions = QUICK_EMOJIS.map(emoji => ({
+                emoji,
+                count: grouped[emoji]?.count || 0,
+                mine: grouped[emoji]?.mine || false,
+              }));
+              const extraReactions = reactionEntries.filter(([e]) => !QUICK_EMOJIS.includes(e));
               const isPinnedTop = !!p.wallPinnedTop;
               const cat = (p.category || 'announcement') as WallCategory;
               const tone = CATEGORY_TONE[cat];
@@ -1475,13 +1488,19 @@ const Wall: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Hero recap card — swaps in when the post carries
-                      structured recap metadata (postedFrom='game' auto-
-                      posts). Absent recap → fall through to markdown
-                      body so legacy recaps still render.  */}
+                  {/* Hero cards — swap in when the post carries a
+                      structured payload:
+                        recap       → GameRecapCard (game auto-posts)
+                        potmResult  → PotmWinnerCard (POTM close)
+                      Absent both → fall through to markdown body so
+                      legacy posts still render.  */}
                   {(p as any).recap ? (
                     <div className="px-3 pb-3">
                       <GameRecapCard recap={(p as any).recap} timestamp={p.timestamp} />
+                    </div>
+                  ) : (p as any).potmResult ? (
+                    <div className="px-3 pb-3">
+                      <PotmWinnerCard potm={(p as any).potmResult} timestamp={p.timestamp} />
                     </div>
                   ) : p.content ? (
                     <article className="px-4 pb-3 text-ink-primary/90 break-words text-[15.5px] leading-relaxed">
@@ -1537,57 +1556,73 @@ const Wall: React.FC = () => {
                     )
                   )}
 
-                  {/* Reaction chips strip — one per emoji, with count.
-                      Tap to toggle YOUR reaction with that emoji. Tap
-                      the comment count to expand the thread.
-                      Coach/author-only "Seen by N" pill rides at the
-                      end of this row so it's grouped with the rest of
-                      the engagement signals. */}
-                  {(reactionEntries.length > 0 || (commentCounts[p.id] || 0) > 0 || (canSeeSeen && seenCount > 0)) && (
-                    <div className="px-4 pt-3 pb-1 flex items-center gap-1.5 flex-wrap text-[12px] text-ink-primary/50">
-                      {reactionEntries.map(([emoji, info]) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => void toggleReaction(p, emoji)}
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[13px] ring-1 transition ${
-                            info.mine
-                              ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft'
-                              : 'bg-line-default/[0.04] ring-line-default/10 text-ink-primary/85 hover:bg-line-default/[0.08]'
-                          }`}
-                        >
-                          <span className="text-sm leading-none">{emoji}</span>
-                          <span className="font-semibold tabular-nums">{info.count}</span>
-                        </button>
-                      ))}
-                      {reactionEntries.length > 0 && (
-                        <button
-                          onClick={() => setReactorsPostId(p.id)}
-                          className="text-[11px] font-bold uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary-soft"
-                        >
-                          Who reacted →
-                        </button>
-                      )}
-                      {(commentCounts[p.id] || 0) > 0 && (
-                        <button onClick={() => toggleExpand(p.id)} className="ml-auto hover:text-brand-primary-soft font-semibold">
-                          {commentCounts[p.id]} {commentCounts[p.id] === 1 ? 'comment' : 'comments'}
-                        </button>
-                      )}
-                      {canSeeSeen && seenCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setViewersPostId(p.id)}
-                          className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-ink-primary/55 hover:text-brand-primary-soft transition-colors ${(commentCounts[p.id] || 0) > 0 ? '' : 'ml-auto'}`}
-                          title="See who's viewed this post"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                          </svg>
-                          {seenCount} seen
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  {/* Quick-tap reaction strip — always visible so a
+                      one-tap heart/fire/clap doesn't require opening
+                      the picker. Extras (custom emojis from the picker)
+                      render alongside on the right. Comment count +
+                      "Who reacted" + author-only "Seen by N" ride
+                      after so all engagement signals live on one row. */}
+                  <div className="px-4 pt-3 pb-1 flex items-center gap-1.5 flex-wrap text-[12px] text-ink-primary/50">
+                    {quickReactions.map(({ emoji, count, mine }) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => void toggleReaction(p, emoji)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[13px] ring-1 transition active:scale-95 ${
+                          mine
+                            ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft'
+                            : count > 0
+                              ? 'bg-line-default/[0.04] ring-line-default/10 text-ink-primary/85 hover:bg-line-default/[0.08]'
+                              : 'bg-transparent ring-line-default/15 text-ink-primary/45 hover:text-ink-primary/85 hover:bg-line-default/[0.05]'
+                        }`}
+                        aria-label={`React with ${emoji}`}
+                      >
+                        <span className="text-sm leading-none">{emoji}</span>
+                        {count > 0 && <span className="font-semibold tabular-nums">{count}</span>}
+                      </button>
+                    ))}
+                    {extraReactions.map(([emoji, info]) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => void toggleReaction(p, emoji)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[13px] ring-1 transition ${
+                          info.mine
+                            ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft'
+                            : 'bg-line-default/[0.04] ring-line-default/10 text-ink-primary/85 hover:bg-line-default/[0.08]'
+                        }`}
+                      >
+                        <span className="text-sm leading-none">{emoji}</span>
+                        <span className="font-semibold tabular-nums">{info.count}</span>
+                      </button>
+                    ))}
+                    {reactionEntries.length > 0 && (
+                      <button
+                        onClick={() => setReactorsPostId(p.id)}
+                        className="text-[10px] font-bold uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary"
+                      >
+                        Who reacted →
+                      </button>
+                    )}
+                    {(commentCounts[p.id] || 0) > 0 && (
+                      <button onClick={() => toggleExpand(p.id)} className="ml-auto hover:text-brand-primary-soft font-semibold">
+                        {commentCounts[p.id]} {commentCounts[p.id] === 1 ? 'comment' : 'comments'}
+                      </button>
+                    )}
+                    {canSeeSeen && seenCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setViewersPostId(p.id)}
+                        className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-ink-primary/55 hover:text-brand-primary-soft transition-colors ${(commentCounts[p.id] || 0) > 0 ? '' : 'ml-auto'}`}
+                        title="See who's viewed this post"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        {seenCount} seen
+                      </button>
+                    )}
+                  </div>
 
                   {/* Action footer — dark navy strip with cyan accents.
                       Matches the rest of the app's branded chrome

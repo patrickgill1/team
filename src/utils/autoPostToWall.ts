@@ -36,9 +36,10 @@ async function postToWall(
     attachments?: Array<{ url: string; type: string; name?: string }>;
     postedFrom?: 'wall' | 'game' | 'video' | 'potm' | 'devplan' | 'juggle';
     // Structured payload for hero-card rendering. The Wall renderer
-    // reads this and swaps the markdown fallback for the specialized
+    // reads these and swaps the markdown fallback for the specialized
     // card (GameRecapCard for recap, PotmWinnerCard for potmResult).
     recap?: any;
+    potmResult?: any;
   } = {}
 ): Promise<string | null> {
   try {
@@ -55,6 +56,7 @@ async function postToWall(
       postedFrom: opts.postedFrom || 'wall',
     };
     if (opts.recap) doc.recap = opts.recap;
+    if (opts.potmResult) doc.potmResult = opts.potmResult;
     const ref = await addDoc(collection(db, 'wall_posts'), doc);
     return ref.id;
   } catch (err) {
@@ -249,19 +251,39 @@ export async function autoPostPotmVotingOpenToWall(
   await postToWall(teamId, actor, lines.join('\n'), { postedFrom: 'potm' });
 }
 
-/** Auto-post a Player of the Match win. One line — the player and
- *  the game. Coach can flesh out details in a comment. */
+/** Auto-post a Player of the Match win. Writes a structured
+ *  potmResult payload for the crown-celebration hero card AND the
+ *  markdown fallback so legacy clients + text-only surfaces (emails,
+ *  notifications) still work.
+ *
+ *  Called by PlayerOfMatch.handleCloseVoting — one call per winner
+ *  when there's a co-win. */
 export async function autoPostPotmToWall(
-  player: { id?: string; name: string; teamId?: string | null },
+  player: { id?: string; name: string; teamId?: string | null; photoUrl?: string | null },
   gameTitle: string,
   actor: Actor,
+  voteCount?: number,
+  opts?: { isCoWin?: boolean; gameDate?: any },
 ): Promise<void> {
   if (!player?.teamId || !player?.name) return;
+  const heading = opts?.isCoWin ? 'Co-Player of the Match' : 'Player of the Match';
   const lines = [
-    '## Player of the Match',
+    `## ${heading}`,
     `**${player.name}** — ${gameTitle}`,
   ];
-  await postToWall(player.teamId, actor, lines.join('\n'), { postedFrom: 'potm' });
+  const potmResult = {
+    playerId: player.id || '',
+    playerName: player.name,
+    playerPhotoUrl: player.photoUrl || null,
+    voteCount: typeof voteCount === 'number' ? voteCount : 0,
+    gameTitle,
+    isCoWin: !!opts?.isCoWin,
+    gameDate: opts?.gameDate,
+  };
+  await postToWall(player.teamId, actor, lines.join('\n'), {
+    postedFrom: 'potm',
+    potmResult,
+  });
 }
 
 /** Auto-post a development plan completion. */

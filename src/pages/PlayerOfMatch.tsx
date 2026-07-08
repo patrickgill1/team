@@ -415,16 +415,26 @@ const PlayerOfMatch: React.FC = () => {
         }
       } catch (e) { console.warn('POTM flag update failed', e); }
 
-      // Auto-post each winner to the team wall.
+      // Auto-post each winner to the team wall as a crown celebration
+      // (structured potmResult payload → PotmWinnerCard).
       try {
         if (winners.length > 0 && selectedTeamId && userData) {
           const { autoPostPotmToWall } = await import('../utils/autoPostToWall');
           const actor = { uid: userData.uid, name: userData.name || 'Coach', role: 'coach' };
+          const isCoWin = winners.length > 1;
           for (const w of winners) {
+            const player = players.find(p => p.id === w.playerId);
             void autoPostPotmToWall(
-              { id: w.playerId, name: w.playerName, teamId: selectedTeamId },
+              {
+                id: w.playerId,
+                name: w.playerName,
+                teamId: selectedTeamId,
+                photoUrl: player?.profilePhotoUrl || null,
+              },
               activeVoting.gameTitle,
               actor,
+              w.voteCount,
+              { isCoWin, gameDate: activeVoting.gameDate },
             );
           }
         }

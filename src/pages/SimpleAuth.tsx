@@ -4,12 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
 import { friendlyAuthError } from '../utils/authErrors';
 
-// Temporary version stamp so we can tell over screenshots which
-// bundle Patrick is actually running while iterating on the auth
-// layout. Delete once the Dynamic Island / form-fit debugging is
-// settled.
-const AUTH_DEBUG_VERSION = '3.9.111';
-
 const SimpleAuth: React.FC = () => {
   const { signIn, signUp, signInWithGoogle, signInWithApple, currentUser, userData, loading, error } = useAuth();
   const isNativePlatform = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
@@ -436,17 +430,6 @@ const SimpleAuth: React.FC = () => {
       <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-[100px]" />
       {/* Subtle grid */}
       <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-
-      {/* Temporary version stamp — bottom-right corner. Only shown
-          while we debug the Dynamic Island / form-fit issue. Lets us
-          confirm over screenshots which bundle Patrick is running.
-          Delete this block once we know we're aligned. */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed bottom-2 right-2 text-[10px] font-mono text-white/25 z-50"
-      >
-        v{AUTH_DEBUG_VERSION}
-      </div>
 
       {/* Mobile-first container with better spacing */}
       <div className="relative w-full max-w-sm sm:max-w-md space-y-3 sm:space-y-9">

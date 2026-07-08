@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
@@ -32,6 +33,7 @@ interface Props {
 const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
   const { userData, currentUser, refreshUserData } = useAuth();
   const { createTeam, createClub } = useFirestore();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('menu');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -156,7 +158,7 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
             <ActionCard
               title="Start a team"
               hint="You're a coach launching a new team."
-              onClick={() => setMode('team')}
+              onClick={() => navigate('/onboarding?step=team')}
             />
             <ActionCard
               title="Start a club"

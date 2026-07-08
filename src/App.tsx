@@ -12,6 +12,10 @@ import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import SilentErrorBoundary from './components/common/SilentErrorBoundary';
 import OnboardingGate from './components/gates/OnboardingGate';
+// Onboarding wizard — post-signup guided setup (team, kid, schedule,
+// invites, notifications, trial). Un-retired 2026-07-08 when Patrick
+// asked for the step-by-step flow he'd originally spec'd.
+import Onboarding from './pages/Onboarding';
 import { getRandomWelcomeBackItem, KIND_LABEL } from './utils/welcomeBackContent';
 import Navigation from './components/common/Navigation';
 import { SidebarProvider, useSidebar } from './contexts/SidebarContext';
@@ -910,17 +914,19 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Legacy /onboarding — the Onboarding.tsx wizard was
-                superseded by OnboardingGate (rendered inline from
-                the empty-team branch above). ProtectedRoute still
-                redirects some coaches here; forward to root so the
-                gate takes over. Removes the last direct writes to
-                users.role/teamIds and players.parentIds that the
-                legacy page did.
-                Old Onboarding.tsx module is unreferenced now; kept
-                on disk as history until a followup cleanup deletes
-                it. */}
-            <Route path="/onboarding" element={<Navigate to="/" replace />} />
+            {/* /onboarding — post-signup wizard. OnboardingGate now
+                routes fresh coaches here when they pick "Start a
+                team" so they get the full step-by-step setup: team
+                name → kid? → practice days → schedule preview →
+                time/location → confirm → invite parents → invite
+                coach → notifications → checklist → another team? →
+                trial. The wizard does the team-create write itself
+                (see handleCreateTeamAndAdvance in Onboarding.tsx). */}
+            <Route path="/onboarding" element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
+            } />
 
             {/* Standalone bulk add-players + invite-parents page.
                 Reachable from Dashboard's Getting Started card and

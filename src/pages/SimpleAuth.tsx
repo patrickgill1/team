@@ -433,16 +433,23 @@ const SimpleAuth: React.FC = () => {
       <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
       {/* Mobile-first container with better spacing */}
-      <div className="relative w-full max-w-sm sm:max-w-md space-y-7 sm:space-y-9">
+      {/* Header spacing tightened 2026-07: on iPhone Pro Max the
+          hero header (logo + pill + h2 + subtitle) was pushing the
+          Sign Up / Sign In tabs and Apple/Google buttons below the
+          fold, so users had to scroll after tapping a bottom CTA on
+          the landing. Cut vertical bulk: mb-5 → mb-3 for logo, mb-4
+          → mb-2 for kicker pill, and h2 down one size on mobile
+          (text-4xl → text-3xl). space-y-7 → space-y-5 on outer. */}
+      <div className="relative w-full max-w-sm sm:max-w-md space-y-5 sm:space-y-9">
         {/* Logo and Header Section */}
         <div className="text-center">
-          <div className="mb-5 sm:mb-6 flex justify-center">
+          <div className="mb-3 sm:mb-6 flex justify-center">
             <div className="rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur-md p-3">
               <Logo size="lg" variant="full" />
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur-md mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur-md mb-2 sm:mb-4">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-primary-soft animate-pulse" />
             <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-brand-primary-soft/90">
               {mode === 'login' && 'Member Access'}
@@ -450,7 +457,7 @@ const SimpleAuth: React.FC = () => {
             </span>
           </div>
 
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-brand-primary-soft to-violet-300 bg-clip-text text-transparent leading-tight mb-2">
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-brand-primary-soft to-violet-300 bg-clip-text text-transparent leading-tight mb-1 sm:mb-2">
             {mode === 'login' && 'Welcome Back'}
             {mode === 'register' && 'Start Your Team'}
           </h2>

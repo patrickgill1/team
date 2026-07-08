@@ -13,7 +13,12 @@ const PotmShowcase: React.FC = () => {
   const potm = {
     playerId: 'demo-hunter',
     playerName: 'Hunter Gill',
-    playerPhotoUrl: null,
+    // Drops a real portrait if you save one at
+    // /public/hero/players/hunter.jpg — otherwise the card renders
+    // the amber-glow initial fallback. To use a different demo
+    // player, either swap the file at that path or edit the URL
+    // here.
+    playerPhotoUrl: '/hero/players/hunter.jpg',
     voteCount: 12,
     gameTitle: 'Fire FC vs Rovers',
     isCoWin: false,

@@ -528,6 +528,40 @@ const TeamManagement: React.FC = () => {
           )}
         </div>
 
+        {/* Club nudge — appears when a solo coach has 3+ active teams.
+            Gentle prompt, not a forced upgrade. Only for solo-coach
+            wrappers (isDefaultSoloClub); real club admins already
+            have Club Pro tooling and don't need the nag. */}
+        {teams.filter(t => (t as any).isActive !== false).length >= 3 && !isUserClubAdmin && (
+          <div className="mb-6 rounded-2xl bg-gradient-to-br from-brand-primary/10 via-surface-elevated to-surface-base ring-1 ring-brand-primary/20 p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-primary/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-black tracking-widest uppercase text-brand-primary-soft mb-1">Nice, {teams.filter(t => (t as any).isActive !== false).length} teams</p>
+                <h3 className="text-base font-bold text-ink-primary leading-tight">
+                  Ready to organize them as a club?
+                </h3>
+                <p className="text-xs text-ink-primary/60 mt-1 leading-snug">
+                  You've grown past a single team. Club tier gets you cross-team registrations, shared coach roster, tryouts, financial routing, and one place to run everything.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Link
+                    to="/club/products"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-primary text-white text-xs font-black uppercase tracking-widest hover:bg-brand-primary/90 transition"
+                  >
+                    See what Club adds
+                  </Link>
+                  <span className="text-[10px] text-ink-primary/45">Not now? No pressure — your teams stay as they are.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Teams Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {teams.map(team => {

@@ -1042,7 +1042,7 @@ const Wall: React.FC = () => {
       {/* Compact mobile header — no big hero strip eating screen real
           estate. Title row + pill filter on a single sticky stack. */}
       <section className="bg-surface-base px-4 sm:px-6 py-3 border-b border-line-default/5">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
           <Link to="/dashboard" aria-label="Back" className="inline-flex items-center justify-center w-8 h-8 rounded-full text-brand-primary-soft hover:bg-line-default/10">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           </Link>
@@ -1050,41 +1050,15 @@ const Wall: React.FC = () => {
             <AppIcon name="news" className="w-4 h-4 text-brand-primary-soft" />
             <span className="tracking-tight">The Sideline</span>
           </h1>
-          <span className="w-8" aria-hidden />
-        </div>
-      </section>
-
-      {/* Category pills + inline "+ Post" CTA — horizontally
-          scrollable on mobile, sticky under the header. Putting the
-          new-post button HERE (instead of a floating FAB) avoids the
-          right-edge collision with each post's kebab and keeps the
-          CTA always-visible without overlaying content. */}
-      <div className="sticky top-0 z-20 bg-surface-base/95 backdrop-blur-md border-b border-line-default/10">
-        <div className="max-w-2xl mx-auto px-3 py-2 flex items-center gap-1.5">
-          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-            {CATEGORIES.map(c => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setActiveCategory(c.id)}
-                className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-extrabold uppercase tracking-widest transition ${
-                  activeCategory === c.id
-                    ? 'bg-surface-raised text-ink-primary'
-                    : 'bg-line-default/[0.06] text-ink-primary/65 ring-1 ring-line-default/10 hover:bg-line-default/[0.1]'
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-          {canPost && (
+          {canPost ? (
             <button
               type="button"
               onClick={() => {
                 if (trialGated) { setTrialGateOpen(true); return; }
                 setComposerOpen(true);
               }}
-              className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-primary hover:bg-brand-primary/150 active:scale-95 text-white text-[12px] font-extrabold uppercase tracking-widest transition shadow-sm"
+              className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-primary hover:bg-brand-primary/150 active:scale-95 text-white text-[11px] font-extrabold uppercase tracking-widest transition shadow-sm"
+              aria-label="New post"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -1092,7 +1066,32 @@ const Wall: React.FC = () => {
               </svg>
               Post
             </button>
+          ) : (
+            <span className="w-8" aria-hidden />
           )}
+        </div>
+      </section>
+
+      {/* Category pills — wrap to a second row on narrow screens
+          instead of scrolling sideways (Patrick's rule: sideways
+          scrolling of pills = layout is wrong). Post button lives
+          on the top bar above so this row is purely filter. */}
+      <div className="sticky top-0 z-20 bg-surface-base/95 backdrop-blur-md border-b border-line-default/10">
+        <div className="max-w-2xl mx-auto px-3 py-2 flex flex-wrap items-center justify-center gap-1.5">
+          {CATEGORIES.map(c => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setActiveCategory(c.id)}
+              className={`px-3.5 py-1.5 rounded-full text-[12px] font-extrabold uppercase tracking-widest transition ${
+                activeCategory === c.id
+                  ? 'bg-surface-raised text-ink-primary'
+                  : 'bg-line-default/[0.06] text-ink-primary/65 ring-1 ring-line-default/10 hover:bg-line-default/[0.1]'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
         </div>
       </div>
 

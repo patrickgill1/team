@@ -164,15 +164,14 @@ const Navigation: React.FC = () => {
   // interior shapes that disappear when filled).
   const bottomTabs: Array<{ name: string; path: string; icon: import('./AppIcon').AppIconName }> = [
     { name: 'Home', path: '/dashboard', icon: 'home' },
-    // Wall is the culture spine — game recaps, POTM crowns, tagged
-    // clips, votes, coach news. Elevated from the header megaphone
-    // to a primary tab so parents open it every day instead of
-    // scrolling chat for the game recap. Absorbs Media as an
-    // internal tab (see /wall's tab shape) so per-kid clip archives
-    // still work via Player Profile without a separate Media tab
-    // eating primary real estate.
-    { name: 'Wall', path: '/wall', icon: 'news' },
     { name: 'Events', path: '/calendar', icon: 'calendar' },
+    // Wall lives in the middle — the thumb-sweet-spot on the bottom
+    // bar. This is deliberate: it's the culture spine (game recaps,
+    // POTM crowns, tagged clips, votes, coach news) and its spatial
+    // position signals that. Absorbs Media as an internal tab so
+    // per-kid clip archives still work via Player Profile without a
+    // separate Media tab eating primary real estate.
+    { name: 'Wall', path: '/wall', icon: 'news' },
     { name: 'Chat', path: '/chat', icon: 'chat' },
     { name: 'More', path: '#more', icon: 'menu' },
   ];

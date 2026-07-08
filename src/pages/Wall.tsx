@@ -137,15 +137,20 @@ const Wall: React.FC = () => {
   const [comments, setComments] = useState<Record<string, WallComment[]>>({});
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
-  // Category filter — drives the pill row above the feed and the
-  // composer's category chooser. 'all' shows everything.
+  // Wall tabs — the culture spine's own information architecture.
+  // Feed is the mixed chronological stream. The other tabs are lenses
+  // that filter down to specific provenance / content. Composer keeps
+  // its own category picker (below) so coach posts can be tagged, but
+  // the top nav is provenance-based because that's how humans think
+  // about the wall ("show me recaps" not "show me category=result").
   type WallCategory = NonNullable<WallPost['category']>;
-  const CATEGORIES: Array<{ id: WallCategory | 'all'; label: string }> = [
-    { id: 'all', label: 'All' },
-    { id: 'announcement', label: 'News' },
-    { id: 'result', label: 'Results' },
-    { id: 'spotlight', label: 'Spotlight' },
-    { id: 'practice', label: 'Practice' },
+  type WallTab = 'feed' | 'media' | 'recaps' | 'awards' | 'news';
+  const CATEGORIES: Array<{ id: WallTab; label: string }> = [
+    { id: 'feed', label: 'Feed' },
+    { id: 'media', label: 'Media' },
+    { id: 'recaps', label: 'Recaps' },
+    { id: 'awards', label: 'Awards' },
+    { id: 'news', label: 'News' },
   ];
   const CATEGORY_TONE: Record<WallCategory, { text: string; bg: string; ring: string }> = {
     announcement: { text: 'text-brand-primary-soft', bg: 'bg-brand-primary/150/15', ring: 'ring-brand-primary-soft/30' },
@@ -161,7 +166,7 @@ const Wall: React.FC = () => {
     practice: 'Practice',
     system: 'Auto',
   };
-  const [activeCategory, setActiveCategory] = useState<WallCategory | 'all'>('all');
+  const [activeCategory, setActiveCategory] = useState<WallTab>('feed');
   const [composerCategory, setComposerCategory] = useState<WallCategory>('announcement');
   // The composer used to live at the top of the feed and Patrick had
   // to scroll past it every time. It now opens from a floating +
@@ -1009,12 +1014,27 @@ const Wall: React.FC = () => {
     return r.url;
   };
 
-  // Filter feed by selected category pill. 'all' falls through; any
-  // other tag matches the post's category (defaulting to 'announcement'
-  // for older posts that predate the field).
+  // Filter feed by selected Wall tab. Filters are provenance + content
+  // based rather than category-based because that's how people think
+  // about the wall ("show me the recaps" not "show me category=result").
+  //   feed    → everything
+  //   media   → posts with attachments (photo/video)
+  //   recaps  → game-recap auto-posts (postedFrom='game')
+  //   awards  → POTM / juggle PR / dev-plan-complete auto-posts
+  //   news    → manual coach posts (postedFrom='wall' or absent)
   const filteredPosts = posts.filter(p => {
-    if (activeCategory === 'all') return true;
-    return (p.category || 'announcement') === activeCategory;
+    if (activeCategory === 'feed') return true;
+    if (activeCategory === 'media') {
+      return Array.isArray(p.attachments) && p.attachments.length > 0;
+    }
+    if (activeCategory === 'recaps') return p.postedFrom === 'game';
+    if (activeCategory === 'awards') {
+      return p.postedFrom === 'potm' || p.postedFrom === 'juggle' || p.postedFrom === 'devplan';
+    }
+    if (activeCategory === 'news') {
+      return !p.postedFrom || p.postedFrom === 'wall';
+    }
+    return true;
   });
 
   return (
@@ -1358,12 +1378,23 @@ const Wall: React.FC = () => {
           <div className="px-4">
             <EmptyState
               icon={<AppIcon name="news" className="w-5 h-5" />}
-              title={activeCategory === 'all' ? 'Nothing on the wall yet' : 'No posts in this category'}
-              description={activeCategory === 'all'
-                ? (canPost
-                  ? 'Type your first announcement above. The wall is for formatted posts — chat is separate.'
-                  : 'Coaches post announcements and important links here.')
-                : 'Try another category, or post one of your own.'}
+              title={
+                activeCategory === 'feed' ? 'Nothing on the wall yet'
+                : activeCategory === 'media' ? 'No media posts yet'
+                : activeCategory === 'recaps' ? 'No game recaps yet'
+                : activeCategory === 'awards' ? 'No awards to celebrate yet'
+                : 'No news posted yet'
+              }
+              description={
+                activeCategory === 'feed'
+                  ? (canPost
+                    ? 'This is your team\'s story. Game recaps, POTM crowns, tagged clips, and coach news land here automatically. Start one with the + button.'
+                    : 'Recaps, awards, and coach news will show up here as the season plays out.')
+                  : activeCategory === 'recaps' ? 'Finish a game in GameDay and the recap posts here automatically.'
+                  : activeCategory === 'awards' ? 'Player of the Match wins, personal bests, and milestones show up here.'
+                  : activeCategory === 'media' ? 'Photos and video clips coaches post will collect here.'
+                  : 'Coach announcements land here. Games and awards get their own tabs.'
+              }
             />
           </div>
         ) : (

@@ -97,6 +97,63 @@ export async function autoPostVideoToWall(media: PlayerMedia, actor: Actor): Pro
   await postToWall(media.teamId, actor, lines.join('\n'), { attachments, postedFrom: 'video' });
 }
 
+/** Auto-post the game recap when GameDay hits status='final'. This
+ *  is the Wall's headline moment — score + top performers, so
+ *  parents who missed the game get the story without scrolling
+ *  chat. Coach can still write a longer post on top; this seeds
+ *  the persistent record. */
+export async function autoPostGameRecapToWall(
+  event: CalendarEvent,
+  game: {
+    ourScore?: number;
+    oppScore?: number;
+    timeline?: Array<{ kind: string; playerId?: string; playerName?: string }>;
+  },
+  actor: Actor,
+  usLabel: string,
+): Promise<void> {
+  if (event.type !== 'game' || !event.teamId) return;
+
+  const ours = game.ourScore || 0;
+  const theirs = game.oppScore || 0;
+  const opp = event.opponent || 'Opponent';
+  const outcome = ours > theirs ? 'W' : ours < theirs ? 'L' : 'D';
+  const outcomeWord = outcome === 'W' ? 'Win' : outcome === 'L' ? 'Loss' : 'Draw';
+
+  // Tally goal + assist scorers so we can surface a top-line list.
+  const goals: Record<string, { name: string; count: number }> = {};
+  const assists: Record<string, { name: string; count: number }> = {};
+  (game.timeline || []).forEach(t => {
+    if (t.kind === 'goal' && t.playerId && t.playerName) {
+      const g = goals[t.playerId] || (goals[t.playerId] = { name: t.playerName, count: 0 });
+      g.count++;
+    }
+    if (t.kind === 'assist' && t.playerId && t.playerName) {
+      const a = assists[t.playerId] || (assists[t.playerId] = { name: t.playerName, count: 0 });
+      a.count++;
+    }
+  });
+
+  const goalList = Object.values(goals)
+    .sort((a, b) => b.count - a.count)
+    .map(g => g.count > 1 ? `${g.name} ×${g.count}` : g.name)
+    .join(', ');
+  const assistList = Object.values(assists)
+    .sort((a, b) => b.count - a.count)
+    .map(a => a.count > 1 ? `${a.name} ×${a.count}` : a.name)
+    .join(', ');
+
+  const lines: string[] = [];
+  lines.push(`## Full time — ${outcomeWord}`);
+  lines.push(`**${usLabel} ${ours} — ${theirs} ${opp}**`);
+  if (goalList) lines.push(`**Goals:** ${goalList}`);
+  if (assistList) lines.push(`**Assists:** ${assistList}`);
+  lines.push('');
+  lines.push('_Tap POTM to vote for player of the match._');
+
+  await postToWall(event.teamId, actor, lines.join('\n'), { postedFrom: 'game' });
+}
+
 /** Auto-post a Player of the Match win. One line — the player and
  *  the game. Coach can flesh out details in a comment. */
 export async function autoPostPotmToWall(

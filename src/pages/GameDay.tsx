@@ -362,6 +362,19 @@ const GameDay: React.FC = () => {
     const theirs = game.oppScore || 0;
     const result = ours > theirs ? 'Win' : ours < theirs ? 'Loss' : 'Draw';
     void notifyGoingParents(`Full time — ${result}`, `${usLabel} ${ours}-${theirs} ${opp}`);
+    // Culture engine: auto-write the recap to the team Wall so
+    // parents who missed the game get the story without scrolling
+    // chat. Fire-and-forget; a Wall post failure never blocks the
+    // finalization or the stats rollup that follows.
+    if (event && userData) {
+      const { autoPostGameRecapToWall } = await import('../utils/autoPostToWall');
+      void autoPostGameRecapToWall(
+        event as any,
+        game,
+        { uid: userData.uid, name: userData.name || 'Coach', role: userData.role || 'coach' },
+        usLabel,
+      );
+    }
     // Stats gate: skip season-aggregate writes when the coach turned
     // "counts to stats" off on this specific game (scrimmage, testing)
     // OR when the team is flagged as demo. Timeline is already written

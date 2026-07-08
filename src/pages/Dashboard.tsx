@@ -941,27 +941,37 @@ const Dashboard: React.FC = () => {
       <div className="relative">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
-        {/* Show the push-permission banner first when the user has no
-            FCM tokens. Self-hides when not needed. */}
-        <NotificationsBanner />
-
-        {/* Getting Started checklist — surfaces above everything
-            for new coaches. Hides when all items are done OR after
-            the 30-day dismiss cooldown. Includes the trial CTA as
-            the LAST step (earned, not dangled). */}
-        <GettingStartedCard players={players} events={upcomingEvents} dataLoading={loading} />
-
-        {/* Subscription nudge for coaches without an active sub.
-            Self-hides for parents, subscribers, and the 7-day window
-            after dismiss. */}
-        <SubscribeBanner />
-
-        <SmartDiscoveryPrompts
-          players={players}
-          events={upcomingEvents}
-          isCoach={isUserCoach}
-          dataLoading={loading}
-        />
+        {/* Welcome grace period — hide the promotional stack for the
+            first 45 min after signup so a brand-new coach gets a
+            peaceful first look at their populated dashboard instead
+            of a wall of 'do this, do that' prompts. Patrick called
+            this the make-or-break moment: 'awesome that by the time
+            they get to the beautiful dashboard, they already have
+            an event waiting to be seen.'
+            After 45 min, the normal Getting Started + Subscribe +
+            Notifications + Smart Discovery stack surfaces as usual. */}
+        {(() => {
+          const createdAt = (userData as any)?.createdAt;
+          const createdMs = createdAt?.toDate ? createdAt.toDate().getTime()
+            : createdAt instanceof Date ? createdAt.getTime()
+            : (typeof createdAt === 'number' ? createdAt : 0);
+          const graceMs = 45 * 60 * 1000;
+          const inWelcomeGrace = createdMs && (Date.now() - createdMs) < graceMs;
+          if (inWelcomeGrace) return null;
+          return (
+            <>
+              <NotificationsBanner />
+              <GettingStartedCard players={players} events={upcomingEvents} dataLoading={loading} />
+              <SubscribeBanner />
+              <SmartDiscoveryPrompts
+                players={players}
+                events={upcomingEvents}
+                isCoach={isUserCoach}
+                dataLoading={loading}
+              />
+            </>
+          );
+        })()}
 
         {/* Admin cockpit returns to the dashboard when the user is
             in 'admin' view mode (Patrick 2026-06-21: 'shouldn't admin

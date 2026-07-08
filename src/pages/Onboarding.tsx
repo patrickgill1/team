@@ -980,92 +980,53 @@ const Onboarding: React.FC = () => {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <Kicker>Almost done</Kicker>
-            <H>{isClubTrack ? 'Start your club subscription.' : 'Start your free trial.'}</H>
+            <Kicker>You're in</Kicker>
+            <H>{isClubTrack ? `${clubName || 'Your club'} is ready.` : `${teamName || 'Your team'} is ready.`}</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              <span className="text-ink-primary font-semibold">
-                {isClubTrack ? clubName : teamName}
-              </span> is set up.
               {isClubTrack
                 ? (createdTeamId
-                    ? ` You're also head coach of ${teamName}. Add more teams from the admin panel anytime.`
-                    : ' Add teams from the admin panel when you\'re ready.')
-                : ' Start your 7-day free trial to unlock everything — chat, RSVPs, gameday, development plans. No charge for 7 days, cancel anytime.'}
+                    ? `You're also head coach of ${teamName}. Add more teams from the admin panel anytime.`
+                    : 'Add teams from the admin panel when you\'re ready.')
+                : 'Your practices are on the calendar. Invite the team when you\'re ready. Everything else is a tap away.'}
             </p>
 
-            {/* Pricing snapshot. Tier shown depends on the track the
-                user picked on the welcome step. */}
-            <div className="mt-5 rounded-lg bg-surface-base/80 ring-1 ring-line-default/10 px-4 py-3 space-y-1">
-              {isClubTrack ? (
-                <>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-ink-primary font-bold text-sm">Club</span>
-                    <span className="text-ink-primary font-black tabular-nums">
-                      $299<span className="text-charcoal-400 text-xs font-bold ml-0.5">/yr</span>
-                    </span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-ink-primary/80 text-sm">Club Pro</span>
-                    <span className="text-ink-primary/80 tabular-nums">
-                      $499<span className="text-charcoal-400 text-xs ml-0.5">/yr</span>
-                    </span>
-                  </div>
-                  <p className="text-charcoal-400 text-[11px] pt-1">
-                    Club fee waived when you process $15K+/yr in registrations through GoalKickr. Cancel anytime from goalkickr.com.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-ink-primary font-bold text-sm">Coach Annual</span>
-                    <span className="text-ink-primary font-black tabular-nums">
-                      $99<span className="text-charcoal-400 text-xs font-bold ml-0.5">/yr</span>
-                    </span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-ink-primary/80 text-sm">Coach Monthly</span>
-                    <span className="text-ink-primary/80 tabular-nums">
-                      $10<span className="text-charcoal-400 text-xs ml-0.5">/mo</span>
-                    </span>
-                  </div>
-                  <p className="text-charcoal-400 text-[11px] pt-1">
-                    Both include a 7-day free trial. Cancel anytime from goalkickr.com.
-                  </p>
-                </>
-              )}
-            </div>
-
+            {/* Primary action: take them to the app. The subscription
+                pitch used to be the primary CTA here (pricing table +
+                loss-aversion skip modal); it read as a sales screen at
+                the exact moment we wanted to feel welcoming. Moved to
+                a secondary link. The 45-min Dashboard grace period +
+                SubscribeBanner surface it later in a calmer moment. */}
             <PrimaryButton
-              onClick={() => openWebSignup({
-                email: currentUser?.email || userData?.email || undefined,
-                uid: currentUser?.uid,
-                tier: isClubTrack ? 'club' : 'annual',
-                intent: 'subscribe',
-              })}
-              className="mt-5 w-full"
+              onClick={() => navigate('/dashboard', { replace: true })}
+              className="mt-6 w-full"
             >
-              {isClubTrack ? 'Start Club subscription' : 'Start 7-day free trial'}
+              Take me to my team
             </PrimaryButton>
 
-            <button
-              type="button"
-              onClick={() => setShowSkipModal(true)}
-              className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-line-default/15 text-ink-primary hover:bg-line-default/5 transition"
-            >
-              Skip for now
-            </button>
-
-            <p className="text-charcoal-500 text-[11px] text-center mt-3 leading-snug">
-              Tapping Start opens goalkickr.com in your browser to complete checkout.
-            </p>
+            {!isClubTrack && (
+              <button
+                type="button"
+                onClick={() => openWebSignup({
+                  email: currentUser?.email || userData?.email || undefined,
+                  uid: currentUser?.uid,
+                  tier: 'annual',
+                  intent: 'subscribe',
+                })}
+                className="mt-3 w-full text-center text-[11px] font-bold tracking-widest uppercase text-ink-primary/55 hover:text-brand-primary-soft transition"
+              >
+                Start free trial →
+              </button>
+            )}
           </Card>
         )}
       </div>
 
-      {/* Skip-with-friction modal on the done step. Loss-aversion
-          nudge before they bail on the trial. Two paths out: open
-          the marketing checkout, or go to dashboard without trial. */}
-      {showSkipModal && (
+      {/* Skip-with-friction modal on the done step — retired. It was
+          a loss-aversion nudge before bailing on the trial, but at
+          this exact moment we want the coach to feel welcomed, not
+          negotiated with. Trial pitch surfaces later via the
+          SubscribeBanner after the 45-min welcome grace. */}
+      {false && showSkipModal && (
         <div
           className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-fade-in"
           onClick={() => setShowSkipModal(false)}

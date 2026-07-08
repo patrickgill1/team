@@ -231,7 +231,7 @@ const Navigation: React.FC = () => {
     ...(isUserCoach ? [{ name: 'Coach', path: '/coach', icon: 'wrench' as const, group: 'apps' as const }] : []),
     // Club admin's single entry point for everything cross-team.
     ...(isUserClubAdmin ? [{ name: 'Club', path: '/club', icon: 'club' as const, group: 'apps' as const }] : []),
-    { name: 'Club Support', path: '/helpdesk', icon: 'survey', group: 'account' },
+    { name: 'Help', path: '/helpdesk', icon: 'help', group: 'account' },
     { name: 'Settings', path: '/settings', icon: 'gear', group: 'account' },
   ];
 
@@ -835,9 +835,9 @@ const Navigation: React.FC = () => {
                   >
                     <span className="flex items-center gap-3 min-w-0">
                       <span className="w-9 h-9 rounded-lg bg-brand-primary/10 text-brand-primary-soft flex items-center justify-center shrink-0">
-                        <AppIcon name="survey" className="w-5 h-5" />
+                        <AppIcon name="help" className="w-5 h-5" />
                       </span>
-                      <span className="text-[15px] font-semibold text-ink-primary">Club Support</span>
+                      <span className="text-[15px] font-semibold text-ink-primary">Help</span>
                     </span>
                     <AppIcon name="arrow-right" className="w-4 h-4 text-ink-primary/30" />
                   </Link>

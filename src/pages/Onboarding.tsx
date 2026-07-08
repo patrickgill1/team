@@ -960,7 +960,22 @@ const Onboarding: React.FC = () => {
 
         {step === 'done' && (
           <Card>
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 ring-2 ring-emerald-400/40 mx-auto mb-5">
+            {/* Success hero — friends photo. 'Your team is going to
+                have fun together.' Warmer / less action-packed than
+                the celebration hero on Welcome; wraps the wizard
+                with a moment of belonging instead of urgency. */}
+            <div className="-mx-6 -mt-6 sm:-mx-8 sm:-mt-8 relative overflow-hidden rounded-t-2xl">
+              <div className="aspect-[4/3] sm:aspect-[16/9] relative">
+                <img
+                  src="/hero/friends.jpg"
+                  alt="Teammates laughing together on the field at sunset"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="eager"
+                />
+                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-surface-base to-transparent pointer-events-none" aria-hidden />
+              </div>
+            </div>
+            <div className="mt-5 flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 ring-2 ring-emerald-400/40 mx-auto mb-5">
               <svg className="w-8 h-8 text-emerald-300" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <polyline points="20 6 9 17 4 12" />
               </svg>

@@ -258,18 +258,31 @@ const Drills: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-surface-base">
-      {/* Tight one-line header. No breadcrumb (bottom nav handles
-          movement), no marketing subtitle. Title left + primary action
-          right is enough. */}
-      <section className="bg-surface-elevated px-4 sm:px-6 py-3 border-b border-line-default/5">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
-          <h1 className="text-lg sm:text-xl font-black text-white leading-tight">Training Ground</h1>
-          <button
-            onClick={() => { setEditing(null); setCreateOpen(true); }}
-            className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase whitespace-nowrap shadow-sm"
-          >
-            + Add Drill
-          </button>
+      {/* Training-ground hero — cones + dribble drill at sunset. Sets
+          the emotional promise before the drill list ('this is where
+          your kid gets better') without pushing the primary action
+          off-screen: title + Add Drill still ride the bottom of the
+          hero band. */}
+      <section className="relative overflow-hidden border-b border-line-default/5">
+        <div className="aspect-[16/8] sm:aspect-[16/5] relative">
+          <img
+            src="/hero/training.jpg"
+            alt="Kids working through a dribbling drill at sunset"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-surface-elevated via-surface-elevated/40 to-transparent pointer-events-none" aria-hidden />
+        </div>
+        <div className="absolute inset-x-0 bottom-0 px-4 sm:px-6 py-3">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+            <h1 className="text-lg sm:text-xl font-black text-white leading-tight drop-shadow">Training Ground</h1>
+            <button
+              onClick={() => { setEditing(null); setCreateOpen(true); }}
+              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase whitespace-nowrap shadow-sm"
+            >
+              + Add Drill
+            </button>
+          </div>
         </div>
       </section>
 

@@ -28,6 +28,18 @@ const SimpleAuth: React.FC = () => {
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Heja-style landing lives ABOVE the auth form. First-time visitors
+  // see the brand + hero photo + three CTAs + scrollable teaser, and
+  // only reveal the form when they tap 'Set up a team' or 'Log in'.
+  // Returning visitors with an invite code in the URL skip the
+  // landing entirely — they know what they're doing.
+  const [showLanding, setShowLanding] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('invite')) return false;
+    if (q.get('mode') === 'signin' || q.get('mode') === 'login') return false;
+    return true;
+  });
 
   // Redirect if user is already logged in AND has userData
   useEffect(() => {
@@ -223,6 +235,127 @@ const SimpleAuth: React.FC = () => {
 
   // No loading spinner here — show the login form immediately.
   // If the user is already authenticated, the redirect useEffect above handles it.
+
+  if (showLanding) {
+    return (
+      <div className="min-h-screen bg-charcoal-950 text-white">
+        {/* Hero fold — first thing an unauth'd visitor sees. Big
+            celebration photo, brand, tagline, three CTAs. Scroll down
+            for the teaser cards. */}
+        <section
+          className="relative overflow-hidden"
+          style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        >
+          <div className="relative min-h-[100svh] flex flex-col">
+            <img
+              src="/hero/celebration.jpg"
+              alt="Kids celebrating a goal at sunset"
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="eager"
+            />
+            {/* Scrim so brand + copy read against the sky */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black/80 pointer-events-none" aria-hidden />
+
+            <div className="relative flex-1 flex flex-col justify-between px-6 py-8">
+              {/* Brand */}
+              <div className="flex justify-center pt-4">
+                <div className="rounded-2xl bg-black/25 backdrop-blur-md px-4 py-2 ring-1 ring-white/10">
+                  <Logo size="lg" variant="full" />
+                </div>
+              </div>
+
+              {/* Tagline centered in the middle third */}
+              <div className="text-center max-w-md mx-auto">
+                <p className="text-[11px] font-black tracking-[0.3em] uppercase text-brand-primary-soft/95 drop-shadow mb-3">The season lives here</p>
+                <h1 className="text-3xl sm:text-4xl font-black leading-tight drop-shadow-lg">
+                  Every kid's season, every coach's crew, every parent's front-row seat.
+                </h1>
+              </div>
+
+              {/* CTAs */}
+              <div className="max-w-md mx-auto w-full space-y-3">
+                <button
+                  type="button"
+                  onClick={() => { setMode('register'); setShowLanding(false); }}
+                  className="w-full py-3.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
+                >
+                  Set up a new team
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode('register'); setShowLanding(false); }}
+                  className="w-full py-3.5 rounded-full bg-white text-charcoal-950 font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
+                >
+                  Join a team with a code
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setShowLanding(false); }}
+                  className="w-full py-3 rounded-full bg-white/10 hover:bg-white/15 backdrop-blur-md ring-1 ring-white/20 text-white/90 font-bold tracking-wider uppercase text-xs transition"
+                >
+                  Log in
+                </button>
+                <p className="text-center text-[10px] tracking-widest uppercase text-white/60 pt-1">
+                  Scroll to see what your season looks like ↓
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Teaser cards — each is a hero photo + copy that maps to
+            one of the app's emotional loops. Coach edits, real
+            moments, real growth. */}
+        <TeaserSlide
+          src="/hero/coach-huddle.jpg"
+          alt="Coach kneeling with team at sunset"
+          kicker="For coaches"
+          title="You're the person these kids remember."
+          body="Live gameday tracker, POTM crowns, one-tap tagging, a drill library, and a wall that turns each game into a story your team scrolls Monday morning."
+        />
+        <TeaserSlide
+          src="/hero/friends.jpg"
+          alt="Teammates laughing on the field at sunset"
+          kicker="For parents"
+          title="Your kid's season, from anywhere."
+          body="Tagged clips push to your phone. RSVP once. See the game recap the moment the whistle blows. When you can't be there, you're still there."
+          reversed
+        />
+        <TeaserSlide
+          src="/hero/training.jpg"
+          alt="Kids working through a dribbling drill"
+          kicker="For growth"
+          title="Every day the kid gets a little better."
+          body="Practice streaks (with a rest day if your family keeps one), development plans, a drill library that plays inline. Not just a schedule. A path."
+        />
+
+        {/* Bottom CTA repeats so scrollers don't hunt for it */}
+        <section className="bg-charcoal-950 px-6 py-16 border-t border-white/5">
+          <div className="max-w-md mx-auto text-center space-y-6">
+            <p className="text-[10px] font-black tracking-[0.3em] uppercase text-brand-primary-soft">Ready?</p>
+            <h2 className="text-3xl font-black tracking-tight">Start your team in a minute.</h2>
+            <p className="text-white/60 text-sm">7-day free trial for coaches. No card up front.</p>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => { setMode('register'); setShowLanding(false); }}
+                className="w-full py-3.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
+              >
+                Set up a new team
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setShowLanding(false); }}
+                className="w-full py-3 rounded-full ring-1 ring-white/20 text-white/85 font-bold tracking-wider uppercase text-xs hover:bg-white/5 transition"
+              >
+                I already have an account
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -600,5 +733,35 @@ const SimpleAuth: React.FC = () => {
     </div>
   );
 };
+
+// Teaser slide — full-bleed hero photo + copy block. Alternating
+// image / text order (via `reversed`) creates a visual rhythm as the
+// user scrolls the landing page. Photo takes ~55% of the slide's
+// vertical space so the copy block reads without competing.
+const TeaserSlide: React.FC<{
+  src: string;
+  alt: string;
+  kicker: string;
+  title: string;
+  body: string;
+  reversed?: boolean;
+}> = ({ src, alt, kicker, title, body }) => (
+  <section className="relative overflow-hidden">
+    <div className="relative aspect-[4/5] sm:aspect-[16/9]">
+      <img
+        src={src}
+        alt={alt}
+        className="absolute inset-0 w-full h-full object-cover"
+        loading="lazy"
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80 pointer-events-none" aria-hidden />
+      <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10 max-w-2xl mx-auto text-white">
+        <p className="text-[10px] font-black tracking-[0.3em] uppercase text-brand-primary-soft/95 drop-shadow mb-2">{kicker}</p>
+        <h2 className="text-2xl sm:text-3xl font-black leading-tight drop-shadow-lg mb-3">{title}</h2>
+        <p className="text-sm text-white/80 leading-relaxed drop-shadow max-w-md">{body}</p>
+      </div>
+    </div>
+  </section>
+);
 
 export default SimpleAuth;

@@ -63,6 +63,22 @@ const Drills: React.FC = () => {
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [librarySort, setLibrarySort] = useState<'top' | 'recent' | 'featured'>('top');
   const [saveTarget, setSaveTarget] = useState<{ drill: Drill; busy: boolean } | null>(null);
+  // Library-drill preview sheet — opens on card tap so coaches can
+  // read setup / instructions / focus / watch the video BEFORE
+  // committing to save. Replaces the "save blind on the tile" UX.
+  const [previewDrill, setPreviewDrill] = useState<Drill | null>(null);
+  // Set of source-drill ids that are already in the coach's own
+  // library. Used to disable Save on library cards / preview sheet
+  // instead of letting a double-tap or eager coach create duplicate
+  // rows. Derived from `drills` (the coach's own library).
+  const savedSourceIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const d of drills) {
+      const src = (d as any).importedFromDrillId;
+      if (typeof src === 'string' && src) s.add(src);
+    }
+    return s;
+  }, [drills]);
 
   const reload = async () => {
     if (!selectedTeamId) { setLoading(false); return; }
@@ -128,6 +144,19 @@ const Drills: React.FC = () => {
 
   const handleSaveFromLibrary = async (drill: Drill) => {
     if (!userData) return;
+    // Client-side dedupe: if this coach already has a copy of this
+    // source drill in their library, don't create a second one. A
+    // fast double-tap could otherwise slip past the `busy` flag and
+    // land two identical rows (which was Patrick's exact complaint).
+    // Server-side ownership rules would need an existence query per
+    // save to fully prevent races; the client guard covers 100% of
+    // human error at 0 cost.
+    if (savedSourceIds.has(drill.id)) {
+      setSaveTarget(null);
+      window.alert('You already saved this drill.');
+      return;
+    }
+    if (saveTarget && saveTarget.drill.id === drill.id && saveTarget.busy) return;
     setSaveTarget({ drill, busy: true });
     try {
       const target: { clubId?: string; teamId?: string } = {};
@@ -145,11 +174,27 @@ const Drills: React.FC = () => {
       // Reload my drills so the new copy shows up.
       void reload();
       setSaveTarget(null);
+      setPreviewDrill(null);
       // Bump local saveCount so the UI updates without a full reload
       setLibraryDrills(prev => prev.map(d => d.id === drill.id ? { ...d, saveCount: (d.saveCount || 0) + 1 } : d));
     } catch (e: any) {
       setSaveTarget({ drill, busy: false });
       window.alert(e?.message || 'Save failed');
+    }
+  };
+
+  const handleDeleteMyDrill = async (drill: Drill) => {
+    if (!drill.id) return;
+    if (!window.confirm(`Remove "${drill.title}" from your library? Stats and past assignments to players stay put; you just won't see it in your list.`)) return;
+    try {
+      // Soft-delete (isActive: false) — never delete the doc so any
+      // in-flight development goals that snapshotted the drill keep
+      // their history.
+      await updateDocument('drills', drill.id, { isActive: false, updatedAt: new Date() });
+      await reload();
+    } catch (err: any) {
+      console.error('drill delete failed', err);
+      window.alert('Could not remove. Try again.');
     }
   };
 
@@ -369,7 +414,9 @@ const Drills: React.FC = () => {
                   voterEmail={(userData as any)?.email}
                   onRate={(stars) => handleRate(d.id, stars)}
                   onSave={() => handleSaveFromLibrary(d)}
+                  onPreview={() => setPreviewDrill(d)}
                   saving={!!(saveTarget && saveTarget.drill.id === d.id && saveTarget.busy)}
+                  alreadySaved={savedSourceIds.has(d.id)}
                 />
               ))}
             </ul>
@@ -450,23 +497,43 @@ const Drills: React.FC = () => {
                   </div>
                   </div>
                 </button>
-                {/* Footer action — send the drill to a kid's Pathway as
-                    a goal. PlayerDevelopment reads ?seedDrill=<id> on
-                    mount, fetches the drill, opens its new-plan modal
-                    with the drill pre-seeded as the first goal. */}
-                <div className="px-4 pb-4">
+                {/* Footer actions — send the drill to a kid's Pathway
+                    as a goal, or remove it from the library (soft-delete
+                    so goals that already snapshotted it keep their
+                    history). Coaches were saving duplicates via the
+                    library and had no way to trim them. */}
+                <div className="px-4 pb-4 flex items-stretch gap-2">
                   <Link
                     to={`/development?seedDrill=${d.id}`}
-                    className="block w-full text-center px-3 py-2 rounded-lg bg-line-default/5 hover:bg-brand-primary/20 ring-1 ring-line-default/10 hover:ring-brand-primary-soft/40 text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/85 hover:text-brand-primary-soft transition"
+                    className="flex-1 text-center px-3 py-2 rounded-lg bg-line-default/5 hover:bg-brand-primary/20 ring-1 ring-line-default/10 hover:ring-brand-primary-soft/40 text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/85 hover:text-brand-primary-soft transition"
                   >
                     Add to a Plan
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => { void handleDeleteMyDrill(d); }}
+                    className="px-3 py-2 rounded-lg bg-line-default/5 hover:bg-rose-500/15 ring-1 ring-line-default/10 hover:ring-rose-400/40 text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/60 hover:text-rose-300 transition"
+                    aria-label="Remove drill from library"
+                    title="Remove from library"
+                  >
+                    Remove
+                  </button>
                 </div>
               </li>
             ))}
           </ul>
         ))}
       </div>
+
+      {previewDrill && (
+        <DrillPreviewSheet
+          drill={previewDrill}
+          onClose={() => setPreviewDrill(null)}
+          onSave={() => handleSaveFromLibrary(previewDrill)}
+          saving={!!(saveTarget && saveTarget.drill.id === previewDrill.id && saveTarget.busy)}
+          alreadySaved={savedSourceIds.has(previewDrill.id)}
+        />
+      )}
 
       {createOpen && (
         <DrillEditor
@@ -1031,14 +1098,18 @@ const LibraryCard: React.FC<{
   voterEmail?: string;
   onRate: (stars: 1 | 2 | 3 | 4 | 5) => void;
   onSave: () => void;
+  onPreview: () => void;
   saving: boolean;
-}> = ({ drill, voterUid, voterName, voterEmail, onRate, onSave, saving }) => {
+  alreadySaved: boolean;
+}> = ({ drill, voterUid, voterName, voterEmail, onRate, onSave, onPreview, saving, alreadySaved }) => {
   const myStars = voterUid ? (drill.ratedBy?.[voterUid] as 1 | 2 | 3 | 4 | 5 | undefined) : undefined;
   const avg = drill.averageRating || 0;
   const count = drill.ratingCount || 0;
   const saveCount = drill.saveCount || 0;
   const featured = isFeatured(drill);
   const isYours = !!voterUid && drill.createdBy === voterUid;
+
+  const hasVideo = Array.isArray(drill.videoLinks) && drill.videoLinks.length > 0;
 
   return (
     <li className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
@@ -1053,7 +1124,15 @@ const LibraryCard: React.FC<{
           />
         </div>
       )}
-      <div className="p-4">
+      {/* Card body is the primary tap-target — opens the preview
+          sheet so coaches can read setup + instructions + watch the
+          video BEFORE they save (previous flow required saving to
+          see anything, which is how duplicates crept in). */}
+      <button
+        type="button"
+        onClick={onPreview}
+        className="w-full text-left p-4"
+      >
         <div className="flex items-center gap-2 mb-2">
           <span className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 px-1.5 py-0.5 rounded">
             {TOPICS.find(t => t.value === drill.topic)?.label || drill.topic}
@@ -1078,15 +1157,24 @@ const LibraryCard: React.FC<{
         {drill.description && !drill.focus && <p className="text-xs text-ink-primary/65 line-clamp-2">{drill.description}</p>}
 
         <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-ink-primary/55">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span title={`Average ${avg.toFixed(1)} from ${count} ${count === 1 ? 'rating' : 'ratings'}`}>
               ★ {count > 0 ? avg.toFixed(1) : '—'} <span className="text-ink-primary/35">({count})</span>
             </span>
             {saveCount > 0 && <span>· saved {saveCount}×</span>}
+            {hasVideo && (
+              <span className="inline-flex items-center gap-1 text-brand-primary-soft font-bold">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                video
+              </span>
+            )}
           </div>
           <span className="text-ink-primary/35 truncate">by {drill.createdByName || 'Coach'}</span>
         </div>
+        <p className="mt-2 text-[10px] font-black tracking-widest uppercase text-brand-primary-soft/85">Tap to preview →</p>
+      </button>
 
+      <div className="px-4 pb-4 -mt-1">
         {/* Star row — five buttons. Filled if user's vote >= n. */}
         <div className="mt-3 flex items-center gap-0.5">
           {[1, 2, 3, 4, 5].map(n => {
@@ -1123,10 +1211,14 @@ const LibraryCard: React.FC<{
               <button
                 type="button"
                 onClick={onSave}
-                disabled={saving}
-                className="flex-1 px-3 py-2 rounded-lg bg-brand-primary text-white text-xs font-extrabold uppercase tracking-widest hover:bg-brand-primary-soft hover:text-charcoal-950 disabled:opacity-60 transition"
+                disabled={saving || alreadySaved}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-extrabold uppercase tracking-widest transition ${
+                  alreadySaved
+                    ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30 cursor-default'
+                    : 'bg-brand-primary text-white hover:bg-brand-primary-soft hover:text-charcoal-950 disabled:opacity-60'
+                }`}
               >
-                {saving ? 'Saving…' : 'Save to my drills'}
+                {alreadySaved ? 'In your library' : saving ? 'Saving…' : 'Save to my drills'}
               </button>
               <ReportLibraryDrillButton
                 drill={drill}
@@ -1141,5 +1233,143 @@ const LibraryCard: React.FC<{
     </li>
   );
 };
+
+// DrillPreviewSheet — modal that opens when a coach taps a library
+// card. Shows the full drill so they can read setup + instructions +
+// watch the video BEFORE committing to save. Before this existed the
+// only way to see the body of a drill was to save it, which is how
+// Patrick ended up with duplicates in his library.
+const DrillPreviewSheet: React.FC<{
+  drill: Drill;
+  onClose: () => void;
+  onSave: () => void;
+  saving: boolean;
+  alreadySaved: boolean;
+}> = ({ drill, onClose, onSave, saving, alreadySaved }) => {
+  const hasVideo = Array.isArray(drill.videoLinks) && drill.videoLinks.length > 0;
+  const topicLabel = TOPICS.find(t => t.value === drill.topic)?.label || drill.topic;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Preview: ${drill.title}`}
+    >
+      <div
+        className="w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-surface-elevated rounded-t-3xl sm:rounded-3xl ring-1 ring-line-default/15 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Sticky header + close */}
+        <div className="sticky top-0 bg-surface-elevated/95 backdrop-blur border-b border-line-default/10 px-5 py-3 flex items-center justify-between gap-3 z-10">
+          <p className="text-[10px] font-black tracking-widest uppercase text-brand-primary-soft">Drill preview</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-ink-primary/60 hover:text-ink-primary text-xs font-bold uppercase tracking-widest"
+            aria-label="Close preview"
+          >
+            Close
+          </button>
+        </div>
+
+        {drill.streamUid && drill.streamReady && (
+          <div className="aspect-video w-full bg-black">
+            <iframe
+              src={streamIframeUrl(drill.streamUid)}
+              className="w-full h-full"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+              allowFullScreen
+              title={`${drill.title} video`}
+            />
+          </div>
+        )}
+
+        <div className="p-5 space-y-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 px-1.5 py-0.5 rounded">
+                {topicLabel}
+              </span>
+              {drill.ageBand && drill.ageBand !== 'all' && (
+                <span className="text-[10px] font-bold text-ink-primary/60">{drill.ageBand}</span>
+              )}
+              {drill.durationMinutes != null && (
+                <span className="text-[10px] font-bold text-ink-primary/60">{drill.durationMinutes} min</span>
+              )}
+            </div>
+            <h2 className="text-xl font-black text-ink-primary leading-tight">{drill.title}</h2>
+            <p className="text-xs text-ink-primary/50 mt-1">by {drill.createdByName || 'Coach'}</p>
+          </div>
+
+          {drill.focus && (
+            <Section label="Focus" body={drill.focus} />
+          )}
+          {drill.description && (
+            <Section label="What it is" body={drill.description} />
+          )}
+          {drill.setup && (
+            <Section label="Setup" body={drill.setup} />
+          )}
+          {drill.instructions && (
+            <Section label="How to run it" body={drill.instructions} />
+          )}
+
+          {hasVideo && (
+            <div>
+              <p className="text-[10px] font-black tracking-widest uppercase text-ink-primary/55 mb-2">Videos</p>
+              <ul className="space-y-1.5">
+                {drill.videoLinks!.map(v => (
+                  <li key={v.id}>
+                    <a
+                      href={v.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-line-default/5 hover:bg-brand-primary/15 ring-1 ring-line-default/10 hover:ring-brand-primary-soft/40 text-xs font-bold text-ink-primary/85 hover:text-brand-primary-soft transition"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                      {v.title || 'Watch on YouTube'}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Sticky footer — Save is the primary next action. */}
+        <div className="sticky bottom-0 bg-surface-elevated/95 backdrop-blur border-t border-line-default/10 px-5 py-3 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2.5 rounded-lg bg-line-default/5 hover:bg-line-default/10 ring-1 ring-line-default/10 text-xs font-extrabold tracking-widest uppercase text-ink-primary/70"
+          >
+            Back to library
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving || alreadySaved}
+            className={`flex-1 px-4 py-2.5 rounded-lg text-xs font-extrabold uppercase tracking-widest transition ${
+              alreadySaved
+                ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30 cursor-default'
+                : 'bg-brand-primary text-white hover:bg-brand-primary-soft hover:text-charcoal-950 disabled:opacity-60'
+            }`}
+          >
+            {alreadySaved ? 'Already in your library' : saving ? 'Saving…' : 'Save to my drills'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Section: React.FC<{ label: string; body: string }> = ({ label, body }) => (
+  <div>
+    <p className="text-[10px] font-black tracking-widest uppercase text-ink-primary/55 mb-1">{label}</p>
+    <p className="text-sm text-ink-primary/85 whitespace-pre-wrap leading-relaxed">{body}</p>
+  </div>
+);
 
 export default Drills;

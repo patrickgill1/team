@@ -153,6 +153,12 @@ const Onboarding: React.FC = () => {
   }, [step, userData?.teamIds]);
 
   // ─── Team creation ───────────────────────────────────────────
+  // Uses the worker's /teams/create endpoint, same as OnboardingGate.
+  // Rules hardening 2026-07-06 (see firestore.rules comment on the
+  // users match block) means user-doc writes to teamIds/role/etc are
+  // worker-only. Attempting the client-side patch here throws
+  // "Missing or insufficient permissions". withDefaultClub:true
+  // atomically creates the solo-club wrap.
   const handleCreateTeamAndAdvance = async (nextStep: Step) => {
     if (!userData || !teamName.trim()) {
       setError('Give your team a name to keep going.');
@@ -161,43 +167,24 @@ const Onboarding: React.FC = () => {
     setError(null);
     setBusy(true);
     try {
-      const newTeamId = await createTeam({
-        name: teamName.trim(),
-        coachIds: [userData.uid],
-        headCoachId: userData.uid,
-        assistantCoachIds: [],
-        playerIds: [],
-        parentIds: [],
-        season: '',
-        ageGroup: teamAgeGroup,
-        format: teamFormat,
-        updatedAt: new Date(),
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/teams/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: teamName.trim(),
+          season: String(new Date().getFullYear()),
+          ageGroup: teamAgeGroup || undefined,
+          format: teamFormat || undefined,
+          withDefaultClub: true,
+        }),
       });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `create-${res.status}`);
+      }
+      const newTeamId: string | undefined = data.teamId;
       if (!newTeamId) throw new Error('Team creation returned no id.');
       setCreatedTeamId(newTeamId);
-
-      const currentTeamIds = userData.teamIds || (userData.teamId ? [userData.teamId] : []);
-      await updateDocument('users', userData.uid, {
-        teamIds: [...currentTeamIds, newTeamId],
-        teamId: userData.teamId || newTeamId,
-        role: 'coach',
-        coachLevel: 'head_coach',
-        updatedAt: new Date(),
-      });
-
-      // Solo coach: auto-wrap the team in a private club so the
-      // rest of the app (club-scoped queries, media buckets, etc)
-      // works day one.
-      try {
-        await createClub({
-          name: teamName.trim(),
-          ownerUid: userData.uid,
-          initialTeamId: newTeamId,
-        });
-      } catch (clubErr) {
-        console.warn('Auto-wrap solo club failed', clubErr);
-      }
-
       await refreshUserData?.();
       goStep(nextStep);
     } catch (err: any) {

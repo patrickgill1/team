@@ -566,25 +566,28 @@ const Onboarding: React.FC = () => {
                 Practice days <span className="text-ink-primary/40 font-normal normal-case tracking-normal">(we'll auto-generate 8 weeks)</span>
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {(['S','M','T','W','T','F','S']).map((letter, dow) => {
+                {(['Sun','Mon','Tue','Wed','Thu','Fri','Sat']).map((label, dow) => {
                   const on = practiceDays.includes(dow);
                   return (
                     <button
                       key={dow}
                       type="button"
                       onClick={() => setPracticeDays(prev => on ? prev.filter(d => d !== dow) : [...prev, dow].sort())}
-                      className={`w-10 h-10 rounded-full text-sm font-black transition ring-1 ${
+                      className={`min-w-[3.25rem] h-10 px-3 rounded-full text-[11px] font-black uppercase tracking-wider transition ring-1 ${
                         on
                           ? 'bg-brand-primary text-white ring-brand-primary shadow-sm'
                           : 'bg-surface-elevated text-ink-primary/70 ring-line-default/15 hover:ring-brand-primary-soft/40'
                       }`}
                       aria-label={['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dow]}
                     >
-                      {letter}
+                      {label}
                     </button>
                   );
                 })}
               </div>
+              <p className="mt-2 text-[11px] text-ink-primary/50">
+                Tap a day and we'll add every one for the next 8 weeks. Miss a specific date (holiday, tournament weekend)? Edit or delete it from the calendar later.
+              </p>
               {practiceDays.length > 0 && (
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <Field label="Start time">

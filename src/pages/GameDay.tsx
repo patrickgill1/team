@@ -367,13 +367,13 @@ const GameDay: React.FC = () => {
     // chat. Fire-and-forget; a Wall post failure never blocks the
     // finalization or the stats rollup that follows.
     if (event && userData) {
-      const { autoPostGameRecapToWall } = await import('../utils/autoPostToWall');
-      void autoPostGameRecapToWall(
-        event as any,
-        game,
-        { uid: userData.uid, name: userData.name || 'Coach', role: userData.role || 'coach' },
-        usLabel,
-      );
+      const { autoPostGameRecapToWall, autoPostGoalOfTheMatchToWall } = await import('../utils/autoPostToWall');
+      const actorForWall = { uid: userData.uid, name: userData.name || 'Coach', role: userData.role || 'coach' };
+      // Recap first (headline), then Goal of the Match poll (below
+      // it) so parents scrolling the Sideline hit the recap card
+      // before the vote CTA. Both fire-and-forget.
+      void autoPostGameRecapToWall(event as any, game, actorForWall, usLabel);
+      void autoPostGoalOfTheMatchToWall(event as any, game, actorForWall);
     }
     // Stats gate: skip season-aggregate writes when the coach turned
     // "counts to stats" off on this specific game (scrimmage, testing)

@@ -125,7 +125,7 @@ const Dashboard: React.FC = () => {
   } | null>(null);
   // Wall posts = docs in the wall_posts collection (its own surface,
   // separate from chat). The dashboard surfaces the 5 most recent.
-  const [wallPosts, setWallPosts] = useState<Array<{ id: string; threadId: string; content: string; senderName: string; senderRole?: string; timestamp: Date; category?: string }>>([]);
+  const [wallPosts, setWallPosts] = useState<Array<{ id: string; threadId: string; content: string; senderName: string; senderRole?: string; timestamp: Date; category?: string; postedFrom?: string }>>([]);
   // uid → photoURL map used by the Recent Chats card to render real
   // avatars on DMs (and any future thread types that want a per-user
   // photo). Built once from the users collection per team selection.
@@ -257,7 +257,7 @@ const Dashboard: React.FC = () => {
           collection(db, 'wall_posts'),
           where('teamId', '==', selectedTeamId),
           orderBy('timestamp', 'desc'),
-          limit(5),
+          limit(30),
         );
         unsub = onSnapshot(q, (snap) => {
           if (cancelled) return;
@@ -271,15 +271,14 @@ const Dashboard: React.FC = () => {
               senderRole: data.senderRole as string | undefined,
               timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now()),
               category: (data.category as string) || 'announcement',
+              postedFrom: (data.postedFrom as string) || 'wall',
             };
-          })
-          // Dashboard surface is the "Announcements" card — only
-          // category=announcement posts show here. Game results,
-          // spotlights, practice notes belong on their own surfaces
-          // (game tab, player cards). Posts that predate the category
-          // field default to 'announcement' in the snapshot mapper so
-          // they still appear.
-          .filter(p => p.category === 'announcement');
+          });
+          // Dashboard splits the Sideline feed into two derived
+          // surfaces: 'Announcements' (coach category posts) and
+          // 'New for you' (recognition-flavored auto-posts about
+          // the user's kids). We hold the full page-1 set in state
+          // and let the useMemos below carve their own slices out.
           setWallPosts(posts);
         }, (err) => console.warn('wall posts subscribe failed', err));
       } catch (err) {
@@ -380,6 +379,30 @@ const Dashboard: React.FC = () => {
       return n > 9 ? '9+' : n;
     } catch { return null; }
   }, [wallPosts, selectedTeamId]);
+  // 'Announcements' surface — the coach's manual News posts + any
+  // pre-category legacy posts. Same slice the card has always shown.
+  const announcementPosts = useMemo(() => {
+    return wallPosts.filter(p => (p.category || 'announcement') === 'announcement').slice(0, 5);
+  }, [wallPosts]);
+  // 'New for you' surface — recognition-flavored Sideline posts about
+  // the user's kids. POTM crowns, tagged clips, dev-plan milestones,
+  // juggle PRs. Matched to the user's linked players by first-name
+  // substring against the post content. Time-bounded to 14 days so
+  // stale wins don't linger on the dashboard forever.
+  const newForYouPosts = useMemo(() => {
+    if (!isParentMode || myPlayers.length === 0) return [];
+    const RECOGNITION_KINDS = new Set(['potm', 'juggle', 'devplan', 'video']);
+    const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const firstNames = myPlayers.map(p => (p.name || '').trim().split(/\s+/)[0].toLowerCase()).filter(Boolean);
+    return wallPosts
+      .filter(p => RECOGNITION_KINDS.has(p.postedFrom || ''))
+      .filter(p => p.timestamp.getTime() >= cutoff)
+      .filter(p => {
+        const body = (p.content || '').toLowerCase();
+        return firstNames.some(fn => fn && body.includes(fn));
+      })
+      .slice(0, 3);
+  }, [wallPosts, isParentMode, myPlayers]);
   const planStreakBadge = useMemo(() => {
     const s = (myPlayer as any)?.currentStreakDays || 0;
     return s > 0 ? s : null;
@@ -1113,7 +1136,62 @@ const Dashboard: React.FC = () => {
             newest first. Surfaces here so a parent who only checks the
             dashboard still sees announcements coaches posted in chat.
             Tap a card → deep-links into the chat tab on that thread. */}
-        {wallPosts.length > 0 && (
+        {/* 'New for you' — recognition posts about the user's kid(s)
+            from the last 14 days. First surface a parent sees after
+            the hero, so the emotional payoff loop (POTM crown, tagged
+            clip, streak milestone, dev-plan win) leads the app rather
+            than getting buried in the Sideline feed. */}
+        {newForYouPosts.length > 0 && (
+          <div className="bg-gradient-to-br from-brand-primary/10 via-surface-elevated to-surface-base rounded-2xl ring-1 ring-brand-primary/25 overflow-hidden shadow-lg">
+            <div className="px-5 py-3 border-b border-brand-primary/10 flex items-center justify-between">
+              <h3 className="font-bold text-ink-primary flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-300" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
+                </svg>
+                New for {myPlayer?.name?.split(' ')[0] || 'you'}
+              </h3>
+              <Link to="/wall" className="text-brand-primary-soft text-sm font-semibold hover:text-brand-primary">View Sideline</Link>
+            </div>
+            <ul className="divide-y divide-line-default/5">
+              {newForYouPosts.map(p => {
+                const badge =
+                  p.postedFrom === 'potm' ? 'Player of the Match'
+                  : p.postedFrom === 'juggle' ? 'Personal best'
+                  : p.postedFrom === 'devplan' ? 'Plan milestone'
+                  : 'New clip';
+                const badgeColor =
+                  p.postedFrom === 'potm' ? 'text-amber-300 bg-amber-500/15 ring-amber-400/30'
+                  : p.postedFrom === 'juggle' ? 'text-violet-300 bg-violet-500/15 ring-violet-400/30'
+                  : p.postedFrom === 'devplan' ? 'text-emerald-300 bg-emerald-500/15 ring-emerald-400/30'
+                  : 'text-brand-primary-soft bg-brand-primary/15 ring-brand-primary-soft/30';
+                const snippet = p.content
+                  .replace(/<[^>]+>/g, ' ')
+                  .replace(/[*_#>`~]/g, '')
+                  .replace(/\s+/g, ' ')
+                  .trim()
+                  .slice(0, 90);
+                return (
+                  <li key={p.id}>
+                    <Link
+                      to="/wall"
+                      className="flex items-center gap-2 px-5 py-3 hover:bg-line-default/[0.04] transition-colors"
+                    >
+                      <span className={`shrink-0 text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded ring-1 ${badgeColor}`}>
+                        {badge}
+                      </span>
+                      <span className="flex-1 min-w-0 text-xs text-ink-primary/85 truncate">{snippet}</span>
+                      <span className="shrink-0 text-[10px] text-ink-primary/40 tabular-nums">
+                        {p.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {announcementPosts.length > 0 && (
           <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base rounded-2xl ring-1 ring-line-default/10 overflow-hidden shadow-lg">
             <div className="px-5 py-3 border-b border-line-default/10 flex items-center justify-between">
               <h3 className="font-bold text-ink-primary flex items-center gap-2">
@@ -1129,7 +1207,7 @@ const Dashboard: React.FC = () => {
                 Plain-text strip on content so markdown markers like
                 ** or # don't leak into the preview. */}
             <ul className="divide-y divide-line-default/5">
-              {wallPosts.map(p => {
+              {announcementPosts.map(p => {
                 // Strip BOTH HTML tags (TipTap-emitted posts) AND
                 // markdown special chars (legacy posts) before
                 // truncating. Patrick caught the raw-HTML-in-snippet

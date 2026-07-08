@@ -155,6 +155,57 @@ export async function autoPostGameRecapToWall(
   await postToWall(event.teamId, actor, lines.join('\n'), { postedFrom: 'game' });
 }
 
+/** Auto-post the Goal of the Match poll after a game ends. Attaches
+ *  a Sideline poll with one option per scorer + minute so parents
+ *  can vote for their favorite. Skips when the match has fewer than
+ *  2 goals (nothing to vote on) or 0 total. Uses the existing WallPost
+ *  poll shape (question + options + voters), rendered by
+ *  WallPollCard. */
+export async function autoPostGoalOfTheMatchToWall(
+  event: CalendarEvent,
+  game: {
+    timeline?: Array<{ id?: string; kind: string; playerId?: string; playerName?: string; minute?: number }>;
+  },
+  actor: Actor,
+): Promise<void> {
+  if (event.type !== 'game' || !event.teamId) return;
+  const goals = (game.timeline || [])
+    .filter(t => t.kind === 'goal' && t.playerName)
+    .map((t, i) => ({
+      id: t.id || `gotm-${i}`,
+      text: typeof t.minute === 'number' ? `${t.playerName} — ${t.minute}'` : String(t.playerName),
+      voters: [] as string[],
+    }));
+  if (goals.length < 2) return;
+  const opponent = event.opponent ? `vs ${event.opponent}` : (event.title || 'match');
+  const lines = [
+    '## Goal of the Match',
+    `Vote for the pick of the game — **${opponent}**.`,
+  ];
+  const content = lines.join('\n');
+  try {
+    await addDoc(collection(db, 'wall_posts'), {
+      teamId: event.teamId,
+      content,
+      senderId: actor.uid,
+      senderName: actor.name,
+      senderRole: actor.role || 'coach',
+      timestamp: new Date(),
+      attachments: null,
+      reactions: [],
+      wallPinnedTop: null,
+      postedFrom: 'game',
+      poll: {
+        question: `Goal of the Match — ${opponent}`,
+        options: goals.slice(0, 6),
+        multi: false,
+      },
+    });
+  } catch (err) {
+    console.warn('autoPostGoalOfTheMatchToWall failed', err);
+  }
+}
+
 /** Auto-post when POTM voting OPENS. Big CTA, no spoilers — voting
  *  results are hidden until the coach closes the session, so this
  *  post is a persistent nudge on the wall rather than a live tally.

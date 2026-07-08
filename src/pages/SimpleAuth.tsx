@@ -391,7 +391,10 @@ const SimpleAuth: React.FC = () => {
   return (
     <div
       className="relative min-h-screen overflow-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-10 sm:pb-16"
-      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4rem)' }}
+      // Was 4rem — Patrick reported the logo was riding into the
+      // Dynamic Island on his iPhone. 6.5rem clears the pill on the
+      // largest current iPhone Pro Max plus a comfortable buffer.
+      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 6.5rem)' }}
     >
       {/* Top region pure black so it blends with the native
           AppDelegate safe-area strip without a visible seam.

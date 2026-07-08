@@ -41,7 +41,9 @@ const WallShowcase: React.FC = () => {
   const potm = {
     playerId: 'demo-hunter',
     playerName: 'Hunter Gill',
-    playerPhotoUrl: null,
+    // Same photo path as /showcase/potm — swap the file at
+    // public/hero/players/hunter.jpg to demo a different player.
+    playerPhotoUrl: '/hero/players/hunter.jpg',
     voteCount: 12,
     gameTitle: 'Fire FC vs Rovers',
     isCoWin: false,

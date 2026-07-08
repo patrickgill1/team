@@ -230,6 +230,17 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 {player.jerseyNumber != null && !player.profilePhotoUrl && age ? ' · ' : ''}
                 {age ? `Age ${age}` : (player.jerseyNumber != null && !player.profilePhotoUrl ? '' : 'Player')}
               </p>
+              {/* Adult roster chip row — only when this player carries
+                  the adult fields. Reads compactly under the name. */}
+              {((player as any).preferredFoot || (player as any).secondaryPosition || (player as any).heightCm) && (
+                <p className="text-ink-primary/50 text-[11px] font-bold uppercase tracking-widest mt-0.5">
+                  {[
+                    (player as any).preferredFoot ? `${(player as any).preferredFoot} foot` : null,
+                    (player as any).secondaryPosition && (player as any).secondaryPosition !== player.position ? (player as any).secondaryPosition : null,
+                    (player as any).heightCm ? `${(player as any).heightCm} cm` : null,
+                  ].filter(Boolean).join(' · ')}
+                </p>
+              )}
             </div>
           </div>
 

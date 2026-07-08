@@ -1688,6 +1688,14 @@ export interface Team {
    *    availability polling + post-match ratings enabled.
    *  Absent = 'youth' so the entire existing base stays intact. */
   audienceType?: 'youth' | 'adult';
+  /** Opt-in flag for a public shareable fixture page at /f/{teamId}.
+   *  When true, anyone with the link can see: team name/logo,
+   *  upcoming games (opponent, date, venue), recent results, and
+   *  roster of players who ALSO have publicShare.enabled=true. Off
+   *  by default because most youth teams don't want their schedule
+   *  world-readable; adult / semi-pro teams flip it for scouts &
+   *  fans. */
+  publicFixturesEnabled?: boolean;
   /** Standard match format — used to size the field + decide how many
    *  players auto-place into the lineup. Defaults to '7v7' if unset. */
   format?: GameFormat;

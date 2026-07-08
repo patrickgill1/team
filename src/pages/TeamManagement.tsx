@@ -45,6 +45,7 @@ const TeamManagement: React.FC = () => {
   // Development Pathway visibility on this team's surfaces + swaps
   // the roster field set (adult adds position/foot/past clubs).
   const [teamAudience, setTeamAudience] = useState<'youth' | 'adult'>('youth');
+  const [teamPublicFixtures, setTeamPublicFixtures] = useState<boolean>(false);
 
   // Coach invite form
   // inviteEmail / inviteLevel / inviteLink / linkCopied state
@@ -198,6 +199,7 @@ const TeamManagement: React.FC = () => {
         homeKitColor: teamHomeKit.trim() || undefined,
         awayKitColor: teamAwayKit.trim() || undefined,
         audienceType: teamAudience,
+        publicFixturesEnabled: teamPublicFixtures,
       });
       resetForm();
       setEditingTeam(null);
@@ -300,6 +302,7 @@ const TeamManagement: React.FC = () => {
     setTeamHomeKit(team.homeKitColor || '');
     setTeamAwayKit(team.awayKitColor || '');
     setTeamAudience(team.audienceType === 'adult' ? 'adult' : 'youth');
+    setTeamPublicFixtures(team.publicFixturesEnabled === true);
   };
 
   const handleOpenTransfer = async (team: Team) => {
@@ -391,6 +394,7 @@ const TeamManagement: React.FC = () => {
     setTeamHomeKit('');
     setTeamAwayKit('');
     setTeamAudience('youth');
+    setTeamPublicFixtures(false);
     setEditingTeam(null);
   };
 
@@ -782,6 +786,27 @@ const TeamManagement: React.FC = () => {
                         ? 'Adult roster: players self-manage, no parent layer. Hides Player Circle, Whispers, and Development Pathway. Shows position/foot/past clubs on the roster.'
                         : 'Kids and families. Full family features: Player Circle for guardians, Whispers, Development Pathway, age-band awareness.'}
                     </p>
+                  </div>
+                  <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={teamPublicFixtures}
+                        onChange={(e) => setTeamPublicFixtures(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                      />
+                      <span className="flex-1">
+                        <span className="block text-sm font-bold text-ink-primary">Public fixtures page</span>
+                        <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                          Anyone with the link can see upcoming games, recent results, and the roster of players who've opted in. Off by default. Youth teams: leave off unless you're comfortable with venues + times being world-readable.
+                        </span>
+                        {teamPublicFixtures && editingTeam && (
+                          <span className="block mt-2 text-[11px] font-mono text-brand-primary-soft break-all">
+                            {(window.location.origin || 'https://app.goalkickr.com') + '/f/' + editingTeam.id}
+                          </span>
+                        )}
+                      </span>
+                    </label>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>

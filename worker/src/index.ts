@@ -216,6 +216,17 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       return handleUnsubscribe(req, env);
     }
 
+    // GET /public/team-fixtures/:teamId — anonymous JSON of a team's
+    //   upcoming games, recent results, and public-share-opted roster.
+    //   Gated by team.publicFixturesEnabled; renders on /f/{teamId}.
+    if (url.pathname.startsWith('/public/team-fixtures/') && req.method === 'GET') {
+      const { handlePublicFixtures } = await import('./publicFixtures');
+      const res = await handlePublicFixtures(req, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
     // GET /o/:campaignId/:token.gif — campaign open-tracking pixel.
     //   Always returns a 1x1 transparent gif; bumps openCount when
     //   the token is valid. No CORS or auth.

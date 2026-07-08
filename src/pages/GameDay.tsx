@@ -8,7 +8,9 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoach, isOwner, resolveSenderRole } from '../utils/helpers';
 import GameRecapCard from '../components/gameday/GameRecapCard';
+import PlayerRatingSheet from '../components/gameday/PlayerRatingSheet';
 import FormationView from '../components/gameday/FormationView';
+import { useTeamAudience } from '../hooks/useTeamAudience';
 import {
   addWatchGameActionListener,
   clearWatchGameSession,
@@ -164,6 +166,11 @@ const GameDay: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
+  // Adult teams get the post-match rating flow attached to Recap.
+  // Youth teams don't — coach-to-parent whispers are that audience's
+  // equivalent private-feedback surface.
+  const { isAdult: isAdultTeam } = useTeamAudience(selectedTeam);
+  const [showRatings, setShowRatings] = useState(false);
   // Short team name used in push-notification bodies ("Eagles 2-1
   // Lightning"). Falls back to "Us" when the team doc hasn't loaded
   // yet so we never ship a wrong club's name in a push.
@@ -1200,6 +1207,26 @@ const GameDay: React.FC = () => {
             teamName={selectedTeam?.name || 'Our team'}
             players={players}
             onPostToChat={postRecapToChat}
+          />
+        )}
+
+        {status === 'final' && isAdultTeam && isUserCoach && (
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowRatings(true)}
+              className="px-4 py-2.5 rounded-full bg-brand-primary text-white text-xs font-extrabold uppercase tracking-widest hover:bg-brand-primary-soft hover:text-charcoal-950 transition"
+            >
+              {event?.playerRatings && Object.keys(event.playerRatings).length > 0 ? 'Edit player ratings' : 'Rate players'}
+            </button>
+          </div>
+        )}
+
+        {showRatings && event && (
+          <PlayerRatingSheet
+            event={event as any}
+            players={players}
+            onClose={() => setShowRatings(false)}
           />
         )}
 

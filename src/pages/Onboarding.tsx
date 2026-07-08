@@ -471,6 +471,25 @@ const Onboarding: React.FC = () => {
 
         {step === 'welcome' && (
           <Card>
+            {/* Hero photo — cinematic golden-hour team celebration.
+                Sets the emotional tone before any copy: 'this app is
+                about the moments.' Falls under a subtle brand gradient
+                so the copy overlaid below still reads with contrast. */}
+            <div className="-mx-6 -mt-6 sm:-mx-8 sm:-mt-8 relative overflow-hidden rounded-t-2xl">
+              <div className="aspect-[4/3] sm:aspect-[16/10] relative">
+                <img
+                  src="/hero/celebration.jpg"
+                  alt="A team of kids celebrating a goal at sunset"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="eager"
+                />
+                {/* Subtle bottom fade so 'Welcome' below has clean
+                    contrast against the sky in the top half of the
+                    photo without darkening the celebration itself. */}
+                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-surface-base to-transparent pointer-events-none" aria-hidden />
+              </div>
+            </div>
+            <div className="mt-5" />
             <Kicker>Welcome</Kicker>
             <H>{firstName ? `Welcome, ${firstName}` : 'Welcome to GoalKickr'}</H>
             <p className="mt-3 text-charcoal-300 text-sm">

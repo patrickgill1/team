@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import AppIcon, { type AppIconName } from '../common/AppIcon';
+import { useTeam } from '../../contexts/TeamContext';
+import { useTeamAudience } from '../../hooks/useTeamAudience';
 
 interface Prompt {
   key: string;
@@ -41,6 +43,9 @@ function isSoonGame(event: any): boolean {
 }
 
 const SmartDiscoveryPrompts: React.FC<Props> = ({ players, events, isCoach, dataLoading }) => {
+  const { selectedTeamId, teams } = useTeam() as any;
+  const teamObj = Array.isArray(teams) ? teams.find((t: any) => t.id === selectedTeamId) : null;
+  const { isAdult } = useTeamAudience(teamObj);
   if (dataLoading) return null;
   const prompts: Prompt[] = [];
   const nextGame = events.find(isSoonGame);
@@ -76,8 +81,10 @@ const SmartDiscoveryPrompts: React.FC<Props> = ({ players, events, isCoach, data
     prompts.push({
       key: 'parents',
       eyebrow: 'Roster health',
-      title: 'Bring every family into the app',
-      detail: 'Add parent emails so RSVPs and messages reach the right people.',
+      title: isAdult ? 'Bring every player into the app' : 'Bring every family into the app',
+      detail: isAdult
+        ? 'Add player emails so RSVPs and messages reach the right people.'
+        : 'Add parent emails so RSVPs and messages reach the right people.',
       href: '/people/add',
       icon: 'players',
       tone: 'emerald',

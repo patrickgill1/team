@@ -966,16 +966,16 @@ const EventDetail: React.FC = () => {
           called off. Keeps the event visible so attendees see WHY
           nothing's happening, instead of the event silently vanishing. */}
       {event.isCancelled && (
-        <div className="bg-amber-500/15 border-y border-amber-400/30 px-4 sm:px-6 py-3">
+        <div className="bg-rose-500/15 border-y border-rose-400/30 px-4 sm:px-6 py-3">
           <div className="flex items-start gap-3 max-w-3xl mx-auto">
-            <div className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-amber-600 text-amber-50 flex-shrink-0">
+            <div className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-rose-600 text-rose-50 flex-shrink-0">
               Cancelled
             </div>
-            <div className="text-sm text-amber-100 flex-1 min-w-0">
+            <div className="text-sm text-rose-100 flex-1 min-w-0">
               {event.cancelReason ? (
                 <p className="leading-snug">{event.cancelReason}</p>
               ) : (
-                <p className="leading-snug italic text-amber-100/60">No reason given.</p>
+                <p className="leading-snug italic text-rose-100/60">No reason given.</p>
               )}
             </div>
           </div>
@@ -1033,7 +1033,7 @@ const EventDetail: React.FC = () => {
                       <div className="flex-1 min-w-0 text-sm font-semibold text-ink-primary truncate" title={p.name}>{p.name}</div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {btn('going', 'Present', 'bg-emerald-600')}
-                        {btn('maybe', 'Maybe', 'bg-amber-500')}
+                        {btn('maybe', 'Maybe', 'bg-sky-500')}
                         {btn('no', 'Absent', 'bg-rose-600')}
                       </div>
                     </li>
@@ -1072,7 +1072,7 @@ const EventDetail: React.FC = () => {
                   <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-ink-primary truncate" title={p.name}>{p.name}</div>
                   <div className="flex-1 flex gap-1.5">
                     {btn('going', 'Going', 'bg-emerald-600')}
-                    {btn('maybe', 'Maybe', 'bg-amber-500')}
+                    {btn('maybe', 'Maybe', 'bg-sky-500')}
                     {btn('no', "Can't", 'bg-rose-600')}
                   </div>
                 </div>
@@ -1104,7 +1104,7 @@ const EventDetail: React.FC = () => {
               const toneActive = s === 'going'
                 ? 'bg-emerald-500 text-charcoal-950 ring-emerald-400'
                 : s === 'maybe'
-                  ? 'bg-amber-500 text-amber-950 ring-amber-400'
+                  ? 'bg-sky-500 text-sky-950 ring-sky-400'
                   : 'bg-rose-500 text-white ring-rose-400';
               return (
                 <button
@@ -1151,7 +1151,7 @@ const EventDetail: React.FC = () => {
         ) : (
           <button
             onClick={handleCancel}
-            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-300 text-xs font-bold tracking-wider uppercase hover:bg-amber-500/25 transition"
+            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/40 text-rose-300 text-xs font-bold tracking-wider uppercase hover:bg-rose-500/25 transition"
           >
             <Icon name="trash" className="w-4 h-4" />
             Cancel
@@ -1215,9 +1215,9 @@ const EventDetail: React.FC = () => {
             <div className="text-2xl font-black text-emerald-300 leading-none">{buckets.going.length}</div>
             <div className="text-[9px] font-extrabold tracking-widest text-ink-primary/65 mt-1">GOING</div>
           </div>
-          <div className="relative overflow-hidden rounded-lg bg-amber-500/15 ring-1 ring-amber-400/40 px-3 py-2.5">
-            <span className="absolute inset-x-0 top-0 h-0.5 bg-amber-500" />
-            <div className="text-2xl font-black text-amber-300 leading-none">{buckets.maybe.length}</div>
+          <div className="relative overflow-hidden rounded-lg bg-sky-500/15 ring-1 ring-sky-400/40 px-3 py-2.5">
+            <span className="absolute inset-x-0 top-0 h-0.5 bg-sky-500" />
+            <div className="text-2xl font-black text-sky-300 leading-none">{buckets.maybe.length}</div>
             <div className="text-[9px] font-extrabold tracking-widest text-ink-primary/65 mt-1">MAYBE</div>
           </div>
           <div className="relative overflow-hidden rounded-lg bg-rose-500/15 ring-1 ring-rose-400/40 px-3 py-2.5">

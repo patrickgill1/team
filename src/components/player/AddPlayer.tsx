@@ -119,7 +119,6 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
     // Adult roster fields — only shown when the target team is adult.
     secondaryPosition: '',
     preferredFoot: '' as '' | 'Left' | 'Right' | 'Both',
-    heightCm: '',
     pastClubs: [] as string[],
     // Team-split signals (adult only). See utils/snakeDraft.ts.
     highestLevelPlayed: '' as '' | 'recreational' | 'select' | 'high_school' | 'college_d3' | 'college_d2' | 'college_d1' | 'semi_pro' | 'pro',
@@ -301,7 +300,6 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         medicalInfo: editingPlayer.medicalInfo || '',
         secondaryPosition: (editingPlayer as any).secondaryPosition || '',
         preferredFoot: ((editingPlayer as any).preferredFoot as any) || '',
-        heightCm: (editingPlayer as any).heightCm ? String((editingPlayer as any).heightCm) : '',
         pastClubs: Array.isArray((editingPlayer as any).pastClubs) ? (editingPlayer as any).pastClubs : [],
         highestLevelPlayed: ((editingPlayer as any).highestLevelPlayed as any) || '',
         skillLevel: typeof (editingPlayer as any).skillLevel === 'number' ? (editingPlayer as any).skillLevel : 0,
@@ -321,7 +319,6 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         medicalInfo: '',
         secondaryPosition: '',
         preferredFoot: '',
-        heightCm: '',
         pastClubs: [],
         highestLevelPlayed: '',
         skillLevel: 0,
@@ -512,7 +509,6 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         // player doc.
         secondaryPosition: isAdultTeam && formData.secondaryPosition.trim() ? formData.secondaryPosition.trim() : undefined,
         preferredFoot: isAdultTeam && formData.preferredFoot ? formData.preferredFoot : undefined,
-        heightCm: isAdultTeam && formData.heightCm.trim() ? Number(formData.heightCm) : undefined,
         pastClubs: isAdultTeam && formData.pastClubs.length > 0 ? formData.pastClubs.filter(c => !!c.trim()).map(c => c.trim()).slice(0, 4) : undefined,
         // Team-split signals — see utils/snakeDraft.ts. Empty
         // string / 0 both mean "not filled out"; leave the field
@@ -939,19 +935,6 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                       </button>
                     ))}
                   </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-ink-primary/75 mb-1">Height (cm)</label>
-                  <input
-                    type="number"
-                    min={100}
-                    max={230}
-                    value={formData.heightCm}
-                    onChange={(e) => setFormData({ ...formData, heightCm: e.target.value })}
-                    className="w-full px-3 py-2 bg-surface-base text-ink-primary border border-line-default/10 rounded-lg text-sm"
-                    placeholder="e.g. 178"
-                    disabled={isSubmitting}
-                  />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-ink-primary/75 mb-1">Past clubs (up to 4)</label>

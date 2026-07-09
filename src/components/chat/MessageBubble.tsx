@@ -154,6 +154,24 @@ const ChatAttachmentImage: React.FC<{
     };
   }, [onClick, src]);
 
+  // iOS long-press suppression — BOTH WebkitTouchCallout AND
+  // WebkitUserSelect need to be 'none' on the actual <img> to
+  // prevent the native "Copy / Look Up / Translate" callout that
+  // races our custom long-press action sheet. Patrick 2026-07-08:
+  // "when i hold and click on a gif to see who saw it, it always
+  // highlights and I can't pick the option." Screenshot showed
+  // iOS's system menu appearing on top of our Reply / Seen by /
+  // Pin / Delete sheet, and the image itself was in native selection
+  // mode — that's user-select taking effect. touch-callout alone
+  // doesn't stop selection; add user-select and the whole path is
+  // sealed off from iOS's context detection.
+  const imgSuppress = {
+    WebkitTouchCallout: 'none',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    touchAction: 'manipulation',
+  } as React.CSSProperties;
+
   if (solo) {
     return (
       <img
@@ -166,7 +184,7 @@ const ChatAttachmentImage: React.FC<{
         onLoad={() => onLoad?.()}
         onError={() => console.warn('[chat-photo] image failed to load', src)}
         className={`block max-h-72 w-auto max-w-full cursor-pointer ${skinClasses}`}
-        style={{ WebkitTouchCallout: 'none', touchAction: 'manipulation' } as React.CSSProperties}
+        style={imgSuppress}
       />
     );
   }
@@ -175,7 +193,7 @@ const ChatAttachmentImage: React.FC<{
     <div
       ref={rootRef as React.RefObject<HTMLDivElement>}
       className={`relative overflow-hidden cursor-pointer w-full aspect-square ${skinClasses}`}
-      style={{ touchAction: 'manipulation' } as React.CSSProperties}
+      style={imgSuppress}
     >
       <img
         src={src}
@@ -186,7 +204,7 @@ const ChatAttachmentImage: React.FC<{
         onLoad={() => onLoad?.()}
         onError={() => console.warn('[chat-photo] image failed to load', src)}
         className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-        style={{ WebkitTouchCallout: 'none' } as React.CSSProperties}
+        style={imgSuppress}
       />
     </div>
   );
@@ -852,7 +870,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
             onContextMenu={(e) => { e.preventDefault(); setActionsOpen(true); }}
-            className={`grid gap-1 ${images.length === 1 ? '' : 'grid-cols-2'} max-w-full`}
+            className={`grid gap-1 ${images.length === 1 ? '' : 'grid-cols-2'} max-w-full select-none`}
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}
           >
             {images.map((img, i) => (
               <ChatAttachmentImage

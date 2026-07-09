@@ -52,9 +52,12 @@ const CoachTeamHealthCard: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
+        // Scope to team (was pulling every player in the database
+        // and filtering client-side — PII leak class same as
+        // Sports Connect's cross-club exposure). See 3.9.127 audit.
         const playersQ = query(
           collection(db, 'players'),
-          where('isActive', '==', true)
+          where('teamIds', 'array-contains', selectedTeamId)
         );
         const snap = await getDocs(playersQ);
         if (cancelled) return;

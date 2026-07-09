@@ -227,6 +227,24 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       return new Response(res.body, { status: res.status, headers });
     }
 
+    // GET /public/voting/:votingId/roster — anonymous, sanitized
+    //   player list for the /vote page. Existed as a raw players
+    //   query with `isActive == true` from the client before, which
+    //   dumped every player's DOB / medical / parent emails to any
+    //   voter. This returns ONLY name + jersey + photo — enough to
+    //   render the ballot, nothing more. Firestore.rules on
+    //   players.get gets tightened in the same ship so the old
+    //   direct path is blocked. Response shape:
+    //     { ok: true, teamId, players: [{id, name, jerseyNumber,
+    //        profilePhotoUrl}] }
+    if (url.pathname.startsWith('/public/voting/') && url.pathname.endsWith('/roster') && req.method === 'GET') {
+      const { handlePublicVotingRoster } = await import('./publicFixtures');
+      const res = await handlePublicVotingRoster(req, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
     // GET /o/:campaignId/:token.gif — campaign open-tracking pixel.
     //   Always returns a 1x1 transparent gif; bumps openCount when
     //   the token is valid. No CORS or auth.

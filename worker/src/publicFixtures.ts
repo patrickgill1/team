@@ -156,3 +156,77 @@ export async function handlePublicFixtures(req: Request, env: Env): Promise<Resp
     roster,
   });
 }
+
+// ────────────────────────────────────────────────────────────────
+// /public/voting/:votingId/roster
+//
+// Sanitized player list for the anonymous /vote page. Replaces a
+// direct Firestore `players` list query that previously ran from
+// the browser and returned every player's full doc (DOB, medical,
+// parentEmails, etc) to any voter. This endpoint returns ONLY the
+// fields the ballot renders: name, jersey number, profile photo.
+//
+// Gated by the match_votings doc existing + isActive. No auth —
+// this is the parent-facing vote link that gets shared out via
+// text and social. Response is edge-cached briefly.
+// ────────────────────────────────────────────────────────────────
+const MAX_VOTING_ROSTER = 40;
+
+export async function handlePublicVotingRoster(req: Request, env: Env): Promise<Response> {
+  const url = new URL(req.url);
+  const parts = url.pathname.split('/').filter(Boolean); // ['public','voting','VID','roster']
+  const votingId = parts[2] || '';
+  if (!votingId) return jsonResponse({ ok: false, error: 'voting-id-required' }, 400);
+
+  const cfg = projectAndSA(env);
+  if (!cfg) return jsonResponse({ ok: false, error: 'server-not-configured' }, 503);
+  const { pid, sa } = cfg;
+
+  const votingDoc = await getDocument(pid, `match_votings/${votingId}`, sa).catch(() => null);
+  if (!votingDoc) return jsonResponse({ ok: false, error: 'voting-not-found' }, 404);
+  const v: any = (votingDoc as any).data || {};
+  const teamId = String(v.teamId || '');
+  if (!teamId) return jsonResponse({ ok: false, error: 'voting-missing-team' }, 500);
+
+  // Pull the team's active players. Two queries because some legacy
+  // player docs only have teamId (string) while newer ones have
+  // teamIds (array). Merge + dedupe.
+  const [byTeamIds, byLegacyTeamId] = await Promise.all([
+    runQuery(pid, 'players', [
+      { field: 'teamIds', op: 'ARRAY_CONTAINS', value: teamId },
+    ], sa, 200).catch(() => []),
+    runQuery(pid, 'players', [
+      { field: 'teamId', op: 'EQUAL', value: teamId },
+    ], sa, 200).catch(() => []),
+  ]);
+  const seen = new Set<string>();
+  const combined: any[] = [];
+  for (const p of [...byTeamIds, ...byLegacyTeamId]) {
+    if (!p?.id || seen.has(p.id)) continue;
+    seen.add(p.id);
+    combined.push(p);
+  }
+
+  const eligible: string[] = Array.isArray(v.eligiblePlayerIds) ? v.eligiblePlayerIds.map(String) : [];
+
+  const roster = combined
+    .map((p: any) => ({ id: String(p.id), data: p.data || {} }))
+    .filter(p => p.data.isActive !== false)
+    // If the voting has an eligibility list, respect it. Otherwise
+    // show every active player.
+    .filter(p => eligible.length === 0 || eligible.includes(p.id))
+    .sort((a, b) => {
+      const ja = typeof a.data.jerseyNumber === 'number' ? a.data.jerseyNumber : 999;
+      const jb = typeof b.data.jerseyNumber === 'number' ? b.data.jerseyNumber : 999;
+      return ja - jb;
+    })
+    .slice(0, MAX_VOTING_ROSTER)
+    .map(p => ({
+      id: p.id,
+      name: String(p.data.name || 'Player'),
+      jerseyNumber: typeof p.data.jerseyNumber === 'number' ? p.data.jerseyNumber : null,
+      profilePhotoUrl: p.data.profilePhotoUrl || null,
+    }));
+
+  return jsonResponse({ ok: true, teamId, players: roster });
+}

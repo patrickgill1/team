@@ -1,9 +1,72 @@
 rules_version = '2';
+
+// Firebase Storage rules — hardened 2026-07-08 (Patrick's PII audit
+// after seeing a competing platform expose parent data cross-club).
+//
+// Prior state: `allow read, write: if request.auth != null` on
+// /{allPaths=**}. That meant any signed-in user could:
+//   - overwrite ANY file in the bucket (avatar poisoning of another
+//     team's coach, team-logo defacement, etc.)
+//   - list/enumerate ANY path they knew the shape of
+//
+// New posture:
+//   - Read: authed users only (unchanged; Firebase Storage URLs are
+//     effectively public once shared and cached in the app; the
+//     real leverage on read-side is stopping unauthed browsing).
+//   - Write: scoped to the owner for profile uploads; scoped to
+//     team/club paths but still authed-only there because Storage
+//     rules can't cheaply cross-check Firestore team.coachIds
+//     membership. Client-side upload paths are all coach-gated so
+//     this stops opportunistic attacks; a rogue coach still writing
+//     to another team's teams/*/photos/* path is out-of-band abuse
+//     that would show up in audit if it happened.
+//   - Anything not matched by an explicit path: no writes at all,
+//     read still allowed to authed. Prevents the "wildcard allows
+//     anything" trap.
+//
+// Note on scope: most of GoalKickr's media lives in Cloudflare R2
+// (bucket 'fire') and Cloudflare Stream, NOT Firebase Storage. This
+// rules file covers avatars, team logos, and a small set of legacy
+// upload paths. R2 has its own CORS + auth config at infra/r2-cors.json.
+
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow authenticated users to upload to any path
+
+    // Profile photos and per-user uploads. Path shape:
+    //   profiles/{type}/{userId}/{fileName}
+    // where type is one of 'parents', 'coaches', 'players'. Only the
+    // owner (auth.uid === userId) can write here; anyone signed in
+    // can read (avatars are visible in chat, roster, etc.).
+    match /profiles/{type}/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Team-scoped uploads (team logo, event photos, roster media).
+    // Path shape: teams/{teamId}/(logo|photos|...)/{fileName}. Storage
+    // rules can't affordably cross-check Firestore team membership so
+    // we keep this authed-only — the client only ever writes to teams
+    // the caller coaches. Non-coach writes here would show up in
+    // logs; harden with a Firestore.get() lookup in a followup if
+    // that ever becomes a real attack vector.
+    match /teams/{teamId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Club-scoped uploads (club logo). Same rationale as team paths.
+    match /clubs/{clubId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Default fallback: authed users can READ anything else that
+    // slipped past the explicit prefixes, but NOTHING writes here.
+    // Compare to the previous wildcard that allowed writes too — that
+    // was the "avatar poisoning of any user" hole the audit found.
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if false;
     }
   }
 }

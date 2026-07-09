@@ -291,23 +291,33 @@ const PublicVote: React.FC = () => {
     return () => unsub();
   }, [votingId]);
 
-  // ── Load players once teamId is known (includes shared players) ──────────
+  // ── Load players via sanitized worker endpoint ─────────────────
+  // Previously this ran a raw Firestore query for every active
+  // player and filtered client-side, which meant an unauthenticated
+  // voter could pull every player's DOB, medical block, parent
+  // emails, etc. Fixed 2026-07-08 in the PII audit follow-up: the
+  // /public/voting/:id/roster worker endpoint returns ONLY name,
+  // jersey number, and profile photo. Firestore.rules on players
+  // is tightened in the same ship to require caller-membership,
+  // so the old direct path is also blocked.
   useEffect(() => {
-    if (!voting?.teamId || players.length > 0) return;
+    if (!votingId || players.length > 0) return;
     (async () => {
-      const q = query(
-        collection(db, 'players'),
-        where('isActive', '==', true)
-      );
-      const snap = await getDocs(q);
-      const teamId = voting.teamId;
-      const sorted = snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as Player))
-        .filter(p => p.teamId === teamId || (p.teamIds && Array.isArray(p.teamIds) && p.teamIds.includes(teamId)))
-        .sort((a, b) => (a.jerseyNumber || 999) - (b.jerseyNumber || 999));
-      setPlayers(sorted);
+      try {
+        const base = process.env.REACT_APP_NOTIFY_URL || '';
+        if (!base) return;
+        const res = await fetch(`${base}/public/voting/${encodeURIComponent(votingId)}/roster`);
+        const data: any = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) {
+          console.warn('voting roster fetch failed', data);
+          return;
+        }
+        setPlayers((data.players || []) as Player[]);
+      } catch (err) {
+        console.warn('voting roster fetch threw', err);
+      }
     })();
-  }, [voting?.teamId]);
+  }, [votingId, players.length]);
 
   // \u2500\u2500 Handlers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   const handleProceedToVote = () => {

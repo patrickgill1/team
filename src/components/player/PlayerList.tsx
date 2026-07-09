@@ -73,19 +73,18 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
 
     setIsLoading(true);
 
+    // Scope to team roster. Was dumping every active player in the
+    // database and filtering client-side — same PII-leak class as
+    // Sports Connect's cross-club exposure. isActive is filtered
+    // client-side to keep the query on a single non-composite index.
     const q = query(
       collection(db, 'players'),
-      where('isActive', '==', true)
+      where('teamIds', 'array-contains', selectedTeamId)
     );
 
     const unsub = onSnapshot(q, snap => {
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Filter client-side: player belongs to team if teamIds includes it OR legacy teamId matches
-      const teamPlayers = all.filter((p: any) => {
-        if (p.teamIds && Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) return true;
-        if (p.teamId === selectedTeamId) return true;
-        return false;
-      });
+      const teamPlayers = all.filter((p: any) => p.isActive !== false);
       // Sort by jersey number
       teamPlayers.sort((a: any, b: any) => (a.jerseyNumber || 999) - (b.jerseyNumber || 999));
 
@@ -110,14 +109,11 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
       setInactivePlayers([]);
       return;
     }
-    const q = query(collection(db, 'players'), where('isActive', '==', false));
+    // Same team-scope fix as the active-players query above.
+    const q = query(collection(db, 'players'), where('teamIds', 'array-contains', selectedTeamId));
     const unsub = onSnapshot(q, (snap) => {
       const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
-      const teamPlayers = all.filter((p: any) => {
-        if (p.teamIds && Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) return true;
-        if (p.teamId === selectedTeamId) return true;
-        return false;
-      });
+      const teamPlayers = all.filter((p: any) => p.isActive === false);
       teamPlayers.sort((a: any, b: any) => (a.jerseyNumber || 999) - (b.jerseyNumber || 999));
       setInactivePlayers(teamPlayers.map((p: any) => ({
         ...p,

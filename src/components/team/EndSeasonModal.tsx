@@ -69,11 +69,13 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
         if (cancelled) return;
         setSeason(s);
 
-        // Players for the team — match either teamId or teamIds includes
-        const snap = await getDocs(query(collection(db, 'players'), where('isActive', '==', true)));
+        // Team-scoped read. Was pulling every active player in the
+        // database then filtering — cross-club PII exposure. Filter
+        // by teamIds and drop inactive client-side.
+        const snap = await getDocs(query(collection(db, 'players'), where('teamIds', 'array-contains', teamId)));
         const list: Player[] = snap.docs
           .map((d) => ({ id: d.id, ...(d.data() as any) }))
-          .filter((p: any) => (p.teamId === teamId) || (Array.isArray(p.teamIds) && p.teamIds.includes(teamId)));
+          .filter((p: any) => p.isActive !== false);
         if (cancelled) return;
         setPlayers(list);
         setKeepIds(new Set(list.map((p) => p.id))); // default: keep all

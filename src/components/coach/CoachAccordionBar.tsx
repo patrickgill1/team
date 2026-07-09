@@ -136,9 +136,14 @@ const CoachAccordionBar: React.FC = () => {
           orderBy('date', 'asc'),
           limit(5)
         );
+        // Scope to the active team. Was dumping the WHOLE players
+        // collection cross-club before filtering client-side, which
+        // was the same class of "coach can see every family's PII"
+        // leak Patrick saw on Sports Connect. isActive is filtered
+        // client-side to avoid needing a composite index.
         const playersQ = query(
           collection(db, 'players'),
-          where('isActive', '==', true)
+          where('teamIds', 'array-contains', selectedTeamId)
         );
         const [eventsSnap, playersSnap] = await Promise.all([
           getDocs(eventsQ),

@@ -76,15 +76,43 @@ service cloud.firestore {
       allow create, delete: if request.auth != null;
     }
 
-    // Players: get is public (/vote page). LIST stays open to any
-    // auth user (TODO: dozens of pages dump the full collection
-    // client-side then filter; locking list breaks them all. Followup
-    // audit pass to scope every query, then tighten this). CREATE +
-    // delete are coach-write-gated; UPDATE allows parents to edit
-    // their own kid's profile.
+    // Players — hardened 2026-07-08 (Patrick's PII audit after
+    // seeing a competing platform expose parent data cross-club).
+    //
+    // GET: was `if true` — anyone with a playerId could pull the
+    // full doc (DOB, medical, parentEmails, etc). Tightened to
+    // per-doc scope: platform admin, parent of the player, or
+    // coach/parent on one of the player's teams.
+    // Public /vote page no longer reads players directly — it
+    // hits /public/voting/:votingId/roster on the worker which
+    // returns a sanitized name+jersey+photo shape.
+    //
+    // LIST: was `if request.auth != null` — any authed user could
+    // enumerate every player in the database. Tightened to the
+    // same per-doc rule, which means every list query must include
+    // a WHERE filter that guarantees only in-scope docs match
+    // (Firestore denies the whole list if any matched doc fails
+    // the rule). Client queries updated: CoachAccordionBar,
+    // CoachTeamHealthCard, PlayerList, EndSeasonModal now use
+    // teamIds array-contains; PublicVote now uses the worker.
+    function callerCanReadPlayer() {
+      return isPlatformAdmin()
+        || (
+          resource.data.parentIds is list
+          && request.auth.uid in resource.data.parentIds
+        )
+        || (
+          resource.data.teamIds is list
+          && resource.data.teamIds.hasAny(userDoc().teamIds)
+        )
+        || (
+          resource.data.teamId is string
+          && resource.data.teamId in userDoc().teamIds
+        );
+    }
     match /players/{playerId} {
-      allow get: if true;
-      allow list: if request.auth != null;
+      allow get: if isAuthed() && callerCanReadPlayer();
+      allow list: if isAuthed() && callerCanReadPlayer();
       allow create: if isAuthed() && canCoachWrite()
         && onTeam(request.resource.data.teamId);
       // Re-tightened 2026-07-06: the self-add-to-parentIds branch is

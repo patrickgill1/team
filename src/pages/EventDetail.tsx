@@ -117,16 +117,19 @@ const EventDetail: React.FC = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
   const { selectedTeamId, teams } = useTeam() as any;
-  // Team-audience helper — drives adult-only affordances like the
-  // "Split teams" pickup CTA. Called at top-level to satisfy rules
-  // of hooks; teamObj resolves after the event snapshot lands.
-  const teamObj = Array.isArray(teams) ? teams.find((t: any) => t.id === (selectedTeamId || undefined)) : null;
-  const { isAdult: isAdultTeam } = useTeamAudience(teamObj);
   const [splitOpen, setSplitOpen] = useState(false);
   const { getDocument, updateDocument, deleteDocument } = useFirestore();
 
   const [event, setEvent] = useState<CalendarEvent | null>(null);
   const [loading, setLoading] = useState(true);
+  // Audience resolves against the EVENT's team when available, not
+  // the app's selectedTeamId. A coach on multiple teams (youth Fire
+  // FC + adult Saturday Pickup) might open an adult-team event
+  // while their app still has the youth team selected; without this,
+  // the "Split teams" button + other adult-only UI stays hidden.
+  const audienceTeamId = event?.teamId || selectedTeamId;
+  const audienceTeamObj = Array.isArray(teams) ? teams.find((t: any) => t.id === audienceTeamId) : null;
+  const { isAdult: isAdultTeam } = useTeamAudience(audienceTeamObj);
   const [weather, setWeather] = useState<WeatherSummary | null>(null);
   const [now, setNow] = useState(() => new Date());
   // Team roster — loaded for everyone (not just coaches) so parents

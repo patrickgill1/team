@@ -150,7 +150,16 @@ service cloud.firestore {
         || (
           resource.data.teamId is string
           && exists(/databases/$(database)/documents/teams/$(resource.data.teamId))
-          && request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.coachIds
+          && request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('coachIds', [])
+        )
+        // Same fallback but keyed off resource.data.teamIds[0] for
+        // players whose primary team lives on the plural field only
+        // (canonical shape) rather than teamId singular.
+        || (
+          resource.data.teamIds is list
+          && resource.data.teamIds.size() > 0
+          && exists(/databases/$(database)/documents/teams/$(resource.data.teamIds[0]))
+          && request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamIds[0])).data.get('coachIds', [])
         );
     }
     // ─────────────────────────────────────────────────────────────

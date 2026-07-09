@@ -388,7 +388,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              className="w-full pl-10 pr-4 py-3 bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 ring-1 ring-line-default/15 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60"
               placeholder="Search by name or player name..."
             />
             <svg className="w-5 h-5 text-ink-primary/40 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -651,7 +651,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     {(isUserCoach || entry.privacy.showEmail) && entry.user.email && (
                       <button
                         onClick={() => window.open(`mailto:${entry.user.email}`)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-elevated text-charcoal-800 font-bold text-sm shadow hover:scale-105 transition"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-line-default/15 ring-1 ring-line-default/20 text-ink-primary font-semibold text-sm hover:bg-line-default/25 transition backdrop-blur"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />

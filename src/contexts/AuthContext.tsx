@@ -878,6 +878,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(false); // ← unblock the UI immediately
             console.log('User data loaded:', userDataObj);
 
+            // Defense-in-depth: ensure user.teamIds mirrors every team
+            // whose coachIds contains this uid. Some coaches ended up
+            // with team.coachIds set but user.teamIds empty — worker's
+            // requireCoachOfTeam let them WRITE, but callerCanReadPlayer
+            // (which only checked user.teamIds) 403'd every read. Worker
+            // heals in O(1) query + at most 1 write, idempotent. Only
+            // fires once per session (sessionStorage guard).
+            try {
+              if (!sessionStorage.getItem('teamMembershipHealed')) {
+                sessionStorage.setItem('teamMembershipHealed', '1');
+                const { workerFetch } = await import('../utils/workerFetch');
+                workerFetch('/users/heal-team-membership', {
+                  method: 'POST',
+                  body: JSON.stringify({}),
+                }).then(r => r.json()).then((res: any) => {
+                  if (res?.added?.length) {
+                    console.log('[heal] added teamIds:', res.added);
+                  }
+                }).catch(err => console.warn('[heal] failed', err));
+              }
+            } catch { /* non-fatal */ }
+
             // Live subscribe to the user doc so changes the user makes
             // from any device (pinning a chat, updating their name,
             // joining a team) reflect immediately without a reload.

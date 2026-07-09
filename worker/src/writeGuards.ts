@@ -1668,6 +1668,46 @@ async function handleUsersSetTeams(req: Request, env: Env, payload: any): Promis
 }
 
 // ────────────────────────────────────────────────────────────────
+// /users/heal-team-membership — sync user.teamIds with the truth in
+// team.coachIds. Called on sign-in as a defense-in-depth measure:
+// some coaches ended up on team.coachIds without a matching entry
+// on user.teamIds (root cause TBD — possibly a lost arrayUnion in
+// an early flow or a hand-edit), which lets them WRITE via the
+// worker's requireCoachOfTeam (which honors team.coachIds) but 403s
+// every READ (which only checked user.teamIds). See Nick Barker
+// 2026-07-09: "you can add a kid and it is in firestore, but they
+// disappear from the squad".
+//
+// Idempotent + safe to spam: only ADDS teamIds (no removes), only
+// touches teams where the caller is genuinely on coachIds. No body.
+// ────────────────────────────────────────────────────────────────
+async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  // Find every team whose coachIds contains this uid. Firestore's
+  // structured query supports array-contains on a single field.
+  const teams = await runQuery(pid, 'teams', [
+    { field: 'coachIds', op: 'ARRAY_CONTAINS', value: claims.uid },
+  ], sa, 200).catch(() => []);
+  const teamIds = teams.map(t => t.id).filter(Boolean);
+  if (teamIds.length === 0) return json({ ok: true, added: [], teamIds: [] });
+  // Read the user's current teamIds so we only union new ids and
+  // can report what changed in the response for logging.
+  const currentUser = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+  const existing: string[] = Array.isArray(currentUser?.data?.teamIds) ? currentUser.data.teamIds : [];
+  const toAdd = teamIds.filter(id => !existing.includes(id));
+  if (toAdd.length === 0) return json({ ok: true, added: [], teamIds: existing });
+  await commitDocumentTransforms(
+    pid,
+    `users/${claims.uid}`,
+    [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: toAdd }],
+    null,
+    sa,
+  );
+  return json({ ok: true, added: toAdd, teamIds: [...existing, ...toAdd] });
+}
+
+// ────────────────────────────────────────────────────────────────
 // Route dispatcher. index.ts calls this once for /guard/* paths
 // so we don't have to add a dozen if-blocks to the main handler.
 // Returns null when the pathname isn't a guarded-write route.
@@ -1702,6 +1742,7 @@ export async function routeWriteGuard(
     case '/users/approve':         return handleUsersApprove(req, env, payload);
     case '/users/deactivate':      return handleUsersDeactivate(req, env, payload);
     case '/users/set-teams':       return handleUsersSetTeams(req, env, payload);
+    case '/users/heal-team-membership': return handleUsersHealTeamMembership(req, env, payload);
     case '/players/create':        return handlePlayersCreate(req, env, payload);
     case '/events/batch-create':   return handleEventsBatchCreate(req, env, payload);
     case '/players/set-active':    return handlePlayersSetActive(req, env, payload);

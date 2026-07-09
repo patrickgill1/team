@@ -107,6 +107,13 @@ const Onboarding: React.FC = () => {
   const [teamName, setTeamName] = useState(firstName ? `${firstName}'s team` : '');
   const [teamFormat, setTeamFormat] = useState('7v7');
   const [teamAgeGroup, setTeamAgeGroup] = useState('');
+  // Audience: 'youth' = kids with parents (default), 'adult' = players
+  // are themselves (Patrick's Saturday pickup group). Selected on the
+  // team step. Drives (1) audienceType on the team doc, (2) skipping
+  // the kid-gate + add-kid steps in the wizard, (3) isAdultPlayer flag
+  // on every /players/create call from the invite step's bulk form.
+  const [audienceType, setAudienceType] = useState<'youth' | 'adult'>('youth');
+  const isAdultTeam = audienceType === 'adult';
 
   // Kid (coach's own child)
   const [hasKid, setHasKid] = useState<boolean | null>(null);
@@ -180,6 +187,7 @@ const Onboarding: React.FC = () => {
           season: String(new Date().getFullYear()),
           ageGroup: teamAgeGroup || undefined,
           format: teamFormat || undefined,
+          audienceType: isAdultTeam ? 'adult' : undefined,
           withDefaultClub: true,
         }),
       });
@@ -543,6 +551,39 @@ const Onboarding: React.FC = () => {
             </div>
 
             <div className="space-y-4 rounded-2xl bg-white/[0.04] ring-1 ring-white/10 backdrop-blur-md p-5">
+              {/* Audience picker — Youth vs Adult. Selecting Adult
+                  routes past the kid-gate + add-kid steps (adults are
+                  their own player) and stamps audienceType:'adult' on
+                  the team + isAdultPlayer:true on every roster invite. */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-white/70 mb-1.5">Team type</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAudienceType('youth')}
+                    className={`py-3 rounded-xl text-sm font-bold transition ${
+                      audienceType === 'youth'
+                        ? 'bg-brand-primary text-white ring-1 ring-brand-primary-soft/60'
+                        : 'bg-white/5 text-white/70 ring-1 ring-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    Youth
+                    <span className="block text-[10px] font-medium opacity-70 mt-0.5 normal-case tracking-normal">Kids + parents</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAudienceType('adult')}
+                    className={`py-3 rounded-xl text-sm font-bold transition ${
+                      audienceType === 'adult'
+                        ? 'bg-brand-primary text-white ring-1 ring-brand-primary-soft/60'
+                        : 'bg-white/5 text-white/70 ring-1 ring-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    Adult
+                    <span className="block text-[10px] font-medium opacity-70 mt-0.5 normal-case tracking-normal">Players are themselves</span>
+                  </button>
+                </div>
+              </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-white/70 mb-1.5">Team name</label>
                 <input
@@ -550,7 +591,7 @@ const Onboarding: React.FC = () => {
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   className="w-full px-4 py-3.5 rounded-xl bg-white/5 text-white ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-base"
-                  placeholder="e.g. Fire FC"
+                  placeholder={isAdultTeam ? 'e.g. Saturday Pickup' : 'e.g. Fire FC'}
                   autoCapitalize="words"
                 />
               </div>
@@ -596,7 +637,7 @@ const Onboarding: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => handleCreateTeamAndAdvance('kid-gate')}
+              onClick={() => handleCreateTeamAndAdvance(isAdultTeam ? 'practice-days' : 'kid-gate')}
               disabled={busy || !teamName.trim()}
               className="w-full py-4 rounded-2xl bg-brand-primary text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition disabled:opacity-50"
             >
@@ -900,10 +941,12 @@ const Onboarding: React.FC = () => {
           <div className="space-y-6">
             <div className="text-center">
               <h1 className="text-3xl font-black tracking-tight leading-tight mb-2">
-                Build each player’s Circle
+                {isAdultTeam ? 'Invite your players' : 'Build each player’s Circle'}
               </h1>
               <p className="text-white/60 text-sm">
-                Add each player with the family email. We’ll invite them into their Circle.
+                {isAdultTeam
+                  ? 'Add each player with their email. We’ll send them a link to join.'
+                  : 'Add each player with the family email. We’ll invite them into their Circle.'}
               </p>
             </div>
             {createdTeamId && (
@@ -911,12 +954,13 @@ const Onboarding: React.FC = () => {
                 <BulkAddPlayersForm
                   teamId={createdTeamId}
                   teamName={teamName}
+                  isAdultTeam={isAdultTeam}
                   onComplete={(result) => {
                     setRosterResult(result);
                     goStep('staff');
                   }}
                   onSkip={() => goStep('staff')}
-                  primaryLabel="Send Circle invites"
+                  primaryLabel={isAdultTeam ? 'Send player invites' : 'Send Circle invites'}
                   skipLabel="Skip for now"
                 />
               </div>

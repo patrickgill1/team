@@ -28,6 +28,11 @@ interface Props {
   primaryLabel?: string;
   skipLabel?: string;
   initialRowCount?: number;
+  /** When true, the team is adult (no parent layer). Every player
+   *  create is stamped isAdultPlayer:true; the "Parent Email" column
+   *  becomes "Email" (the player's own address); the invite email
+   *  links the recipient to their own player, not to their kid's. */
+  isAdultTeam?: boolean;
 }
 
 interface RosterRow {
@@ -46,6 +51,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
   primaryLabel = 'Build the Squad',
   skipLabel = 'Skip for now',
   initialRowCount = 6,
+  isAdultTeam = false,
 }) => {
   const { userData, currentUser } = useAuth();
   const { addPlayer } = useFirestore();
@@ -105,6 +111,12 @@ const BulkAddPlayersForm: React.FC<Props> = ({
               teamId,
               name,
               parentEmails: parentEmail ? [parentEmail] : undefined,
+              // Adult teams: mark each player as isAdultPlayer so
+              // resolveSenderRole flips the invitee to a 'player'
+              // role once they consume their invite, chat routes
+              // them as a player (not parent), and UI copy that
+              // gates on isAdultPlayer flows correctly.
+              isAdultPlayer: isAdultTeam ? true : undefined,
             }),
           });
           const data: any = await res.json().catch(() => ({}));
@@ -205,7 +217,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
                 value={row.parentEmail}
                 onChange={e => updateRow(i, { parentEmail: e.target.value })}
                 className="w-full rounded-md bg-surface-elevated ring-1 ring-line-default/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-ink-primary placeholder-charcoal-500 text-sm"
-                placeholder="Parent email"
+                placeholder={isAdultTeam ? 'Player email' : 'Parent email'}
                 autoComplete="off"
               />
               {hasName && (
@@ -213,12 +225,12 @@ const BulkAddPlayersForm: React.FC<Props> = ({
                   {hasEmail ? (
                     <>
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                      Family gets a link in their inbox
+                      {isAdultTeam ? 'Player gets a link in their inbox' : 'Family gets a link in their inbox'}
                     </>
                   ) : (
                     <>
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-                      Added to the Squad. Bring the family in later.
+                      {isAdultTeam ? 'Added to the Squad. Send the invite later.' : 'Added to the Squad. Bring the family in later.'}
                     </>
                   )}
                 </p>

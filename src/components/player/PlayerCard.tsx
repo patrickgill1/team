@@ -129,7 +129,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-surface-elevated to-surface-input p-4 sm:p-5 text-ink-primary shadow-md border border-brand-primary/10">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-surface-elevated to-surface-input p-4 sm:p-5 text-ink-primary shadow-md border border-brand-primary/10 h-full flex flex-col">
         {/* Faint cyan accent — keeps a hint of "card has personality"
             without the bubbly blur-blob look. */}
         <div className="absolute -top-12 -right-12 w-32 h-32 bg-brand-primary/10 rounded-full blur-2xl pointer-events-none" />
@@ -159,7 +159,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           </div>
         )}
 
-        <div className="relative">
+        <div className="relative flex-1 flex flex-col">
           {/* Position pill */}
           {player.position && (
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 text-[10px] font-bold uppercase tracking-wider mb-4 backdrop-blur">
@@ -247,7 +247,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           {/* Mini stat tiles */}
           <div className="grid grid-cols-4 gap-2 mb-4">
             <MiniStat label="Goals" value={player.stats?.goals || 0} accent="emerald" />
-            <MiniStat label="Assists" value={player.stats?.assists || 0} accent="cyan" />
+            {/* "Assists" wrapped in 4-col grid so it truncated to "ASSI…";
+                shortened to the standard short form "AST" (matches
+                stat tables everywhere). */}
+            <MiniStat label="AST" value={player.stats?.assists || 0} accent="cyan" />
             <MiniStat label="Saves" value={player.stats?.saves || 0} accent="amber" />
             <MiniStat label="Games" value={player.stats?.gamesPlayed || 0} accent="violet" />
           </div>
@@ -275,8 +278,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             </div>
           )}
 
-          {/* Action buttons */}
-          <div className="flex flex-wrap gap-2 items-center">
+          {/* Action buttons — mt-auto pushes to card bottom so cards
+              in a row align at the footer regardless of whether the
+              Add-to-circle / Start-circle chip renders. */}
+          <div className="mt-auto pt-4 flex flex-wrap gap-2 items-center">
             <Link
               to={`/player/${player.id}`}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-charcoal-800 font-bold text-sm shadow hover:scale-105 transition"

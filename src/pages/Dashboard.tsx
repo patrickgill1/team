@@ -14,6 +14,7 @@ import FamilyFeed from '../components/dashboard/FamilyFeed';
 import InThePoolHero from '../components/dashboard/InThePoolHero';
 import NotificationsBanner from '../components/common/NotificationsBanner';
 import SubscribeBanner from '../components/dashboard/SubscribeBanner';
+import TrialCountdownBanner from '../components/dashboard/TrialCountdownBanner';
 import GettingStartedCard from '../components/dashboard/GettingStartedCard';
 import SmartDiscoveryPrompts from '../components/dashboard/SmartDiscoveryPrompts';
 import DataGate from '../components/common/DataGate';
@@ -961,6 +962,7 @@ const Dashboard: React.FC = () => {
           return (
             <>
               <NotificationsBanner />
+              <TrialCountdownBanner />
               <GettingStartedCard players={players} events={upcomingEvents} dataLoading={loading} />
               <SubscribeBanner />
               <SmartDiscoveryPrompts

@@ -618,13 +618,29 @@ const getUserData = useCallback(async (uid: string) => {
 
   /**
    * Subscribe to club-wide threads — anything whose scope is one of
-   * 'club' / 'coaches' / 'admins'. These threads are NOT scoped to a
-   * teamId, so they show up regardless of which team is currently
-   * selected. Caller filters by role on the client side.
+   * 'club' / 'coaches' / 'admins'. These threads are NOT team-scoped
+   * so they show up regardless of which team is currently selected.
+   * Caller filters by role on the client side.
+   *
+   * clubId REQUIRED as of 3.9.154. Before this argument existed, the
+   * query fetched EVERY club-scoped thread across every club in the
+   * database — a legitimate cross-tenant leak. Any coach at Club A
+   * received Club B's coach chat titles + participant lists in their
+   * onSnapshot. Now we scope to the caller's own club and refuse to
+   * fire when no clubId is resolvable (returning a no-op unsub so
+   * the caller's cleanup still runs cleanly).
    */
-  const subscribeToClubChatThreads = useCallback((callback: (threads: ChatThread[]) => void) => {
+  const subscribeToClubChatThreads = useCallback((clubId: string | null | undefined, callback: (threads: ChatThread[]) => void) => {
+    if (!clubId) {
+      // No club scope resolvable → immediately emit an empty list
+      // and hand back a no-op unsub. Caller's Loading→empty state
+      // still lands correctly.
+      try { callback([]); } catch { /* ignore */ }
+      return () => {};
+    }
     const q = query(
       collection(db, 'chat_threads'),
+      where('clubId', '==', clubId),
       where('scope', 'in', ['club', 'coaches', 'admins']),
       orderBy('isPinned', 'desc'),
       orderBy('lastActivity', 'desc')

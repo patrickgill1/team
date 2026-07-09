@@ -790,8 +790,19 @@ const TeamChat: React.FC = () => {
   // Subscribe to club-scoped threads (visible regardless of selected
   // team). Mounted once per session; role-filtering happens in the
   // `threads` memo below.
+  //
+  // clubId RESOLUTION (3.9.154 leak fix): before this change the
+  // subscription fetched every club-scoped thread in the entire
+  // database — a cross-tenant leak. Now we scope to the caller's
+  // own club, resolving in the same order the createThread flow
+  // uses so an admin whose team has clubId stamped, or a coach
+  // whose user.clubId is set, both get the right scope.
+  const activeClubId = (selectedTeam as any)?.clubId
+    || (userData as any)?.clubId
+    || fallbackClubId
+    || null;
   useEffect(() => {
-    const unsub = subscribeToClubChatThreads((data) => {
+    const unsub = subscribeToClubChatThreads(activeClubId, (data) => {
       const processed = data.map(thread => ({
         ...thread,
         lastActivity: thread.lastActivity instanceof Date ? thread.lastActivity : new Date(thread.lastActivity || Date.now()),
@@ -811,7 +822,7 @@ const TeamChat: React.FC = () => {
       setClubLoaded(true);
     });
     return () => { unsub && unsub(); };
-  }, [subscribeToClubChatThreads, authChurn]);
+  }, [subscribeToClubChatThreads, authChurn, activeClubId]);
 
   // Merge + role-filter. Coaches see team + club + coaches scopes.
   // Parents see team + club. Admins see everything.

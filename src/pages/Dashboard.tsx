@@ -306,6 +306,18 @@ const Dashboard: React.FC = () => {
     }, 0);
   }, [chatThreads, userData?.uid]);
 
+  // For the compact "new messages" card at the top of the dashboard.
+  // We surface the freshest unread thread as a preview so the user
+  // knows WHICH conversation lit up, not just that something did.
+  // Sorted DESC by lastActivity (chatThreads is already sorted).
+  const freshestUnreadThread = useMemo(() => {
+    if (!userData?.uid || newMessagesCount === 0) return null;
+    return chatThreads.find((t: any) => {
+      const u = t?.unreadCount?.[userData.uid];
+      return typeof u === 'number' && u > 0;
+    }) || null;
+  }, [chatThreads, userData?.uid, newMessagesCount]);
+
 
   const totalGoals = players.reduce((s, p) => s + (p.stats?.goals || 0), 0);
   const totalAssists = players.reduce((s, p) => s + (p.stats?.assists || 0), 0);
@@ -961,6 +973,13 @@ const Dashboard: React.FC = () => {
           if (inWelcomeGrace) return null;
           return (
             <>
+              {/* New-messages nudge sits above the standard banners so
+                  a fresh unread thread is the first thing you see when
+                  you open the app. Only renders when there's actually
+                  something new — silent otherwise. Wall moved to the
+                  menu, so this was the missing "you have activity"
+                  signal on the home surface. */}
+              <UnreadMessagesCard count={newMessagesCount} thread={freshestUnreadThread} />
               <NotificationsBanner />
               <TrialCountdownBanner />
               <GettingStartedCard players={players} events={upcomingEvents} dataLoading={loading} />
@@ -1466,6 +1485,48 @@ const AttendancePill: React.FC<{ label: string; value: number; dim?: boolean }> 
     <div className="text-[10px] uppercase tracking-wider font-bold text-ink-primary/70">{label}</div>
   </div>
 );
+
+// Compact "you have new messages" nudge shown at the top of the
+// dashboard content. Single row, ~44px tall. Only renders when
+// count > 0 so we never occupy space to say "nothing new." Tap
+// takes you straight to the freshest unread thread if we know
+// which one, else the chat index.
+const UnreadMessagesCard: React.FC<{ count: number; thread: any | null }> = ({ count, thread }) => {
+  if (count <= 0) return null;
+  const href = thread?.id ? `/chat?thread=${thread.id}` : '/chat';
+  const title = thread?.isDM
+    ? (thread?.dmParticipantNames && Object.values(thread.dmParticipantNames)[0]) || (thread?.title || '').replace(/^DM:\s*/, '') || 'Direct message'
+    : thread?.title || 'Team chat';
+  const lastSender = thread?.lastMessage?.senderName;
+  return (
+    <Link
+      to={href}
+      className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-brand-primary/15 via-brand-primary/8 to-transparent ring-1 ring-brand-primary/25 px-4 py-3 hover:from-brand-primary/20 hover:via-brand-primary/12 active:scale-[0.99] transition-all animate-fade-in"
+    >
+      <span className="relative flex-shrink-0 w-9 h-9 rounded-full bg-brand-primary-soft/25 ring-1 ring-brand-primary-soft/40 flex items-center justify-center">
+        <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center ring-2 ring-surface-base">
+          {count > 99 ? '99+' : count}
+        </span>
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-ink-primary leading-tight truncate">
+          {count === 1 ? 'New message' : `${count} new messages`} <span className="text-ink-primary/50 font-medium">· {title}</span>
+        </p>
+        {lastSender && (
+          <p className="text-[11px] text-ink-primary/55 leading-snug truncate mt-0.5">
+            Latest from <span className="font-semibold text-ink-primary/70">{lastSender}</span>
+          </p>
+        )}
+      </div>
+      <svg className="w-4 h-4 text-brand-primary-soft flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M9 6l6 6-6 6" />
+      </svg>
+    </Link>
+  );
+};
 
 const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhotoMap?: Record<string, string> }> = ({ chats, userUid, userPhotoMap }) => {
   return (

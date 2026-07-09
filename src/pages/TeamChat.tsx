@@ -121,6 +121,19 @@ const TeamChat: React.FC = () => {
     });
     return () => unsub();
   }, []);
+
+  // Clear the app-icon badge whenever the user lands on the chat
+  // page. If they got here from tapping the notification banner,
+  // the badge should drop the moment they arrive rather than
+  // waiting for the next foreground event. No-op on web.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { clearAppBadge } = await import('../utils/nativeShell');
+        void clearAppBadge();
+      } catch { /* ignore */ }
+    })();
+  }, []);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   // ATOMIC RENDER for the messages area inside a chat. Flips false
   // when a new thread is selected, true on the first subscription
@@ -1512,6 +1525,13 @@ const TeamChat: React.FC = () => {
             title: pushTitle,
             body: pushBody,
             url: deepLink,
+            // Bump the recipient's app-icon badge. Absolute-count
+            // semantics on iOS mean any push we send with badge>0
+            // shows the little red dot; the app clears it back to 0
+            // on foreground / when the user opens /chat. Using 1
+            // instead of a real per-user count avoids a lookup fan-
+            // out on hot-path chat sends.
+            badge: 1,
           }, { pushPrefKey: 'chat', fromUid: userData.uid });
         }
       } catch (err) {

@@ -113,6 +113,12 @@ export interface PushMessage {
   body: string;
   url?: string;
   icon?: string;
+  /** App icon badge count. iOS honors an absolute integer via
+   *  apns.payload.aps.badge — pass 0 to CLEAR the badge, a positive
+   *  number to SET it. Android sets a launcher badge via
+   *  notification_count when supported. Undefined → don't touch the
+   *  existing badge (useful for non-message notifications). */
+  badge?: number;
 }
 
 export interface PushResult { ok: boolean; sent: number; failed: number; invalidTokens: string[]; errors?: any[] }
@@ -134,6 +140,17 @@ export async function sendPush(tokens: string[], msg: PushMessage, serviceAccoun
   // FCM v1 only sends to one token per call; loop sequentially (volumes are tiny).
   for (const token of tokens) {
     try {
+      // Build per-platform payloads. Badge lives on APNS for iOS
+      // (aps.badge, absolute integer) and on Android's notification
+      // channel via notification_count. Web push doesn't have a
+      // native badge concept; the app's in-UI unread indicator
+      // covers that surface.
+      const apns = typeof msg.badge === 'number' ? {
+        payload: { aps: { badge: msg.badge } },
+      } : undefined;
+      const android = typeof msg.badge === 'number' ? {
+        notification: { notification_count: msg.badge },
+      } : undefined;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },
@@ -145,6 +162,8 @@ export async function sendPush(tokens: string[], msg: PushMessage, serviceAccoun
               fcm_options: msg.url ? { link: msg.url } : undefined,
               notification: { icon: msg.icon || '/images/logo.png' },
             },
+            apns,
+            android,
             data: msg.url ? { url: msg.url } : undefined,
           },
         }),

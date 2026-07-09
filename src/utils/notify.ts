@@ -185,7 +185,7 @@ export async function getParentEmailsForPlayer(
  */
 export async function sendPushToUsers(
   userIds: string[],
-  msg: { title: string; body: string; url?: string },
+  msg: { title: string; body: string; url?: string; badge?: number },
   opts?: { prefKey?: EmailPrefKey; pushPrefKey?: PushPrefKey; fromUid?: string }
 ): Promise<boolean> {
   if (!configured()) return false;
@@ -229,7 +229,13 @@ export async function sendPushToUsers(
     }
     const res = await workerFetch('/send-push', {
       method: 'POST',
-      body: JSON.stringify({ tokens, title: msg.title, body: msg.body, url: msg.url }),
+      body: JSON.stringify({
+        tokens, title: msg.title, body: msg.body, url: msg.url,
+        // Absolute app-icon badge count (iOS + Android). Callers pass
+        // this only when the notification should light up the badge —
+        // chat message pushes do, informational broadcasts don't.
+        badge: typeof msg.badge === 'number' ? msg.badge : undefined,
+      }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');

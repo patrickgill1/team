@@ -75,6 +75,18 @@ export async function initNativeShell(): Promise<void> {
         console.warn('appUrlOpen parse failed', data.url, err);
       }
     });
+
+    // Clear the app icon badge every time the app comes back to the
+    // foreground. Users open the app because they saw the red dot;
+    // the dot should go away as soon as they're looking at the
+    // messages. Also fires at boot via addListener → active=true.
+    App.addListener('appStateChange', (state: any) => {
+      if (state?.isActive === true) {
+        void clearAppBadge();
+      }
+    });
+    // Boot case — first foreground before any state change fires.
+    void clearAppBadge();
   } catch (err) {
     console.warn('App listener init failed', err);
   }
@@ -285,6 +297,27 @@ export async function registerPushNotifications(
   } catch (err) {
     console.warn('Push notifications init failed', err);
   }
+}
+
+// Clear the app icon badge (iOS red dot + Android launcher count).
+// Called on app foreground and when the user opens /chat, so a
+// stale badge doesn't linger after the user has already seen the
+// new messages. Silent on web / when the plugin isn't available.
+export async function clearAppBadge(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+    // Two calls: setBadge(0) drops the number on iOS; the "remove
+    // delivered" call also clears system tray notifications so the
+    // user doesn't have to swipe them away one by one after they've
+    // already read the messages in-app.
+    try {
+      await (FirebaseMessaging as any).setBadge?.({ badge: 0 });
+    } catch { /* older plugin versions may not expose setBadge */ }
+    try {
+      await (FirebaseMessaging as any).removeAllDeliveredNotifications?.();
+    } catch { /* likewise */ }
+  } catch { /* ignore */ }
 }
 
 // Light haptic feedback on tap. Wrapped so callers don't have to

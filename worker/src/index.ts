@@ -632,10 +632,18 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       if (tokens.length === 0) return json({ ok: false, error: 'no-tokens' }, 400, cors);
       if (!title) return json({ ok: false, error: 'no-title' }, 400, cors);
       if (tokens.length > 500) return json({ ok: false, error: 'too-many' }, 400, cors);
+      // Badge count for iOS app icon + Android launcher. Absolute
+      // integer, 0 to clear, undefined to leave the current badge
+      // alone (right for non-message notifications).
+      const badgeRaw = payload?.badge;
+      const badge = typeof badgeRaw === 'number' && badgeRaw >= 0 && badgeRaw < 10000
+        ? Math.round(badgeRaw)
+        : undefined;
       const result = await sendPush(tokens, {
         title, body,
         url: payload?.url ? String(payload.url) : undefined,
         icon: payload?.icon ? String(payload.icon) : undefined,
+        badge,
       }, env.FCM_SERVICE_ACCOUNT);
       return json(result, 200, cors);
     }

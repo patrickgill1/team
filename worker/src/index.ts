@@ -36,6 +36,7 @@ import {
 import { runWeeklyDigest, runWeeklyTeamWallDigest } from './digest';
 import { runRegistrationDrips } from './drips';
 import { runTrialExpirySweep } from './trialExpiry';
+import { runEventReminders } from './eventReminders';
 import { runAdminWeeklyRoundup } from './adminDigest';
 import {
   handleConnectStart,
@@ -955,6 +956,16 @@ async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionC
       ctx.waitUntil(
         runDueCampaigns(env).then(r => {
           if (r.processed > 0) console.log('[cron] campaigns', JSON.stringify(r));
+        })
+      );
+      // 2-hour-before event reminders. Queries events in the
+      // (now+110min, now+130min] window, skips any already stamped
+      // reminderSentAt, sends one push per unique recipient with
+      // pushPreferences.events not explicitly off. Idempotent via
+      // the stamp so cron slop can't double-fire.
+      ctx.waitUntil(
+        runEventReminders(env).then(r => {
+          if (r.sentEvents > 0 || r.errors.length > 0) console.log('[cron] event reminders', JSON.stringify(r));
         })
       );
     } else {

@@ -613,23 +613,29 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           transition: swipeDx === 0 ? 'transform 0.18s ease-out' : 'none',
         }}
       >
-        {/* Sender name + role/relationship pill — only on first message in a run, for incoming */}
+        {/* Sender name + role/relationship pill — only on first
+            message in a run, for incoming. Theme-aware tokens: the
+            previous baked-in text-gray-700 + amber-50 / emerald-50
+            palette was designed for light theme and rendered as
+            faded/muddy blobs on dark. Ink-primary handles both
+            modes correctly; role pills use the /15 fill + /30 ring
+            pattern that matches every other status chip in the app. */}
         {!isOwn && isFirstInGroup && (
           <div className="ml-1 mb-0.5 flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-gray-700">{message.senderName}</span>
+            <span className="text-xs font-semibold text-ink-primary/80">{message.senderName}</span>
             {message.senderRole === 'coach' && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-primary bg-brand-primary-soft ring-1 ring-brand-primary-soft px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary-soft bg-brand-primary/15 ring-1 ring-brand-primary/30 px-1.5 py-0.5 rounded">
                 Coach
               </span>
             )}
             {message.senderRole === 'player' && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 ring-1 ring-amber-200 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-300 bg-amber-500/15 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">
                 Player
               </span>
             )}
             {message.senderRole === 'parent' && (message as any).senderRelationship
               && (message as any).senderRelationship !== 'parent' && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300 bg-emerald-500/15 ring-1 ring-emerald-400/30 px-1.5 py-0.5 rounded">
                 {(() => {
                   const r = (message as any).senderRelationship;
                   return r === 'aunt_uncle' ? 'Aunt / Uncle'

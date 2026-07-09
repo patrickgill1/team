@@ -1688,15 +1688,24 @@ async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: a
   // structured query supports array-contains on a single field.
   const teams = await runQuery(pid, 'teams', [
     { field: 'coachIds', op: 'ARRAY_CONTAINS', value: claims.uid },
-  ], sa, 200).catch(() => []);
+  ], sa, 200).catch(err => {
+    console.warn('[heal] runQuery failed', err?.message || err);
+    return [];
+  });
   const teamIds = teams.map(t => t.id).filter(Boolean);
-  if (teamIds.length === 0) return json({ ok: true, added: [], teamIds: [] });
   // Read the user's current teamIds so we only union new ids and
   // can report what changed in the response for logging.
   const currentUser = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
   const existing: string[] = Array.isArray(currentUser?.data?.teamIds) ? currentUser.data.teamIds : [];
+  const role = currentUser?.data?.role || null;
+  const clubIds = Array.isArray(currentUser?.data?.clubIds) ? currentUser.data.clubIds : [];
+  if (teamIds.length === 0) {
+    return json({ ok: true, added: [], teamIds: existing, foundTeams: 0, role, clubIds });
+  }
   const toAdd = teamIds.filter(id => !existing.includes(id));
-  if (toAdd.length === 0) return json({ ok: true, added: [], teamIds: existing });
+  if (toAdd.length === 0) {
+    return json({ ok: true, added: [], teamIds: existing, foundTeams: teamIds.length, role, clubIds });
+  }
   await commitDocumentTransforms(
     pid,
     `users/${claims.uid}`,
@@ -1704,7 +1713,7 @@ async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: a
     null,
     sa,
   );
-  return json({ ok: true, added: toAdd, teamIds: [...existing, ...toAdd] });
+  return json({ ok: true, added: toAdd, teamIds: [...existing, ...toAdd], foundTeams: teamIds.length, role, clubIds });
 }
 
 // ────────────────────────────────────────────────────────────────

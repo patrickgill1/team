@@ -883,21 +883,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // with team.coachIds set but user.teamIds empty — worker's
             // requireCoachOfTeam let them WRITE, but callerCanReadPlayer
             // (which only checked user.teamIds) 403'd every read. Worker
-            // heals in O(1) query + at most 1 write, idempotent. Only
-            // fires once per session (sessionStorage guard).
+            // heals in O(1) query + at most 1 write, idempotent. Fires
+            // on every sign-in load so a stale sessionStorage flag
+            // (from an old version) can't block it.
             try {
-              if (!sessionStorage.getItem('teamMembershipHealed')) {
-                sessionStorage.setItem('teamMembershipHealed', '1');
-                const { workerFetch } = await import('../utils/workerFetch');
-                workerFetch('/users/heal-team-membership', {
-                  method: 'POST',
-                  body: JSON.stringify({}),
-                }).then(r => r.json()).then((res: any) => {
-                  if (res?.added?.length) {
-                    console.log('[heal] added teamIds:', res.added);
-                  }
-                }).catch(err => console.warn('[heal] failed', err));
-              }
+              const { workerFetch } = await import('../utils/workerFetch');
+              workerFetch('/users/heal-team-membership', {
+                method: 'POST',
+                body: JSON.stringify({}),
+              }).then(r => r.json().then(j => ({ status: r.status, body: j }))).then((res: any) => {
+                console.log('[heal] response', res);
+              }).catch(err => console.warn('[heal] failed', err));
             } catch { /* non-fatal */ }
 
             // Live subscribe to the user doc so changes the user makes

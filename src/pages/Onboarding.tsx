@@ -1050,13 +1050,6 @@ const Onboarding: React.FC = () => {
                 />
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => goStep('staff')}
-              className="w-full py-3 text-white/45 text-xs uppercase tracking-widest font-bold"
-            >
-              Skip for now
-            </button>
           </div>
         )}
 

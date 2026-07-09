@@ -234,15 +234,33 @@ const getUserData = useCallback(async (uid: string) => {
   }, []);
 
   const getPlayersByTeam = useCallback(async (teamId: string) => {
-    // Load all active players and filter client-side to avoid composite index issues
-    const allPlayers = await getDocuments('players', [
-      where('isActive', '==', true)
+    // Scope to the requested team AT THE QUERY LEVEL. The old
+    // "fetch every active player, filter client-side" pattern worked
+    // when player LIST was `if request.auth != null`, but the
+    // 2026-07-08 hardening (callerCanReadPlayer) denies any LIST
+    // query whose matched set includes a doc the caller can't read.
+    // As multi-tenant data grew, every coach's roster silently came
+    // back empty because SOMEONE ELSE's player was in the match set.
+    // A coach re-adds the same player because their added kid "disappears".
+    //
+    // teamIds is the canonical multi-team field; teamId is the legacy
+    // pre-2026 single-team fallback. Firestore doesn't support OR
+    // across `array-contains` and `==` in one query, so we run both
+    // and merge. Both queries include team scope, so the rule passes
+    // for every matched doc.
+    const [byTeamIds, byLegacyTeamId] = await Promise.all([
+      getDocuments('players', [where('teamIds', 'array-contains', teamId)]).catch(() => []),
+      getDocuments('players', [where('teamId', '==', teamId)]).catch(() => []),
     ]);
-    return allPlayers.filter((p: any) => {
-      if (p.teamIds && Array.isArray(p.teamIds) && p.teamIds.includes(teamId)) return true;
-      if (p.teamId === teamId) return true;
-      return false;
-    }).sort((a: any, b: any) => (a.jerseyNumber || 999) - (b.jerseyNumber || 999));
+    const seen = new Set<string>();
+    const merged: any[] = [];
+    for (const p of [...byTeamIds, ...byLegacyTeamId] as any[]) {
+      if (seen.has(p.id)) continue;
+      if (p.isActive === false) continue;
+      seen.add(p.id);
+      merged.push(p);
+    }
+    return merged.sort((a, b) => (a.jerseyNumber || 999) - (b.jerseyNumber || 999));
   }, [getDocuments]);
 
   const updatePlayerStats = useCallback(async (playerId: string, newStats: Player['stats']) => {

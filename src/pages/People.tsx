@@ -79,7 +79,7 @@ const People: React.FC = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
   const { selectedTeamId, teams: contextTeams } = useTeam() as any;
-  const { getDocuments } = useFirestore();
+  const { getDocuments, getPlayersByTeam } = useFirestore();
 
   const [people, setPeople] = useState<Person[]>([]);
   const [selfAddBusy, setSelfAddBusy] = useState(false);
@@ -126,8 +126,7 @@ const People: React.FC = () => {
         const clubId = (userData as any)?.clubId
           || (selectedTeamId ? await getClubIdForTeam(selectedTeamId) : null);
 
-        const [allPlayers, allUsers, allTeams] = await Promise.all([
-          getDocuments('players', []),
+        const [allUsers, allTeams] = await Promise.all([
           getDocuments('users', []),
           getDocuments('teams', []),
         ]);
@@ -159,6 +158,24 @@ const People: React.FC = () => {
         // Capture every active club player for the invite modal's
         // player picker (parent invites are player-anchored).
         const clubPlayers: any[] = [];
+
+        // Players: fan out per team in our scope (team-scoped LIST
+        // rule denies an unfiltered `getDocuments('players', [])`).
+        // Dedupe by id — shared players roster'd to multiple teams
+        // return once from each fetch.
+        const playerSets = await Promise.all(
+          effectiveTeams.map(t => getPlayersByTeam(t.id).catch(() => []))
+        );
+        if (cancelled) return;
+        const seenPlayerId = new Set<string>();
+        const allPlayers: any[] = [];
+        for (const set of playerSets) {
+          for (const p of set as any[]) {
+            if (seenPlayerId.has(p.id)) continue;
+            seenPlayerId.add(p.id);
+            allPlayers.push(p);
+          }
+        }
 
         // Players in any of our teams
         for (const p of allPlayers as any[]) {

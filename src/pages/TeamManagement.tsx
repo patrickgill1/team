@@ -129,28 +129,39 @@ const TeamManagement: React.FC = () => {
     if (!selectedTeamId || !userData) return;
     try {
       setLoading(true);
-      // Load players, invites, and coaches in parallel
-      const [teamPlayersData, invites, allUsers] = await Promise.all([
-        getDocuments('players', []),
+      // Players are team-scoped now (post-2026-07-08 rule tightening).
+      // Selected team roster comes from getPlayersByTeam; the
+      // "share across teams" picker fans out across the user's
+      // OTHER teamIds and unions the results.
+      const otherTeamIds = teams
+        .map(t => t.id)
+        .filter(id => id && id !== selectedTeamId);
+      const [teamPlayers, otherTeamPlayerSets, invites, allUsers] = await Promise.all([
+        getPlayersByTeam(selectedTeamId).catch(() => []),
+        Promise.all(otherTeamIds.map(id => getPlayersByTeam(id).catch(() => []))),
         getCoachInvitesByTeam(selectedTeamId).catch(() => []),
-        getDocuments('users', []).catch(() => [])
+        getDocuments('users', []).catch(() => []),
       ]);
+      setPlayers(teamPlayers.map((p: any) => ({
+        ...p,
+        createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt),
+      })) as Player[]);
 
-      const teamPlayers = teamPlayersData
-        .filter((p: any) => (p.teamId === selectedTeamId || p.teamIds?.includes(selectedTeamId)) && p.isActive)
-        .map((p: any) => ({
-          ...p,
-          createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt)
-        })) as Player[];
-      setPlayers(teamPlayers);
-
-      // Load ALL active players across all teams for sharing
-      const allTeamPlayers = teamPlayersData
-        .filter((p: any) => p.isActive)
-        .map((p: any) => ({
-          ...p,
-          createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt)
-        })) as Player[];
+      const seen = new Set<string>(teamPlayers.map((p: any) => p.id));
+      const allTeamPlayers: Player[] = teamPlayers.map((p: any) => ({
+        ...p,
+        createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt),
+      })) as Player[];
+      for (const set of otherTeamPlayerSets) {
+        for (const p of set as any[]) {
+          if (seen.has(p.id)) continue;
+          seen.add(p.id);
+          allTeamPlayers.push({
+            ...p,
+            createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt),
+          } as Player);
+        }
+      }
       setAllPlayers(allTeamPlayers);
 
       setCoachInvites(invites as any[]);

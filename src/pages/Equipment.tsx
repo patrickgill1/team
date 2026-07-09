@@ -11,7 +11,7 @@ type SortKey = 'name' | 'status' | 'jersey';
 const Equipment: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
-  const { getDocuments } = useFirestore();
+  const { getPlayersByTeam } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'outstanding' | 'returned'>('outstanding');
@@ -23,17 +23,14 @@ const Equipment: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        const all = await getDocuments('players', []);
-        const teamPlayers = (all as any[])
-          .filter(p => p && p.isActive !== false)
-          .filter(p => (Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) || p.teamId === selectedTeamId);
+        const teamPlayers = await getPlayersByTeam(selectedTeamId);
         if (!cancelled) setPlayers(teamPlayers as Player[]);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [selectedTeamId, allowed, getDocuments]);
+  }, [selectedTeamId, allowed, getPlayersByTeam]);
 
   const rows = useMemo(() => {
     const filtered = players.filter(p => {

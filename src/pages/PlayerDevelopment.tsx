@@ -36,7 +36,7 @@ function extractYouTubeId(input: string): string | null {
 const PlayerDevelopment: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
-  const { getDevelopmentPlansByTeam, getDevelopmentPlansByPlayer, addDevelopmentPlan, updateDevelopmentPlan, getDocuments, deleteDocument } = useFirestore();
+  const { getDevelopmentPlansByTeam, getDevelopmentPlansByPlayer, addDevelopmentPlan, updateDevelopmentPlan, getDocuments, getPlayersByTeam, deleteDocument } = useFirestore();
 
   const [plans, setPlans] = useState<DevelopmentPlan[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -206,18 +206,14 @@ const PlayerDevelopment: React.FC = () => {
         ? getDevelopmentPlansByPlayer(selectedPlayerId)
         : getDevelopmentPlansByTeam(selectedTeamId);
 
-      const [playersData, plansData] = await Promise.all([
-        getDocuments('players', []),
-        plansPromise
+      const [teamPlayersRaw, plansData] = await Promise.all([
+        getPlayersByTeam(selectedTeamId).catch(() => []),
+        plansPromise,
       ]);
-
-      const teamPlayers = playersData
-        .filter((p: any) => (p.teamId === selectedTeamId || p.teamIds?.includes(selectedTeamId)) && p.isActive)
-        .map((p: any) => ({
-          ...p,
-          createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt)
-        })) as Player[];
-      setPlayers(teamPlayers);
+      setPlayers(teamPlayersRaw.map((p: any) => ({
+        ...p,
+        createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt),
+      })) as Player[]);
 
       const formattedPlans = plansData.map((p: any) => ({
         ...p,

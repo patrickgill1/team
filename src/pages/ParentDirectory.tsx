@@ -41,7 +41,7 @@ interface ProfileFormData {
 const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getDocuments, updateDocument, getDocument } = useFirestore();
+  const { getDocuments, updateDocument, getDocument, getPlayersByTeam } = useFirestore();
   const [directory, setDirectory] = useState<DirectoryEntry[]>([]);
   const [pendingMembers, setPendingMembers] = useState<any[]>([]);
   const [allTeamPlayers, setAllTeamPlayers] = useState<any[]>([]);
@@ -136,10 +136,14 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
     try {
       setLoading(true);
       
-      // Get users and players in parallel
-      const [users, players] = await Promise.all([
+      // Players are team-scoped via getPlayersByTeam (post-2026-07-08
+      // rule tightening — unfiltered players LIST silently 403s once
+      // multi-tenant data exists). Users still fetched broadly because
+      // the users LIST rule permits cross-tenant reads for the
+      // directory-lookup case; filtered by teamIds below.
+      const [users, teamPlayers] = await Promise.all([
         getDocuments('users', []),
-        getDocuments('players', [])
+        getPlayersByTeam(selectedTeamId),
       ]);
 
       // Filter users properly - include both parents AND coaches, but filter by team
@@ -153,10 +157,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
       const pending = teamUsers.filter((u: any) => u.role === 'parent' && u.approved === false);
       const approvedUsers = teamUsers.filter((u: any) => u.role === 'coach' || u.approved !== false);
       setPendingMembers(pending);
-      
-      const teamPlayers = players.filter((player: any) => 
-        (player.teamId === selectedTeamId || (player.teamIds && player.teamIds.includes(selectedTeamId))) && player.isActive !== false
-      );
+
       setAllTeamPlayers(teamPlayers);
 
       // Create directory entries for approved team users only

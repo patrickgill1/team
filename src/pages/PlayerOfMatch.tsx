@@ -54,7 +54,7 @@ interface Vote {
 const PlayerOfMatch: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getDocuments, addDocument, updateDocument, deleteDocument } = useFirestore();
+  const { getDocuments, addDocument, updateDocument, deleteDocument, getPlayersByTeam } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [votings, setVotings] = useState<MatchVoting[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -107,20 +107,16 @@ const PlayerOfMatch: React.FC = () => {
     try {
       setLoading(true);
       
-      // Load players, events, and votings in parallel
-      const [playersData, eventsData, votingsData] = await Promise.all([
-        getDocuments('players', []),
+      // Load players (team-scoped), events, and votings in parallel.
+      const [teamPlayersRaw, eventsData, votingsData] = await Promise.all([
+        getPlayersByTeam(selectedTeamId).catch(() => []),
         getDocuments('events', []),
-        getDocuments('match_votings', [])
+        getDocuments('match_votings', []),
       ]);
-
-      const teamPlayers = playersData
-        .filter((p: any) => (p.teamId === selectedTeamId || p.teamIds?.includes(selectedTeamId)) && p.isActive)
-        .map((p: any) => ({
-          ...p,
-          createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt)
-        }));
-      setPlayers(teamPlayers);
+      setPlayers(teamPlayersRaw.map((p: any) => ({
+        ...p,
+        createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt),
+      })));
 
       const teamGameEvents = eventsData
         .filter((e: any) => e.teamId === selectedTeamId && e.type === 'game')

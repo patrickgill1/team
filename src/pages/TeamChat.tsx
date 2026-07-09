@@ -35,6 +35,7 @@ const TeamChat: React.FC = () => {
     deleteDocument,
     getDocuments,
     getOrCreateDMThread,
+    getPlayersByTeam,
   } = useFirestore();
   
   // Simple mobile-first state management
@@ -1011,18 +1012,12 @@ const TeamChat: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        const [allUsers, allPlayers] = await Promise.all([
+        const [allUsers, teamPlayers] = await Promise.all([
           getDocuments('users', []).catch(() => []),
-          getDocuments('players', []).catch(() => []),
+          selectedTeamId ? getPlayersByTeam(selectedTeamId).catch(() => []) : Promise.resolve([]),
         ]);
         if (cancelled) return;
         // Build parent → children map across the active team's roster.
-        const teamPlayers = (allPlayers as any[]).filter((p) => {
-          if (!p || p.isActive === false) return false;
-          if (Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) return true;
-          if (p.teamId === selectedTeamId) return true;
-          return false;
-        });
         const childrenByParent = new Map<string, string[]>();
         for (const p of teamPlayers) {
           const parents: string[] = [

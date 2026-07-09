@@ -33,7 +33,7 @@ const PlayerMediaPage: React.FC = () => {
   const { isAdult: isAdultTeam } = useTeamAudience(selectedTeam);
   const navigate = useNavigate();
   const canManageMedia = canManageTeamMedia(userData, selectedTeam);
-  const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, deleteDocument, updateDocument, updatePlayerStats, addGameStat } = useFirestore();
+  const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, getPlayersByTeam, deleteDocument, updateDocument, updatePlayerStats, addGameStat } = useFirestore();
   const { uploadFile } = useStorage();
 
   const [players, setPlayers] = useState<Player[]>([]);
@@ -186,11 +186,11 @@ const PlayerMediaPage: React.FC = () => {
         ? getPhotosByTeam(selectedTeamId).catch(err => { console.error('Error loading gallery photos:', err); return []; })
         : Promise.resolve([]);
 
-      const [playersData, mediaData, galleryPhotos, usersData] = await Promise.all([
-        getDocuments('players', []),
+      const [teamPlayersRaw, mediaData, galleryPhotos, usersData] = await Promise.all([
+        getPlayersByTeam(selectedTeamId).catch(() => []),
         mediaPromise,
         galleryPromise,
-        getDocuments('users', []).catch(() => [])
+        getDocuments('users', []).catch(() => []),
       ]);
 
       // Build uid -> name lookup for likes/views display
@@ -201,12 +201,10 @@ const PlayerMediaPage: React.FC = () => {
       });
       setUsersMap(uMap);
 
-      const teamPlayers = playersData
-        .filter((p: any) => (p.teamId === selectedTeamId || p.teamIds?.includes(selectedTeamId)) && p.isActive)
-        .map((p: any) => ({
-          ...p,
-          createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt)
-        })) as Player[];
+      const teamPlayers = teamPlayersRaw.map((p: any) => ({
+        ...p,
+        createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt),
+      })) as Player[];
       setPlayers(teamPlayers);
 
       // Recent games for the optional "Link to game" dropdown (used to dedup

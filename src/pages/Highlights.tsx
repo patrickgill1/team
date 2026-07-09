@@ -23,7 +23,7 @@ function posterFor(clip: PlayerMediaType): string | undefined {
 
 const Highlights: React.FC = () => {
   const { selectedTeamId } = useTeam();
-  const { getDocuments, getPlayerMediaByTeam } = useFirestore();
+  const { getPlayerMediaByTeam, getPlayersByTeam } = useFirestore();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [players, setPlayers] = useState<Player[]>([]);
@@ -44,11 +44,11 @@ const Highlights: React.FC = () => {
       setLoading(true);
       try {
         const [playersData, mediaData] = await Promise.all([
-          getDocuments('players', []),
+          getPlayersByTeam(selectedTeamId).catch(() => [] as Player[]),
           getPlayerMediaByTeam(selectedTeamId),
         ]);
         if (cancelled) return;
-        setPlayers((playersData as Player[]).filter(p => p.teamId === selectedTeamId));
+        setPlayers(playersData as Player[]);
         const videos = (mediaData as PlayerMediaType[]).filter(m => m.type === 'video' && m.url);
         setMedia(videos);
         setActiveIndex(0);
@@ -60,7 +60,7 @@ const Highlights: React.FC = () => {
     };
     load();
     return () => { cancelled = true; };
-  }, [selectedTeamId, getDocuments, getPlayerMediaByTeam]);
+  }, [selectedTeamId, getPlayersByTeam, getPlayerMediaByTeam]);
 
   const filtered = useMemo(() => {
     return media.filter(m => {

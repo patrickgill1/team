@@ -43,7 +43,7 @@ const PlayerProfile: React.FC = () => {
   // (parent guardians layer) + related family surfaces when the
   // team is adult.
   const { isAdult: isAdultTeam } = useTeamAudience(selectedTeam);
-  const { getDocuments, getPlayerMediaByPlayer, getDevelopmentPlansByPlayer, getTeamPlayerStatsMap, updateDocument } = useFirestore();
+  const { getDocuments, getDocument, getPlayerMediaByPlayer, getDevelopmentPlansByPlayer, getTeamPlayerStatsMap, updateDocument } = useFirestore();
 
   const [player, setPlayer] = useState<Player | null>(null);
   const [media, setMedia] = useState<PlayerMedia[]>([]);
@@ -156,13 +156,15 @@ const PlayerProfile: React.FC = () => {
     if (!playerId || !selectedTeamId) return;
     setLoading(true);
 
-    // Load player first (needed to render header)
+    // Load player first (needed to render header). Direct getDocument
+    // by id — the previous "load all + client-find" pattern silently
+    // 403'd against the tightened callerCanReadPlayer LIST rule the
+    // moment any cross-tenant player was in the DB.
     try {
-      const [playersData, statsMap] = await Promise.all([
-        getDocuments('players', []),
+      const [found, statsMap] = await Promise.all([
+        getDocument('players', playerId) as Promise<any>,
         getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any)),
       ]);
-      const found = playersData.find((p: any) => p.id === playerId) as any;
       if (found) {
         const empty = { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
         const isShared = Array.isArray(found.teamIds) && found.teamIds.length > 1;

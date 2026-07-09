@@ -37,7 +37,7 @@ interface AttendanceRecord {
 const AttendanceTracker: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getDocuments, addDocument, updateDocument, deleteDocument } = useFirestore();
+  const { getDocuments, addDocument, updateDocument, deleteDocument, getPlayersByTeam } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
@@ -89,29 +89,20 @@ const AttendanceTracker: React.FC = () => {
     try {
       setLoading(true);
       
-      // Load players, events, and attendance in parallel
-      const [playersData, eventsData, recordsData] = await Promise.all([
-        getDocuments('players', []),
+      // Load players (team-scoped via useFirestore), events, and
+      // attendance in parallel. Unfiltered getDocuments('players', [])
+      // used to work but breaks silently against the tightened
+      // callerCanReadPlayer LIST rule — see getPlayersByTeam for the
+      // canonical two-query scope.
+      const [teamPlayers, eventsData, recordsData] = await Promise.all([
+        getPlayersByTeam(selectedTeamId),
         getDocuments('events', []),
-        getDocuments('attendance_records', [])
+        getDocuments('attendance_records', []),
       ]);
-
-      const teamPlayers = playersData
-        // Players live in two shapes post-club-restructure: the legacy
-        // single `teamId` field and the multi-team `teamIds: string[]`.
-        // Match either so attendance shows the full roster regardless
-        // of which schema the doc was created under.
-        .filter((p: any) => {
-          if (p.isActive === false) return false;
-          if (p.teamId === selectedTeamId) return true;
-          if (Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) return true;
-          return false;
-        })
-        .map((p: any) => ({
-          ...p,
-          createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt || Date.now())
-        }));
-      setPlayers(teamPlayers);
+      setPlayers(teamPlayers.map((p: any) => ({
+        ...p,
+        createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt || Date.now()),
+      })));
 
       const teamEvents = eventsData
         .filter((e: any) =>

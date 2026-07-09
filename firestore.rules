@@ -128,6 +128,75 @@ service cloud.firestore {
           && resource.data.teamId in userDoc().teamIds
         );
     }
+    // ─────────────────────────────────────────────────────────────
+    // PII Phase 3 helpers (2026-07-09) — parent_whispers, households,
+    // form_submissions. Each helper reads `resource.data` at rule-eval
+    // time, so it works uniformly for GET and LIST as long as the
+    // client query filters guarantee every matched doc passes.
+    //
+    // registrations left open pending a parentEmails[] denorm field
+    // (see FamilyTimeline / InThePoolHero client queries).
+    // chat_threads / chat_messages left open per the documented list-
+    // query trade above.
+    // ─────────────────────────────────────────────────────────────
+    function callerCanReadWhisper() {
+      // Whispers are coach-private notes to a player's parent(s).
+      // Read scope: the authoring coach, any coach on the whisper's
+      // team, the player's parents, or platform admin.
+      return isPlatformAdmin()
+        || resource.data.coachUid == request.auth.uid
+        || (
+          isCoachRole()
+          && resource.data.teamId is string
+          && resource.data.teamId in userDoc().teamIds
+        )
+        || (
+          resource.data.playerId is string
+          && exists(/databases/$(database)/documents/players/$(resource.data.playerId))
+          && request.auth.uid in get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.parentIds
+        );
+    }
+    function callerCanReadHousehold() {
+      // Households store parent email lists + linked playerIds.
+      // Read scope: any parent whose email is on the household, a
+      // club admin of the household's club, or platform admin.
+      return isPlatformAdmin()
+        || (
+          request.auth.token.email is string
+          && resource.data.parentEmails is list
+          && request.auth.token.email.lower() in resource.data.parentEmails
+        )
+        || (
+          userDoc().isClubAdmin == true
+          && resource.data.clubId is string
+          && userDoc().clubIds is list
+          && resource.data.clubId in userDoc().clubIds
+        );
+    }
+    function callerCanReadFormSubmission() {
+      // Form submissions store medical notes, signed acknowledgements,
+      // waiver answers. Read scope: parent of the player the submission
+      // is for, coach on that player's team, club admin of the doc's
+      // clubId, or platform admin.
+      return isPlatformAdmin()
+        || (
+          resource.data.playerId is string
+          && exists(/databases/$(database)/documents/players/$(resource.data.playerId))
+          && (
+            request.auth.uid in get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.parentIds
+            || (
+              isCoachRole()
+              && get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.teamIds.hasAny(userDoc().teamIds)
+            )
+          )
+        )
+        || (
+          userDoc().isClubAdmin == true
+          && resource.data.clubId is string
+          && userDoc().clubIds is list
+          && resource.data.clubId in userDoc().clubIds
+        );
+    }
     match /players/{playerId} {
       allow get: if isAuthed() && callerCanReadPlayer();
       allow list: if isAuthed() && callerCanReadPlayer();
@@ -590,24 +659,42 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // form_submissions — signed waivers, medical answers. PII P3
+    // (2026-07-09): read/update/delete scoped to player's parents,
+    // team coaches, or club admin. Create left auth-only so a parent
+    // finishing a required form doesn't get blocked before their
+    // clubId/playerId denorms exist on the request.
     match /form_submissions/{submissionId} {
-      allow read, write: if request.auth != null;
+      allow get: if isAuthed() && callerCanReadFormSubmission();
+      allow list: if isAuthed() && callerCanReadFormSubmission();
+      allow create: if isAuthed();
+      allow update, delete: if isAuthed() && callerCanReadFormSubmission();
     }
 
     // Parent Whispers — coach-private notes. Coach create requires
-    // active sub (whispers are a paid feature).
+    // active sub (whispers are a paid feature). PII P3 (2026-07-09):
+    // read scoped to author, team coaches, or the player's parents.
     match /parent_whispers/{whisperId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && canCoachWrite();
-      allow update, delete: if request.auth != null;
+      allow get: if isAuthed() && callerCanReadWhisper();
+      allow list: if isAuthed() && callerCanReadWhisper();
+      allow create: if isAuthed() && canCoachWrite();
+      allow update, delete: if isAuthed() && callerCanReadWhisper();
     }
 
     match /tasks/{taskId} {
       allow read, write: if request.auth != null;
     }
 
+    // households — parent email lists + linked players used for
+    // FamilyTimeline aggregation. PII P3 (2026-07-09): read/update/
+    // delete scoped to household members or the household's club admin.
+    // Create left auth-only so parents can initiate a household when
+    // linking a partner (HouseholdLinkModal).
     match /households/{householdId} {
-      allow read, write: if request.auth != null;
+      allow get: if isAuthed() && callerCanReadHousehold();
+      allow list: if isAuthed() && callerCanReadHousehold();
+      allow create: if isAuthed();
+      allow update, delete: if isAuthed() && callerCanReadHousehold();
     }
 
     match /clubs/{clubId} {

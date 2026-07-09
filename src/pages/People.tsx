@@ -78,10 +78,11 @@ const ROLE_CHIP: Record<Role, string> = {
 const People: React.FC = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, teams } = useTeam() as any;
   const { getDocuments } = useFirestore();
 
   const [people, setPeople] = useState<Person[]>([]);
+  const [selfAddBusy, setSelfAddBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | Role>('all');
@@ -315,6 +316,76 @@ const People: React.FC = () => {
       />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
+        {/* Coach-as-player retro CTA. Adult teams only, coach only,
+            only when the coach isn't already on the roster as a
+            player (checked via parentIds — the same self-link flag
+            /players/create with linkSelfAsParent uses). */}
+        {(() => {
+          if (!isUserCoach || !userData?.uid || !selectedTeamId) return null;
+          const teamObj = Array.isArray(teams) ? teams.find((t: any) => t.id === selectedTeamId) : null;
+          const teamAudience = (teamObj as any)?.audienceType;
+          if (teamAudience !== 'adult') return null;
+          const iAmOnRoster = people.some(p =>
+            p.type === 'player'
+            && Array.isArray((p as any).parentIds)
+            && (p as any).parentIds.includes(userData.uid)
+          );
+          if (iAmOnRoster) return null;
+          return (
+            <div className="bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 rounded-2xl px-4 py-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-brand-primary/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <circle cx="12" cy="8" r="4" /><path d="M4 22c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-ink-primary leading-tight">You're not on the roster yet</p>
+                <p className="text-xs text-ink-primary/60 leading-snug mt-0.5">
+                  Play on this team? Adds you to RSVPs, tagged clips, and Split Teams.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={selfAddBusy}
+                onClick={async () => {
+                  if (selfAddBusy) return;
+                  setSelfAddBusy(true);
+                  try {
+                    const { workerFetch } = await import('../utils/workerFetch');
+                    const coachName = (userData.name || '').trim() || (userData.email || '').split('@')[0] || 'Coach';
+                    const coachEmail = (userData.email || '').trim().toLowerCase();
+                    const res = await workerFetch('/players/create', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        teamId: selectedTeamId,
+                        name: coachName,
+                        parentEmails: coachEmail ? [coachEmail] : undefined,
+                        linkSelfAsParent: true,
+                        isAdultPlayer: true,
+                      }),
+                    });
+                    const data: any = await res.json().catch(() => ({}));
+                    if (!res.ok || !data?.ok) {
+                      console.error('coach self-add failed', data);
+                    } else {
+                      // Refresh the people list from Firestore so the
+                      // banner disappears + the new row appears.
+                      window.location.reload();
+                    }
+                  } catch (err) {
+                    console.error('coach self-add threw', err);
+                  } finally {
+                    setSelfAddBusy(false);
+                  }
+                }}
+                className="flex-shrink-0 px-4 py-2 rounded-full bg-brand-primary text-white text-xs font-black tracking-wider uppercase shadow-lg hover:bg-brand-primary/90 disabled:opacity-50 transition"
+              >
+                {selfAddBusy ? 'Adding…' : 'Add me'}
+              </button>
+            </div>
+          );
+        })()}
+
         {/* Search + team filter */}
         <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-3 flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">

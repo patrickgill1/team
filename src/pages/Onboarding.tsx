@@ -114,6 +114,14 @@ const Onboarding: React.FC = () => {
   // on every /players/create call from the invite step's bulk form.
   const [audienceType, setAudienceType] = useState<'youth' | 'adult'>('youth');
   const isAdultTeam = audienceType === 'adult';
+  // Coach-as-player: pickup leagues almost always have the organiser
+  // also playing. Adult-team-only toggle; when true, we auto-create a
+  // Player doc for the coach with linkSelfAsParent + isAdultPlayer
+  // right after /teams/create. Coach then shows up on the roster and
+  // in the Split Teams draft pool alongside everyone else. Default
+  // true on adult teams because that's the modal case; a coach who
+  // isn't playing can turn it off.
+  const [coachIsPlayer, setCoachIsPlayer] = useState(true);
 
   // Kid (coach's own child)
   const [hasKid, setHasKid] = useState<boolean | null>(null);
@@ -198,6 +206,36 @@ const Onboarding: React.FC = () => {
       const newTeamId: string | undefined = data.teamId;
       if (!newTeamId) throw new Error('Team creation returned no id.');
       setCreatedTeamId(newTeamId);
+
+      // Coach-as-player: adult teams only, and only if the toggle
+      // above the Create button stayed checked. Creates a Player
+      // doc for the coach themselves with linkSelfAsParent:true (so
+      // parentIds and parentEmails are stamped atomically in the
+      // same write) and isAdultPlayer:true. Coach then shows up on
+      // the roster + in Split Teams draft. Failure is non-fatal so
+      // an infrastructure blip here doesn't derail the wizard.
+      if (isAdultTeam && coachIsPlayer && userData) {
+        try {
+          const coachName = (userData.name || '').trim() || (userData.email || '').split('@')[0] || 'Coach';
+          const coachEmail = (userData.email || currentUser?.email || '').trim().toLowerCase();
+          const cRes = await workerFetch('/players/create', {
+            method: 'POST',
+            body: JSON.stringify({
+              teamId: newTeamId,
+              name: coachName,
+              parentEmails: coachEmail ? [coachEmail] : undefined,
+              linkSelfAsParent: true,
+              isAdultPlayer: true,
+            }),
+          });
+          const cData: any = await cRes.json().catch(() => ({}));
+          if (!cRes.ok || !cData?.ok) {
+            console.warn('coach self-add-as-player failed', cData);
+          }
+        } catch (selfErr) {
+          console.warn('coach self-add-as-player threw', selfErr);
+        }
+      }
       await refreshUserData?.();
       goStep(nextStep);
     } catch (err: any) {
@@ -633,6 +671,25 @@ const Onboarding: React.FC = () => {
                   ))}
                 </div>
               </div>
+              {/* Coach-as-player toggle. Adult-only. Most pickup
+                  organisers also play, so default on. Turning it off
+                  lets a non-playing coach set up a team for others. */}
+              {isAdultTeam && (
+                <label className="flex items-start gap-3 cursor-pointer bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 rounded-xl px-3 py-3 hover:bg-brand-primary/15 transition">
+                  <input
+                    type="checkbox"
+                    checked={coachIsPlayer}
+                    onChange={(e) => setCoachIsPlayer(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded accent-brand-primary flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white leading-snug">Also play on this team</p>
+                    <p className="text-xs text-white/60 leading-snug mt-0.5">
+                      Adds you to the roster so you get RSVPs, tagged clips, and appear in team splits.
+                    </p>
+                  </div>
+                </label>
+              )}
             </div>
 
             <button

@@ -99,6 +99,18 @@ const Calendar: React.FC<CalendarProps> = ({
 }) => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
+
+  // Stamp last-seen so the header notifications bar drops the events
+  // pill once the user has looked at the calendar. Runs on every
+  // mount + team change; cheap localStorage write.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { markCalendarSeen } = await import('../common/NotificationsHeaderBar');
+        markCalendarSeen(selectedTeamId || null);
+      } catch { /* ignore */ }
+    })();
+  }, [selectedTeamId]);
   const { getDocuments, addDocument, updateDocument } = useFirestore();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);

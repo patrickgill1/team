@@ -99,6 +99,20 @@ function linkify(text: string): React.ReactNode[] {
 const Wall: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
+
+  // Stamp last-seen so the header notifications bar drops the wall
+  // pill once the user has looked. Reuses the existing
+  // wall.lastSeen.<teamId> key WallHeaderButton set before the
+  // unified header bar shipped.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { markWallSeen } = await import('../components/common/NotificationsHeaderBar');
+        markWallSeen(selectedTeamId || null);
+      } catch { /* ignore */ }
+    })();
+  }, [selectedTeamId]);
+
   const [posts, setPosts] = useState<WallPost[]>([]);
   const [loading, setLoading] = useState(true);
   // ATOMIC RENDER: empty silence → 400ms progress hint → atomic

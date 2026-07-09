@@ -1224,66 +1224,12 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {announcementPosts.length > 0 && (
-          <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base rounded-2xl ring-1 ring-line-default/10 overflow-hidden shadow-lg">
-            <div className="px-5 py-3 border-b border-line-default/10 flex items-center justify-between">
-              <h3 className="font-bold text-ink-primary flex items-center gap-2">
-                <svg className="w-4 h-4 text-ink-primary/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
-                Announcements
-              </h3>
-              <Link to="/wall" className="text-ink-primary/60 text-sm font-semibold hover:text-ink-primary">View all</Link>
-            </div>
-            {/* Single-row preview per announcement: sender, date, and
-                one-line content snippet. Patrick: "show only a title
-                or something so it takes up less room." Full markdown,
-                images, and replies live on /wall — tap to expand.
-                Plain-text strip on content so markdown markers like
-                ** or # don't leak into the preview. */}
-            <ul className="divide-y divide-line-default/5">
-              {announcementPosts.map(p => {
-                // Strip BOTH HTML tags (TipTap-emitted posts) AND
-                // markdown special chars (legacy posts) before
-                // truncating. Patrick caught the raw-HTML-in-snippet
-                // bug 2026-06-27 — Dashboard Announcements card was
-                // showing literal "<pHello Team,</p<pWanted to..."
-                // because it only stripped markdown chars.
-                const snippet = p.content
-                  .replace(/<br\s*\/?>/gi, ' ')
-                  .replace(/<\/(p|div|h[1-6]|li|blockquote)>/gi, ' ')
-                  .replace(/<[^>]+>/g, '')
-                  .replace(/&nbsp;/g, ' ')
-                  .replace(/&amp;/g, '&')
-                  .replace(/&lt;/g, '<')
-                  .replace(/&gt;/g, '>')
-                  .replace(/&quot;/g, '"')
-                  .replace(/&#39;/g, "'")
-                  .replace(/[*_#>`~]/g, '')
-                  .replace(/\s+/g, ' ')
-                  .trim();
-                return (
-                  <li key={p.id}>
-                    <Link
-                      to="/wall"
-                      className="flex items-center gap-2 px-5 py-2.5 hover:bg-line-default/[0.04] transition-colors"
-                    >
-                      <span className="text-xs font-semibold text-ink-primary shrink-0">{p.senderName}</span>
-                      <span className="text-[11px] text-ink-primary/45 shrink-0">
-                        {p.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </span>
-                      <span className="text-ink-primary/25 shrink-0" aria-hidden>·</span>
-                      <span className="text-xs text-ink-primary/65 truncate flex-1 min-w-0">
-                        {snippet}
-                      </span>
-                      <svg className="w-3 h-3 text-ink-primary/35 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
+        {/* Dashboard announcements card removed 2026-07-09. Wall now
+            has its own bottom-tab AND the header notification bar
+            shows a red dot when there are unread wall posts, so
+            duplicating the feed here was starting to feel like a
+            wall of juggling-post previews. New signal lives at the
+            top of the chrome. */}
 
         {/* RecentChatsCard removed in v3.2.50 — Patrick: "I don't use
             recent chats as I thought I would." Chat tab is one tap

@@ -125,15 +125,21 @@ const TeamChat: React.FC = () => {
   // Clear the app-icon badge whenever the user lands on the chat
   // page. If they got here from tapping the notification banner,
   // the badge should drop the moment they arrive rather than
-  // waiting for the next foreground event. No-op on web.
+  // waiting for the next foreground event. No-op on web. ALSO
+  // stamps the header notification bar's chat pill so it dims
+  // immediately once the user has looked.
   useEffect(() => {
     (async () => {
       try {
         const { clearAppBadge } = await import('../utils/nativeShell');
         void clearAppBadge();
       } catch { /* ignore */ }
+      try {
+        const { markChatSeen } = await import('../components/common/NotificationsHeaderBar');
+        markChatSeen(selectedTeamId || null);
+      } catch { /* ignore */ }
     })();
-  }, []);
+  }, [selectedTeamId]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   // ATOMIC RENDER for the messages area inside a chat. Flips false
   // when a new thread is selected, true on the first subscription

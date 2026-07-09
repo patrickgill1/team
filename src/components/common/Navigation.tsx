@@ -21,7 +21,7 @@ import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 // WallHeaderButton retired 2026-07-08 — Wall is a primary bottom tab.
 import ProfileMenuSheet from './ProfileMenuSheet';
-import ChatHeaderButton from './ChatHeaderButton';
+import NotificationsHeaderBar from './NotificationsHeaderBar';
 import { useTeam } from '../../contexts/TeamContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useClubStore } from '../../hooks/useClubStore';
@@ -551,11 +551,13 @@ const Navigation: React.FC = () => {
           )}
 
           <div className="ml-auto shrink-0 flex items-center gap-2">
-            {/* Wall used to live here as a megaphone icon. Now it's a
-                primary bottom tab, so we don't need the header
-                shortcut. Chat stays because it's a global
-                right-now-notification affordance, not a destination. */}
-            <ChatHeaderButton />
+            {/* Unified header notification bar (2026-07-09). Was two
+                separate icons (chat + wall) with their own red dots;
+                Patrick called that redundant with the surface tabs
+                and asked for one compact strip that surfaces new
+                activity across Events / Chats / Wall. The bar hides
+                entirely when nothing is new — no phantom chrome. */}
+            <NotificationsHeaderBar />
             <button
               type="button"
               onClick={() => setIsProfileSheetOpen(true)}

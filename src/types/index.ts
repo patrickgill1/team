@@ -561,6 +561,22 @@ export interface Player {
    *  this for team-selection context). Bounded to 4 entries in the
    *  UI to avoid a wall of text. */
   pastClubs?: string[];
+  /** Self-rated competitiveness — 1 (chill) to 5 (competitive).
+   *  Weighted 1x in the auto-team-split algorithm; the tier below
+   *  (highestLevelPlayed) is weighted 2x since it's harder to game. */
+  skillLevel?: 1 | 2 | 3 | 4 | 5;
+  /** Highest level of soccer this player has competed at. Used by
+   *  the pickup-team auto-split algorithm (see utils/snakeDraft.ts).
+   *  Ordinal scale: recreational (1) → pro (8). */
+  highestLevelPlayed?:
+    | 'recreational'
+    | 'select'
+    | 'high_school'
+    | 'college_d3'
+    | 'college_d2'
+    | 'college_d1'
+    | 'semi_pro'
+    | 'pro';
   /** When this kid first joined the club. Falls back to createdAt
    *  for legacy players. */
   joinedAt?: Date;
@@ -1604,6 +1620,18 @@ export interface CalendarEvent {
   seriesId?: string;
   recurrence?: 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly';
   recurrenceUntil?: Date;
+  /** Auto-generated team split for adult pickup teams. Coach hits
+   *  "Split teams" on the event page → snake-draft algorithm slots
+   *  RSVP'd players into N sides balanced by skillLevel +
+   *  highestLevelPlayed. Persisted so late-arriving players see
+   *  who's on their team without a re-shuffle. See
+   *  utils/snakeDraft.ts. */
+  teamSplit?: {
+    method: 'snake' | 'random';
+    sides: Array<{ label: string; playerIds: string[] }>;
+    generatedAt: any;
+    generatedBy: string;
+  };
 }
 
 export interface GalleryPhoto {

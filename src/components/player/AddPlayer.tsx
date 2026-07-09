@@ -121,6 +121,9 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
     preferredFoot: '' as '' | 'Left' | 'Right' | 'Both',
     heightCm: '',
     pastClubs: [] as string[],
+    // Team-split signals (adult only). See utils/snakeDraft.ts.
+    highestLevelPlayed: '' as '' | 'recreational' | 'select' | 'high_school' | 'college_d3' | 'college_d2' | 'college_d1' | 'semi_pro' | 'pro',
+    skillLevel: 0 as 0 | 1 | 2 | 3 | 4 | 5,  // 0 = not set
   });
   // Adult-team mode: the player IS the user (no parent layer).
   // Drives `isAdultPlayer` on the player doc + flips the invite to
@@ -300,6 +303,8 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         preferredFoot: ((editingPlayer as any).preferredFoot as any) || '',
         heightCm: (editingPlayer as any).heightCm ? String((editingPlayer as any).heightCm) : '',
         pastClubs: Array.isArray((editingPlayer as any).pastClubs) ? (editingPlayer as any).pastClubs : [],
+        highestLevelPlayed: ((editingPlayer as any).highestLevelPlayed as any) || '',
+        skillLevel: typeof (editingPlayer as any).skillLevel === 'number' ? (editingPlayer as any).skillLevel : 0,
       });
       setTargetTeamId(editingPlayer.teamId || selectedTeamId);
       setProfilePhotoPreview(editingPlayer.profilePhotoUrl || '');
@@ -318,6 +323,8 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         preferredFoot: '',
         heightCm: '',
         pastClubs: [],
+        highestLevelPlayed: '',
+        skillLevel: 0,
       });
       setProfilePhotoPreview('');
       setIsMyKid(false);
@@ -507,6 +514,11 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         preferredFoot: isAdultTeam && formData.preferredFoot ? formData.preferredFoot : undefined,
         heightCm: isAdultTeam && formData.heightCm.trim() ? Number(formData.heightCm) : undefined,
         pastClubs: isAdultTeam && formData.pastClubs.length > 0 ? formData.pastClubs.filter(c => !!c.trim()).map(c => c.trim()).slice(0, 4) : undefined,
+        // Team-split signals — see utils/snakeDraft.ts. Empty
+        // string / 0 both mean "not filled out"; leave the field
+        // undefined so the balancer knows to use its default.
+        highestLevelPlayed: isAdultTeam && formData.highestLevelPlayed ? formData.highestLevelPlayed : undefined,
+        skillLevel: isAdultTeam && formData.skillLevel > 0 ? formData.skillLevel : undefined,
         profilePhotoUrl: profilePhotoUrl,
         updatedAt: new Date(),
         stats: editingPlayer?.stats || createDefaultStats(),
@@ -523,14 +535,14 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
       let savedPlayer: Player;
       if (editingPlayer) {
         console.log('Updating existing player with ID:', editingPlayer.id);
-        await updatePlayer(editingPlayer.id, basePlayerData);
+        await updatePlayer(editingPlayer.id, basePlayerData as any);
         savedPlayerId = editingPlayer.id;
-        savedPlayer = { ...editingPlayer, ...basePlayerData };
+        savedPlayer = { ...editingPlayer, ...basePlayerData } as Player;
         console.log('Player updated successfully:', savedPlayer);
       } else {
         console.log('Adding new player...');
-        savedPlayerId = await addPlayer(basePlayerData);
-        savedPlayer = { ...basePlayerData, id: savedPlayerId, createdAt: new Date() };
+        savedPlayerId = await addPlayer(basePlayerData as any);
+        savedPlayer = { ...basePlayerData, id: savedPlayerId, createdAt: new Date() } as Player;
         console.log('New player created with ID:', savedPlayerId);
       }
 
@@ -951,6 +963,46 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                     placeholder={'One per line, e.g.\nReal Salt Lake U23\nUtah United'}
                     disabled={isSubmitting}
                   />
+                </div>
+                {/* Auto-team-split signals. Fed into utils/snakeDraft
+                    on the event page. Optional — missing values default
+                    to middle-of-the-pack in the balancer. */}
+                <div>
+                  <label className="block text-xs font-bold text-ink-primary/75 mb-1">Highest level played</label>
+                  <select
+                    value={formData.highestLevelPlayed}
+                    onChange={(e) => setFormData({ ...formData, highestLevelPlayed: e.target.value as typeof formData.highestLevelPlayed })}
+                    className="w-full px-3 py-2 bg-surface-base text-ink-primary border border-line-default/10 rounded-lg text-sm"
+                    disabled={isSubmitting}
+                  >
+                    <option value="">— pick one —</option>
+                    <option value="recreational">Recreational</option>
+                    <option value="select">Select / Club</option>
+                    <option value="high_school">High school</option>
+                    <option value="college_d3">College D3</option>
+                    <option value="college_d2">College D2</option>
+                    <option value="college_d1">College D1</option>
+                    <option value="semi_pro">Semi-pro</option>
+                    <option value="pro">Pro</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-primary/75 mb-1">How competitive today? (1 chill · 5 tryhard)</label>
+                  <div className="inline-flex items-center bg-surface-base ring-1 ring-line-default/10 rounded-full p-0.5">
+                    {([1,2,3,4,5] as const).map(n => (
+                      <button
+                        type="button"
+                        key={n}
+                        onClick={() => setFormData({ ...formData, skillLevel: formData.skillLevel === n ? 0 : n })}
+                        className={`px-3 py-1 text-xs font-black rounded-full transition ${
+                          formData.skillLevel === n ? 'bg-brand-primary text-white' : 'text-ink-primary/65'
+                        }`}
+                        disabled={isSubmitting}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

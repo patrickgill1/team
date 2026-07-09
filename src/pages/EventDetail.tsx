@@ -13,6 +13,8 @@ import EventDiscussion from '../components/calendar/EventDiscussion';
 import SnackAssignment from '../components/calendar/SnackAssignment';
 import { mapsUrl, osmEmbedUrl } from '../utils/maps';
 import RosterAvatar from '../components/common/RosterAvatar';
+import { useTeamAudience } from '../hooks/useTeamAudience';
+import SplitTeamsModal from '../components/calendar/SplitTeamsModal';
 
 // Authenticated event detail page — the "command center" for a single
 // event. Replaces the old inline-expanded Calendar row and the public
@@ -114,7 +116,13 @@ const EventDetail: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, teams } = useTeam() as any;
+  // Team-audience helper — drives adult-only affordances like the
+  // "Split teams" pickup CTA. Called at top-level to satisfy rules
+  // of hooks; teamObj resolves after the event snapshot lands.
+  const teamObj = Array.isArray(teams) ? teams.find((t: any) => t.id === (selectedTeamId || undefined)) : null;
+  const { isAdult: isAdultTeam } = useTeamAudience(teamObj);
+  const [splitOpen, setSplitOpen] = useState(false);
   const { getDocument, updateDocument, deleteDocument } = useFirestore();
 
   const [event, setEvent] = useState<CalendarEvent | null>(null);
@@ -1114,11 +1122,21 @@ const EventDetail: React.FC = () => {
         </section>
       )}
 
-      {/* QUICK ACTIONS — coach-only Cancel/Restore. Share button
-          removed 2026-06-24 when the public RSVP page was killed
-          (everyone's expected to be on the app now). */}
+      {/* QUICK ACTIONS — coach-only Cancel/Restore + Split Teams
+          (adult only). Share button removed 2026-06-24 when the
+          public RSVP page was killed (everyone's expected to be on
+          the app now). */}
       {isUserCoach && (
       <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4 grid grid-cols-1 gap-2">
+        {isAdultTeam && (
+          <button
+            onClick={() => setSplitOpen(true)}
+            className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-brand-primary/15 ring-1 ring-brand-primary-soft/40 text-brand-primary-soft text-xs font-bold tracking-wider uppercase hover:bg-brand-primary/25 transition"
+          >
+            <Icon name="users" className="w-4 h-4" />
+            {(event as any).teamSplit ? 'Edit team split' : 'Split teams'}
+          </button>
+        )}
         {event.isCancelled ? (
           <button
             onClick={handleRestore}
@@ -1708,6 +1726,25 @@ const EventDetail: React.FC = () => {
             <p className="mt-1.5 text-[11px] text-ink-primary/50">{(event as any).locationAddress}</p>
           )}
         </section>
+      )}
+
+      {/* Split Teams modal — adult-team pickup auto-balance. Opens
+          from the coach action row. Saves the split to
+          event.teamSplit on Save. */}
+      {splitOpen && event && (
+        <SplitTeamsModal
+          event={event}
+          onClose={() => setSplitOpen(false)}
+          onSave={async (split) => {
+            try {
+              await updateDocument('events', event.id, { teamSplit: split });
+              setEvent({ ...event, teamSplit: split } as any);
+              setSplitOpen(false);
+            } catch (err) {
+              console.error('team split save failed', err);
+            }
+          }}
+        />
       )}
     </div>
   );

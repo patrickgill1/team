@@ -4,16 +4,24 @@ import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '../../utils/firebase';
 
 /**
- * Small soft banner that nudges email/password users to verify
- * their email. Hidden for users who already verified, for users
- * who signed in via Google/Apple (those are implicitly verified
- * via the OAuth provider), and for the session if they dismissed
- * it. Resend cooldown so a button-masher can't rate-limit
- * themselves out of Firebase.
+ * Small soft banner that reminds email/password users to click the
+ * verification link that was auto-sent on signup by
+ * AuthContext.signUp → worker /auth/send-verification. Hidden for
+ * users who already verified, for users who signed in via Google
+ * or Apple (OAuth providers flag emailVerified:true), and for the
+ * session if they dismissed it.
+ *
+ * Banner copy assumes the initial send already went out — Patrick
+ * 2026-07-08: 'they won't know they have to click. it should be
+ * automated as much as possible. let them verify from their email
+ * without needing to do anything in app.' So the default state is
+ * "check your inbox" (not "please send") and the CTA is "Resend"
+ * (not "Send verification"). Resend cooldown protects the sender.
  *
  * Placement: top of the dashboard. Not blocking — we don't gate
- * any features on verification yet, just nudge. Gating can come
- * later for high-trust surfaces (registrations, payouts).
+ * any features on verification. Clicking the link in the inbox
+ * plus a return to the app is the entire flow; on foreground the
+ * banner self-dismisses via the reload() in the effect below.
  */
 
 const DISMISS_KEY = 'gk_emailVerifyDismissedAt';
@@ -115,8 +123,8 @@ const EmailVerifyBanner: React.FC = () => {
         </svg>
         <p className="text-amber-100 flex-1 min-w-0 truncate">
           {sentAt
-            ? <>Verification email sent to <span className="font-mono text-amber-200">{user.email}</span>. Check your inbox.</>
-            : <>Please verify <span className="font-mono text-amber-200">{user.email}</span> to confirm your account.</>}
+            ? <>Sent again to <span className="font-mono text-amber-200">{user.email}</span>. Check your inbox.</>
+            : <>Verification email sent to <span className="font-mono text-amber-200">{user.email}</span>. Just tap the link.</>}
         </p>
         <button
           type="button"
@@ -124,7 +132,7 @@ const EmailVerifyBanner: React.FC = () => {
           disabled={sending || !canResend}
           className="text-amber-100 hover:text-white text-xs font-bold underline disabled:opacity-50 whitespace-nowrap"
         >
-          {sending ? 'Sending…' : sentAt ? 'Resend' : 'Send verification'}
+          {sending ? 'Sending…' : 'Resend'}
         </button>
         <button
           type="button"

@@ -317,10 +317,28 @@ export async function registerPushNotifications(
 export async function clearAppBadge(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
 
-  // 1. Firebase messaging plugin — try both v6 (setBadgeCount) and
-  //    the earlier undocumented shape (setBadge) so a plugin bump
-  //    starts working automatically. Also removes delivered
-  //    notifications so the system tray clears alongside.
+  // 1. Canonical path — @capawesome/capacitor-badge. Installed to
+  //    package.json 3.9.152 pending the next native rebuild + App
+  //    Store submission. Once `npx cap sync` runs against a build
+  //    that includes it, this is the ONE call that actually clears
+  //    the icon badge on iOS + Android. Until then the dynamic
+  //    import throws (module resolves at bundle time but the native
+  //    bridge isn't registered), we swallow, and fall through to
+  //    the legacy attempts below.
+  try {
+    const { Badge } = await import('@capawesome/capacitor-badge');
+    try {
+      await Badge.clear();
+      // Clear also removes system-tray notifications on iOS 15+,
+      // so nothing else to do for the badge. Still fall through to
+      // the tray-clear calls below for older iOS + Android parity.
+    } catch { /* native side not registered yet */ }
+  } catch { /* module not installed in bundle */ }
+
+  // 2. Firebase messaging plugin — kept as belt-and-suspenders in
+  //    case the badge plugin registration hasn't landed on this
+  //    binary yet. v5.4 has no badge API; v6 exposes setBadgeCount.
+  //    Optional-chain silently on both so a plugin bump auto-works.
   try {
     const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
     const fbm: any = FirebaseMessaging;
@@ -334,27 +352,13 @@ export async function clearAppBadge(): Promise<void> {
     try { await fbm.removeAllDeliveredNotifications?.(); } catch { /* ignore */ }
   } catch { /* messaging plugin not present */ }
 
-  // 2. Capacitor's own push-notifications plugin — clears the
+  // 3. Capacitor's own push-notifications plugin — clears the
   //    notification tray on iOS which the WebView user has already
   //    seen. Doesn't touch the badge on iOS but no harm calling.
   try {
     const { PushNotifications } = await import('@capacitor/push-notifications');
     try { await PushNotifications.removeAllDeliveredNotifications(); } catch { /* ignore */ }
   } catch { /* not present */ }
-
-  // 3. Last resort — direct native bridge for any plugin exposing
-  //    a Badge interface (e.g. @capawesome/capacitor-badge if it
-  //    ever gets installed via a native rebuild). Discovered at
-  //    runtime so removing the plugin doesn't crash this call.
-  try {
-    const anyCap = Capacitor as any;
-    const badge = anyCap?.Plugins?.Badge;
-    if (badge && typeof badge.clear === 'function') {
-      await badge.clear();
-    } else if (badge && typeof badge.set === 'function') {
-      await badge.set({ count: 0 });
-    }
-  } catch { /* ignore */ }
 }
 
 // Light haptic feedback on tap. Wrapped so callers don't have to

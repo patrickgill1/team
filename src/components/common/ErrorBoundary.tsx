@@ -3,6 +3,11 @@ import { logRenderCrash } from '../../utils/crashLog';
 
 interface State {
   error: Error | null;
+  // Distinguishes "app broke, show scary reload prompt" from "app
+  // just needs to fetch a new bundle after a deploy" — the latter
+  // renders a friendly spinner because the reload fires within
+  // milliseconds and shouldn't alarm the user.
+  staleChunk: boolean;
 }
 
 /**
@@ -15,10 +20,15 @@ interface State {
  * on one page doesn't permanently break navigation.
  */
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, State> {
-  state: State = { error: null };
+  state: State = { error: null, staleChunk: false };
 
   static getDerivedStateFromError(error: Error): State {
-    return { error };
+    const msg = String(error?.message || '').toLowerCase();
+    const isStale =
+      msg.includes('loading chunk') ||
+      msg.includes('failed to fetch dynamically imported module') ||
+      msg.includes('importing a module script failed');
+    return { error, staleChunk: isStale };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
@@ -63,23 +73,45 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, State
 
   render() {
     if (!this.state.error) return this.props.children;
+
+    // Friendly transient screen for stale-chunk errors. The
+    // componentDidCatch above fires window.location.reload() within
+    // ms, so this render only flashes for a heartbeat between the
+    // catch and the reload. Showing an alarming "Something went
+    // wrong ⚠️" during that window scares users for no reason —
+    // they didn't do anything wrong; they just have an old bundle
+    // in memory because we shipped a new one while their tab was
+    // open. Show a gentle "Updating…" instead.
+    if (this.state.staleChunk) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-surface-base p-6">
+          <div className="max-w-sm w-full text-center">
+            <div className="mx-auto mb-4 w-10 h-10 rounded-full border-2 border-brand-primary/30 border-t-brand-primary animate-spin" />
+            <h1 className="text-lg font-black text-ink-primary mb-1 tracking-tight">Updating GoalKickr…</h1>
+            <p className="text-sm text-ink-primary/60">
+              Fetching the latest version. This takes a second.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-6 text-center">
-          <div className="text-5xl mb-3">⚠️</div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h1>
-          <p className="text-sm text-gray-600 mb-6">
+      <div className="min-h-screen flex items-center justify-center bg-surface-base p-6">
+        <div className="max-w-md w-full bg-surface-elevated ring-1 ring-line-default/10 rounded-2xl shadow-2xl p-6 text-center">
+          <h1 className="text-xl font-black text-ink-primary mb-2">Something went wrong</h1>
+          <p className="text-sm text-ink-primary/60 mb-6">
             The app hit a snag. Reloading usually fixes it.
           </p>
           <button
             onClick={this.handleReload}
-            className="w-full bg-brand-primary hover:bg-brand-primary text-white font-semibold rounded-xl py-3 transition-colors"
+            className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm rounded-xl py-3 transition"
           >
             Reload
           </button>
           <details className="mt-4 text-left">
-            <summary className="text-xs text-gray-400 cursor-pointer">Technical details</summary>
-            <pre className="mt-2 text-[10px] text-gray-500 whitespace-pre-wrap break-all">
+            <summary className="text-xs text-ink-primary/40 cursor-pointer">Technical details</summary>
+            <pre className="mt-2 text-[10px] text-ink-primary/50 whitespace-pre-wrap break-all">
               {String(this.state.error?.message || this.state.error)}
             </pre>
           </details>

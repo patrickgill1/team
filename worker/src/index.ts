@@ -35,6 +35,7 @@ import {
 } from './auth';
 import { runWeeklyDigest, runWeeklyTeamWallDigest } from './digest';
 import { runRegistrationDrips } from './drips';
+import { runTrialExpirySweep } from './trialExpiry';
 import { runAdminWeeklyRoundup } from './adminDigest';
 import {
   handleConnectStart,
@@ -932,6 +933,13 @@ async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionC
       );
       ctx.waitUntil(
         runWeeklyDigest(env).then(r => console.log('[cron] email digest daily tick', JSON.stringify(r)))
+      );
+      // Defense-in-depth: flip subscriptionActive=false on auto-trial
+      // users whose subscriptionExpiresAt is in the past. Rules already
+      // block their writes, but useSubscription() on the client trusts
+      // the flag and won't surface the paywall until the flag flips.
+      ctx.waitUntil(
+        runTrialExpirySweep(env).then(r => console.log('[cron] trial expiry sweep', JSON.stringify(r)))
       );
     } else if (cron === '*/5 * * * *') {
       // Campaign tick — only does work when scheduled campaigns are

@@ -9,6 +9,14 @@
       ]
     },
     {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "subscriptionActive", "order": "ASCENDING" },
+        { "fieldPath": "subscriptionExpiresAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "support_tickets",
       "queryScope": "COLLECTION",
       "fields": [

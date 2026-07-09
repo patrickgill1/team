@@ -114,14 +114,6 @@ const Onboarding: React.FC = () => {
   // on every /players/create call from the invite step's bulk form.
   const [audienceType, setAudienceType] = useState<'youth' | 'adult'>('youth');
   const isAdultTeam = audienceType === 'adult';
-  // Coach-as-player: pickup leagues almost always have the organiser
-  // also playing. Adult-team-only toggle; when true, we auto-create a
-  // Player doc for the coach with linkSelfAsParent + isAdultPlayer
-  // right after /teams/create. Coach then shows up on the roster and
-  // in the Split Teams draft pool alongside everyone else. Default
-  // true on adult teams because that's the modal case; a coach who
-  // isn't playing can turn it off.
-  const [coachIsPlayer, setCoachIsPlayer] = useState(true);
 
   // Kid (coach's own child)
   const [hasKid, setHasKid] = useState<boolean | null>(null);
@@ -207,39 +199,59 @@ const Onboarding: React.FC = () => {
       if (!newTeamId) throw new Error('Team creation returned no id.');
       setCreatedTeamId(newTeamId);
 
-      // Coach-as-player: adult teams only, and only if the toggle
-      // above the Create button stayed checked. Creates a Player
-      // doc for the coach themselves with linkSelfAsParent:true (so
-      // parentIds and parentEmails are stamped atomically in the
-      // same write) and isAdultPlayer:true. Coach then shows up on
-      // the roster + in Split Teams draft. Failure is non-fatal so
-      // an infrastructure blip here doesn't derail the wizard.
-      if (isAdultTeam && coachIsPlayer && userData) {
-        try {
-          const coachName = (userData.name || '').trim() || (userData.email || '').split('@')[0] || 'Coach';
-          const coachEmail = (userData.email || currentUser?.email || '').trim().toLowerCase();
-          const cRes = await workerFetch('/players/create', {
-            method: 'POST',
-            body: JSON.stringify({
-              teamId: newTeamId,
-              name: coachName,
-              parentEmails: coachEmail ? [coachEmail] : undefined,
-              linkSelfAsParent: true,
-              isAdultPlayer: true,
-            }),
-          });
-          const cData: any = await cRes.json().catch(() => ({}));
-          if (!cRes.ok || !cData?.ok) {
-            console.warn('coach self-add-as-player failed', cData);
-          }
-        } catch (selfErr) {
-          console.warn('coach self-add-as-player threw', selfErr);
-        }
-      }
+      // Adult coach-as-player used to happen inline here (behind an
+      // opt-out checkbox on team-create). It's now on the dedicated
+      // 'kid-gate' step for adult teams so the choice is explicit
+      // instead of buried above the Create button.
       await refreshUserData?.();
       goStep(nextStep);
     } catch (err: any) {
       setError(String(err?.message || err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ─── Adult-team: coach chooses whether they play too ─────────
+  // Fires from the kid-gate step's Adult variant. Yes writes a
+  // Player doc for the coach with linkSelfAsParent + isAdultPlayer,
+  // No proceeds straight through. Failure is non-fatal — a rules or
+  // network blip here shouldn't derail the wizard; they can flip it
+  // on later from People → "Play on this team?".
+  const handleAdultCoachIsPlayer = async (yes: boolean) => {
+    if (!userData || !createdTeamId) {
+      setError('Missing team. Go back a step.');
+      return;
+    }
+    if (!yes) {
+      goStep('practice-days');
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      const { workerFetch } = await import('../utils/workerFetch');
+      const coachName = (userData.name || '').trim() || (userData.email || '').split('@')[0] || 'Coach';
+      const coachEmail = (userData.email || currentUser?.email || '').trim().toLowerCase();
+      const cRes = await workerFetch('/players/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          teamId: createdTeamId,
+          name: coachName,
+          parentEmails: coachEmail ? [coachEmail] : undefined,
+          linkSelfAsParent: true,
+          isAdultPlayer: true,
+        }),
+      });
+      const cData: any = await cRes.json().catch(() => ({}));
+      if (!cRes.ok || !cData?.ok) {
+        console.warn('coach self-add-as-player failed', cData);
+      }
+      await refreshUserData?.();
+      goStep('practice-days');
+    } catch (selfErr: any) {
+      console.warn('coach self-add-as-player threw', selfErr);
+      goStep('practice-days');
     } finally {
       setBusy(false);
     }
@@ -566,9 +578,13 @@ const Onboarding: React.FC = () => {
             />
           ))}
         </div>
-        {/* Section heading */}
+        {/* Section heading — Player Circle wording is a youth concept
+            (family + coaches around a kid). Adult teams get generic
+            step titles so the eyebrow doesn't ring false. */}
         <p className="text-center text-[11px] font-black tracking-[0.3em] uppercase text-brand-primary-soft mb-2">
-          {STEP_TITLES[step]}
+          {isAdultTeam && (step === 'kid-gate' || step === 'add-kid' || step === 'invite')
+            ? (step === 'invite' ? 'Roster' : 'Player')
+            : STEP_TITLES[step]}
         </p>
 
         {error && (
@@ -671,30 +687,11 @@ const Onboarding: React.FC = () => {
                   ))}
                 </div>
               </div>
-              {/* Coach-as-player toggle. Adult-only. Most pickup
-                  organisers also play, so default on. Turning it off
-                  lets a non-playing coach set up a team for others. */}
-              {isAdultTeam && (
-                <label className="flex items-start gap-3 cursor-pointer bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 rounded-xl px-3 py-3 hover:bg-brand-primary/15 transition">
-                  <input
-                    type="checkbox"
-                    checked={coachIsPlayer}
-                    onChange={(e) => setCoachIsPlayer(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded accent-brand-primary flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white leading-snug">Also play on this team</p>
-                    <p className="text-xs text-white/60 leading-snug mt-0.5">
-                      Adds you to the roster so you get RSVPs, tagged clips, and appear in team splits.
-                    </p>
-                  </div>
-                </label>
-              )}
             </div>
 
             <button
               type="button"
-              onClick={() => handleCreateTeamAndAdvance(isAdultTeam ? 'practice-days' : 'kid-gate')}
+              onClick={() => handleCreateTeamAndAdvance('kid-gate')}
               disabled={busy || !teamName.trim()}
               className="w-full py-4 rounded-2xl bg-brand-primary text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition disabled:opacity-50"
             >
@@ -703,7 +700,7 @@ const Onboarding: React.FC = () => {
           </div>
         )}
 
-        {step === 'kid-gate' && (
+        {step === 'kid-gate' && !isAdultTeam && (
           <div className="space-y-6">
             <div className="text-center">
               <h1 className="text-3xl font-black tracking-tight leading-tight mb-2">
@@ -736,6 +733,37 @@ const Onboarding: React.FC = () => {
             >
               Skip for now
             </button>
+          </div>
+        )}
+
+        {step === 'kid-gate' && isAdultTeam && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h1 className="text-3xl font-black tracking-tight leading-tight mb-2">
+                Are you a player as well?
+              </h1>
+              <p className="text-white/60 text-sm">
+                Adds you to the roster so you get RSVPs, tagged clips, and land in the pool when we split teams.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => handleAdultCoachIsPlayer(true)}
+                disabled={busy}
+                className="py-6 rounded-2xl bg-brand-primary text-white font-black text-lg ring-1 ring-brand-primary-soft/40 hover:bg-brand-primary-soft hover:text-charcoal-900 transition disabled:opacity-60"
+              >
+                {busy ? '…' : "Yes, I play"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAdultCoachIsPlayer(false)}
+                disabled={busy}
+                className="py-6 rounded-2xl bg-white/[0.06] ring-1 ring-white/15 hover:bg-white/10 transition text-white font-black text-lg disabled:opacity-60"
+              >
+                No, coach only
+              </button>
+            </div>
           </div>
         )}
 

@@ -84,6 +84,15 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               league: data.league,
               homeField: data.homeField,
               clubId: (data as any).clubId,
+              // audienceType drives every adult-vs-youth affordance
+              // in the app (Split Teams button, skill/level profile
+              // fields, "Play on this team" CTA, etc). Was missing
+              // from this projection so useTeamAudience resolved to
+              // 'youth' even on legit adult teams — Patrick 2026-07-09.
+              audienceType: (data as any).audienceType,
+              format: (data as any).format,
+              homeKitColor: (data as any).homeKitColor,
+              awayKitColor: (data as any).awayKitColor,
               isActive: data.isActive !== false,
               archivedAt: data.archivedAt?.toDate?.() || undefined,
               isDemo: data.isDemo === true,
@@ -148,6 +157,15 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               league: data.league,
               homeField: data.homeField,
               clubId: (data as any).clubId,
+              // audienceType drives every adult-vs-youth affordance
+              // in the app (Split Teams button, skill/level profile
+              // fields, "Play on this team" CTA, etc). Was missing
+              // from this projection so useTeamAudience resolved to
+              // 'youth' even on legit adult teams — Patrick 2026-07-09.
+              audienceType: (data as any).audienceType,
+              format: (data as any).format,
+              homeKitColor: (data as any).homeKitColor,
+              awayKitColor: (data as any).awayKitColor,
               isActive: data.isActive !== false,
               archivedAt: data.archivedAt?.toDate?.() || undefined,
               isDemo: data.isDemo === true,

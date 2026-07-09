@@ -1246,6 +1246,59 @@ const GameDay: React.FC = () => {
           />
         )}
 
+        {/* Team split panel — surfaces the sides picked in EventDetail's
+            Split Teams modal so both coaches and RSVPers can see who's
+            on which team before kickoff. Only rendered when the coach
+            actually generated a split for this event. Adjustments still
+            happen back on EventDetail (which owns the modal + roster
+            picker) so we don't fork the source of truth. */}
+        {status !== 'final' && event?.teamSplit?.sides?.length > 0 && (
+          <section className="rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-xs uppercase tracking-wider text-ink-primary/65 font-bold">Sides</h3>
+                <p className="text-[10px] text-ink-primary/45 leading-snug mt-0.5">
+                  {event.teamSplit.method === 'snake' ? 'Auto-balanced by skill' : 'Randomized'} · {event.teamSplit.sides.reduce((n: number, s: any) => n + (s.playerIds?.length || 0), 0)} players
+                </p>
+              </div>
+              {isUserCoach && (
+                <Link
+                  to={`/event/${eventId}`}
+                  className="text-[11px] font-extrabold uppercase tracking-widest text-brand-primary-soft hover:text-ink-primary"
+                >
+                  Adjust
+                </Link>
+              )}
+            </div>
+            <div className={`grid gap-2 ${event.teamSplit.sides.length >= 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
+              {event.teamSplit.sides.map((side: any, idx: number) => {
+                const roster = (side.playerIds || [])
+                  .map((pid: string) => players.find(p => p.id === pid))
+                  .filter(Boolean);
+                return (
+                  <div key={`${side.label}-${idx}`} className="rounded-xl bg-surface-input ring-1 ring-line-default/10 p-2.5">
+                    <div className="flex items-baseline justify-between mb-1.5">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-ink-primary">{side.label || `Side ${idx + 1}`}</span>
+                      <span className="text-[10px] text-ink-primary/50">{roster.length}</span>
+                    </div>
+                    <ul className="space-y-0.5">
+                      {roster.map((p: any) => (
+                        <li key={p.id} className="text-[12px] text-ink-primary/85 leading-snug truncate">
+                          {p.jerseyNumber != null ? <span className="text-ink-primary/45 mr-1.5">#{p.jerseyNumber}</span> : null}
+                          {p.name}
+                        </li>
+                      ))}
+                      {roster.length === 0 && (
+                        <li className="text-[11px] text-ink-primary/40 italic">No players yet</li>
+                      )}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* Formation visualization — players auto-place to a slot
             template based on the format (7v7 / 9v9 / 11v11). Coaches
             can drag any chip to override its position; changes persist

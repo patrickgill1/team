@@ -198,8 +198,64 @@ service cloud.firestore {
     // token, coach-of-team, self-only, etc). Before this change any
     // signed-in user could grant themselves membership on any team
     // by patching their own teamIds — the audit's #2 finding.
+    // Users read helper — tightened 2026-07-08 (Patrick's PII audit
+    // after seeing a competing platform expose parent contact info
+    // cross-club).
+    //
+    // Prior: `allow read: if isAuthed()` — any authed user could
+    // read every user doc in the database (name, email, phone,
+    // address, emergencyContact, emergencyPhone, widgetToken which
+    // is effectively a bearer credential for the widget endpoint,
+    // fcmTokens, subscription state, invite audit trail).
+    //
+    // New: caller must be self, platform admin, OR share a team
+    // with the target user, OR share a club with the target user.
+    // Club admins remain readable by anyone sharing their club(s)
+    // (needed for Helpdesk ticket admin fan-out).
+    //
+    // Callers that won't work under this rule and need to move to
+    // a worker endpoint in a follow-up ship:
+    //   - findUserUidsByEmails (utils/notify.ts) — cross-tenant
+    //     email→uid lookup. sendPushToParentEmails will return
+    //     0 uids for cross-team addresses; email fallback still
+    //     fires so no functional regression, just fewer push hits.
+    //   - Any where('isClubAdmin', '==', true) list that expects
+    //     to see admins outside the caller's own clubs. Helpdesk
+    //     admin fan-out already goes through worker paths for
+    //     writes; the client-side reads are for UI hints only.
+    function callerCanReadUser(userId) {
+      return isPlatformAdmin()
+        || isSelf(userId)
+        || (
+          resource.data.teamIds is list
+          && resource.data.teamIds.hasAny(userDoc().teamIds)
+        )
+        // Legacy: some older docs have `teamId` (string) but not
+        // `teamIds` (list). Keep them readable while we backfill.
+        || (
+          resource.data.teamId is string
+          && resource.data.teamId in userDoc().teamIds
+        )
+        || (
+          resource.data.clubIds is list
+          && resource.data.clubIds.hasAny(userDoc().clubIds)
+        )
+        || (
+          resource.data.clubId is string
+          && resource.data.clubId in userDoc().clubIds
+        )
+        // Club-admin exception: any club member can read admins of
+        // their club(s). Preserves the Helpdesk admin-lookup path
+        // without opening cross-club enumeration.
+        || (
+          resource.data.isClubAdmin == true
+          && resource.data.clubIds is list
+          && resource.data.clubIds.hasAny(userDoc().clubIds)
+        );
+    }
     match /users/{userId} {
-      allow read: if isAuthed();
+      allow get:  if isAuthed() && callerCanReadUser(userId);
+      allow list: if isAuthed() && callerCanReadUser(userId);
       // Create still allowed self-only so the Firebase-Auth-to-
       // Firestore bootstrap on first sign-in works. The worker's
       // /users/bootstrap endpoint uses admin creds so THIS branch

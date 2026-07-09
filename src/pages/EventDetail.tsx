@@ -960,11 +960,11 @@ const EventDetail: React.FC = () => {
             <div className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-amber-600 text-amber-50 flex-shrink-0">
               Cancelled
             </div>
-            <div className="text-sm text-amber-900 flex-1 min-w-0">
+            <div className="text-sm text-amber-100 flex-1 min-w-0">
               {event.cancelReason ? (
                 <p className="leading-snug">{event.cancelReason}</p>
               ) : (
-                <p className="leading-snug italic text-amber-900/60">No reason given.</p>
+                <p className="leading-snug italic text-amber-100/60">No reason given.</p>
               )}
             </div>
           </div>
@@ -1130,7 +1130,7 @@ const EventDetail: React.FC = () => {
         ) : (
           <button
             onClick={handleCancel}
-            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-700 text-xs font-bold tracking-wider uppercase hover:bg-amber-500/25 transition"
+            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-300 text-xs font-bold tracking-wider uppercase hover:bg-amber-500/25 transition"
           >
             <Icon name="trash" className="w-4 h-4" />
             Cancel

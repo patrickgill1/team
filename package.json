@@ -1,6 +1,6 @@
 {
   "name": "soccer-team-app",
-  "version": "3.9.149",
+  "version": "3.9.150",
   "private": true,
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
@@ -20,6 +20,7 @@
     "@capacitor/status-bar": "^7.0.6",
     "@capgo/capacitor-updater": "^8.49.2",
     "@capgo/cli": "^8.5.3",
+    "@sentry/react": "^10.64.0",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
@@ -53,7 +54,7 @@
     "postinstall": "patch-package",
     "start": "react-scripts start",
     "prebuild": "node ./scripts/ensure-clean-tree.js",
-    "build": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
+    "build": "REACT_APP_VERSION=$npm_package_version DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "build:dirty": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",

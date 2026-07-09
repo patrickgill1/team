@@ -470,6 +470,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setError(null);
 
+      // Clear Sentry user context so post-logout errors aren't
+      // attributed to the signed-out user. Runs before Firebase
+      // signOut so the ordering matches the localStorage clears.
+      try {
+        const { setSentryUser } = await import('../utils/sentry');
+        setSentryUser(null);
+      } catch { /* non-fatal */ }
+
       // CRITICAL ORDERING: clear all the "I was signed in" hints
       // BEFORE calling any signOut. The native plugin signOut() and
       // the Web SDK signOut(auth) both fire onAuthStateChanged(null)
@@ -877,6 +885,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUserData(userDataObj);
             setLoading(false); // ← unblock the UI immediately
             console.log('User data loaded:', userDataObj);
+
+            // Attach the current user to Sentry so every subsequent
+            // error report knows who hit it. Filter by uid or email
+            // in the Sentry UI when a specific coach says "it broke
+            // for me." No-op in dev / when Sentry isn't initialized.
+            try {
+              const { setSentryUser } = await import('../utils/sentry');
+              setSentryUser({
+                uid: userDataObj.uid,
+                email: userDataObj.email,
+                name: userDataObj.name,
+              });
+            } catch { /* non-fatal */ }
 
             // Defense-in-depth: ensure user.teamIds mirrors every team
             // whose coachIds contains this uid. Some coaches ended up

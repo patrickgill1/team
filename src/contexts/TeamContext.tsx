@@ -235,6 +235,16 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (selectedTeamId) {
       const team = teams.find(t => t.id === selectedTeamId) || null;
       setSelectedTeam(team);
+      // Tag the current team on every Sentry error report so a bug
+      // that only fires on one team's data is trivial to spot. Fire-
+      // and-forget dynamic import so Sentry doesn't add bootstrap
+      // weight when it's disabled (dev / missing DSN).
+      (async () => {
+        try {
+          const { setSentryTeam } = await import('../utils/sentry');
+          setSentryTeam(selectedTeamId, team?.name || null);
+        } catch { /* non-fatal */ }
+      })();
     } else {
       setSelectedTeam(null);
     }

@@ -104,7 +104,7 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
                 const selected = mode === viewMode;
                 const label = mode === 'parent' ? 'Parent' : mode === 'coach' ? 'Coach' : 'Club admin';
                 const blurb = mode === 'parent'
-                  ? 'Your kid + family content'
+                  ? 'Player + family content'
                   : mode === 'coach'
                     ? 'Team management + coach cards'
                     : 'Pending registrations, payments, team activation';

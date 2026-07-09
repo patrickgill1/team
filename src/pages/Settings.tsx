@@ -420,7 +420,7 @@ const Settings: React.FC = () => {
               <p className="text-sm text-ink-primary/50 text-center py-4">Loading…</p>
             ) : linkedPlayers.length === 0 ? (
               <p className="text-sm text-ink-primary/50 text-center py-4">
-                You're not linked to a player yet. {isCoach(userData?.role || '') ? 'Create a team and add players first.' : 'Ask your coach to send you a link with your child\'s name on it.'}
+                You're not linked to a player yet. {isCoach(userData?.role || '') ? 'Create a team and add players first.' : 'Ask your coach to add your email to the player, then use "Claim a player" above.'}
               </p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

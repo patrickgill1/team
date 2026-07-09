@@ -173,7 +173,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
           Patrick: "why is the email optional? they need to be
           invited, or will it share a link, or what?" */}
       <div className="rounded-md bg-surface-base ring-1 ring-line-default/10 px-3 py-2.5 mb-4 text-charcoal-300 text-xs leading-relaxed">
-        <span className="text-ink-primary font-bold">With an email:</span> we shoot the parent a link to join. They're in within a minute.
+        <span className="text-ink-primary font-bold">With an email:</span> we shoot {isAdultTeam ? 'the player' : 'the parent'} a link to join. They're in within a minute.
         <br />
         <span className="text-ink-primary font-bold">Without:</span> we add the player anyway. Grab a join link from the Team page and send it however you want.
       </div>

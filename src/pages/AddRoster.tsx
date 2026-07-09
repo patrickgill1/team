@@ -5,6 +5,7 @@ import { useTeam } from '../contexts/TeamContext';
 import BulkAddPlayersForm, { BulkAddResult } from '../components/people/BulkAddPlayersForm';
 import Header from '../components/common/Header';
 import { VOCAB } from '../vocab';
+import { useTeamAudience } from '../hooks/useTeamAudience';
 
 // /people/add — bulk add players + send branded parent invite emails
 // in one shot. The dedicated answer to "I'm a new coach and clicked
@@ -16,6 +17,7 @@ import { VOCAB } from '../vocab';
 const AddRoster: React.FC = () => {
   const navigate = useNavigate();
   const { selectedTeamId, selectedTeam } = useTeam();
+  const { isAdult: isAdultTeam } = useTeamAudience(selectedTeam);
   const [result, setResult] = useState<BulkAddResult | null>(null);
 
   if (!selectedTeamId || !selectedTeam) {
@@ -51,11 +53,11 @@ const AddRoster: React.FC = () => {
             </h1>
             {result.invitesSent > 0 ? (
               <p className="text-charcoal-300 text-sm mt-2">
-                {result.invitesSent} {result.invitesSent === 1 ? 'invite' : 'invites'} sent. Parents get a link to join {selectedTeam.name} in their inbox.
+                {result.invitesSent} {result.invitesSent === 1 ? 'invite' : 'invites'} sent. {isAdultTeam ? 'Players' : 'Parents'} get a link to join {selectedTeam.name} in their inbox.
               </p>
             ) : result.created > 0 ? (
               <p className="text-charcoal-300 text-sm mt-2">
-                Players added without parent emails. You can invite them later from the Team page.
+                Players added without {isAdultTeam ? 'contact emails' : 'parent emails'}. You can invite them later from the Team page.
               </p>
             ) : null}
           </div>

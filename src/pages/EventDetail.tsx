@@ -1095,7 +1095,9 @@ const EventDetail: React.FC = () => {
             Coach attendance
           </div>
           <p className="text-[12px] text-ink-primary/60 leading-snug mb-3">
-            Separate from your kid&apos;s RSVP above — mark whether you&apos;ll be there as coach.
+            {isAdultTeam
+              ? "Mark whether you'll be there as coach — separate from your own player RSVP above."
+              : "Separate from your kid's RSVP above — mark whether you'll be there as coach."}
           </p>
           <div className="grid grid-cols-3 gap-2">
             {(['going', 'maybe', 'no'] as RsvpStatus[]).map((s) => {

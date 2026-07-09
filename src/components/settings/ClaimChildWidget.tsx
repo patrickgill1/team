@@ -146,7 +146,7 @@ const ClaimChildWidget: React.FC<Props> = ({
       >
         <span className="inline-flex items-center gap-1.5">
           <AppIcon name="plus" className="w-4 h-4" />
-          Missing your kid? Claim a player
+          Not on the roster? Claim a player
         </span>
         <span className="text-ink-primary/45">{expanded ? '−' : '+'}</span>
       </button>
@@ -191,7 +191,7 @@ const ClaimChildWidget: React.FC<Props> = ({
                   onClick={() => claim(row)}
                   disabled={!canSelfClaim || claiming === row.id}
                   className="px-3 py-1.5 rounded-full text-xs font-bold bg-brand-primary-soft/25 ring-1 ring-brand-primary-soft/40 text-ink-primary hover:bg-brand-primary-soft/35 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  title={canSelfClaim ? 'Claim as your child' : `Your coach needs to add ${emailNorm || 'your email'} to this player first.`}
+                  title={canSelfClaim ? 'Claim this player' : `Your coach needs to add ${emailNorm || 'your email'} to this player first.`}
                 >
                   {claiming === row.id ? '…' : canSelfClaim ? 'Claim' : 'Ask coach'}
                 </button>

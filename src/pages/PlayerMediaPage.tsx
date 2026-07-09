@@ -6,6 +6,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useStorage } from '../hooks/useStorage';
 import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { isCoach, canManageTeamMedia, formatDate } from '../utils/helpers';
+import { useTeamAudience } from '../hooks/useTeamAudience';
 import { autoPostVideoToWall } from '../utils/autoPostToWall';
 import { useTrialGate } from '../hooks/useTrialGate';
 import TrialGateModal from '../components/common/TrialGateModal';
@@ -29,6 +30,7 @@ const ITEMS_PER_PAGE = 20;
 const PlayerMediaPage: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
+  const { isAdult: isAdultTeam } = useTeamAudience(selectedTeam);
   const navigate = useNavigate();
   const canManageMedia = canManageTeamMedia(userData, selectedTeam);
   const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, deleteDocument, updateDocument, updatePlayerStats, addGameStat } = useFirestore();
@@ -1634,8 +1636,12 @@ const PlayerMediaPage: React.FC = () => {
                       </h3>
                       <p className="text-sm text-ink-primary/60 mt-1.5 max-w-xs mx-auto leading-snug">
                         {isUserCoach
-                          ? 'Drop in photos or short clips from practice and games. Parents get a notification the moment their kid shows up in one.'
-                          : 'Your coach will start sharing photos and clips from practices and games. Every one that features your kid gets pushed to you.'}
+                          ? isAdultTeam
+                            ? 'Drop in photos or short clips from training and games. Players get a notification the moment they show up in one.'
+                            : 'Drop in photos or short clips from practice and games. Parents get a notification the moment their kid shows up in one.'
+                          : isAdultTeam
+                            ? 'Your coach will start sharing photos and clips from training and games. Every one that features you gets pushed to you.'
+                            : 'Your coach will start sharing photos and clips from practices and games. Every one that features your kid gets pushed to you.'}
                       </p>
                       {isUserCoach && (
                         <button

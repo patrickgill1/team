@@ -51,7 +51,7 @@ const roleSlides: Record<WalkthroughRole, Slide[]> = {
   {
     kicker: 'Coach setup',
     title: 'Build the squad once.',
-    body: 'Add players with parent emails and GoalKickr turns that roster into invites, RSVPs, team chat, and attendance.',
+    body: 'Add each player with a contact email — GoalKickr turns that roster into invites, RSVPs, team chat, and attendance.',
     icon: (
       <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-16 h-16 text-brand-primary">
         <circle cx="20" cy="22" r="6" />

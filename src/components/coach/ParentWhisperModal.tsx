@@ -28,7 +28,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
   const newestPlan = (activePlans || [])[0];
 
   const presetMessages = [
-    `Wanted to share — ${player?.name?.split(' ')[0] || 'your kid'} had a great week of work. Keep encouraging them!`,
+    `Wanted to share — ${player?.name?.split(' ')[0] || 'this player'} had a great week of work. Keep encouraging them!`,
     `Big improvement showing up in ${player?.name?.split(' ')[0] || 'their'} game lately. Just wanted you to know.`,
     `Thank you for getting ${player?.name?.split(' ')[0] || 'them'} to practice this week — it's making a difference.`,
   ];

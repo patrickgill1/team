@@ -1053,7 +1053,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                     className={`flex-1 min-w-0 px-3 py-2 bg-surface-base text-ink-primary placeholder-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 ${
                       errors[`parentEmail${index}`] ? 'border-rose-500' : 'border-line-default/10'
                     }`}
-                    placeholder="parent@example.com"
+                    placeholder={(isAdultPlayer || isAdultTeam) ? 'player@example.com' : 'parent@example.com'}
                     disabled={isSubmitting}
                   />
                   {formData.parentEmails.length > 1 && (

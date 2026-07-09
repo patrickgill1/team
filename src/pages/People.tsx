@@ -78,7 +78,7 @@ const ROLE_CHIP: Record<Role, string> = {
 const People: React.FC = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
-  const { selectedTeamId, teams } = useTeam() as any;
+  const { selectedTeamId, teams: contextTeams } = useTeam() as any;
   const { getDocuments } = useFirestore();
 
   const [people, setPeople] = useState<Person[]>([]);
@@ -322,7 +322,7 @@ const People: React.FC = () => {
             /players/create with linkSelfAsParent uses). */}
         {(() => {
           if (!isUserCoach || !userData?.uid || !selectedTeamId) return null;
-          const teamObj = Array.isArray(teams) ? teams.find((t: any) => t.id === selectedTeamId) : null;
+          const teamObj = Array.isArray(contextTeams) ? contextTeams.find((t: any) => t.id === selectedTeamId) : null;
           const teamAudience = (teamObj as any)?.audienceType;
           if (teamAudience !== 'adult') return null;
           const iAmOnRoster = people.some(p =>

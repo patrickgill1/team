@@ -589,6 +589,25 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
     approved: true,
     approvalStatus: 'self-created-team',
   };
+  // Auto-grant a 7-day trial to first-time team creators so they
+  // don't hit the canCoachWrite() trial wall while dogfooding the
+  // team they just made. Only stamps if they don't already have an
+  // active subscription — avoids clobbering a paid user's
+  // subscriptionExpiresAt when they create a second team. Patrick
+  // 2026-07-09: "what about new users? am i going to have them do
+  // the same thing?" — no; every new coach now gets 7 real days.
+  const currentUser = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+  const alreadyActive = !!currentUser?.data?.subscriptionActive;
+  if (!alreadyActive) {
+    const now = new Date();
+    const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    userPatch.subscriptionActive = true;
+    userPatch.subscriptionTier = 'trial';
+    userPatch.subscriptionStatus = 'trialing';
+    userPatch.subscriptionStartedAt = now;
+    userPatch.subscriptionExpiresAt = in7;
+    userPatch.subscriptionSource = 'auto-trial-team-create';
+  }
   const userTransforms: any[] = [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: newTeamId }];
   const effectiveClubId = newClubId || requestedClubId;
   if (effectiveClubId) {
@@ -663,6 +682,21 @@ async function handleClubsCreate(req: Request, env: Env, payload: any): Promise<
     // isClubAdmin here is only true for platform admins per legacy
     // naming; do not stamp it based on club ownership.
   };
+  // Same 7-day auto-trial as /teams/create. Same rationale — a
+  // freshly-onboarded club director should have a working app for
+  // 7 days before the trial wall kicks in.
+  const currentUserClub = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+  const alreadyActiveClub = !!currentUserClub?.data?.subscriptionActive;
+  if (!alreadyActiveClub) {
+    const now = new Date();
+    const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    userPatch.subscriptionActive = true;
+    userPatch.subscriptionTier = 'trial';
+    userPatch.subscriptionStatus = 'trialing';
+    userPatch.subscriptionStartedAt = now;
+    userPatch.subscriptionExpiresAt = in7;
+    userPatch.subscriptionSource = 'auto-trial-club-create';
+  }
   const userTransforms: any[] = [{ fieldPath: 'clubIds', kind: 'arrayUnion', value: clubId }];
   if (teamId) {
     userPatch.coachLevel = 'head_coach';

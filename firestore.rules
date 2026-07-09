@@ -53,7 +53,25 @@ service cloud.firestore {
       // Worker-stamped flag. True for status in {trialing, active}.
       // Coaches without this flag can READ everything but can't
       // CREATE new content. Forces them through goalkickr.com signup.
-      return isAuthed() && userDoc().subscriptionActive == true;
+      //
+      // Expiry-aware 2026-07-09: /teams/create and /clubs/create now
+      // auto-stamp a 7-day trial (subscriptionActive:true +
+      // subscriptionExpiresAt: now + 7d). Without a rule-side expiry
+      // check, that flag would never actually expire and every trial
+      // would silently become "free forever". So this function now
+      // requires expiresAt (when present) to be in the future.
+      //
+      // Paid subs: if the Stripe webhook stamps subscriptionExpiresAt
+      // to the renewal date, this rule enforces cancellations
+      // automatically. If the webhook doesn't set expiresAt at all,
+      // subscriptionActive stays true indefinitely (Stripe webhook
+      // owns the flip on cancel) and this rule still permits.
+      return isAuthed()
+        && userDoc().subscriptionActive == true
+        && (
+          !('subscriptionExpiresAt' in userDoc())
+          || userDoc().subscriptionExpiresAt > request.time
+        );
     }
     function hasClubCoverage() {
       // Stamped on invite consume when a coach joins a team in a

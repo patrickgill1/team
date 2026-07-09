@@ -38,9 +38,12 @@ service cloud.firestore {
       return isAuthed() && userDoc().isClubAdmin == true;
     }
     function onTeam(teamId) {
+      // Null-safe .get(field, default) — pre-restructure user docs may
+      // lack teamIds entirely, in which case `X in userDoc().teamIds`
+      // throws and the whole rule denies.
       return isAuthed()
         && teamId is string
-        && teamId in userDoc().teamIds;
+        && teamId in userDoc().get('teamIds', []);
     }
     function isSelf(uid) {
       return isAuthed() && request.auth.uid == uid;
@@ -114,6 +117,14 @@ service cloud.firestore {
     // CoachTeamHealthCard, PlayerList, EndSeasonModal now use
     // teamIds array-contains; PublicVote now uses the worker.
     function callerCanReadPlayer() {
+      // Null-safe: userDoc().teamIds is absent/malformed on some
+      // legacy accounts (users created pre-2026-club-restructure never
+      // got a teamIds[] denorm; if the field is missing, hasAny()/in
+      // throw and the whole rule denies — even for the parentIds
+      // branch, which was surfacing as "coach adds a kid, kid vanishes
+      // from squad" while the write itself succeeded through the
+      // worker's coach-of-team check). Read the field into a local
+      // via .get(field, default) so the fallback is an empty list.
       return isPlatformAdmin()
         || (
           resource.data.parentIds is list
@@ -121,11 +132,11 @@ service cloud.firestore {
         )
         || (
           resource.data.teamIds is list
-          && resource.data.teamIds.hasAny(userDoc().teamIds)
+          && resource.data.teamIds.hasAny(userDoc().get('teamIds', []))
         )
         || (
           resource.data.teamId is string
-          && resource.data.teamId in userDoc().teamIds
+          && resource.data.teamId in userDoc().get('teamIds', [])
         );
     }
     // ─────────────────────────────────────────────────────────────
@@ -148,7 +159,7 @@ service cloud.firestore {
         || (
           isCoachRole()
           && resource.data.teamId is string
-          && resource.data.teamId in userDoc().teamIds
+          && resource.data.teamId in userDoc().get('teamIds', [])
         )
         || (
           resource.data.playerId is string
@@ -169,8 +180,7 @@ service cloud.firestore {
         || (
           userDoc().isClubAdmin == true
           && resource.data.clubId is string
-          && userDoc().clubIds is list
-          && resource.data.clubId in userDoc().clubIds
+          && resource.data.clubId in userDoc().get('clubIds', [])
         );
     }
     function callerCanReadFormSubmission() {
@@ -186,15 +196,14 @@ service cloud.firestore {
             request.auth.uid in get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.parentIds
             || (
               isCoachRole()
-              && get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.teamIds.hasAny(userDoc().teamIds)
+              && get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.teamIds.hasAny(userDoc().get('teamIds', []))
             )
           )
         )
         || (
           userDoc().isClubAdmin == true
           && resource.data.clubId is string
-          && userDoc().clubIds is list
-          && resource.data.clubId in userDoc().clubIds
+          && resource.data.clubId in userDoc().get('clubIds', [])
         );
     }
     match /players/{playerId} {
@@ -315,21 +324,21 @@ service cloud.firestore {
         || isSelf(userId)
         || (
           resource.data.teamIds is list
-          && resource.data.teamIds.hasAny(userDoc().teamIds)
+          && resource.data.teamIds.hasAny(userDoc().get('teamIds', []))
         )
         // Legacy: some older docs have `teamId` (string) but not
         // `teamIds` (list). Keep them readable while we backfill.
         || (
           resource.data.teamId is string
-          && resource.data.teamId in userDoc().teamIds
+          && resource.data.teamId in userDoc().get('teamIds', [])
         )
         || (
           resource.data.clubIds is list
-          && resource.data.clubIds.hasAny(userDoc().clubIds)
+          && resource.data.clubIds.hasAny(userDoc().get('clubIds', []))
         )
         || (
           resource.data.clubId is string
-          && resource.data.clubId in userDoc().clubIds
+          && resource.data.clubId in userDoc().get('clubIds', [])
         )
         // Club-admin exception: any club member can read admins of
         // their club(s). Preserves the Helpdesk admin-lookup path
@@ -337,7 +346,7 @@ service cloud.firestore {
         || (
           resource.data.isClubAdmin == true
           && resource.data.clubIds is list
-          && resource.data.clubIds.hasAny(userDoc().clubIds)
+          && resource.data.clubIds.hasAny(userDoc().get('clubIds', []))
         );
     }
     match /users/{userId} {
@@ -760,8 +769,8 @@ service cloud.firestore {
     match /drills/{drillId} {
       allow get: if request.auth != null && (
         resource.data.shareToLibrary == true
-        || (resource.data.clubId is string && resource.data.clubId in userDoc().clubIds)
-        || (resource.data.teamId is string && resource.data.teamId in userDoc().teamIds)
+        || (resource.data.clubId is string && resource.data.clubId in userDoc().get('clubIds', []))
+        || (resource.data.teamId is string && resource.data.teamId in userDoc().get('teamIds', []))
         || resource.data.createdBy == request.auth.uid
       );
       // List is permissive (any authed) because the library tab needs
@@ -801,7 +810,7 @@ service cloud.firestore {
       allow get, list: if request.auth != null && (
         isPlatformAdmin()
         || resource.data.authorUid == request.auth.uid
-        || (resource.data.scope == 'club' && resource.data.clubId in userDoc().clubIds)
+        || (resource.data.scope == 'club' && resource.data.clubId in userDoc().get('clubIds', []))
       );
       allow create: if request.auth != null
         && request.resource.data.authorUid == request.auth.uid
@@ -814,7 +823,7 @@ service cloud.firestore {
       allow update: if request.auth != null && (
         isPlatformAdmin()
         || resource.data.authorUid == request.auth.uid
-        || (resource.data.scope == 'club' && resource.data.clubId in userDoc().clubIds)
+        || (resource.data.scope == 'club' && resource.data.clubId in userDoc().get('clubIds', []))
       );
       allow delete: if isPlatformAdmin();
     }

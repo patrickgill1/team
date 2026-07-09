@@ -38,12 +38,22 @@ service cloud.firestore {
       return isAuthed() && userDoc().isClubAdmin == true;
     }
     function onTeam(teamId) {
-      // Null-safe .get(field, default) — pre-restructure user docs may
-      // lack teamIds entirely, in which case `X in userDoc().teamIds`
-      // throws and the whole rule denies.
+      // Null-safe: pre-restructure user docs may lack teamIds
+      // entirely, in which case `X in userDoc().teamIds` throws.
       return isAuthed()
         && teamId is string
-        && teamId in userDoc().get('teamIds', []);
+        && (
+          (
+            'teamIds' in userDoc()
+            && userDoc().teamIds is list
+            && teamId in userDoc().teamIds
+          )
+          || (
+            'teamId' in userDoc()
+            && userDoc().teamId is string
+            && teamId == userDoc().teamId
+          )
+        );
     }
     function isSelf(uid) {
       return isAuthed() && request.auth.uid == uid;
@@ -117,23 +127,14 @@ service cloud.firestore {
     // CoachTeamHealthCard, PlayerList, EndSeasonModal now use
     // teamIds array-contains; PublicVote now uses the worker.
     function callerCanReadPlayer() {
-      // Null-safe: userDoc().teamIds is absent/malformed on some
-      // legacy accounts (users created pre-2026-club-restructure never
-      // got a teamIds[] denorm; if the field is missing, hasAny()/in
-      // throw and the whole rule denies — even for the parentIds
-      // branch, which was surfacing as "coach adds a kid, kid vanishes
-      // from squad" while the write itself succeeded through the
-      // worker's coach-of-team check). Read the field into a local
-      // via .get(field, default) so the fallback is an empty list.
-      //
-      // ALSO: honor team.coachIds as source-of-truth for coach access.
-      // /players/create passes when uid is on team.coachIds OR teamId
-      // in user.teamIds — but the READ rule only checked user.teamIds,
-      // so a coach whose user.teamIds got out of sync with team.coachIds
-      // could write but not read. Fixes "Nick Barker" case: uid on
-      // team.coachIds, but user.teamIds empty, so /players/create
-      // succeeded but every read 403'd. Extra get() per matched doc
-      // but bounded by the LIST size (each player has one teamId).
+      // Belt-and-suspenders null safety. Each branch explicitly guards
+      // that the field exists AND is a list before calling .hasAny/in.
+      // Prior rule used data.get('teamIds', []) which compiles but was
+      // (apparently) not returning what we expect at eval time for
+      // Nick Barker's account — his heal response showed his teamIds
+      // was populated yet every LIST still 403'd. Swapping to the
+      // "in map && is list" pattern (used elsewhere in this file with
+      // known-good behavior) removes ambiguity.
       return isPlatformAdmin()
         || (
           resource.data.parentIds is list
@@ -141,25 +142,47 @@ service cloud.firestore {
         )
         || (
           resource.data.teamIds is list
-          && resource.data.teamIds.hasAny(userDoc().get('teamIds', []))
+          && 'teamIds' in userDoc()
+          && userDoc().teamIds is list
+          && resource.data.teamIds.hasAny(userDoc().teamIds)
         )
         || (
           resource.data.teamId is string
-          && resource.data.teamId in userDoc().get('teamIds', [])
+          && 'teamIds' in userDoc()
+          && userDoc().teamIds is list
+          && resource.data.teamId in userDoc().teamIds
         )
+        // Legacy singular teamId on the user doc — some pre-restructure
+        // accounts never got teamIds[] and only have teamId (singular).
+        || (
+          resource.data.teamId is string
+          && 'teamId' in userDoc()
+          && userDoc().teamId is string
+          && resource.data.teamId == userDoc().teamId
+        )
+        || (
+          resource.data.teamIds is list
+          && 'teamId' in userDoc()
+          && userDoc().teamId is string
+          && userDoc().teamId in resource.data.teamIds
+        )
+        // Team.coachIds fallback for coaches whose user.teamIds got
+        // out of sync with team.coachIds (write path uses team.coachIds
+        // as source-of-truth but old read paths only checked teamIds).
         || (
           resource.data.teamId is string
           && exists(/databases/$(database)/documents/teams/$(resource.data.teamId))
-          && request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.get('coachIds', [])
+          && 'coachIds' in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data
+          && get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.coachIds is list
+          && request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.coachIds
         )
-        // Same fallback but keyed off resource.data.teamIds[0] for
-        // players whose primary team lives on the plural field only
-        // (canonical shape) rather than teamId singular.
         || (
           resource.data.teamIds is list
           && resource.data.teamIds.size() > 0
           && exists(/databases/$(database)/documents/teams/$(resource.data.teamIds[0]))
-          && request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamIds[0])).data.get('coachIds', [])
+          && 'coachIds' in get(/databases/$(database)/documents/teams/$(resource.data.teamIds[0])).data
+          && get(/databases/$(database)/documents/teams/$(resource.data.teamIds[0])).data.coachIds is list
+          && request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamIds[0])).data.coachIds
         );
     }
     // ─────────────────────────────────────────────────────────────

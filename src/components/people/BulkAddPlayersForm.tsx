@@ -86,18 +86,32 @@ const BulkAddPlayersForm: React.FC<Props> = ({
       const coachName = userData.name || 'Your coach';
       const coachFirstName = coachName.split(' ')[0] || 'Coach';
 
+      // Route creates through the worker instead of the client SDK.
+      // firestore.rules canCoachWrite() requires an active sub or
+      // club coverage, which fresh onboarding coaches don't have —
+      // client addPlayer() 403s for them. Worker uses the service
+      // account and just verifies coach-of-team.
+      const { workerFetch } = await import('../../utils/workerFetch');
       for (const row of valid) {
         const name = `${row.firstName.trim()} ${row.lastName.trim()}`.trim();
         if (!name) continue;
 
-        const playerId = await addPlayer({
-          name,
-          teamId,
-          teamIds: [teamId],
-          parentIds: [],
-          parentEmails: row.parentEmail.trim() ? [row.parentEmail.trim().toLowerCase()] : [],
-          isActive: true,
-        });
+        const parentEmail = row.parentEmail.trim().toLowerCase();
+        let playerId = '';
+        try {
+          const res = await workerFetch('/players/create', {
+            method: 'POST',
+            body: JSON.stringify({
+              teamId,
+              name,
+              parentEmails: parentEmail ? [parentEmail] : undefined,
+            }),
+          });
+          const data: any = await res.json().catch(() => ({}));
+          if (res.ok && data?.ok) playerId = String(data.playerId || '');
+        } catch (err) {
+          console.warn('bulk player create failed', err);
+        }
         if (!playerId) continue;
         created++;
 

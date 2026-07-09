@@ -143,14 +143,19 @@ const Onboarding: React.FC = () => {
   const [createdTeamId, setCreatedTeamId] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
 
-  // Bounce out if the user already has a team AND we're past the
-  // first setup. Handles refresh after finish. We DON'T bounce on
-  // any step here because a mid-flow refresh should stay in-flow.
+  // Guard against a coach who already has a team hitting bare
+  // /onboarding (no ?step query) directly — old bookmarks, browser
+  // history, etc. Send them to dashboard instead of leaving them in
+  // "Name your team" with nothing stopping them from creating a
+  // duplicate. In-wizard "Add another team" always sets ?step= via
+  // goStep, so it doesn't trip this guard.
+  const rawStepParam = params.get('step');
   useEffect(() => {
-    if (step === 'done' && userData?.teamIds && userData.teamIds.length > 0) {
-      // fine to be here — done handles the redirect on tap
-    }
-  }, [step, userData?.teamIds]);
+    if (rawStepParam) return;
+    if (!userData?.teamIds || userData.teamIds.length === 0) return;
+    navigate('/dashboard', { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ─── Team creation ───────────────────────────────────────────
   // Uses the worker's /teams/create endpoint, same as OnboardingGate.
@@ -892,10 +897,14 @@ const Onboarding: React.FC = () => {
               <div className="rounded-2xl bg-white/[0.04] ring-1 ring-white/10 p-4">
                 <BulkAddPlayersForm
                   teamId={createdTeamId}
-                  onFinished={(result) => {
+                  teamName={teamName}
+                  onComplete={(result) => {
                     setRosterResult(result);
                     goStep('staff');
                   }}
+                  onSkip={() => goStep('staff')}
+                  primaryLabel="Send Circle invites"
+                  skipLabel="Skip for now"
                 />
               </div>
             )}

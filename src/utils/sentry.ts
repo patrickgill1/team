@@ -57,6 +57,29 @@ export function initSentry() {
       return event;
     },
   });
+
+  // Verification helpers for Sentry onboarding. Sentry's Getting
+  // Started flow won't mark the project "verified" until it
+  // receives its first event. Two ways to trigger, both harmless:
+  //
+  //   window.__sentryTest()         → throws an unhandled Error
+  //                                  (captured by global handler)
+  //   window.__sentryMessage()      → sends a captureMessage event
+  //                                  (no console noise, no user
+  //                                  impact)
+  //
+  // Call from Chrome DevTools on the deployed web app or Safari
+  // Web Inspector on a physical device. Kept in the bundle
+  // permanently — the surface area is tiny and doubles as a
+  // "prove Sentry is wired" tool during future migrations.
+  try {
+    (window as any).__sentryTest = () => {
+      throw new Error(`Sentry verification test — ${RELEASE}`);
+    };
+    (window as any).__sentryMessage = () => {
+      Sentry.captureMessage(`Sentry verification message — ${RELEASE}`, 'info');
+    };
+  } catch { /* window unavailable in some SSR paths */ }
 }
 
 /** Attach the current user to every subsequent error report. Call

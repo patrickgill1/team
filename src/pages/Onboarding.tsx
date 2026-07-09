@@ -448,7 +448,20 @@ const Onboarding: React.FC = () => {
   const handleStartTrial = async () => {
     setBusy(true);
     try {
-      await openWebSignup({ tier: 'annual', intent: 'subscribe' });
+      // Pass tier:'founder' so the marketing site → Stripe checkout
+      // uses STRIPE_PRICE_FOUNDER (the $50/yr lifetime founder deal
+      // the wizard's copy advertises), NOT the standard annual
+      // $99.99. Previously passed tier:'annual' which was a bug:
+      // wizard showed "50% off for life" but sent the user to the
+      // full-price tier. Founder tier is cap-limited (see
+      // countFounderActive in worker/src/stripe.ts) — if the 50 seats
+      // are gone the site should fall back to annual gracefully.
+      await openWebSignup({
+        email: userData?.email || currentUser?.email || undefined,
+        uid: userData?.uid,
+        tier: 'founder',
+        intent: 'subscribe',
+      });
     } catch (err) {
       console.warn('openWebSignup failed', err);
     } finally {

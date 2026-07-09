@@ -222,15 +222,20 @@ const Dashboard: React.FC = () => {
     return () => { cancelled = true; };
   }, [selectedTeamId, getDocuments]);
 
-  // Subscribe to chat threads so the "Recent Chats" card stays live.
+  // Subscribe to team threads AND DMs — same shape / different
+  // queries. Team threads use subscribeToChatThreads which filters
+  // by teamId; DMs have teamId:'' and would be missed. Same bug
+  // NotificationsHeaderBar hit before 3.9.151. Merging both into
+  // the one chatThreads array so downstream (newMessagesCount,
+  // UnreadMessagesCard, LatestChatsCard) sees the full picture.
   useEffect(() => {
-    if (!selectedTeamId) return;
-    const unsub = subscribeToChatThreads(selectedTeamId, (threads) => {
-      // Hide DMs the current user isn't in, then sort by most recent activity.
-      const visible = threads
+    if (!selectedTeamId || !userData?.uid) return;
+    let teamList: any[] = [];
+    let dmList: any[] = [];
+    const publish = () => {
+      const merged = [...teamList, ...dmList]
         .filter((t: any) => {
           if (t.isPrivate && !isUserCoach) return false;
-          if (t.isDM && userData?.uid && !t.participants?.includes(userData.uid)) return false;
           return true;
         })
         .map((t: any) => ({
@@ -238,9 +243,32 @@ const Dashboard: React.FC = () => {
           lastActivity: t.lastActivity instanceof Date ? t.lastActivity : new Date(t.lastActivity || Date.now()),
         }))
         .sort((a: any, b: any) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());
-      setChatThreads(visible);
+      setChatThreads(merged);
+    };
+    const unsubTeam = subscribeToChatThreads(selectedTeamId, (threads) => {
+      teamList = threads;
+      publish();
     });
-    return () => { unsub && unsub(); };
+    // DM subscription — mirrors what NotificationsHeaderBar does.
+    // Fires whenever DM unreadCount or lastActivity mutates.
+    let unsubDm: (() => void) | undefined;
+    (async () => {
+      const { onSnapshot: os, collection: c, query: q, where: w } = await import('firebase/firestore');
+      const { db: d } = await import('../utils/firebase');
+      const dmQ = q(
+        c(d, 'chat_threads'),
+        w('isDM', '==', true),
+        w('participants', 'array-contains', userData.uid),
+      );
+      unsubDm = os(dmQ, (snap) => {
+        dmList = snap.docs.map(x => ({ id: x.id, ...(x.data() as any) }));
+        publish();
+      });
+    })();
+    return () => {
+      if (unsubTeam) unsubTeam();
+      if (unsubDm) unsubDm();
+    };
   }, [selectedTeamId, subscribeToChatThreads, isUserCoach, userData?.uid]);
 
   // Subscribe to the team's wall_posts collection — the wall has its
@@ -1231,6 +1259,15 @@ const Dashboard: React.FC = () => {
             wall of juggling-post previews. New signal lives at the
             top of the chrome. */}
 
+        {/* Latest chats. Compact 3-row list, silent when nothing
+            has activity in the last 14 days. Unread rows lead the
+            sort + get emphasis so a new DM pops without needing to
+            scroll into /chat. Restores the "latest messages" glance
+            surface Patrick asked for after 3.9.149. */}
+        {userData?.uid && (
+          <LatestChatsCard chats={chatThreads} userUid={userData.uid} userPhotoMap={userPhotoMap} />
+        )}
+
         {/* RecentChatsCard removed in v3.2.50 — Patrick: "I don't use
             recent chats as I thought I would." Chat tab is one tap
             away on the bottom bar with its own unread badge. Team
@@ -1471,6 +1508,105 @@ const UnreadMessagesCard: React.FC<{ count: number; thread: any | null }> = ({ c
         <path d="M9 6l6 6-6 6" />
       </svg>
     </Link>
+  );
+};
+
+// Compact "Recent chats" card that replaces the announcements slot
+// removed in 3.9.149. Density rules:
+//   - Silent when there are zero recent threads. No "no messages"
+//     empty state.
+//   - Cap at 3 rows. Anything beyond lives on /chat.
+//   - Only threads with lastActivity in the last 14 days show up —
+//     stale channels don't clutter the dashboard.
+//   - Unread rows lead with a red dot + brand-tinted background so
+//     they pop against the read rows behind them.
+//   - Tap deep-links to the exact thread, not the /chat index.
+//
+// Data source: dashboard's chatThreads state, which now includes
+// team threads AND DMs (fixed 3.9.153 with the two-subscription
+// merge above). Sort priority: unread first, then most recent.
+const LatestChatsCard: React.FC<{ chats: any[]; userUid: string; userPhotoMap?: Record<string, string> }> = ({ chats, userUid, userPhotoMap }) => {
+  const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const scored = chats
+    .filter((t: any) => t?.lastActivity && (now - new Date(t.lastActivity).getTime()) < FOURTEEN_DAYS)
+    .map((t: any) => {
+      const unread = typeof t?.unreadCount?.[userUid] === 'number' ? t.unreadCount[userUid] : 0;
+      return { t, unread, at: new Date(t.lastActivity).getTime() };
+    })
+    .sort((a, b) => {
+      // Unread first, then by most recent activity within each bucket.
+      if ((a.unread > 0) !== (b.unread > 0)) return a.unread > 0 ? -1 : 1;
+      return b.at - a.at;
+    })
+    .slice(0, 3);
+  if (scored.length === 0) return null;
+  return (
+    <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 overflow-hidden shadow-lg">
+      <div className="px-4 py-2.5 border-b border-line-default/10 flex items-center justify-between">
+        <h3 className="text-[11px] font-black tracking-widest uppercase text-ink-primary/60">
+          Recent chats
+        </h3>
+        <Link to="/chat" className="text-[11px] font-bold text-ink-primary/55 hover:text-ink-primary transition">
+          View all →
+        </Link>
+      </div>
+      <ul className="divide-y divide-line-default/5">
+        {scored.map(({ t, unread }) => {
+          const isDM = t.isDM === true;
+          const otherUid = isDM ? (t.participants || []).find((u: string) => u !== userUid) : null;
+          const displayTitle = isDM
+            ? (t.dmParticipantNames?.[otherUid] || String(t.title || '').replace(/^DM:\s*/, '') || 'Direct message')
+            : (t.title || 'Team chat');
+          const dmPhotoUrl = isDM && otherUid ? userPhotoMap?.[otherUid] : undefined;
+          const initial = (displayTitle || '?').charAt(0).toUpperCase();
+          const last = t.lastMessage;
+          const snippet = last?.content
+            ? String(last.content).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+            : last?.senderName
+              ? '(new message)'
+              : '';
+          return (
+            <li key={t.id}>
+              <Link
+                to={`/chat?thread=${t.id}`}
+                className={`flex items-center gap-3 px-4 py-2.5 hover:bg-line-default/[0.04] transition-colors ${unread > 0 ? 'bg-brand-primary/[0.04]' : ''}`}
+              >
+                {/* Avatar / initial. DMs prefer the other participant
+                    photo when we have it; group threads use the
+                    initial on a slate tile. */}
+                {dmPhotoUrl ? (
+                  <img src={dmPhotoUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-1 ring-line-default/10" />
+                ) : (
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0 ${isDM ? 'bg-brand-primary' : 'bg-slate-600'}`}>
+                    {initial}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-1.5">
+                    {unread > 0 && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0" aria-hidden />
+                    )}
+                    <p className={`truncate text-sm ${unread > 0 ? 'font-black text-ink-primary' : 'font-semibold text-ink-primary/85'}`}>
+                      {displayTitle}
+                    </p>
+                    <span className="ml-auto text-[10px] text-ink-primary/45 flex-shrink-0">
+                      {relativeTime(new Date(t.lastActivity))}
+                    </span>
+                  </div>
+                  {snippet && (
+                    <p className={`truncate text-xs mt-0.5 ${unread > 0 ? 'text-ink-primary/80' : 'text-ink-primary/50'}`}>
+                      {last?.senderName ? <span className="font-semibold">{last.senderName}: </span> : null}
+                      {snippet}
+                    </p>
+                  )}
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 };
 

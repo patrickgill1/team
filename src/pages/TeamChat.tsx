@@ -1531,13 +1531,14 @@ const TeamChat: React.FC = () => {
             title: pushTitle,
             body: pushBody,
             url: deepLink,
-            // Bump the recipient's app-icon badge. Absolute-count
-            // semantics on iOS mean any push we send with badge>0
-            // shows the little red dot; the app clears it back to 0
-            // on foreground / when the user opens /chat. Using 1
-            // instead of a real per-user count avoids a lookup fan-
-            // out on hot-path chat sends.
-            badge: 1,
+            // Icon badge intentionally OFF until the next native
+            // binary ships @capawesome/capacitor-badge — the
+            // currently-shipped Capacitor plugins have no reliable
+            // way to CLEAR the badge, so setting it to 1 leaves it
+            // stuck at 1 forever after the first chat push. Turn
+            // back on the day the badge plugin lands natively.
+            // (feedback_no_badge_until_plugin_ships)
+            // badge: 1,
           }, { pushPrefKey: 'chat', fromUid: userData.uid });
         }
       } catch (err) {

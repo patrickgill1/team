@@ -219,8 +219,17 @@ function renderRichContent(text: string, ownTheme: boolean): string {
     /@(team|everyone)\b/gi,
     `<span class="${teamMentionColor} font-bold px-1.5 rounded">@team</span>`
   );
+  // Mention regex — spaces are OUTSIDE the character class now so it
+  // can't greedily swallow "@Jenn appreciate you sharing that" past
+  // the name (Patrick 2026-07-08). Grammar:
+  //   @Firstword                          → highlights @Jenn
+  //   @Firstword Secondword               → highlights @Jenn Martinsen
+  //     (Secondword only recognized if it starts with a capital
+  //     letter — that's what disambiguates a real last name from
+  //     sentence text like "appreciate")
+  // Multi-word names beyond two are rare; treated as name+sentence.
   const mentioned = withTeam.replace(
-    /@([A-Za-z][A-Za-z0-9 _'-]{0,28}[A-Za-z0-9])/g,
+    /@([A-Za-z][A-Za-z0-9_'-]{0,28}[A-Za-z0-9](?:\s[A-Z][A-Za-z0-9_'-]{0,28}[A-Za-z0-9])?)/g,
     `<span class="${mentionColor} font-semibold px-1 rounded">@$1</span>`
   );
   return mentioned;

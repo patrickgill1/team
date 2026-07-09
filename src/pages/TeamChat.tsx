@@ -2010,13 +2010,20 @@ const TeamChat: React.FC = () => {
   // carry senderPhotoUrl on the doc itself, so MessageBubble falls back
   // to this teamMembers-backed lookup, then to crossUserCache for users
   // who aren't on the active team.
-  const getSenderPhotoUrl = (senderId: string): string | undefined => {
+  // Function declaration (not `const arrow = …`) so JS hoists it —
+  // the typingMembers IIFE at line ~1666 calls it during render,
+  // hundreds of lines before this point. As a `const` it was in the
+  // temporal dead zone the moment a chat thread had another user
+  // actively typing, throwing "Cannot access 'jn' before init" and
+  // triggering the chat-surface silent-eb reconnect fallback. See
+  // 3.9.120 fix (2026-07-08).
+  function getSenderPhotoUrl(senderId: string): string | undefined {
     if (!senderId) return undefined;
     if (userData?.uid === senderId) return (userData as any)?.photoURL || undefined;
     const m = teamMembers.find(tm => tm.uid === senderId);
     if (m?.photoURL) return m.photoURL;
     return crossUserCache[senderId]?.photoURL;
-  };
+  }
 
   // Used by the Read-by sheet to render names for each uid in readBy.
   // Consults active-team roster first, then the cross-team cache so a

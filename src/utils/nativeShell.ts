@@ -303,20 +303,57 @@ export async function registerPushNotifications(
 // Called on app foreground and when the user opens /chat, so a
 // stale badge doesn't linger after the user has already seen the
 // new messages. Silent on web / when the plugin isn't available.
+//
+// Runtime plugin discovery: @capacitor-firebase/messaging v5.4
+// (currently installed) does NOT expose a badge method — that
+// landed in v6. Optional chaining on setBadge silently no-ops and
+// the icon stays lit forever. So we try every method the shipped
+// plugins might expose, in priority order, and count success on
+// the first that doesn't throw. Adding a proper badge plugin
+// requires a native rebuild (Capgo OTA can't add native code); do
+// that in the next App Store submission by installing
+// @capawesome/capacitor-badge. Until then this best-effort chain
+// is the ceiling.
 export async function clearAppBadge(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
+
+  // 1. Firebase messaging plugin — try both v6 (setBadgeCount) and
+  //    the earlier undocumented shape (setBadge) so a plugin bump
+  //    starts working automatically. Also removes delivered
+  //    notifications so the system tray clears alongside.
   try {
     const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
-    // Two calls: setBadge(0) drops the number on iOS; the "remove
-    // delivered" call also clears system tray notifications so the
-    // user doesn't have to swipe them away one by one after they've
-    // already read the messages in-app.
-    try {
-      await (FirebaseMessaging as any).setBadge?.({ badge: 0 });
-    } catch { /* older plugin versions may not expose setBadge */ }
-    try {
-      await (FirebaseMessaging as any).removeAllDeliveredNotifications?.();
-    } catch { /* likewise */ }
+    const fbm: any = FirebaseMessaging;
+    for (const attempt of [
+      () => fbm.setBadgeCount?.({ count: 0 }),
+      () => fbm.setBadge?.({ badge: 0 }),
+    ]) {
+      try { const r = attempt(); if (r) await r; } catch { /* try next */ }
+    }
+    try { await fbm.removeDeliveredNotifications?.({ ids: [] }); } catch { /* ignore */ }
+    try { await fbm.removeAllDeliveredNotifications?.(); } catch { /* ignore */ }
+  } catch { /* messaging plugin not present */ }
+
+  // 2. Capacitor's own push-notifications plugin — clears the
+  //    notification tray on iOS which the WebView user has already
+  //    seen. Doesn't touch the badge on iOS but no harm calling.
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
+    try { await PushNotifications.removeAllDeliveredNotifications(); } catch { /* ignore */ }
+  } catch { /* not present */ }
+
+  // 3. Last resort — direct native bridge for any plugin exposing
+  //    a Badge interface (e.g. @capawesome/capacitor-badge if it
+  //    ever gets installed via a native rebuild). Discovered at
+  //    runtime so removing the plugin doesn't crash this call.
+  try {
+    const anyCap = Capacitor as any;
+    const badge = anyCap?.Plugins?.Badge;
+    if (badge && typeof badge.clear === 'function') {
+      await badge.clear();
+    } else if (badge && typeof badge.set === 'function') {
+      await badge.set({ count: 0 });
+    }
   } catch { /* ignore */ }
 }
 

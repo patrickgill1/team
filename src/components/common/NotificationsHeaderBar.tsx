@@ -56,34 +56,69 @@ const NotificationsHeaderBar: React.FC = () => {
   const [newEvents, setNewEvents] = useState(0);
   const [newWall, setNewWall] = useState(0);
 
-  // Chats — sum of per-user unreadCount across the team's threads.
-  // ALSO respects the client-side chat.lastSeen stamp so tapping /chat
-  // once dims the pill until the next server-side unread fires. Server
-  // unread is the source of truth if a NEW push arrives after the tap.
+  // Chats — sum of per-user unreadCount across TWO subscription
+  // scopes because chat_threads has two shapes:
+  //   1. team-scoped threads where teamId == selectedTeamId
+  //   2. DMs where isDM==true and participants includes me — DMs
+  //      carry teamId:'' so a plain teamId equality query misses
+  //      them entirely. First shipped miss was Patrick receiving a
+  //      DM from Melanie: the "1 NEW" showed inside /chat but the
+  //      header bar stayed blank because this subscription filtered
+  //      by teamId only.
+  //
+  // Local dampener kept — if the user visited /chat AFTER every
+  // thread's latest activity, zero the pill. New activity after their
+  // visit re-lights it.
   useEffect(() => {
     if (!selectedTeamId || !userData?.uid) { setUnreadChats(0); return; }
-    const q = query(collection(db, 'chat_threads'), where('teamId', '==', selectedTeamId));
     const uid = userData.uid;
-    const unsub = onSnapshot(q, (snap) => {
-      let sum = 0;
-      let latestActivity = 0;
+    const teamQ = query(collection(db, 'chat_threads'), where('teamId', '==', selectedTeamId));
+    const dmQ = query(
+      collection(db, 'chat_threads'),
+      where('isDM', '==', true),
+      where('participants', 'array-contains', uid),
+    );
+    // Latest counts per subscription — combined on every fire so
+    // either stream can update the pill independently.
+    let teamCount = 0;
+    let dmCount = 0;
+    let teamLatest = 0;
+    let dmLatest = 0;
+    const publish = () => {
+      const sum = teamCount + dmCount;
+      const latestActivity = Math.max(teamLatest, dmLatest);
+      let out = sum;
+      try {
+        const seen = parseInt(localStorage.getItem(chatKey(selectedTeamId)) || '0', 10);
+        if (seen > latestActivity) out = 0;
+      } catch { /* ignore */ }
+      setUnreadChats(out);
+    };
+    const unsubTeam = onSnapshot(teamQ, (snap) => {
+      let sum = 0; let latest = 0;
       snap.docs.forEach(d => {
         const data: any = d.data();
         const u = data?.unreadCount?.[uid];
         if (typeof u === 'number') sum += u;
         const last = data?.lastActivity?.toDate?.()?.getTime?.() || 0;
-        if (last > latestActivity) latestActivity = last;
+        if (last > latest) latest = last;
       });
-      // Local dampener — if the user visited /chat AFTER the newest
-      // thread's activity, don't nag them. New activity after their
-      // visit re-lights the pill.
-      try {
-        const seen = parseInt(localStorage.getItem(chatKey(selectedTeamId)) || '0', 10);
-        if (seen > latestActivity) sum = 0;
-      } catch { /* ignore */ }
-      setUnreadChats(sum);
+      teamCount = sum; teamLatest = latest;
+      publish();
     });
-    return () => unsub();
+    const unsubDm = onSnapshot(dmQ, (snap) => {
+      let sum = 0; let latest = 0;
+      snap.docs.forEach(d => {
+        const data: any = d.data();
+        const u = data?.unreadCount?.[uid];
+        if (typeof u === 'number') sum += u;
+        const last = data?.lastActivity?.toDate?.()?.getTime?.() || 0;
+        if (last > latest) latest = last;
+      });
+      dmCount = sum; dmLatest = latest;
+      publish();
+    });
+    return () => { unsubTeam(); unsubDm(); };
   }, [selectedTeamId, userData?.uid]);
 
   // Events — count of events whose updatedAt (fallback createdAt) is

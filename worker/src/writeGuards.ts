@@ -1684,27 +1684,45 @@ async function handleUsersSetTeams(req: Request, env: Env, payload: any): Promis
 async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: any): Promise<Response> {
   const claims = await requireUser(req, env);
   const { pid, sa } = projectAndSA(env);
+  // Load user first — need role, teamId (legacy singular), teamIds
+  // (canonical), clubIds for the heal set + diagnostic response.
+  const currentUser = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+  const legacyTeamId: string | null = typeof currentUser?.data?.teamId === 'string' && currentUser.data.teamId
+    ? currentUser.data.teamId
+    : null;
+  const existing: string[] = Array.isArray(currentUser?.data?.teamIds) ? currentUser.data.teamIds : [];
+  const role = currentUser?.data?.role || null;
+  const clubIds = Array.isArray(currentUser?.data?.clubIds) ? currentUser.data.clubIds : [];
+
   // Find every team whose coachIds contains this uid. Firestore's
   // structured query supports array-contains on a single field.
-  const teams = await runQuery(pid, 'teams', [
+  const coachTeams = await runQuery(pid, 'teams', [
     { field: 'coachIds', op: 'ARRAY_CONTAINS', value: claims.uid },
   ], sa, 200).catch(err => {
     console.warn('[heal] runQuery failed', err?.message || err);
     return [];
   });
-  const teamIds = teams.map(t => t.id).filter(Boolean);
-  // Read the user's current teamIds so we only union new ids and
-  // can report what changed in the response for logging.
-  const currentUser = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
-  const existing: string[] = Array.isArray(currentUser?.data?.teamIds) ? currentUser.data.teamIds : [];
-  const role = currentUser?.data?.role || null;
-  const clubIds = Array.isArray(currentUser?.data?.clubIds) ? currentUser.data.clubIds : [];
-  if (teamIds.length === 0) {
-    return json({ ok: true, added: [], teamIds: existing, foundTeams: 0, role, clubIds });
-  }
-  const toAdd = teamIds.filter(id => !existing.includes(id));
+  const coachTeamIds = coachTeams.map(t => t.id).filter(Boolean);
+
+  // Union heal source: teams from coachIds discovery + legacy teamId
+  // (some accounts have teamId singular but no teamIds — the AddPlayer
+  // client rule and PlayerList subscription both check teamIds, so
+  // failing to lift the legacy value silently strands them).
+  const healSet = new Set<string>(coachTeamIds);
+  if (legacyTeamId) healSet.add(legacyTeamId);
+  const heal = Array.from(healSet);
+
+  const toAdd = heal.filter(id => !existing.includes(id));
   if (toAdd.length === 0) {
-    return json({ ok: true, added: [], teamIds: existing, foundTeams: teamIds.length, role, clubIds });
+    return json({
+      ok: true,
+      added: [],
+      teamIds: existing,
+      foundTeams: coachTeamIds.length,
+      legacyTeamId,
+      role,
+      clubIds,
+    });
   }
   await commitDocumentTransforms(
     pid,
@@ -1713,7 +1731,15 @@ async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: a
     null,
     sa,
   );
-  return json({ ok: true, added: toAdd, teamIds: [...existing, ...toAdd], foundTeams: teamIds.length, role, clubIds });
+  return json({
+    ok: true,
+    added: toAdd,
+    teamIds: [...existing, ...toAdd],
+    foundTeams: coachTeamIds.length,
+    legacyTeamId,
+    role,
+    clubIds,
+  });
 }
 
 // ────────────────────────────────────────────────────────────────

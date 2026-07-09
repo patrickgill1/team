@@ -892,7 +892,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 method: 'POST',
                 body: JSON.stringify({}),
               }).then(r => r.json().then(j => ({ status: r.status, body: j }))).then((res: any) => {
-                console.log('[heal] response', res);
+                console.log('[heal] status', res.status, 'foundTeams', res.body?.foundTeams, 'legacyTeamId', res.body?.legacyTeamId, 'added', JSON.stringify(res.body?.added), 'teamIds', JSON.stringify(res.body?.teamIds), 'role', res.body?.role, 'clubIds', JSON.stringify(res.body?.clubIds));
               }).catch(err => console.warn('[heal] failed', err));
             } catch { /* non-fatal */ }
 

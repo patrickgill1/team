@@ -69,13 +69,13 @@ const ORDERED_STEPS: Step[] = [
 
 const STEP_TITLES: Record<Step, string> = {
   team: 'Name your team',
-  'kid-gate': 'Family',
-  'add-kid': 'Add your kid',
+  'kid-gate': 'Player Circle',
+  'add-kid': 'Player Circle',
   'practice-days': 'Practice days',
   preview: 'Confirm dates',
   details: 'Time & place',
   confirm: 'Schedule',
-  invite: 'Invite parents',
+  invite: 'Player Circle',
   staff: 'Add a coach',
   notifications: 'Notifications',
   checklist: 'Almost done',
@@ -195,13 +195,12 @@ const Onboarding: React.FC = () => {
   };
 
   // ─── Add the coach's own kid as a player ─────────────────────
-  // Two worker calls (rules-hardened 2026-07-06 keep parentIds off
-  // the client write path):
-  //   1. /players/create — writes the player doc with parentEmails
-  //      set to the coach's own email. Coach-of-team verified server-
-  //      side. Returns the new playerId.
-  //   2. /players/toggle-self-parent — flips the coach's uid onto
-  //      the player's parentIds because email is now on the list.
+  // Single atomic worker call — /players/create with
+  // linkSelfAsParent:true stamps parentIds:[uid] + parentEmails
+  // in the same write as the player create. Replaces an earlier
+  // two-call sequence (create then toggle-self-parent) where the
+  // second call could silently fail, dropping the coach out of
+  // the Player Circle without any error surfacing.
   const handleAddKid = async () => {
     if (!userData || !createdTeamId) {
       setError('Missing team. Go back a step.');
@@ -212,10 +211,6 @@ const Onboarding: React.FC = () => {
       return;
     }
     const coachEmail = (userData.email || currentUser?.email || '').trim().toLowerCase();
-    if (!coachEmail) {
-      setError('No email on your account — sign in again.');
-      return;
-    }
     setError(null);
     setBusy(true);
     try {
@@ -229,32 +224,14 @@ const Onboarding: React.FC = () => {
           name: kidName.trim(),
           jerseyNumber,
           positions: kidPosition.trim() ? [kidPosition.trim()] : undefined,
-          parentEmails: [coachEmail],
+          parentEmails: coachEmail ? [coachEmail] : undefined,
+          linkSelfAsParent: true,
         }),
       });
       const createData: any = await createRes.json().catch(() => ({}));
       if (!createRes.ok || !createData?.ok) {
         throw new Error(createData?.error || `create-player-${createRes.status}`);
       }
-      const playerId = String(createData.playerId || '');
-
-      // Now link the coach as a parent. Requires their email be on
-      // the player's parentEmails list, which we just seeded above.
-      if (playerId) {
-        try {
-          const claimRes = await workerFetch('/players/toggle-self-parent', {
-            method: 'POST',
-            body: JSON.stringify({ playerId, on: true }),
-          });
-          const claimData: any = await claimRes.json().catch(() => ({}));
-          if (!claimRes.ok || !claimData?.ok) {
-            console.warn('self-parent claim failed', claimData);
-          }
-        } catch (claimErr) {
-          console.warn('self-parent claim threw', claimErr);
-        }
-      }
-
       await refreshUserData?.();
       goStep('practice-days');
     } catch (err: any) {
@@ -614,10 +591,10 @@ const Onboarding: React.FC = () => {
           <div className="space-y-6">
             <div className="text-center">
               <h1 className="text-3xl font-black tracking-tight leading-tight mb-2">
-                Any of your kids on this team?
+                Add your kid to their Player Circle?
               </h1>
               <p className="text-white/60 text-sm">
-                If yes, we’ll add them now so you see their profile from day one.
+                A Player Circle is the family and coaches around each player. Start yours by adding your kid.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -650,10 +627,10 @@ const Onboarding: React.FC = () => {
           <div className="space-y-6">
             <div className="text-center">
               <h1 className="text-3xl font-black tracking-tight leading-tight mb-2">
-                Add your kid
+                Start your kid’s Player Circle
               </h1>
               <p className="text-white/60 text-sm">
-                Name is required. Jersey number and position are optional.
+                We’ll add them to the roster and drop you into their Circle so you see everything about their season.
               </p>
             </div>
             <div className="space-y-4 rounded-2xl bg-white/[0.04] ring-1 ring-white/10 p-5">
@@ -905,10 +882,10 @@ const Onboarding: React.FC = () => {
           <div className="space-y-6">
             <div className="text-center">
               <h1 className="text-3xl font-black tracking-tight leading-tight mb-2">
-                Invite the team
+                Build each player’s Circle
               </h1>
               <p className="text-white/60 text-sm">
-                Add each player with their parent’s email. We’ll send the invite.
+                Add each player with the family email. We’ll invite them into their Circle.
               </p>
             </div>
             {createdTeamId && (
@@ -1069,7 +1046,7 @@ const Onboarding: React.FC = () => {
               <ChecklistRow done label="Team created" detail={teamName} />
               <ChecklistRow
                 done={!!(hasKid && kidName.trim())}
-                label={hasKid ? 'Kid added' : 'Kid on team'}
+                label={hasKid ? 'Your Player Circle' : 'Your Player Circle'}
                 detail={hasKid && kidName.trim() ? kidName : (hasKid === false ? 'None' : 'Skipped')}
               />
               <ChecklistRow

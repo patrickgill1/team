@@ -1326,11 +1326,22 @@ async function handlePlayersCreate(req: Request, env: Env, payload: any): Promis
   const parentEmails: string[] = Array.isArray(payload?.parentEmails)
     ? payload.parentEmails.map((e: any) => normEmail(e)).filter(Boolean)
     : [];
+  // linkSelfAsParent: onboarding wizard case where the coach is
+  // adding their own kid. Skips the two-call dance (create then
+  // toggle-self-parent) that had a silent-failure mode — either call
+  // could fail and the wizard would advance without the link. Now
+  // parentIds is stamped in the same write as the player create.
+  const linkSelfAsParent = payload?.linkSelfAsParent === true;
+  const parentIds: string[] = linkSelfAsParent ? [claims.uid] : [];
+  if (linkSelfAsParent && claims.email) {
+    const callerEmail = normEmail(claims.email);
+    if (callerEmail && !parentEmails.includes(callerEmail)) parentEmails.push(callerEmail);
+  }
   const fields: Record<string, any> = {
     name,
     teamId,
     teamIds: [teamId],
-    parentIds: [],
+    parentIds,
     parentEmails,
     isActive: true,
     createdAt: new Date(),
@@ -1349,7 +1360,7 @@ async function handlePlayersCreate(req: Request, env: Env, payload: any): Promis
     null,
     sa,
   );
-  return json({ ok: true, playerId });
+  return json({ ok: true, playerId, linkedSelfAsParent: linkSelfAsParent });
 }
 
 // ────────────────────────────────────────────────────────────────

@@ -231,7 +231,10 @@ const Navigation: React.FC = () => {
     ...(isUserCoach ? [{ name: 'Coach', path: '/coach', icon: 'wrench' as const, group: 'apps' as const }] : []),
     // Club admin's single entry point for everything cross-team.
     ...(isUserClubAdmin ? [{ name: 'Club', path: '/club', icon: 'club' as const, group: 'apps' as const }] : []),
-    { name: 'Help', path: '/helpdesk', icon: 'help', group: 'account' },
+    // Consolidated 2026-07-08: single Support entry point routes
+    // to /tickets. /helpdesk still mounted for direct URLs and
+    // legacy tickets, but no nav or Settings link points at it.
+    { name: 'Support', path: '/tickets', icon: 'help', group: 'account' },
     { name: 'Settings', path: '/settings', icon: 'gear', group: 'account' },
   ];
 
@@ -829,7 +832,7 @@ const Navigation: React.FC = () => {
                 </div>
                 <div className="bg-line-default/[0.04] rounded-2xl ring-1 ring-line-default/10 overflow-hidden divide-y divide-line-default/5">
                   <Link
-                    to="/helpdesk"
+                    to="/tickets"
                     onClick={() => setIsMoreOpen(false)}
                     className="flex items-center justify-between px-4 py-3 hover:bg-line-default/5 transition"
                   >
@@ -837,7 +840,7 @@ const Navigation: React.FC = () => {
                       <span className="w-9 h-9 rounded-lg bg-brand-primary/10 text-brand-primary-soft flex items-center justify-center shrink-0">
                         <AppIcon name="help" className="w-5 h-5" />
                       </span>
-                      <span className="text-[15px] font-semibold text-ink-primary">Help</span>
+                      <span className="text-[15px] font-semibold text-ink-primary">Support</span>
                     </span>
                     <AppIcon name="arrow-right" className="w-4 h-4 text-ink-primary/30" />
                   </Link>

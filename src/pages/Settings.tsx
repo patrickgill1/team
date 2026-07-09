@@ -542,12 +542,11 @@ const Settings: React.FC = () => {
               onClick={() => navigate('/club/admins')}
               hint="Grant scoped access to other club staff."
             />
-            <SettingsRow
-              icon="lifebuoy"
-              label="Customer Support"
-              onClick={() => navigate('/tickets')}
-              hint="Open a ticket so we can track it."
-            />
+            {/* "Customer Support" duplicate row removed 2026-07-08 —
+                identical destination as "My tickets" under the Help
+                section above. Keeping "My tickets" as the single
+                entry point since it's discoverable from both the
+                Help section and the bottom nav's Support tab. */}
             <SettingsRow
               icon="palette"
               label="Event Colors"

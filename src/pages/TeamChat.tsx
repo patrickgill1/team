@@ -1815,24 +1815,41 @@ const TeamChat: React.FC = () => {
   // polls toggle membership in each option independently.
   const voteOnPoll = async (messageId: string, optionId: string) => {
     if (!userData) return;
-    const msg = messages.find((m) => m.id === messageId);
-    if (!msg || !msg.poll) return;
-    const multi = !!msg.poll.multi;
-    const nextOptions = msg.poll.options.map((o) => {
-      const has = o.voters.includes(userData.uid);
-      if (o.id === optionId) {
-        return { ...o, voters: has ? o.voters.filter((u) => u !== userData.uid) : [...o.voters, userData.uid] };
-      }
-      // For single-choice polls, voting on a different option removes
-      // the user from this one.
-      if (!multi && has) {
-        return { ...o, voters: o.voters.filter((u) => u !== userData.uid) };
-      }
-      return o;
-    });
+    const uid = userData.uid;
     try {
-      await updateDocument('chat_messages', messageId, {
-        'poll.options': nextOptions,
+      // Transaction so simultaneous voters don't clobber each other.
+      // Also: write the whole `poll` object (not the `poll.options`
+      // dot-path) so the chat_messages.update rule's hasOnly(['poll'])
+      // allowlist matches — Firestore rule affectedKeys() on dot-path
+      // updates registered under the nested name and skipped the
+      // top-level allowlist match, so non-senders' votes 403'd silently
+      // (each voter's own client showed the write via the offline
+      // cache, but nothing landed on the server so nobody else ever
+      // saw it). Patrick's "they only see their own" report.
+      const { runTransaction, doc, getFirestore } = await import('firebase/firestore');
+      const firestore = getFirestore();
+      await runTransaction(firestore, async (tx) => {
+        const ref = doc(firestore, 'chat_messages', messageId);
+        const snap = await tx.get(ref);
+        if (!snap.exists()) return;
+        const data = snap.data() as any;
+        const poll = data.poll;
+        if (!poll || !Array.isArray(poll.options)) return;
+        const multi = !!poll.multi;
+        const nextOptions = poll.options.map((o: any) => {
+          const voters: string[] = Array.isArray(o.voters) ? o.voters : [];
+          const has = voters.includes(uid);
+          if (o.id === optionId) {
+            return { ...o, voters: has ? voters.filter((u) => u !== uid) : [...voters, uid] };
+          }
+          // Single-choice: cast on a new option clears vote from any
+          // previously-selected one.
+          if (!multi && has) {
+            return { ...o, voters: voters.filter((u) => u !== uid) };
+          }
+          return { ...o, voters };
+        });
+        tx.update(ref, { poll: { ...poll, options: nextOptions } });
       });
     } catch (err) {
       console.error('Vote failed:', err);

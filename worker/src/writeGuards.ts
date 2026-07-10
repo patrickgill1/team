@@ -207,6 +207,12 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
     }
   }
 
+  // Spine refactor Phase A: stamp onboardingStage on the fresh user
+  // doc so App.tsx doesn't have to recompute it client-side. Runs
+  // AFTER any auto-link writes so `active` correctly reflects a
+  // just-linked parent instead of showing needs_player for one tick.
+  await stampStage(claims.uid, pid, sa);
+
   return json({
     ok: true,
     uid: claims.uid,
@@ -346,6 +352,10 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
     }
   }
 
+  // Phase A: stamp onboardingStage — invite consume just granted
+  // team/player membership, so the user is now 'active'.
+  await stampStage(claims.uid, pid, sa);
+
   return json({ ok: true, type: inviteType, teamId, playerId: invite.playerId || null });
 }
 
@@ -402,6 +412,10 @@ async function handleClaimCoachInvite(req: Request, env: Env, payload: any): Pro
     { status: 'claimed', claimedBy: claims.uid, claimedAt: new Date() },
     sa,
   );
+
+  // Phase A: coach invite consume → caller is now on a team → active.
+  await stampStage(claims.uid, pid, sa);
+
   return json({ ok: true, teamId });
 }
 
@@ -455,6 +469,12 @@ async function handleClaimPlayerLink(req: Request, env: Env, payload: any): Prom
     userTransforms.push({ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamIds });
   }
   await commitDocumentTransforms(pid, `users/${claims.uid}`, userTransforms, userPatch, sa);
+
+  // Phase A: player-link claim → active for the caller (they've been
+  // added to at least one player's parentIds and got the player's
+  // teams fanned onto their teamIds).
+  await stampStage(claims.uid, pid, sa);
+
   return json({ ok: true, playerId, linkedTeams: teamIds.length });
 }
 
@@ -497,6 +517,14 @@ async function handleClaimOfferAccept(req: Request, env: Env, payload: any): Pro
       sa,
     );
   }
+
+  // Phase A: offer accept usually means the parent's own user doc
+  // already had this team on teamIds (they registered with an email
+  // that matched a player linked here). Restamp anyway — the offer
+  // accept flow can grant coverage in edge cases (returning family
+  // moving between teams within the same club).
+  await stampStage(claims.uid, pid, sa);
+
   return json({ ok: true, teamId, playerId });
 }
 
@@ -621,6 +649,10 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
   }
   await commitDocumentTransforms(pid, `users/${claims.uid}`, userTransforms, userPatch, sa);
 
+  // Phase A: caller just created a team + got teamIds arrayUnion'd →
+  // active.
+  await stampStage(claims.uid, pid, sa);
+
   return json({ ok: true, teamId: newTeamId, clubId: effectiveClubId || null });
 }
 
@@ -710,6 +742,10 @@ async function handleClubsCreate(req: Request, env: Env, payload: any): Promise<
   }
   await commitDocumentTransforms(pid, `users/${claims.uid}`, userTransforms, userPatch, sa);
 
+  // Phase A: club creator is active regardless of the alsoCoach path
+  // (club_admin identity → active, coach with new team → active).
+  await stampStage(claims.uid, pid, sa);
+
   return json({ ok: true, clubId, teamId });
 }
 
@@ -740,6 +776,12 @@ async function handleTeamsAddCoach(req: Request, env: Env, payload: any): Promis
     { role: 'coach', coachLevel },
     sa,
   );
+
+  // Phase A: TARGET user (coachUid, not caller) just got added to a
+  // team, so restamp their onboardingStage. Fire-and-forget-ish: any
+  // stamp failure is logged, doesn't fail the add-coach request.
+  await stampStageFor(coachUid, pid, sa);
+
   return json({ ok: true });
 }
 
@@ -767,6 +809,11 @@ async function handleTeamsRemoveCoach(req: Request, env: Env, payload: any): Pro
     null,
     sa,
   );
+
+  // Phase A: TARGET user lost a team — recompute their stage. They
+  // may still have other teams (active) or be back to needs_team.
+  await stampStageFor(coachUid, pid, sa);
+
   return json({ ok: true });
 }
 
@@ -1010,6 +1057,11 @@ async function handleUsersSetSelfRole(req: Request, env: Env, payload: any): Pro
     patch.coachLevel = null;
   }
   await patchDocument(pid, `users/${claims.uid}`, patch, sa);
+
+  // Phase A: role changed → stage may need to move between
+  // needs_team ↔ needs_player.
+  await stampStage(claims.uid, pid, sa);
+
   return json({ ok: true, role: nextRole });
 }
 
@@ -1052,6 +1104,10 @@ async function handleUsersSetRole(req: Request, env: Env, payload: any): Promise
       sa,
     );
   }
+
+  // Phase A: TARGET user role changed → restamp their stage.
+  await stampStageFor(targetUid, pid, sa);
+
   return json({ ok: true });
 }
 
@@ -1078,6 +1134,11 @@ async function handleUsersApprove(req: Request, env: Env, payload: any): Promise
     { approved: true, approvalStatus: 'coach-approved', approvedAt: new Date() },
     sa,
   );
+
+  // Phase A: approved parent → stage moves from pending_parent to
+  // either active (if any player links exist) or needs_player.
+  await stampStageFor(targetUid, pid, sa);
+
   return json({ ok: true });
 }
 
@@ -1491,6 +1552,10 @@ async function handlePlayersLinkParent(req: Request, env: Env, payload: any): Pr
     null,
     sa,
   );
+
+  // Phase A: linked parent just got a team + a player link → active.
+  await stampStageFor(parentUid, pid, sa);
+
   return json({ ok: true });
 }
 
@@ -1580,6 +1645,12 @@ async function handlePlayersToggleSelfParent(req: Request, env: Env, payload: an
       sa,
     );
   }
+
+  // Phase A: self-parent toggle → recompute stage. `on` fans
+  // parentIds + teams (goes active). `off` removes parentIds only —
+  // still recompute in case this was their only link.
+  await stampStage(claims.uid, pid, sa);
+
   return json({ ok: true });
 }
 
@@ -1718,6 +1789,109 @@ async function handleUsersSetTeams(req: Request, env: Env, payload: any): Promis
 }
 
 // ────────────────────────────────────────────────────────────────
+// onboardingStage — Spine refactor Phase A (3.9.161).
+//
+// Server-derived state machine that replaces the runtime Firestore
+// parentIds query in AppLayout at src/App.tsx:159-230. The gate
+// derivation used to run on every mount + burn a 3s timeout on
+// mobile networks that stalled + flash the OnboardingGate for
+// 200-800ms on every load. Now the worker stamps a single field
+// on the user doc and the client reads it synchronously.
+//
+// Values (see onboarding-stage design §1):
+//   'active'          — full app access. Has ≥1 team OR ≥1 linked
+//                       player OR role === 'club_admin'.
+//   'needs_team'      — coach/team_manager, teamIds empty.
+//   'needs_player'    — parent, approved !== false, no player links.
+//   'pending_parent'  — parent, approved === false (approval-gated).
+//   undefined         — legacy user; client fallback covers it and
+//                       lazy heal via /users/heal-team-membership
+//                       lands one first-sign-in stamp.
+//
+// IMPORTANT: `active` means past onboarding, NOT authorized to
+// write. All worker write guards must still check
+// trial/subscription state independently
+// (reference_onboarding_writes_are_worker).
+export type OnboardingStage = 'active' | 'needs_team' | 'needs_player' | 'pending_parent';
+
+/**
+ * Compute the correct onboardingStage from a user doc's data.
+ *
+ * For parents we have to check whether any player has them on
+ * `parentIds` — that's the one extra doc read this incurs, which is
+ * fine because computeStage() runs on worker cold-path writes, not
+ * on the client hot-path anymore.
+ */
+async function computeStage(
+  userData: any,
+  claimsUid: string,
+  pid: string,
+  sa: ServiceAccount,
+): Promise<OnboardingStage> {
+  const role = String(userData?.role || '');
+  const teamIds: string[] = Array.isArray(userData?.teamIds) ? userData.teamIds : [];
+  const hasTeam = teamIds.length > 0 || (typeof userData?.teamId === 'string' && userData.teamId.length > 0);
+  if (role === 'club_admin' || userData?.isClubAdmin === true) return 'active';
+  if (role === 'coach' || role === 'team_manager') return hasTeam ? 'active' : 'needs_team';
+  if (role === 'parent') {
+    if (userData?.approved === false) return 'pending_parent';
+    // Existing parentIds lookup — the single query that moves off the
+    // client hot path onto the worker cold path.
+    try {
+      const players = await runQuery(
+        pid, 'players',
+        [{ field: 'parentIds', op: 'ARRAY_CONTAINS', value: claimsUid }],
+        sa, 1,
+      );
+      return players.length > 0 ? 'active' : 'needs_player';
+    } catch {
+      // Fail open — matches the legacy App.tsx:211 catch that
+      // defaulted to gate-none rather than stranding the user.
+      return 'active';
+    }
+  }
+  // Unknown role (staff variants, admin-imports) — treat as active.
+  return 'active';
+}
+
+/**
+ * Convenience: recompute and patch `onboardingStage` on a user doc.
+ * Only writes when the stored value differs (idempotent + cheap on
+ * repeated calls). Callers use this from any endpoint that mutates
+ * user.teamIds, players.parentIds, teams.coachIds, or user.role.
+ */
+async function stampStage(
+  claimsUid: string,
+  pid: string,
+  sa: ServiceAccount,
+): Promise<void> {
+  try {
+    const snap = await getDocument(pid, `users/${claimsUid}`, sa).catch(() => null);
+    if (!snap?.data) return;
+    const currentStage = snap.data?.onboardingStage;
+    const nextStage = await computeStage(snap.data, claimsUid, pid, sa);
+    if (currentStage !== nextStage) {
+      await patchDocument(pid, `users/${claimsUid}`, { onboardingStage: nextStage }, sa);
+    }
+  } catch (err) {
+    console.warn('[stampStage] non-fatal', (err as Error)?.message || err);
+  }
+}
+
+/**
+ * Same as stampStage but for a target uid other than the caller —
+ * used by /teams/add-coach, /teams/share-player, and any endpoint
+ * that grants membership to somebody else.
+ */
+async function stampStageFor(
+  targetUid: string,
+  pid: string,
+  sa: ServiceAccount,
+): Promise<void> {
+  await stampStage(targetUid, pid, sa);
+}
+
+// ────────────────────────────────────────────────────────────────
 // /users/heal-team-membership — sync user.teamIds with the truth in
 // team.coachIds. Called on sign-in as a defense-in-depth measure:
 // some coaches ended up on team.coachIds without a matching entry
@@ -1763,32 +1937,45 @@ async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: a
   const heal = Array.from(healSet);
 
   const toAdd = heal.filter(id => !existing.includes(id));
-  if (toAdd.length === 0) {
-    return json({
-      ok: true,
-      added: [],
-      teamIds: existing,
-      foundTeams: coachTeamIds.length,
-      legacyTeamId,
-      role,
-      clubIds,
-    });
+  if (toAdd.length > 0) {
+    await commitDocumentTransforms(
+      pid,
+      `users/${claims.uid}`,
+      [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: toAdd }],
+      null,
+      sa,
+    );
   }
-  await commitDocumentTransforms(
-    pid,
-    `users/${claims.uid}`,
-    [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: toAdd }],
-    null,
-    sa,
-  );
+
+  // Spine refactor Phase A: after any teamIds mutation OR whenever
+  // the user has no stamped onboardingStage yet, recompute + stamp
+  // it. Lazy migration — every user backfills exactly once, exactly
+  // when they need it. Also convergent under drift: if a worker
+  // endpoint anywhere ever mutates membership without stamping stage,
+  // the next sign-in through here corrects it silently.
+  const finalTeamIds = toAdd.length > 0 ? [...existing, ...toAdd] : existing;
+  const currentStage = currentUser?.data?.onboardingStage;
+  const projectedUserData = { ...(currentUser?.data || {}), teamIds: finalTeamIds };
+  const nextStage = await computeStage(projectedUserData, claims.uid, pid, sa);
+  const stageChanged = currentStage !== nextStage;
+  if (stageChanged) {
+    try {
+      await patchDocument(pid, `users/${claims.uid}`, { onboardingStage: nextStage }, sa);
+    } catch (err) {
+      console.warn('[heal] stampStage failed', (err as Error)?.message || err);
+    }
+  }
+
   return json({
     ok: true,
     added: toAdd,
-    teamIds: [...existing, ...toAdd],
+    teamIds: finalTeamIds,
     foundTeams: coachTeamIds.length,
     legacyTeamId,
     role,
     clubIds,
+    onboardingStage: nextStage,
+    stageChanged,
   });
 }
 

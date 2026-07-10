@@ -821,7 +821,16 @@ const getUserData = useCallback(async (uid: string) => {
       updatedAt: new Date(),
       status: planData.status || 'active'
     };
-    return addDocument('development_plans', planToAdd);
+    const id = await addDocument('development_plans', planToAdd);
+    // Coarse cache clear: any Dashboard mount for the affected
+    // player would otherwise render a stale "no plan tonight" from
+    // the previous session. Prefix-drop is cheap (in-memory Map) and
+    // subsequent dashboards just refetch on the natural code path.
+    try {
+      const { invalidateCachePrefix } = await import('../utils/queryCache');
+      invalidateCachePrefix('dashboard:tonightGoal:');
+    } catch { /* non-fatal */ }
+    return id;
   }, []);
 
   const updateDevelopmentPlan = useCallback(async (planId: string, planData: Partial<DevelopmentPlan>) => {
@@ -829,7 +838,16 @@ const getUserData = useCallback(async (uid: string) => {
       ...planData,
       updatedAt: new Date()
     };
-    return updateDocument('development_plans', planId, updateData);
+    const res = await updateDocument('development_plans', planId, updateData);
+    // Same cache-invalidation reason as addDevelopmentPlan. Coach
+    // marking a goal verified, archiving a plan, adding a video link,
+    // etc. all flow through here; the Dashboard's tonight-goal query
+    // would otherwise cache the pre-update shape.
+    try {
+      const { invalidateCachePrefix } = await import('../utils/queryCache');
+      invalidateCachePrefix('dashboard:tonightGoal:');
+    } catch { /* non-fatal */ }
+    return res;
   }, []);
 
   const getDevelopmentPlansByPlayer = useCallback(async (playerId: string) => {

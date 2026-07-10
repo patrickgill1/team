@@ -1336,6 +1336,7 @@ const TeamChat: React.FC = () => {
       setIsCreatingThread(false);
     } catch (error) {
       console.error('Error creating thread:', error);
+      alert('Could not create the chat. Please try again.');
     }
   };
 
@@ -1827,6 +1828,7 @@ const TeamChat: React.FC = () => {
       });
     } catch (err) {
       console.error('Vote failed:', err);
+      alert('Could not save your vote. Please try again.');
     }
   };
 
@@ -1843,6 +1845,7 @@ const TeamChat: React.FC = () => {
       });
     } catch (err) {
       console.error('Acknowledge failed:', err);
+      alert('Could not save that acknowledgement. Please try again.');
     }
   };
 
@@ -1861,6 +1864,7 @@ const TeamChat: React.FC = () => {
       setSelectedThread({ ...selectedThread, pinnedMessageIds: next } as any);
     } catch (err) {
       console.error('Pin toggle failed:', err);
+      alert('Could not update the pin. Please try again.');
     }
   };
 
@@ -1878,6 +1882,7 @@ const TeamChat: React.FC = () => {
       await updateDocument('chat_messages', message.id, { reactions: next });
     } catch (err) {
       console.error('Error toggling reaction:', err);
+      alert('Could not save that reaction. Please try again.');
     }
   };
 
@@ -1901,6 +1906,7 @@ const TeamChat: React.FC = () => {
       await updateDoc(doc(db, 'users', userData.uid), { pinnedThreadIds: next });
     } catch (err) {
       console.error('Error toggling pin:', err);
+      alert('Could not update the pin. Please try again.');
     }
   };
 
@@ -1934,6 +1940,7 @@ const TeamChat: React.FC = () => {
     } catch (err) {
       const { logFirestoreError } = await import('../utils/firestoreLogger');
       logFirestoreError('write', `chat_threads/${thread.id}`, err, { op: 'toggleMuteThread' });
+      alert('Could not update mute. Please try again.');
     }
   };
 
@@ -3131,6 +3138,7 @@ const TeamChat: React.FC = () => {
                           await updateDoc(doc(db, 'users', userData.uid), { mutedUserIds: next });
                         } catch (err) {
                           console.warn('mute toggle failed', err);
+                          alert('Could not update mute. Please try again.');
                         }
                       }}
                       isMuted={Array.isArray((userData as any)?.mutedUserIds) && (userData as any).mutedUserIds.includes(message.senderId)}

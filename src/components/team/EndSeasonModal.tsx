@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { collection, doc, getDocs, query, where, writeBatch, serverTimestamp, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, query, where, writeBatch, serverTimestamp, addDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import type { Player, Season } from '../../types';
 import { clearActiveSeasonCache, getActiveSeasonForTeam } from '../../utils/seasons';
@@ -140,12 +140,12 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
           batch.update(doc(db, 'players', p.id), { isActive: false });
         } else if (newSeasonId) {
           // Append a seasonMembership for the next season; don't touch existing entries.
-          const existing: any[] = (p as any).seasonMemberships || [];
+          // arrayUnion preserves concurrent additions (e.g. coach editing player, adult self-claim)
+          // that a full-array overwrite from stale local state would clobber.
           batch.update(doc(db, 'players', p.id), {
-            seasonMemberships: [
-              ...existing,
+            seasonMemberships: arrayUnion(
               { seasonId: newSeasonId, teamId, jerseyNumber: p.jerseyNumber, position: p.position },
-            ],
+            ),
           });
         }
       });

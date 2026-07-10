@@ -618,6 +618,7 @@ const Wall: React.FC = () => {
     } catch (err) {
       console.error('comment add failed', err);
       setCommentDrafts(prev => ({ ...prev, [postId]: text }));
+      alert("Couldn't post the comment. Try again.");
     }
   };
 
@@ -629,6 +630,7 @@ const Wall: React.FC = () => {
       await deleteDoc(doc(db, 'wall_comments', c.id));
     } catch (err) {
       console.error('comment delete failed', err);
+      alert("Couldn't delete the comment. Try again.");
     }
   };
 
@@ -943,6 +945,7 @@ const Wall: React.FC = () => {
     } catch (err) {
       console.error('reaction toggle failed', err);
       setPosts(prev => prev.map(p => p.id === post.id ? { ...p, reactions } : p));
+      alert("Couldn't update your reaction. Try again.");
     }
   };
 

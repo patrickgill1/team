@@ -167,19 +167,17 @@ export async function incrementTeamVideoUsage(teamId: string, durationSeconds: n
 }
 
 /**
- * Post-delete counter decrement. Mirror of incrementTeamVideoUsage.
- * Clamps to 0 — if the counter drifted somehow we don't want to
- * underflow into negative space.
+ * Post-delete counter decrement. Mirror of incrementTeamVideoUsage:
+ * atomic increment(-n) so simultaneous deletes don't clobber each
+ * other. A theoretical negative counter is harmless (converges as
+ * new videos land).
  */
 export async function decrementTeamVideoUsage(teamId: string, durationSeconds: number | null): Promise<void> {
   try {
-    const snap = await getDoc(doc(db, 'teams', teamId));
-    const data: any = snap.exists() ? snap.data() : {};
-    const nextCount = Math.max(0, (data.videoClipCount || 0) - 1);
-    const nextMinutes = Math.max(0, (data.videoMinutesStored || 0) - (typeof durationSeconds === 'number' && durationSeconds > 0 ? durationSeconds / 60 : 0));
+    const minutes = typeof durationSeconds === 'number' && durationSeconds > 0 ? durationSeconds / 60 : 0;
     await updateDoc(doc(db, 'teams', teamId), {
-      videoClipCount: nextCount,
-      videoMinutesStored: nextMinutes,
+      videoClipCount: increment(-1),
+      videoMinutesStored: increment(-minutes),
     });
   } catch (err) {
     console.warn('[videoQuota] decrement failed', err);

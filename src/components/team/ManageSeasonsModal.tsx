@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { clearActiveSeasonCache } from '../../utils/seasons';
 
@@ -136,13 +136,16 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
 
   const remove = async (s: SeasonRow) => {
     const warning = s.isActive
-      ? `Delete the ACTIVE season "${s.name}"?\n\nPlayer stats tied to it will lose their season label (they'll still exist, just won't roll up under any season). This cannot be undone.`
-      : `Delete season "${s.name}"?\n\nPlayer stats tied to it will lose their season label. This cannot be undone.`;
+      ? `Archive the ACTIVE season "${s.name}"?\n\nPlayer stats tied to it will lose their season label (they'll still exist, just won't roll up under any season).`
+      : `Archive season "${s.name}"?\n\nPlayer stats tied to it will lose their season label.`;
     if (!window.confirm(warning)) return;
     setBusy(true);
     setError(null);
     try {
-      await deleteDoc(doc(db, 'seasons', s.id));
+      await updateDoc(doc(db, 'seasons', s.id), {
+        isActive: false,
+        archivedAt: serverTimestamp(),
+      });
       clearActiveSeasonCache(teamId);
       await load();
     } catch (err: any) {

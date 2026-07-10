@@ -7,6 +7,7 @@ import {
   getDocs,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -1295,13 +1296,18 @@ const InstallmentList: React.FC<{
     if (!window.confirm(`Mark "${inst.label}" as paid manually? Use this only for cash/check — online payments mark themselves automatically.`)) return;
     setBusyId(inst.id);
     try {
-      const next = installments.map(i => i.id === inst.id
-        ? { ...i, status: 'paid' as const, paidAt: new Date() }
-        : i);
-      const allDone = next.every(i => i.status === 'paid' || i.status === 'waived');
-      const patch: Record<string, any> = { installments: next, updatedAt: serverTimestamp() };
-      if (allDone) { patch.status = 'paid'; patch.paidAt = serverTimestamp(); }
-      await updateDoc(doc(db, 'registrations', registration.id), patch);
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(doc(db, 'registrations', registration.id));
+        if (!snap.exists()) throw new Error('registration_gone');
+        const current: Installment[] = (snap.data() as any).installments || [];
+        const next = current.map(i => i.id === inst.id
+          ? { ...i, status: 'paid' as const, paidAt: new Date() }
+          : i);
+        const allDone = next.every(i => i.status === 'paid' || i.status === 'waived');
+        const patch: Record<string, any> = { installments: next, updatedAt: serverTimestamp() };
+        if (allDone) { patch.status = 'paid'; patch.paidAt = serverTimestamp(); }
+        tx.update(doc(db, 'registrations', registration.id), patch);
+      });
       await logActivity({
         clubId: registration.clubId,
         kind: 'installment_paid',
@@ -1322,20 +1328,25 @@ const InstallmentList: React.FC<{
     if (reason === null) return;
     setBusyId(inst.id);
     try {
-      const next = installments.map(i => i.id === inst.id
-        ? {
-            ...i,
-            status: 'waived' as const,
-            waivedAt: new Date(),
-            waivedBy: actorUid,
-            waivedByName: actorName,
-            waivedReason: reason.trim() || undefined,
-          }
-        : i);
-      const allDone = next.every(i => i.status === 'paid' || i.status === 'waived');
-      const patch: Record<string, any> = { installments: next, updatedAt: serverTimestamp() };
-      if (allDone) { patch.status = 'paid'; patch.paidAt = serverTimestamp(); }
-      await updateDoc(doc(db, 'registrations', registration.id), patch);
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(doc(db, 'registrations', registration.id));
+        if (!snap.exists()) throw new Error('registration_gone');
+        const current: Installment[] = (snap.data() as any).installments || [];
+        const next = current.map(i => i.id === inst.id
+          ? {
+              ...i,
+              status: 'waived' as const,
+              waivedAt: new Date(),
+              waivedBy: actorUid,
+              waivedByName: actorName,
+              waivedReason: reason.trim() || undefined,
+            }
+          : i);
+        const allDone = next.every(i => i.status === 'paid' || i.status === 'waived');
+        const patch: Record<string, any> = { installments: next, updatedAt: serverTimestamp() };
+        if (allDone) { patch.status = 'paid'; patch.paidAt = serverTimestamp(); }
+        tx.update(doc(db, 'registrations', registration.id), patch);
+      });
       await logActivity({
         clubId: registration.clubId,
         kind: 'installment_waived',

@@ -2114,6 +2114,67 @@ async function handlePlayersSetActive(req: Request, env: Env, payload: any): Pro
 // player on their team. Auto-fans out user.teamIds too.
 // Body: { teamId, playerId, parentUid, parentEmail? }
 // ────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────
+// /players/stamp-funnel — stamp a funnelProgress.{key} entry on a
+// player from a coach who isn't necessarily on that player's team.
+//
+// Use case: SendOfferModal writes funnelProgress.offer_sent to a
+// player in the same CLUB but on a different team. The coach isn't
+// on the target player's team.coachIds so a client updateDoc 403s
+// against the players.update rule (parent-branch blocks funnel
+// mutations; coach-branch requires onTeam(player.teamId)).
+//
+// Auth: caller must be in the same club as the player (compared via
+// player.clubId in userDoc.clubIds), or platform admin.
+//
+// Body: { playerId, key: 'offer_sent' | 'tryouts' | ..., meta? }
+// ────────────────────────────────────────────────────────────────
+async function handlePlayersStampFunnel(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  const playerId = String(payload?.playerId || '');
+  const key = String(payload?.key || '');
+  if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+  const ALLOWED_KEYS = new Set([
+    'register', 'tryouts', 'offer_sent', 'offer_accept',
+    'external_league', 'club_dues',
+  ]);
+  if (!ALLOWED_KEYS.has(key)) return json({ ok: false, error: 'invalid_stage_key' }, 400);
+
+  const [player, user] = await Promise.all([
+    getDocument(pid, `players/${playerId}`, sa).catch(() => null),
+    getDocument(pid, `users/${claims.uid}`, sa).catch(() => null),
+  ]);
+  if (!player?.data) return json({ ok: false, error: 'player_not_found' }, 404);
+  const playerClubId: string = player.data.clubId ? String(player.data.clubId) : '';
+  const callerClubIds: string[] = Array.isArray(user?.data?.clubIds) ? user.data.clubIds : [];
+  const isPlatformAdmin = user?.data?.isClubAdmin === true;
+  if (!isPlatformAdmin && (!playerClubId || !callerClubIds.includes(playerClubId))) {
+    return json({ ok: false, error: 'not_authorized' }, 403);
+  }
+
+  const now = new Date();
+  const meta = payload?.meta && typeof payload.meta === 'object' ? payload.meta : {};
+  // Restrict meta to a small allowlist so a caller can't stuff
+  // arbitrary bytes onto the player doc via this endpoint.
+  const cleanMeta: Record<string, any> = {};
+  for (const k of ['offerId', 'teamId', 'teamName', 'registrationId', 'seasonId', 'note']) {
+    if (meta[k] !== undefined && meta[k] !== null) {
+      const v = meta[k];
+      if (typeof v === 'string') cleanMeta[k] = v.slice(0, 200);
+      else if (typeof v === 'number' && Number.isFinite(v)) cleanMeta[k] = v;
+    }
+  }
+  await patchDocument(pid, `players/${playerId}`, {
+    [`funnelProgress.${key}`]: {
+      completedAt: now,
+      by: claims.uid,
+      meta: cleanMeta,
+    },
+  }, sa);
+  return json({ ok: true });
+}
+
 async function handlePlayersLinkParent(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
   await requireCoachOfTeam(req, env, teamId);
@@ -2913,6 +2974,7 @@ export async function routeWriteGuard(
     case '/events/batch-create':   return handleEventsBatchCreate(req, env, payload);
     case '/players/set-active':    return handlePlayersSetActive(req, env, payload);
     case '/players/link-parent':   return handlePlayersLinkParent(req, env, payload);
+    case '/players/stamp-funnel':  return handlePlayersStampFunnel(req, env, payload);
     case '/players/toggle-self-parent': return handlePlayersToggleSelfParent(req, env, payload);
     case '/players/set-teams':     return handlePlayersSetTeams(req, env, payload);
     case '/club/set-admin':        return handleClubSetAdmin(req, env, payload);

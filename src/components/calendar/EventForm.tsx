@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, doc, getDoc, getDocs, limit as fsLimit, orderBy, query, updateDoc, where } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, limit as fsLimit, orderBy, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { CalendarEvent } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
@@ -282,17 +282,16 @@ const EventForm: React.FC<EventFormProps> = ({
     if (favoriteLocations.some(f => f.name.toLowerCase() === next.name.toLowerCase())) return;
     setSavingFavorite(true);
     try {
-      const updated = [...favoriteLocations, next];
+      const entry = {
+        name: next.name,
+        address: next.address || null,
+        lat: next.lat ?? null,
+        lon: next.lon ?? null,
+      };
       await updateDoc(doc(db, 'teams', selectedTeamId), {
-        favoriteLocations: updated.map(f => ({
-          name: f.name,
-          address: f.address || null,
-          lat: f.lat ?? null,
-          lon: f.lon ?? null,
-          savedAt: new Date(),
-        })),
+        favoriteLocations: arrayUnion(entry),
       });
-      setFavoriteLocations(updated);
+      setFavoriteLocations([...favoriteLocations, next]);
     } catch (err) {
       console.error('save favorite failed', err);
       alert("Couldn't save that location — try again.");
@@ -305,16 +304,18 @@ const EventForm: React.FC<EventFormProps> = ({
     if (!selectedTeamId) return;
     setSavingFavorite(true);
     try {
-      const updated = favoriteLocations.filter(f => f.name !== name);
+      const target = favoriteLocations.find(f => f.name === name);
+      if (!target) return;
+      const entry = {
+        name: target.name,
+        address: target.address || null,
+        lat: target.lat ?? null,
+        lon: target.lon ?? null,
+      };
       await updateDoc(doc(db, 'teams', selectedTeamId), {
-        favoriteLocations: updated.map(f => ({
-          name: f.name,
-          address: f.address || null,
-          lat: f.lat ?? null,
-          lon: f.lon ?? null,
-        })),
+        favoriteLocations: arrayRemove(entry),
       });
-      setFavoriteLocations(updated);
+      setFavoriteLocations(favoriteLocations.filter(f => f.name !== name));
     } catch (err) {
       console.warn('remove favorite failed', err);
     } finally {

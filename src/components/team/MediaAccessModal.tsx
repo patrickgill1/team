@@ -2,6 +2,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Sheet, Button } from '../ui';
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
   doc,
   getDoc,
@@ -155,9 +157,20 @@ const MediaAccessModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
     setSaving(true);
     setError(null);
     try {
-      await updateDoc(doc(db, 'teams', teamId), {
-        mediaUploaders: Array.from(granted),
-      });
+      // Diff against the ORIGINAL snapshot (not the full local set) so a
+      // concurrent edit by another coach isn't clobbered.
+      const added: string[] = [];
+      const removed: string[] = [];
+      for (const uid of granted) if (!original.has(uid)) added.push(uid);
+      for (const uid of original) if (!granted.has(uid)) removed.push(uid);
+
+      const ref = doc(db, 'teams', teamId);
+      if (added.length) {
+        await updateDoc(ref, { mediaUploaders: arrayUnion(...added) });
+      }
+      if (removed.length) {
+        await updateDoc(ref, { mediaUploaders: arrayRemove(...removed) });
+      }
       onClose();
     } catch (err: any) {
       setError(err?.message || 'Save failed.');

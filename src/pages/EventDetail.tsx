@@ -1765,6 +1765,7 @@ const EventDetail: React.FC = () => {
               setSplitOpen(false);
             } catch (err) {
               console.error('team split save failed', err);
+              alert("Couldn't save the team split. Check your connection and try again.");
             }
           }}
         />

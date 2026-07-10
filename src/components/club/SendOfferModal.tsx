@@ -146,19 +146,26 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
         });
       } catch {/* fine — coach may not have write on Registration; offer is the source of truth */}
 
-      // Funnel stage 3 — auto-stamp offer_sent on the linked player doc
-      // so the FunnelStepper's third circle fills the moment the offer
-      // goes out. Non-fatal: the offer doc is still the source of truth.
+      // Funnel stage 3 — stamp offer_sent on the linked player doc so
+      // the FunnelStepper's third circle fills the moment the offer
+      // goes out. Cross-team writes 403 client-side (the sending
+      // coach isn't on the player's team.coachIds), so route through
+      // the worker /players/stamp-funnel endpoint which enforces
+      // caller-club-matches-player-club and uses the service account
+      // to write.
       const linkedPlayerId = (registration as any).playerId || (registration as any).promotedToPlayerId;
       if (linkedPlayerId) {
         try {
-          await updateDoc(doc(db, 'players', linkedPlayerId), {
-            'funnelProgress.offer_sent': {
-              completedAt: serverTimestamp(),
-              by: myUid,
+          const { workerFetch } = await import('../../utils/workerFetch');
+          const r = await workerFetch('/players/stamp-funnel', {
+            method: 'POST',
+            body: JSON.stringify({
+              playerId: linkedPlayerId,
+              key: 'offer_sent',
               meta: { offerId: id, teamId, teamName: selectedTeam.name },
-            },
-          } as any);
+            }),
+          });
+          if (!r.ok) console.warn('funnel.offer_sent worker stamp failed', await r.text().catch(() => ''));
         } catch (err) {
           console.warn('funnel.offer_sent write failed', err);
         }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Player, GameStat } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
+import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
-import { formatDateTime, isCoach } from '../../utils/helpers';
+import { formatDateTime, isCoachOfTeam } from '../../utils/helpers';
 import StatsTrends from './StatsTrends';
 
 interface StatsDisplayProps {
@@ -17,13 +18,14 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
   showGameDetails = false
 }) => {
   const { userData } = useAuth();
+  const { selectedTeam } = useTeam();
   const { getStatsByPlayer } = useFirestore();
   const [selectedPlayer, setSelectedPlayer] = useState<string>(selectedPlayerId || '');
   const [playerStats, setPlayerStats] = useState<GameStat[]>([]);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'overview' | 'detailed'>('overview');
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
   useEffect(() => {
     if (selectedPlayerId) {

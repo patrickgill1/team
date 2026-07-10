@@ -5,7 +5,7 @@ import { CalendarEvent } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
-import { formatDateTime, isCoach } from '../../utils/helpers';
+import { formatDateTime, isCoachOfTeam } from '../../utils/helpers';
 import EventForm from './EventForm';
 import DeleteEventSheet from './DeleteEventSheet';
 import EventListCard from './EventListCard';
@@ -98,7 +98,7 @@ const Calendar: React.FC<CalendarProps> = ({
   focusEventId,
 }) => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
 
   // Stamp last-seen so the header notifications bar drops the events
   // pill once the user has looked at the calendar. Runs on every
@@ -137,7 +137,7 @@ const Calendar: React.FC<CalendarProps> = ({
   // glance most parents come to /calendar for.
   const [listTab, setListTab] = useState<'upcoming' | 'games' | 'practice' | 'past'>('upcoming');
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
   // Every active player on this team that the current user is linked to
   // as a parent. Used to render one RSVP row per kid on every event

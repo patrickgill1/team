@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Drill } from '../types';
-import { isCoach } from '../utils/helpers';
+import { isCoachOfTeam } from '../utils/helpers';
 import { uploadToStream, streamIframeUrl, streamThumbnailUrl } from '../utils/streamUpload';
 import {
   loadLibraryDrills, rateDrill, saveDrillFromLibrary, toggleShareToLibrary,
@@ -36,9 +36,9 @@ const AGE_BANDS: { value: Drill['ageBand']; label: string }[] = [
 
 const Drills: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { getDocuments, addDocument, updateDocument } = useFirestore();
-  const allowed = userData ? isCoach(userData.role) : false;
+  const allowed = isCoachOfTeam(userData, selectedTeam);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterTopic, setFilterTopic] = useState<Drill['topic'] | 'all'>('all');

@@ -103,6 +103,40 @@ export const isTeamStaff = (userRole: string): boolean => {
   return userRole === 'coach' || userRole === 'team_manager';
 };
 
+// ────────────────────────────────────────────────────────────────
+// TEAM-SCOPED role helpers — per the coach-role-model memory:
+// user.role is GLOBAL identity ('coach' | 'parent' | ...). WHICH
+// teams the user coaches lives on team.coachIds (and team.managerIds
+// for staff). Gating a team-specific feature on the global role
+// alone is a bug: a coach of Team A viewing Team B (where they're
+// a parent of a kid) would still see coach-only UI.
+//
+// Use these when the gate is about "can this user act as a coach
+// ON THIS TEAM", not "does this user have coach identity anywhere."
+// Callers that don't have a team object (settings pages, top-of-app
+// role-mode toggles) legitimately stay on isCoach(userData.role).
+// ────────────────────────────────────────────────────────────────
+export const isCoachOfTeam = (
+  user: { uid?: string } | null | undefined,
+  team: { coachIds?: string[] } | null | undefined,
+): boolean => {
+  if (!user?.uid || !team) return false;
+  return Array.isArray(team.coachIds) && team.coachIds.includes(user.uid);
+};
+
+// Broader team-staff check: coach OR team_manager on THIS team.
+// Use when a feature is available to both roles (roster edit,
+// invite generation, event creation).
+export const isStaffOfTeam = (
+  user: { uid?: string } | null | undefined,
+  team: { coachIds?: string[]; managerIds?: string[] } | null | undefined,
+): boolean => {
+  if (!user?.uid || !team) return false;
+  const uid = user.uid;
+  return (Array.isArray(team.coachIds) && team.coachIds.includes(uid))
+    || (Array.isArray(team.managerIds) && team.managerIds.includes(uid));
+};
+
 // Hardcoded super-admin (app owner). Can do anything in the UI,
 // regardless of role/coachLevel — including removing other head coaches.
 const OWNER_EMAILS = ['patrickgill4@gmail.com'];

@@ -5,7 +5,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { useStorage } from '../hooks/useStorage';
 import { Player, PlayerMedia as PlayerMediaType } from '../types';
-import { isCoach, canManageTeamMedia, formatDate } from '../utils/helpers';
+import { isCoachOfTeam, canManageTeamMedia, formatDate } from '../utils/helpers';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import { autoPostVideoToWall } from '../utils/autoPostToWall';
 import { useTrialGate } from '../hooks/useTrialGate';
@@ -93,7 +93,7 @@ const PlayerMediaPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const clipsSectionRef = useRef<HTMLElement | null>(null);
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const deepLinkConsumedRef = useRef<string | null>(null);
@@ -112,7 +112,7 @@ const PlayerMediaPage: React.FC = () => {
   // select them when they open the page. Coaches skip this entirely.
   useEffect(() => {
     if (!userData?.uid || !selectedTeamId) return;
-    if (isCoach(userData.role)) return;
+    if (isCoachOfTeam(userData, selectedTeam)) return;
     (async () => {
       try {
         const q = fsQuery(
@@ -498,7 +498,7 @@ const PlayerMediaPage: React.FC = () => {
         if (i === 0 && userData?.uid && stampedMedia.type === 'video') {
           void autoPostVideoToWall(
             { id: newMediaId, ...(stampedMedia as any) },
-            { uid: userData.uid, name: userData.name || 'Coach', role: isCoach(userData.role) ? 'coach' : 'parent' }
+            { uid: userData.uid, name: userData.name || 'Coach', role: isCoachOfTeam(userData, selectedTeam) ? 'coach' : 'parent' }
           );
         }
 
@@ -1605,7 +1605,7 @@ const PlayerMediaPage: React.FC = () => {
                           <h3 className="text-base font-bold text-ink-primary">{player.name}</h3>
                           <span className="text-xs text-ink-primary/50">{items.length} item{items.length !== 1 ? 's' : ''}</span>
                         </div>
-                        <DarkMediaGrid items={items} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} />
+                        <DarkMediaGrid items={items} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} isUserCoach={isUserCoach} />
                       </div>
                     ))}
                     {hasMore && (
@@ -1656,7 +1656,7 @@ const PlayerMediaPage: React.FC = () => {
                 )
               ) : (
                 <>
-                  <DarkMediaGrid items={filteredMedia} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} />
+                  <DarkMediaGrid items={filteredMedia} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} isUserCoach={isUserCoach} />
                   {hasMore && (
                     <div className="text-center pt-4">
                       <button
@@ -2386,9 +2386,10 @@ interface MediaGridProps {
   onShare: (item: PlayerMediaType) => void;
   userData: any;
   viewMode: 'grid' | 'list';
+  isUserCoach: boolean;
 }
 
-const MediaGrid: React.FC<MediaGridProps> = ({ items, onView, onDelete, onLike, onShare, userData, viewMode }) => {
+const MediaGrid: React.FC<MediaGridProps> = ({ items, onView, onDelete, onLike, onShare, userData, viewMode, isUserCoach }) => {
   if (items.length === 0) {
     return (
       <div className="text-center py-8 text-ink-primary/50">
@@ -2398,7 +2399,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ items, onView, onDelete, onLike, 
   }
 
   const isLiked = (item: PlayerMediaType) => item.likes?.includes(userData?.uid || '') || false;
-  const canDelete = (item: PlayerMediaType) => userData?.uid === item.uploadedBy || userData?.role === 'coach';
+  const canDelete = (item: PlayerMediaType) => userData?.uid === item.uploadedBy || isUserCoach;
 
   if (viewMode === 'list') {
     return (
@@ -2712,13 +2713,14 @@ interface DarkMediaGridProps {
   onLike: (item: PlayerMediaType) => void;
   onShare: (item: PlayerMediaType) => void;
   userData: any;
+  isUserCoach: boolean;
 }
-const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, onLike, onShare, userData }) => {
+const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, onLike, onShare, userData, isUserCoach }) => {
   if (items.length === 0) {
     return <div className="text-center py-8 text-ink-primary/50 text-sm">No clips here.</div>;
   }
   const isLiked = (item: PlayerMediaType) => item.likes?.includes(userData?.uid || '') || false;
-  const canDelete = (item: PlayerMediaType) => userData?.uid === item.uploadedBy || userData?.role === 'coach';
+  const canDelete = (item: PlayerMediaType) => userData?.uid === item.uploadedBy || isUserCoach;
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
       {items.map(item => (

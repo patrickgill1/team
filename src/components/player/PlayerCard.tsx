@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { Player, Invite } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestore } from '../../hooks/useFirestore';
-import { isCoach, isTeamStaff } from '../../utils/helpers';
+import { useTeam } from '../../contexts/TeamContext';
+import { isCoachOfTeam, isStaffOfTeam } from '../../utils/helpers';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { createPlayerInvite } from '../../utils/invites';
@@ -63,8 +64,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [activeInvite, setActiveInvite] = useState<Invite | null>(null);
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
-  const isUserStaff = userData ? isTeamStaff(userData.role) : false;
+  const { teams } = useTeam();
+  const playerTeam = teams.find(t => t.id === player.teamId) || null;
+  const isUserCoach = isCoachOfTeam(userData, playerTeam);
+  const isUserStaff = isStaffOfTeam(userData, playerTeam);
   const canEdit = isUserCoach && showActions;
   const isMyChild = userData ? player.parentIds?.includes(userData.uid) : false;
   const circleIsEmpty = !player.parentIds || player.parentIds.length === 0;

@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { FullGame } from '../types';
-import { isCoach, canManageTeamMedia, formatDate } from '../utils/helpers';
+import { canManageTeamMedia, formatDate } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamThumbnailUrl } from '../utils/streamUpload';
 import { checkUploadQuota, probeVideoDuration, incrementTeamVideoUsage, type QuotaCheck } from '../utils/videoQuota';
@@ -71,7 +71,6 @@ const FullGames: React.FC = () => {
   const [existingVideoFileName, setExistingVideoFileName] = useState<string | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const userIsCoach = userData ? isCoach(userData.role) : false;
   const canManageMedia = canManageTeamMedia(userData, selectedTeam);
 
   const loadGames = async () => {

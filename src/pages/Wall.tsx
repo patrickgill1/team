@@ -4,7 +4,7 @@ import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, orderBy, query,
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoach, resolveSenderRole } from '../utils/helpers';
+import { isCoachOfTeam, resolveSenderRole } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import AppIcon from '../components/common/AppIcon';
 import EmptyState from '../components/common/EmptyState';
@@ -132,7 +132,7 @@ const Wall: React.FC = () => {
     const t = window.setTimeout(() => setShowProgress(true), 400);
     return () => window.clearTimeout(t);
   }, [ready]);
-  const canManage = userData ? (isCoach(userData.role) || (userData as any).isClubAdmin) : false;
+  const canManage = userData ? (isCoachOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin) : false;
   // Coaches + club admins author wall posts. The wall is its own
   // collection now (wall_posts) — completely independent from chat.
   // Markdown source lives here, never leaks into a chat thread.
@@ -703,7 +703,7 @@ const Wall: React.FC = () => {
           senderId: userData.uid,
           senderName: userData.name || 'Coach',
           senderPhotoUrl: userPhotoUrl,
-          senderRole: (isCoach(userData.role) || (userData as any).isClubAdmin)
+          senderRole: (isCoachOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin)
             ? 'coach'
             : resolveSenderRole(userData),
           timestamp: new Date(),
@@ -1756,7 +1756,7 @@ const Wall: React.FC = () => {
                             photoUrl={userPhotoUrl}
                             name={userData.name}
                             size="sm"
-                            variant={isCoach(userData.role) || (userData as any).isClubAdmin ? 'coach' : 'parent'}
+                            variant={isCoachOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin ? 'coach' : 'parent'}
                           />
                           <div className="flex-1 flex items-center gap-2">
                             <input

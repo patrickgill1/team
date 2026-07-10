@@ -5,7 +5,7 @@ import ImportPlayersModal, { ParsedPlayer } from '../components/player/ImportPla
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
-import { isCoach } from '../utils/helpers';
+import { isCoachOfTeam } from '../utils/helpers';
 import { VOCAB } from '../vocab';
 
 const Players: React.FC = () => {
@@ -13,9 +13,9 @@ const Players: React.FC = () => {
   const [positionFilter, setPositionFilter] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { addDocument } = useFirestore();
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
   const positions = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward', 'Striker'];
 

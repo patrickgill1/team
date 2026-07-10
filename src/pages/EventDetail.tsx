@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { CalendarEvent } from '../types';
-import { isCoach } from '../utils/helpers';
+import { isCoachOfTeam } from '../utils/helpers';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 import EventForm from '../components/calendar/EventForm';
 import CarpoolBoard, { CarpoolPost } from '../components/calendar/CarpoolBoard';
@@ -155,7 +155,7 @@ const EventDetail: React.FC = () => {
   const [remindToast, setRemindToast] = useState<string | null>(null);
   const [attendanceOpen, setAttendanceOpen] = useState(false);
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, audienceTeamObj);
 
   // Form signups — when a coach attaches a questionnaire-style form
   // to this event via FormDefinition.allocateToEventId, each submitter

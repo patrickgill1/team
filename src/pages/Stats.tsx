@@ -3,7 +3,7 @@ import { Player } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
-import { isCoach } from '../utils/helpers';
+import { isCoachOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import { VOCAB } from '../vocab';
@@ -17,7 +17,7 @@ type SortKey = 'goals' | 'assists' | 'saves' | 'gamesPlayed';
 
 const Stats: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { getPlayersByTeam, getTeamPlayerStatsMap, getPlayerMediaByTeam, addGameStat, updatePlayerStats } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [mediaCount, setMediaCount] = useState(0);
@@ -29,7 +29,7 @@ const Stats: React.FC = () => {
   const [adjustingPlayerId, setAdjustingPlayerId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>('goals');
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
   const { season: activeSeason } = useActiveSeason();
   const [statsScope, setStatsScope] = useState<'current' | 'lifetime'>('current');
 

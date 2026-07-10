@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Player, CalendarEvent, PlayerMedia as PlayerMediaType } from '../types';
-import { formatDateTime, isCoach } from '../utils/helpers';
+import { formatDateTime, isCoachOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import EmailVerifyBanner from '../components/common/EmailVerifyBanner';
 import { RichContent } from './Wall';
@@ -140,7 +140,7 @@ const Dashboard: React.FC = () => {
   // photo). Built once from the users collection per team selection.
   const [userPhotoMap, setUserPhotoMap] = useState<Record<string, string>>({});
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
   const { season: activeSeason } = useActiveSeason();
 
   useEffect(() => {

@@ -6,7 +6,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink, Drill, PlanComment } from '../types';
 import DrillPickerModal from '../components/development/DrillPickerModal';
 import { streamIframeUrl } from '../utils/streamUpload';
-import { isCoach, formatDate } from '../utils/helpers';
+import { isCoachOfTeam, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import DataGate from '../components/common/DataGate';
@@ -78,7 +78,7 @@ const PlayerDevelopment: React.FC = () => {
   const [viewMode, setViewMode] = useState<'coach' | 'parent'>('coach');
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
   useEffect(() => {
     loadData();

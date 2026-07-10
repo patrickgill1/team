@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { Survey, SurveyQuestion, SurveyQuestionType, SurveyResponse } from '../types';
-import { isCoach, formatDate } from '../utils/helpers';
+import { isCoachOfTeam, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -40,7 +40,7 @@ const makeId = () => `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 
 const Surveys: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { addDocument, updateDocument, deleteDocument } = useFirestore();
 
   const [surveys, setSurveys] = useState<Survey[]>([]);
@@ -60,7 +60,7 @@ const Surveys: React.FC = () => {
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
 
-  const userIsCoach = userData ? isCoach(userData.role) : false;
+  const userIsCoach = isCoachOfTeam(userData, selectedTeam);
 
   // ─── Load surveys ────────────────────────────────────────────────────────
   const loadSurveys = useCallback(async () => {

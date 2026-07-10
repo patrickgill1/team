@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { Team, Player, CoachInvite, Invite } from '../types';
-import { isCoach } from '../utils/helpers';
+import { isCoach, isCoachOfTeam } from '../utils/helpers';
 import { createStaffInvite } from '../utils/invites';
 import { getShareOrigin } from '../utils/origin';
 import InviteShareModal from '../components/common/InviteShareModal';
@@ -123,7 +123,9 @@ const TeamManagement: React.FC = () => {
   const [addCoachTargetTeamId, setAddCoachTargetTeamId] = useState('');
   const [allCoaches, setAllCoaches] = useState<any[]>([]);
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  // Page manages all of the user's teams, so "coach on any of my
+  // teams" is the correct page-level gate.
+  const isUserCoach = userData ? teams.some(t => isCoachOfTeam(userData, t)) : false;
   const isUserClubAdmin = !!(userData as any)?.isClubAdmin;
 
   useEffect(() => {
@@ -390,8 +392,10 @@ const TeamManagement: React.FC = () => {
     // Load coach users for this team
     try {
       const teamUsers = await getUsersByTeam(team.id);
+      // Team-scoped: a user's global role doesn't decide whether
+      // they coach THIS team. team.coachIds is the source of truth.
       const coaches = teamUsers.filter((u: any) =>
-        u.role === 'coach' && team.coachIds?.includes(u.uid || u.id)
+        team.coachIds?.includes(u.uid || u.id)
       );
       setTeamCoaches(coaches);
       setTransferTargetId('');

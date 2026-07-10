@@ -68,35 +68,25 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
             where('clubId', 'in', userClubIds.slice(0, 30)),
           ));
           clubSnaps.forEach((docSnap) => {
-            const data = docSnap.data();
+            const data = docSnap.data() as any;
+            // Passthrough spread so every field on the team doc lands
+            // on the projected object without needing a whitelist edit
+            // per new field. This trap silently no-op'd audienceType
+            // (2026-07-09) and xpConfig (2026-07-10) — same class of
+            // bug will keep firing on every new team-level setting we
+            // add unless the spread stays. Coerced fields override:
+            // Timestamp → Date, default fallbacks, boolean normalization.
             teamDocs.push({
+              ...data,
               id: docSnap.id,
               name: data.name || 'My Team',
               description: data.description || '',
-              logoUrl: data.logoUrl,
               coachIds: data.coachIds || [],
-              headCoachId: data.headCoachId,
               assistantCoachIds: data.assistantCoachIds || [],
               playerIds: data.playerIds || [],
               parentIds: data.parentIds || [],
               season: data.season || '',
               ageGroup: data.ageGroup || '',
-              league: data.league,
-              homeField: data.homeField,
-              clubId: (data as any).clubId,
-              // audienceType drives every adult-vs-youth affordance
-              // in the app (Split Teams button, skill/level profile
-              // fields, "Play on this team" CTA, etc). Was missing
-              // from this projection so useTeamAudience resolved to
-              // 'youth' even on legit adult teams — Patrick 2026-07-09.
-              audienceType: (data as any).audienceType,
-              format: (data as any).format,
-              homeKitColor: (data as any).homeKitColor,
-              awayKitColor: (data as any).awayKitColor,
-              // XP + Badges opt-in — same projection trap that bit
-              // audienceType. Without it here, PlayerXpCard reads
-              // undefined and never renders.
-              xpConfig: (data as any).xpConfig,
               isActive: data.isActive !== false,
               archivedAt: data.archivedAt?.toDate?.() || undefined,
               isDemo: data.isDemo === true,
@@ -145,35 +135,22 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const teamDoc = await getDoc(doc(db, 'teams', teamId));
           if (teamDoc.exists()) {
-            const data = teamDoc.data();
+            const data = teamDoc.data() as any;
+            // Passthrough spread so every field on the team doc lands
+            // on the projected object without needing a whitelist edit
+            // per new field. See club-admin path above for the full
+            // rationale — this is the mirror.
             teamDocs.push({
+              ...data,
               id: teamDoc.id,
               name: data.name || 'My Team',
               description: data.description || '',
-              logoUrl: data.logoUrl,
               coachIds: data.coachIds || [],
-              headCoachId: data.headCoachId,
               assistantCoachIds: data.assistantCoachIds || [],
               playerIds: data.playerIds || [],
               parentIds: data.parentIds || [],
               season: data.season || '',
               ageGroup: data.ageGroup || '',
-              league: data.league,
-              homeField: data.homeField,
-              clubId: (data as any).clubId,
-              // audienceType drives every adult-vs-youth affordance
-              // in the app (Split Teams button, skill/level profile
-              // fields, "Play on this team" CTA, etc). Was missing
-              // from this projection so useTeamAudience resolved to
-              // 'youth' even on legit adult teams — Patrick 2026-07-09.
-              audienceType: (data as any).audienceType,
-              format: (data as any).format,
-              homeKitColor: (data as any).homeKitColor,
-              awayKitColor: (data as any).awayKitColor,
-              // XP + Badges opt-in — same projection trap that bit
-              // audienceType. Without it here, PlayerXpCard reads
-              // undefined and never renders.
-              xpConfig: (data as any).xpConfig,
               isActive: data.isActive !== false,
               archivedAt: data.archivedAt?.toDate?.() || undefined,
               isDemo: data.isDemo === true,

@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Player } from '../types';
-import { formatDate, isCoach } from '../utils/helpers';
+import { formatDate, isCoachOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import { VOCAB } from '../vocab';
@@ -36,7 +36,7 @@ interface AttendanceRecord {
 
 const AttendanceTracker: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { getDocuments, addDocument, updateDocument, deleteDocument, getPlayersByTeam } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -46,7 +46,7 @@ const AttendanceTracker: React.FC = () => {
   const [attendanceData, setAttendanceData] = useState<{[playerId: string]: string}>({});
   const [saving, setSaving] = useState(false);
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
   useEffect(() => {
     loadData();

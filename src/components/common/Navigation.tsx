@@ -25,7 +25,7 @@ import NotificationsHeaderBar from './NotificationsHeaderBar';
 import { useTeam } from '../../contexts/TeamContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useClubStore } from '../../hooks/useClubStore';
-import { isCoach, isClubAdmin } from '../../utils/helpers';
+import { isCoachOfTeam, isClubAdmin } from '../../utils/helpers';
 import { useTheme } from '../../contexts/ThemeContext';
 // Legacy InviteSystem import removed — invites now live on /people.
 import AppIcon from './AppIcon';
@@ -77,7 +77,7 @@ const Navigation: React.FC = () => {
     }
   };
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
   const isUserClubAdmin = isClubAdmin(userData);
   // When inside a chat conversation, TeamChat sets body.chat-conversation.
   // We unmount the bottom tab bar entirely so the composer can dock at the

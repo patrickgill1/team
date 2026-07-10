@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useSubscription } from '../../hooks/useSubscription';
-import { isCoach, isClubAdmin as isClubAdminUser } from '../../utils/helpers';
+import { isCoachOfTeam, isClubAdmin as isClubAdminUser } from '../../utils/helpers';
 import { useViewMode } from '../../contexts/ViewModeContext';
 import TierPickerSheet from '../common/TierPickerSheet';
 import { openWebSignup } from '../../utils/subscriptionApi';
@@ -54,7 +54,7 @@ interface SetupStep {
 const GettingStartedCard: React.FC<Props> = ({ players, events, dataLoading }) => {
   const navigate = useNavigate();
   const { currentUser, userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { viewMode } = useViewMode();
   const { isActive, loading: subLoading } = useSubscription();
   const [dismissed, setDismissed] = useState(false);
@@ -90,7 +90,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events, dataLoading }) =
   // because the events array is `[]` during the load.
   if (dataLoading) return null;
 
-  const userIsCoach = isCoach(userData.role);
+  const userIsCoach = isCoachOfTeam(userData, selectedTeam);
   const userIsClubAdmin = isClubAdminUser(userData as any);
   const guideRole: GuideRole = viewMode === 'admin' && userIsClubAdmin
     ? 'admin'

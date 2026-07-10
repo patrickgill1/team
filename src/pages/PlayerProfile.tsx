@@ -5,7 +5,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import { Player, PlayerMedia, DevelopmentPlan, Season } from '../types';
-import { isCoach, formatDate, isGoalkeeper, getPlayerPositionsLabel } from '../utils/helpers';
+import { isCoachOfTeam, formatDate, isGoalkeeper, getPlayerPositionsLabel } from '../utils/helpers';
 import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
 import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
@@ -526,7 +526,7 @@ const PlayerProfile: React.FC = () => {
       <ProfileHero
         player={player}
         teamName={selectedTeam?.name}
-        canEdit={!!userData && (isCoach(userData.role) || (player.parentIds || []).includes(userData.uid))}
+        canEdit={!!userData && (isCoachOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid))}
         isCurrentPotm={!!(player as any).isCurrentPotm}
         onBack={() => { window.history.length > 1 ? window.history.back() : (window.location.href = '/players'); }}
         onEdit={() => setEditOpen(true)}
@@ -573,7 +573,7 @@ const PlayerProfile: React.FC = () => {
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
           Back
         </button>
-          {userData && isCoach(userData.role) && !isAdultTeam && (
+          {userData && isCoachOfTeam(userData, selectedTeam) && !isAdultTeam && (
             <button
               onClick={() => setShowWhisper(true)}
               className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-surface-elevated hover:bg-surface-input text-ink-primary text-xs font-bold ring-1 ring-line-default/15 transition"
@@ -1033,7 +1033,7 @@ const PlayerProfile: React.FC = () => {
                 stay clean with em-dashes when empty. */}
             <PlayerInfoCard
               player={player}
-              canEdit={!!userData && (isCoach(userData.role) || (player.parentIds || []).includes(userData.uid))}
+              canEdit={!!userData && (isCoachOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid))}
               onUpdated={loadProfile}
             />
 
@@ -1109,7 +1109,7 @@ const PlayerProfile: React.FC = () => {
                 kid's parents. PR is the headline; recent attempts feed
                 a 7-day streak. No camera/CV — purely self-reported,
                 per Patrick. */}
-            {userData && (isCoach(userData.role) || (player.parentIds || []).includes(userData.uid)) && (() => {
+            {userData && (isCoachOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid)) && (() => {
               const j = (player as any).juggles || {};
               const history: Array<{ count: number; date: any }> = Array.isArray(j.history) ? j.history : [];
               const best = typeof j.best === 'number' ? j.best : 0;
@@ -1504,7 +1504,7 @@ const PlayerProfile: React.FC = () => {
                           { name: player.name, teamId: player.teamId },
                           n,
                           oldPr,
-                          { uid: userData.uid, name: userData.name || 'Coach', role: isCoach(userData.role) ? 'coach' : 'parent' },
+                          { uid: userData.uid, name: userData.name || 'Coach', role: isCoachOfTeam(userData, selectedTeam) ? 'coach' : 'parent' },
                         );
                       } catch (e) { console.warn('juggle wall post failed', e); }
                     }

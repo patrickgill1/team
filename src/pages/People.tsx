@@ -15,7 +15,7 @@ import { RELATIONSHIP_LABELS } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
-import { isCoach } from '../utils/helpers';
+import { isStaffOfTeam } from '../utils/helpers';
 
 // Club-level "People" directory. One searchable, filterable list of
 // every person tied to the current club — players, parents, coaches,
@@ -108,11 +108,19 @@ const People: React.FC = () => {
   const [bulkTarget, setBulkTarget] = useState<string>('');
   const [bulkBusy, setBulkBusy] = useState(false);
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  // Multi-team scoped: this page iterates over the union of the
+  // user's teams, so "staff on ANY of my teams" is the correct
+  // canViewDirectory gate. Widens the previous global isCoach() check
+  // to also include team_managers per staff role model.
+  const isUserStaff = userData
+    ? (Array.isArray(contextTeams) && contextTeams.some((t: any) => isStaffOfTeam(userData, t)))
+    : false;
   const isClubAdmin = !!(userData as any)?.isClubAdmin;
-  // Lock the directory to staff (coaches / managers / club admins).
-  // Parents shouldn't see the full club roster + contact info at-will.
-  const canViewDirectory = isUserCoach || isClubAdmin;
+  const canViewDirectory = isUserStaff || isClubAdmin;
+  // Backwards-compat alias for downstream conditions that still read
+  // `isUserCoach` (e.g. copy that speaks specifically to coaches).
+  // Same team-scoped semantics.
+  const isUserCoach = isUserStaff;
 
   useEffect(() => {
     let cancelled = false;

@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { Player, CalendarEvent } from '../types';
-import { formatDate, isCoach } from '../utils/helpers';
+import { formatDate, isCoachOfTeam } from '../utils/helpers';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { getShareOrigin } from '../utils/origin';
@@ -53,7 +53,7 @@ interface Vote {
 
 const PlayerOfMatch: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { getDocuments, addDocument, updateDocument, deleteDocument, getPlayersByTeam } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [votings, setVotings] = useState<MatchVoting[]>([]);
@@ -95,7 +95,7 @@ const PlayerOfMatch: React.FC = () => {
     }
   };
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
   useEffect(() => {
     loadData();

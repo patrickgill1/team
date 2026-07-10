@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { User, Player, FamilyRelationship, RELATIONSHIP_LABELS } from '../types';
-import { isCoach, isHeadCoach, isOwner } from '../utils/helpers';
+import { isCoachOfTeam, isHeadCoach, isOwner } from '../utils/helpers';
 import { enablePushForUser, getNotifPermission } from '../utils/push';
 
 interface ParentDirectoryProps {}
@@ -40,7 +40,7 @@ interface ProfileFormData {
 
 const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { getDocuments, updateDocument, getDocument, getPlayersByTeam, getUsersByTeam } = useFirestore();
   const [directory, setDirectory] = useState<DirectoryEntry[]>([]);
   const [pendingMembers, setPendingMembers] = useState<any[]>([]);
@@ -74,7 +74,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
   const [pushPerm, setPushPerm] = useState<string>(typeof window !== 'undefined' ? getNotifPermission() : 'unsupported');
   const [pushMsg, setPushMsg] = useState<string>('');
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
   const isUserHeadCoach = isHeadCoach(userData);
   const isUserOwner = isOwner(userData);
 

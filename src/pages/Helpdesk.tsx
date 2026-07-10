@@ -11,7 +11,6 @@ import { EmptyState } from '../components/ui';
 import { useAuth } from '../hooks/useAuth';
 import { useClubScopes } from '../hooks/useClubScopes';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoach } from '../utils/helpers';
 import { sendPushToUsers } from '../utils/notify';
 import type { HelpdeskTicket, TicketStatus, TicketPriority, TicketCategory, Team } from '../types';
 
@@ -85,7 +84,6 @@ const Helpdesk: React.FC = () => {
   const [teamFilter, setTeamFilter] = useState<string>('all');
   const [newOpen, setNewOpen] = useState(false);
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
   const userClubId = (userData as any)?.clubIds?.[0] || (userData as any)?.clubId || null;
   const { has: hasClubScope } = useClubScopes(userClubId);
   // 'tickets' scope takes precedence, else legacy isClubAdmin.

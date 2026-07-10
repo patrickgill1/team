@@ -8,7 +8,7 @@ import {
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoach } from '../utils/helpers';
+import { isCoachOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 
@@ -102,7 +102,7 @@ const newId = () => `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 const PracticePlanBuilder: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, currentTeam } = useTeam();
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, currentTeam);
 
   const [plans, setPlans] = useState<PracticePlan[]>([]);
   const [loading, setLoading] = useState(true);

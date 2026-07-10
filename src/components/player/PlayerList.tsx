@@ -3,7 +3,7 @@ import { Player } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
-import { isCoach } from '../../utils/helpers';
+import { isCoachOfTeam } from '../../utils/helpers';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import PlayerCard from './PlayerCard';
@@ -16,7 +16,7 @@ interface PlayerListProps {
 
 const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter = '' }) => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { getPlayersByTeam } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
@@ -28,7 +28,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
   const [showInactive, setShowInactive] = useState(false);
   const [inactivePlayers, setInactivePlayers] = useState<Player[]>([]);
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
   // Direct Firestore subscription — load all active players, filter by team client-side
   // This avoids composite index issues with teamIds/teamId + isActive + orderBy

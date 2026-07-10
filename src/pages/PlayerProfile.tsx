@@ -539,11 +539,19 @@ const PlayerProfile: React.FC = () => {
       />
 
       {/* Private XP + badges — renders only when team.xpConfig.enabled
-          is true. Coach opt-in per team. See goalkickr-xp memo. */}
+          is true. Coach opt-in per team. See goalkickr-xp memo.
+          Coach check is TEAM-SCOPED via team.coachIds (not the global
+          user.role) per the coach-role-model memory: a coach on Team
+          A viewing Team B where they're a parent shouldn't see the
+          Recognize pill. */}
       <PlayerXpCard
         player={player}
         team={selectedTeam}
-        isCoach={!!userData && isCoach(userData.role)}
+        isCoach={
+          !!userData?.uid
+          && Array.isArray((selectedTeam as any)?.coachIds)
+          && (selectedTeam as any).coachIds.includes(userData.uid)
+        }
         onRecognize={() => setShowRecognition(true)}
       />
 

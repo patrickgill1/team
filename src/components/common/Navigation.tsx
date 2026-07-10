@@ -441,7 +441,7 @@ const Navigation: React.FC = () => {
           {isUserCoach && (
             <Link
               to="/people"
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-brand-primary hover:bg-brand-primary-soft text-charcoal-950 transition-colors`}
+              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-brand-primary hover:bg-brand-primary-soft text-white transition-colors`}
               title="Add a player or invite someone"
             >
               <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -471,7 +471,7 @@ const Navigation: React.FC = () => {
                   <Link to="/settings" className="text-xs text-brand-primary-soft hover:text-ink-primary transition-colors">
                     Settings
                   </Link>
-                  <span className="text-charcoal-700">·</span>
+                  <span className="text-ink-primary/45">·</span>
                   <button onClick={handleLogout} className="text-xs text-brand-primary-soft hover:text-red-400 transition-colors">
                     Sign out
                   </button>

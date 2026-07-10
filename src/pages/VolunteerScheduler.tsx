@@ -264,8 +264,8 @@ const VolunteerScheduler: React.FC = () => {
       snacks: 'bg-emerald-500/15 text-emerald-300',
       setup: 'bg-brand-primary/15 text-ink-primary/85',
       cleanup: 'bg-brand-primary/15 text-brand-primary-soft',
-      transportation: 'bg-surface-raised/10 text-charcoal-800',
-      equipment: 'bg-brand-primary/20 text-charcoal-800',
+      transportation: 'bg-surface-raised/10 text-ink-primary/85',
+      equipment: 'bg-brand-primary/20 text-brand-primary-soft',
       other: 'bg-line-default/[0.08] text-ink-primary/85'
     };
     return colors[type as keyof typeof colors] || 'bg-line-default/[0.08] text-ink-primary/85';
@@ -315,8 +315,8 @@ const VolunteerScheduler: React.FC = () => {
             <div className="flex items-start gap-3">
               <AppIcon name="info" className="w-5 h-5 text-ink-primary/85 mt-0.5" />
               <div>
-                <p className="text-charcoal-900 font-medium">No upcoming events found</p>
-                <p className="text-charcoal-800/80 text-sm">
+                <p className="text-ink-primary font-medium">No upcoming events found</p>
+                <p className="text-ink-primary/80 text-sm">
                   Create events first, then add volunteer needs against them here.
                 </p>
               </div>
@@ -353,8 +353,8 @@ const VolunteerScheduler: React.FC = () => {
                         <p className="text-sm text-ink-primary/50">{event.location}</p>
                       </div>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        event.type === 'game' ? 'bg-surface-raised/10 text-charcoal-800' :
-                        event.type === 'practice' ? 'bg-brand-primary/20 text-charcoal-800' :
+                        event.type === 'game' ? 'bg-surface-raised/10 text-ink-primary/85' :
+                        event.type === 'practice' ? 'bg-brand-primary/20 text-brand-primary-soft' :
                         'bg-brand-primary/15 text-ink-primary/85'
                       }`}>
                         {event.type}

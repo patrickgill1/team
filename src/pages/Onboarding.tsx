@@ -127,6 +127,17 @@ const Onboarding: React.FC = () => {
   const [practiceMinute, setPracticeMinute] = useState(0);
   const [practiceDurationMins, setPracticeDurationMins] = useState(90);
   const [practiceLocation, setPracticeLocation] = useState('');
+  // Full-address + coords resolved from the location autocomplete.
+  // Persisted alongside `location` so iOS/Android calendar
+  // subscribers can open the practice on a real map pin. Falls back
+  // to the free-text `location` if the coach types a name without
+  // picking a suggestion.
+  const [practiceLocationAddress, setPracticeLocationAddress] = useState('');
+  const [practiceLocationCoords, setPracticeLocationCoords] = useState<{ lat: number; lon: number } | null>(null);
+  // Inline autocomplete state — same shape EventForm uses.
+  const [locationSearchHits, setLocationSearchHits] = useState<any[]>([]);
+  const [locationSearching, setLocationSearching] = useState(false);
+  const [locationFocused, setLocationFocused] = useState(false);
   // Date-level unchecks — key is ISO yyyy-mm-dd, value=true means skip
   const [skippedDates, setSkippedDates] = useState<Record<string, boolean>>({});
 
@@ -356,7 +367,7 @@ const Onboarding: React.FC = () => {
         const { workerFetch } = await import('../utils/workerFetch');
         const events = activeDates.map(evDate => {
           const endMs = evDate.getTime() + practiceDurationMins * 60000;
-          return {
+          const evFields: any = {
             title: 'Practice',
             type: 'practice',
             dateMs: evDate.getTime(),
@@ -364,6 +375,9 @@ const Onboarding: React.FC = () => {
             location: practiceLocation.trim() || '',
             createdByName: userData.name || 'Coach',
           };
+          if (practiceLocationAddress) evFields.locationAddress = practiceLocationAddress;
+          if (practiceLocationCoords) evFields.locationCoords = practiceLocationCoords;
+          return evFields;
         });
         const res = await workerFetch('/events/batch-create', {
           method: 'POST',
@@ -383,6 +397,33 @@ const Onboarding: React.FC = () => {
       setBusy(false);
     }
   };
+
+  // ─── Location autocomplete — debounced forward geocode ──────
+  // Matches EventForm's inline suggestion pattern. Mapbox when
+  // REACT_APP_MAPBOX_TOKEN is set, OSM/Nominatim otherwise. The
+  // suggestion pick stamps address + coords so calendar subscribers
+  // get a real map pin, not just a name.
+  useEffect(() => {
+    const q = practiceLocation.trim();
+    if (q.length < 2) { setLocationSearchHits([]); return; }
+    // Suppress fetch when the input already matches the picked
+    // suggestion (avoids the "suggestions reappear after tap" bug).
+    if (practiceLocationAddress && q === practiceLocationAddress) { setLocationSearchHits([]); return; }
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      setLocationSearching(true);
+      try {
+        const { geocodeForward } = await import('../utils/maps');
+        const hits = await geocodeForward(q, {});
+        if (!cancelled) setLocationSearchHits(hits);
+      } catch {
+        if (!cancelled) setLocationSearchHits([]);
+      } finally {
+        if (!cancelled) setLocationSearching(false);
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(handle); };
+  }, [practiceLocation, practiceLocationAddress]);
 
   // ─── Generate an open invite link (used on invite step) ──────
   useEffect(() => {
@@ -947,13 +988,68 @@ const Onboarding: React.FC = () => {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-white/70 mb-1.5">Location</label>
-                <input
-                  type="text"
-                  value={practiceLocation}
-                  onChange={(e) => setPracticeLocation(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-xl bg-white/5 text-white ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-base"
-                  placeholder="Field name or address"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={practiceLocation}
+                    onChange={(e) => {
+                      setPracticeLocation(e.target.value);
+                      // Clear the picked address+coords when the
+                      // coach edits the text by hand — otherwise the
+                      // saved doc would carry stale coords attached
+                      // to the previous pick.
+                      if (practiceLocationAddress) {
+                        setPracticeLocationAddress('');
+                        setPracticeLocationCoords(null);
+                      }
+                    }}
+                    onFocus={() => setLocationFocused(true)}
+                    onBlur={() => setTimeout(() => setLocationFocused(false), 150)}
+                    className="w-full px-4 py-3.5 rounded-xl bg-white/5 text-white ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-base"
+                    placeholder="Start typing a field name or address"
+                    autoComplete="off"
+                  />
+                  {/* Suggestion dropdown — renders when focused AND
+                      there's something to show. Tap a row to lock in
+                      the address + coords. */}
+                  {locationFocused && (locationSearchHits.length > 0 || locationSearching) && (
+                    <div className="absolute z-20 left-0 right-0 top-full mt-1 rounded-xl bg-charcoal-900 ring-1 ring-white/15 shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
+                      {locationSearching && locationSearchHits.length === 0 && (
+                        <div className="px-4 py-3 text-sm text-white/60">Searching...</div>
+                      )}
+                      {locationSearchHits.slice(0, 6).map((hit, idx) => (
+                        <button
+                          key={`${hit.address || hit.name}-${idx}`}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            const name = String(hit.name || hit.address || '').trim();
+                            const address = String(hit.address || hit.name || '').trim();
+                            setPracticeLocation(name);
+                            setPracticeLocationAddress(address);
+                            if (typeof hit.lat === 'number' && typeof hit.lon === 'number') {
+                              setPracticeLocationCoords({ lat: hit.lat, lon: hit.lon });
+                            }
+                            setLocationSearchHits([]);
+                            setLocationFocused(false);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-white/5 transition border-b border-white/5 last:border-b-0"
+                        >
+                          <div className="text-sm text-white font-medium truncate">{hit.name || hit.address}</div>
+                          {hit.address && hit.name !== hit.address && (
+                            <div className="text-xs text-white/55 truncate mt-0.5">{hit.address}</div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Confirmation line when a real address is locked in */}
+                {practiceLocationAddress && practiceLocationCoords && (
+                  <p className="mt-1.5 text-[11px] text-emerald-300/85">
+                    Address confirmed. Practices will open in Maps with the exact pin.
+                  </p>
+                )}
               </div>
             </div>
             <button

@@ -459,7 +459,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const getEventTypeColor = (type: string) => {
     switch (type) {
       case 'game': return 'bg-rose-500/10 text-rose-700 border-rose-300/50';
-      case 'practice': return 'bg-brand-primary/10 text-charcoal-800 border-brand-primary-soft/50';
+      case 'practice': return 'bg-brand-primary/10 text-brand-primary-soft border-brand-primary-soft/50';
       case 'event': return 'bg-emerald-500/10 text-emerald-700 border-emerald-300/50';
       default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
@@ -616,8 +616,8 @@ const Calendar: React.FC<CalendarProps> = ({
         {/* Click hint for coaches */}
         {isUserCoach && (
           <div className="px-5 sm:px-6 py-3 bg-brand-primary-soft/60 border-t border-brand-primary-soft">
-            <p className="text-xs sm:text-sm text-charcoal-700 font-medium">
-              💡 Click any date to create a new event
+            <p className="text-xs sm:text-sm text-ink-primary font-medium">
+              Click any date to create a new event
             </p>
           </div>
         )}
@@ -928,7 +928,7 @@ interface EventCardProps {
 const eventColors = (type: string) => {
   switch (type) {
     case 'game':
-      return { stripe: 'bg-surface-raised', stripeText: 'text-white', pill: 'bg-surface-raised/10 text-charcoal-800' };
+      return { stripe: 'bg-surface-raised', stripeText: 'text-white', pill: 'bg-surface-raised/10 text-ink-primary' };
     case 'practice':
       return { stripe: 'bg-brand-primary', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
     case 'event':

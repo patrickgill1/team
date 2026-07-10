@@ -1599,6 +1599,16 @@ async function handleEventsBatchCreate(req: Request, env: Env, payload: any): Pr
       createdAt: new Date(),
       isActive: true,
     };
+    // Geocoded location (from the Onboarding wizard's address
+    // autocomplete or EventForm's location picker). Stamped so
+    // iOS/Android calendar subscribers can open the practice in
+    // Maps with the real pin, not just a field name.
+    const locationAddress = String(ev?.locationAddress || '').slice(0, 300);
+    if (locationAddress) fields.locationAddress = locationAddress;
+    const coords: any = ev?.locationCoords;
+    if (coords && typeof coords.lat === 'number' && typeof coords.lon === 'number') {
+      fields.locationCoords = { lat: coords.lat, lon: coords.lon };
+    }
     try {
       const id = await createDocument(pid, 'events', fields, sa);
       ids.push(id);

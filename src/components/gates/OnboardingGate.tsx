@@ -53,9 +53,13 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
   const userEmail = userData?.email || currentUser?.email || '';
 
   const finishWithRefresh = async () => {
-    // Pull the fresh user doc so App's gate re-evaluates and lets us in.
+    // Pull the fresh user doc so App's gate re-evaluates and lets us
+    // in. 3.9.161 dropped the window.location.reload() workaround —
+    // AppLayout now derives the gate synchronously from
+    // userData.onboardingStage, so refreshUserData() is enough. The
+    // reload existed because the old useEffect had no way to
+    // re-signal on membership change.
     if (refreshUserData) await refreshUserData();
-    window.location.reload();
   };
 
   const handleInvite = async () => {

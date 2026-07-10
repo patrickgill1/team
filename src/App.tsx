@@ -1,6 +1,9 @@
 import React, { Suspense, useEffect, useState } from 'react';
+// Firestore imports removed 3.9.161 — the parentIds query in
+// AppLayout was replaced with a synchronous derive from
+// userData.onboardingStage (worker stamps it now). See spine refactor
+// Phase C.
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './utils/firebase';
 import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
@@ -150,102 +153,68 @@ const PageSpinner = () => (
   </div>
 );
 
-// Layout component for authenticated pages
+// Layout component for authenticated pages.
+//
+// Phase C of the spine refactor (3.9.161) replaced the old 75-line
+// useEffect that ran a `players where parentIds array-contains uid`
+// query on every AppLayout mount with a synchronous derive from
+// userData.onboardingStage. The worker now stamps the field on
+// every membership mutation (Phase A) so this reader is pure
+// derived value — no round-trip, no timeout, no fail-open branch,
+// no re-run storm on teamIds changes.
+//
+// Bugs killed:
+//   1. 200-800ms gate flash on every load
+//   2. 3s timeout that flashed fresh parents from OnboardingGate → empty dashboard
+//   3. Silent 'none' fallback on Firestore errors that stranded parents
+//   4. Re-runs on every userData.teamIds.length change (5-10x per session)
+//   5. OnboardingGate.tsx's window.location.reload() workaround (no
+//      longer needed — stage re-derives synchronously on refreshUserData)
+//
+// Fallback for legacy users (onboardingStage undefined): recompute
+// the SAME logic client-side minus the parentIds query. Fresh parents
+// briefly show as active; heal-on-signin lands the stamp within one
+// cycle. See onboarding-stage design §3.
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { userData, logout } = useAuth();
-  const [checking, setChecking] = useState(true);
-  const [gateReason, setGateReason] = useState<'none' | 'pending-approval' | 'not-linked'>('none');
 
-  useEffect(() => {
-    const checkAccess = async () => {
-      if (!userData) {
-        setGateReason('none');
-        setChecking(false);
-        return;
-      }
-      const userAny = userData as any;
+  // Synchronous derive. See onboarding-stage design §3 for the exact
+  // fallback rules (required change #4 from user-impact review baked
+  // in: fresh parents fall closed to needs_player unless children[]
+  // is populated).
+  type Stage = 'active' | 'needs_team' | 'needs_player' | 'pending_parent';
+  const stage: Stage = (() => {
+    if (!userData) return 'active'; // auth still resolving — render spinner via ProtectedRoute upstream
+    const stamped = (userData as any)?.onboardingStage;
+    if (stamped === 'active' || stamped === 'needs_team' || stamped === 'needs_player' || stamped === 'pending_parent') {
+      // Sanity short-circuit: if stamp says needs_team but the user
+      // demonstrably has a team, prefer the derived truth. Convergent
+      // under stamp drift (per design §6).
+      const hasTeam = ((userData.teamIds?.length ?? 0) > 0) || !!(userData as any).teamId;
+      if (stamped === 'needs_team' && hasTeam) return 'active';
+      return stamped;
+    }
+    // Legacy user, no stamp. Client fallback covers the four branches
+    // using data already streamed by AuthContext.
+    const role = String(userData.role || '');
+    const hasTeam = ((userData.teamIds?.length ?? 0) > 0) || !!(userData as any).teamId;
+    const isClubAdmin = (userData as any).isClubAdmin === true || role === 'club_admin';
+    if (isClubAdmin) return 'active';
+    if (role === 'coach' || role === 'team_manager') return hasTeam ? 'active' : 'needs_team';
+    if (role === 'parent') {
+      if ((userData as any).approved === false) return 'pending_parent';
+      // No parentIds query anymore — fresh parents fall closed to
+      // needs_player unless they have a children[] denorm on their
+      // user doc (which /claim/player-link + auto-link stamp). Prevents
+      // the "empty dashboard for 200ms" regression while migration
+      // finishes.
+      const children: string[] = Array.isArray((userData as any).children) ? (userData as any).children : [];
+      return children.length > 0 || hasTeam ? 'active' : 'needs_player';
+    }
+    return 'active';
+  })();
 
-      // Coach / team_manager without ANY team → land on OnboardingGate
-      // so they can pick Enter invite / Start team / Start club.
-      // Patrick 2026-06-26: 'is every new user going to not be able to
-      // start a team or club how it sits?' — previous version only
-      // gated role=parent, leaving fresh coaches dropped into an empty
-      // dashboard. Now both paths land on the gate.
-      const role = String(userData.role || '');
-      if (role === 'coach' || role === 'team_manager') {
-        const teamIds: string[] = Array.isArray(userData.teamIds) ? userData.teamIds : [];
-        const hasTeam = teamIds.length > 0 || (typeof userData.teamId === 'string' && userData.teamId.length > 0);
-        if (!hasTeam) {
-          setGateReason('not-linked');
-          setChecking(false);
-          return;
-        }
-        setGateReason('none');
-        setChecking(false);
-        return;
-      }
-
-      if (role !== 'parent') {
-        setGateReason('none');
-        setChecking(false);
-        return;
-      }
-      // Parent path: check approval first.
-      if (userAny.approved === false) {
-        setGateReason('pending-approval');
-        setChecking(false);
-        return;
-      }
-      // Then check player link (with timeout so mobile doesn't hang).
-      try {
-        const q = query(
-          collection(db, 'players'),
-          where('parentIds', 'array-contains', userData.uid)
-        );
-        const snap = await Promise.race([
-          getDocs(q),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
-        ]);
-        setGateReason(snap === null || snap.empty ? 'not-linked' : 'none');
-      } catch {
-        setGateReason('none'); // fail open so they aren't stuck
-      }
-      setChecking(false);
-    };
-    checkAccess();
-
-    // Hard safety ceiling — never leave the spinner up forever. Only
-    // triggers a fail-open reset if we're STILL checking after 4s.
-    // Before this guard, the timer would fire even after checkAccess
-    // had already resolved, clobbering a legitimate gateReason (like
-    // 'not-linked') back to 'none' and flashing OnboardingGate away
-    // into an empty dashboard that spun forever.
-    const timer = setTimeout(() => {
-      setChecking((wasChecking) => {
-        if (wasChecking) setGateReason('none');
-        return false;
-      });
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [userData?.uid, userData?.role, userData?.teamId, userData?.teamIds?.length]);
-
-  if (checking) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary/30 border-t-cyan-400" />
-        </div>
-      </div>
-    );
-  }
-
-  // Old 'Waiting for Approval' and 'Almost There' dead-end screens
-  // replaced 2026-06-26 with OnboardingGate — gives the user real
-  // paths forward (enter invite code / start a team / start a club)
-  // instead of telling them to nag their coach. Patrick: 'this gate
-  // should not exist. if they are tied to a player, it should start
-  // the option to make a team, club or join another team.'
-  if (gateReason === 'pending-approval' || gateReason === 'not-linked') {
+  if (stage === 'needs_team' || stage === 'needs_player' || stage === 'pending_parent') {
     return <OnboardingGate onSignOut={logout} />;
   }
 

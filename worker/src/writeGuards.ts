@@ -643,6 +643,38 @@ async function handleClaimPlayerLink(req: Request, env: Env, payload: any): Prom
     ? player.teamIds
     : (player.teamId ? [player.teamId] : []);
 
+  // Adult self-claim TOCTOU: two callers of an unclaimed adult
+  // player both pass the noParents check, both call applyMembership,
+  // both end up on parentIds (arrayUnion is commutative), and both
+  // get isAdultPlayer=true stamped. The intent of the flow is
+  // "first tap wins the identity" — the second tap should get
+  // 409 already_claimed instead of silently piggybacking.
+  //
+  // Enforced via a currentDocument.updateTime precondition on the
+  // parentIds arrayUnion write. Only wraps the adult-self path
+  // (email-match path is idempotent and safe to concurrent-tap).
+  if (isAdultClaim) {
+    const playerPatch: Record<string, any> = { isAdultPlayer: true };
+    try {
+      await commitDocumentTransforms(
+        pid,
+        `players/${playerId}`,
+        [{ fieldPath: 'parentIds', kind: 'arrayUnion', value: claims.uid }],
+        playerPatch,
+        sa,
+        playerDoc.updateTime ? { updateTime: playerDoc.updateTime } : undefined,
+      );
+    } catch (err) {
+      if (err instanceof PreconditionFailedError) {
+        return json({ ok: false, error: 'already_claimed' }, 409);
+      }
+      throw err;
+    }
+    // applyMembership below re-arrayUnions parentIds (idempotent) +
+    // does the user-doc grant. Safe because we've already won the
+    // race on the player doc.
+  }
+
   await applyMembership({
     operationSource: 'claim_player_link',
     targetUid: claims.uid,
@@ -847,12 +879,19 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
     await patchDocument(pid, `teams/${newTeamId}`, { clubId: newClubId }, sa);
   }
 
+  // Load current user first so we can preserve elevated roles
+  // (club_admin, team_manager, isClubAdmin) that shouldn't be
+  // clobbered by a team-create call. Prior shape unconditionally
+  // stamped role='coach' which silently demoted club directors.
+  const currentUser = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+  const existingRole = String(currentUser?.data?.role || '');
+  const preserveRole = existingRole === 'club_admin' || existingRole === 'team_manager';
   const userPatch: Record<string, any> = {
-    role: 'coach',
     coachLevel: 'head_coach',
     approved: true,
     approvalStatus: 'self-created-team',
   };
+  if (!preserveRole) userPatch.role = 'coach';
   // Auto-grant a 7-day trial to first-time team creators so they
   // don't hit the canCoachWrite() trial wall while dogfooding the
   // team they just made. Only stamps if they don't already have an
@@ -860,7 +899,6 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
   // subscriptionExpiresAt when they create a second team. Patrick
   // 2026-07-09: "what about new users? am i going to have them do
   // the same thing?" — no; every new coach now gets 7 real days.
-  const currentUser = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
   const alreadyActive = !!currentUser?.data?.subscriptionActive;
   if (!alreadyActive) {
     const now = new Date();
@@ -942,18 +980,24 @@ async function handleClubsCreate(req: Request, env: Env, payload: any): Promise<
     await patchDocument(pid, `teams/${teamId}`, { clubId }, sa);
   }
 
+  // Preserve pre-existing elevated roles same as /teams/create. A
+  // user who was already team_manager on another team shouldn't be
+  // silently demoted to coach just because they created a club.
+  const currentUserClub = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+  const existingRoleClub = String(currentUserClub?.data?.role || '');
+  const preserveRoleClub = existingRoleClub === 'team_manager'
+    || (existingRoleClub === 'club_admin' && !alsoCoach);
   const userPatch: Record<string, any> = {
-    role: alsoCoach ? 'coach' : 'club_admin',
     approved: true,
     approvalStatus: 'self-created-club',
     // NOT platform admin — that's a separate flag Patrick controls.
     // isClubAdmin here is only true for platform admins per legacy
     // naming; do not stamp it based on club ownership.
   };
+  if (!preserveRoleClub) userPatch.role = alsoCoach ? 'coach' : 'club_admin';
   // Same 7-day auto-trial as /teams/create. Same rationale — a
   // freshly-onboarded club director should have a working app for
   // 7 days before the trial wall kicks in.
-  const currentUserClub = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
   const alreadyActiveClub = !!currentUserClub?.data?.subscriptionActive;
   if (!alreadyActiveClub) {
     const now = new Date();
@@ -2663,6 +2707,16 @@ async function handleXpAwardRecognition(req: Request, env: Env, payload: any): P
   // + per-coach so a large roster isn't rationed by a shared pool.
   const weekStartMs = startOfWeekDenverMs();
   let recentCount = 0;
+  // Query fails → refuse the recognition instead of silently
+  // dropping the cap. Audit 2026-07-10: prior shape bypassed the
+  // cap on any transient Firestore hiccup, letting a coach spam
+  // unlimited recognitions to the same kid + fill parents' whisper
+  // inbox. Fail-closed is the right tradeoff — coaches see a clean
+  // retry-later error instead of the invisible bypass.
+  //
+  // Also added an orderBy hint via the createdAt >= weekStart
+  // predicate so an active coach with 20+ historical events for the
+  // same kid doesn't miss this-week entries (the runQuery limit is 20).
   try {
     const events = await runQuery(
       pid,
@@ -2671,16 +2725,14 @@ async function handleXpAwardRecognition(req: Request, env: Env, payload: any): P
         { field: 'playerId', op: 'EQUAL', value: playerId },
         { field: 'awardedBy', op: 'EQUAL', value: claims.uid },
         { field: 'source', op: 'EQUAL', value: 'coach_recognition' },
+        { field: 'createdAt', op: 'GREATER_THAN_OR_EQUAL', value: new Date(weekStartMs) },
       ],
       sa,
-      20,
+      50,
     );
     for (const ev of events) {
-      // The worker's decodeValue returns a plain JS Date for
-      // Firestore timestampValue (not a Firestore SDK Timestamp).
-      // Previous check called .toDate() / read .seconds — both
-      // undefined on a plain Date, so every timestamp resolved to 0
-      // and the weekly cap silently did nothing. Fixed 2026-07-10.
+      // decodeValue returns a plain JS Date for Firestore
+      // timestampValue (not a Firestore SDK Timestamp).
       const raw: any = (ev.data as any)?.createdAt;
       let t = 0;
       if (raw instanceof Date) t = raw.getTime();
@@ -2691,7 +2743,12 @@ async function handleXpAwardRecognition(req: Request, env: Env, payload: any): P
       if (t >= weekStartMs) recentCount++;
     }
   } catch (err) {
-    console.warn('[xp] recent lookup failed, proceeding without cap enforcement:', (err as Error).message);
+    console.error('[xp] recent lookup failed — refusing to bypass cap:', (err as Error).message);
+    return json({
+      ok: false,
+      error: 'xp_cap_check_failed',
+      message: "Couldn't verify the weekly cap. Try again in a moment.",
+    }, 503);
   }
   if (recentCount >= RECOGNITION_PER_KID_PER_COACH_PER_WEEK) {
     return json({

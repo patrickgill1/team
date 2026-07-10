@@ -551,7 +551,26 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
       // gate would be true=true and the worker call would silently
       // skip. Patrick 2026-07-10 report.
       if (userData?.uid) {
-        const currentParentIds: string[] = Array.isArray(savedPlayer.parentIds) ? savedPlayer.parentIds : [];
+        // Read the player doc BACK from Firestore (post-update) so we
+        // decide against fresh persisted state, not the modal's
+        // hydrated snapshot. Prior version pulled parentIds from
+        // savedPlayer which was spread from the stale editingPlayer;
+        // if that snapshot missed a recent link, we'd incorrectly
+        // decide "no change needed" and skip the toggle. Fetch cost
+        // is one doc read on a flow that already saved a player, so
+        // trivial. Audit 2026-07-10.
+        let currentParentIds: string[] = Array.isArray(savedPlayer.parentIds) ? savedPlayer.parentIds : [];
+        try {
+          const { getDoc, doc: fsDoc } = await import('firebase/firestore');
+          const { db: fsDb } = await import('../../utils/firebase');
+          const freshSnap = await getDoc(fsDoc(fsDb, 'players', savedPlayerId));
+          if (freshSnap.exists()) {
+            const freshParents = (freshSnap.data() as any)?.parentIds;
+            if (Array.isArray(freshParents)) currentParentIds = freshParents;
+          }
+        } catch (err) {
+          console.warn('[isMyKid] fresh read failed, falling back to snapshot', err);
+        }
         const alreadyParent = currentParentIds.includes(userData.uid);
         const shouldBeParent = isMyKid;
         console.log('[isMyKid] toggle check', {

@@ -1,8 +1,38 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { Team } from '../types';
 import { useAuth } from '../hooks/useAuth';
+
+/**
+ * Walk a raw team doc's known nested config objects and coerce any
+ * Firestore Timestamp fields to Dates. Passthrough spread pulls
+ * these objects verbatim; without coercion any consumer that reads
+ * e.g. `team.xpConfig.enabledAt.getTime()` (Date API) gets a
+ * Timestamp-shaped object and either NaNs or throws.
+ *
+ * Only touches the top-level config shapes we actually use — avoids
+ * a costly deep walk of the whole doc every hydration.
+ */
+function coerceTeamTimestamps(t: any): any {
+  const walk = (obj: any) => {
+    if (!obj || typeof obj !== 'object') return obj;
+    const out: any = {};
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (v instanceof Timestamp) out[k] = v.toDate();
+      else if (v && typeof v.toDate === 'function') { try { out[k] = v.toDate(); } catch { out[k] = v; } }
+      else out[k] = v;
+    }
+    return out;
+  };
+  const patched = { ...t };
+  if (t.xpConfig) patched.xpConfig = walk(t.xpConfig);
+  if (t.streakConfig) patched.streakConfig = walk(t.streakConfig);
+  if (t.wallDigestConfig) patched.wallDigestConfig = walk(t.wallDigestConfig);
+  if (t.emailDigestConfig) patched.emailDigestConfig = walk(t.emailDigestConfig);
+  return patched;
+}
 
 interface TeamContextType {
   teams: Team[];
@@ -95,6 +125,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               updatedAt: data.updatedAt?.toDate?.() || undefined,
             });
           });
+          for (let i = 0; i < teamDocs.length; i++) teamDocs[i] = coerceTeamTimestamps(teamDocs[i]) as Team;
         } catch (err) {
           console.error('Error loading club teams for admin:', err);
         }
@@ -182,6 +213,11 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // hold their stat data.' Hidden entirely makes their stats
       // unreachable; sorted-last + UI-de-emphasized in the dropdown
       // is the right compromise. Auto-select still prefers ACTIVE.
+      // Coerce nested config Timestamps → Dates before final publish
+      // (mirrors the club-admin projection above). Ensures downstream
+      // consumers get a stable shape regardless of which projection
+      // fetched the team.
+      for (let i = 0; i < teamDocs.length; i++) teamDocs[i] = coerceTeamTimestamps(teamDocs[i]) as Team;
       teamDocs.sort((a, b) => {
         const aArchived = a.isActive === false;
         const bArchived = b.isActive === false;

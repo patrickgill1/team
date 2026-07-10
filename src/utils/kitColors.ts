@@ -29,15 +29,25 @@ const NAMED_KIT_COLORS: Record<string, string> = {
   silver: '#cbd5e1',
 };
 
-/** Normalize a stored kit color value (hex OR legacy name) to hex.
- *  Returns undefined when the value is empty or unrecognized. */
+/** Normalize a stored kit color value (hex OR legacy name) to a
+ *  6-character hex. Returns undefined when the value is empty or
+ *  unrecognized. 3-char hex ('#abc') is expanded to 6-char ('#aabbcc')
+ *  so downstream callers (kitTextColor's luminance parse) never see
+ *  a short form and produce NaN. */
 export function normalizeKit(raw?: string | null): string | undefined {
   if (!raw) return undefined;
   const s = raw.trim();
   if (!s) return undefined;
   // Already hex (3 or 6 char, with or without leading #)
   const hexMatch = s.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  if (hexMatch) return `#${hexMatch[1].toLowerCase()}`;
+  if (hexMatch) {
+    const h = hexMatch[1].toLowerCase();
+    if (h.length === 3) {
+      // Expand 'abc' → 'aabbcc'
+      return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`;
+    }
+    return `#${h}`;
+  }
   // Legacy name — take the first color word ("Navy/Yellow stripe" → "navy")
   const key = s.toLowerCase().split(/[\/\s]+/)[0];
   return NAMED_KIT_COLORS[key];

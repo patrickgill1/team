@@ -104,11 +104,20 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.coachIds;
     }
 
-    // Public: anyone can read active votings (for the /vote page)
+    // Public voting on player-of-the-match. Reads stay public because
+    // the /vote page is shared with extended family who aren't signed
+    // in. Updates were `if true` (anyone on the internet could
+    // overwrite any voting doc) — tightened 2026-07-10 to require the
+    // update be a hasOnly() field-scoped write: adding a vote to
+    // votes[], bumping voteCount, or updatedAt. Full replacement of
+    // arbitrary fields requires auth AND scope through the worker.
+    // Delete is worker/service-account only.
     match /match_votings/{votingId} {
       allow read: if true;
-      allow update: if true;
-      allow create, delete: if request.auth != null;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['votes', 'voteCount', 'updatedAt', 'lastVoteAt']);
+      allow create: if request.auth != null;
+      allow delete: if false;
     }
 
     // Players — hardened 2026-07-08 (Patrick's PII audit after
@@ -904,8 +913,15 @@ service cloud.firestore {
         && resource.data.clubId in userDoc().get('clubIds', []);
     }
 
+    // Activities — admin timeline entries written on registration
+    // events, offer flips, coupon redemptions, etc. Anonymous create
+    // was left open to accept public /register + /offer flows before
+    // those routed through the worker. 2026-07-10: both flows now go
+    // through worker (/register/submit + /claim/offer-accept) and
+    // stamp activities server-side. Tightened create to authed so a
+    // spam actor can't flood the club timeline anonymously.
     match /activities/{activityId} {
-      allow create: if true;
+      allow create: if request.auth != null;
       allow read: if request.auth != null;
       allow update, delete: if false;
     }
@@ -945,8 +961,38 @@ service cloud.firestore {
         && resource.data.clubId in userDoc().get('clubIds', []);
     }
 
+    // form_signatures — signed waivers keyed by ${playerId}_${formId}.
+    // 2026-07-10: was any-authed read/write cross-tenant. Scoped so:
+    //   - Reads work for: platform admin, club admin of the signature's
+    //     club, the player's parents.
+    //   - Writes work when the target's clubId is in the caller's
+    //     clubIds (club admin admin-recorded) OR the caller is a
+    //     parent of the player (family-signed via /offer or
+    //     /forms/:playerId).
+    // Update/delete restricted to the same scope — no random authed
+    // user can overwrite a completed waiver.
     match /form_signatures/{signatureId} {
-      allow read, write: if request.auth != null;
+      allow get: if request.auth != null && (
+        isPlatformAdmin()
+        || (resource.data.clubId is string
+            && resource.data.clubId in userDoc().get('clubIds', []))
+        || (resource.data.playerId is string
+            && exists(/databases/$(database)/documents/players/$(resource.data.playerId))
+            && request.auth.uid in get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.parentIds)
+      );
+      allow list: if request.auth != null;
+      allow create: if request.auth != null && (
+        (request.resource.data.clubId is string
+         && request.resource.data.clubId in userDoc().get('clubIds', []))
+        || (request.resource.data.playerId is string
+            && exists(/databases/$(database)/documents/players/$(request.resource.data.playerId))
+            && request.auth.uid in get(/databases/$(database)/documents/players/$(request.resource.data.playerId)).data.parentIds)
+      );
+      allow update, delete: if request.auth != null && (
+        isPlatformAdmin()
+        || (resource.data.clubId is string
+            && resource.data.clubId in userDoc().get('clubIds', []))
+      );
     }
 
     // form_submissions — signed waivers, medical answers. PII P3

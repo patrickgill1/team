@@ -7,7 +7,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { osmEmbedUrl, geocodeForward, geocodeResolve, hasMapbox, hasNotifyProxy, isGoogleAvailable, GeocodeHit } from '../../utils/maps';
-import { normalizeKit, kitColorLabel } from '../../utils/kitColors';
+import { normalizeKit } from '../../utils/kitColors';
 import { autoPostGameToWall } from '../../utils/autoPostToWall';
 import { sendPushToTeam } from '../../utils/notify';
 
@@ -1114,11 +1114,6 @@ const EventForm: React.FC<EventFormProps> = ({
                     aria-hidden
                   />
                   Home
-                  {selectedTeam?.homeKitColor && (
-                    <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'home' ? 'text-ink-primary/70' : 'text-ink-primary/50'}`}>
-                      {kitColorLabel(selectedTeam.homeKitColor)}
-                    </span>
-                  )}
                 </button>
                 <button
                   type="button"
@@ -1135,11 +1130,6 @@ const EventForm: React.FC<EventFormProps> = ({
                     aria-hidden
                   />
                   Away
-                  {selectedTeam?.awayKitColor && (
-                    <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'away' ? 'text-ink-primary/60' : 'text-ink-primary/50'}`}>
-                      {kitColorLabel(selectedTeam.awayKitColor)}
-                    </span>
-                  )}
                 </button>
               </div>
               {!selectedTeam?.homeKitColor && !selectedTeam?.awayKitColor && (

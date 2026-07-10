@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarEvent } from '../../types';
 import { mapsUrl } from '../../utils/maps';
-import { normalizeKit, kitColorLabel } from '../../utils/kitColors';
+import { normalizeKit } from '../../utils/kitColors';
 import { useTeam } from '../../contexts/TeamContext';
 
 // Event list card — cinematic dark surface matching the GoalKickr v9
@@ -122,7 +122,6 @@ const EventListCard: React.FC<Props> = ({
   const isHome = (event as any).homeAway === 'home';
   const rawKit = isHome ? selectedTeam?.homeKitColor : selectedTeam?.awayKitColor;
   const kitHex = normalizeKit(rawKit);
-  const kitLabel = rawKit ? kitColorLabel(rawKit) : '';
 
   // RSVP pill chrome per status. The "going" pill is the loudest
   // (filled emerald) since it's a celebratory state; maybe/can't are
@@ -258,7 +257,7 @@ const EventListCard: React.FC<Props> = ({
                       aria-hidden
                     />
                     <span className="text-ink-primary/75">
-                      {kitLabel || (isHome ? 'Home' : 'Away')}
+                      {isHome ? 'Home' : 'Away'}
                     </span>
                   </span>
                 </>

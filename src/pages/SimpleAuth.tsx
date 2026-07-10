@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fetchSignInMethodsForEmail, getAuth } from 'firebase/auth';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
 import { friendlyAuthError } from '../utils/authErrors';
@@ -13,7 +14,16 @@ const SimpleAuth: React.FC = () => {
   // switch from sign-in to sign-up" is friction. Returning users tap
   // the prominent Sign In tab below; one tap, no thinking. (TeamSnap
   // does the same split-button pattern at the splash.)
+  // 3.9.160 — mode toggle removed. The form now auto-detects on email
+  // blur via fetchSignInMethodsForEmail: if Firebase finds any sign-in
+  // methods → treat as sign-in (hide name + confirm). No methods → treat
+  // as sign-up. On submit, Firebase's own error codes are a second
+  // safety net: auth/user-not-found flips to register-and-retry,
+  // auth/email-already-in-use flips to signin-and-retry. Users no
+  // longer have to decide "am I signing in or up" up front.
   const [mode, setMode] = useState<'login' | 'register'>('register');
+  const [emailProbe, setEmailProbe] = useState<'idle' | 'probing' | 'known' | 'unknown'>('idle');
+  const emailProbeRef = useRef<string>('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -510,34 +520,11 @@ const SimpleAuth: React.FC = () => {
           {/* Form padding optimized for mobile */}
           <div className="p-4 sm:p-8">
 
-            {/* Sign Up / Sign In segmented control — the explicit
-                first decision so a brand-new user doesn't have to
-                figure out which mode they're in. Active pill is
-                crimson; inactive is muted. One tap to switch. */}
-            <div className="mb-4 grid grid-cols-2 gap-1 p-1 rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10">
-              <button
-                type="button"
-                onClick={() => switchMode('register')}
-                className={`py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  mode === 'register'
-                    ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40'
-                    : 'text-white/65 hover:text-white hover:bg-line-default/[0.04]'
-                }`}
-              >
-                Sign Up
-              </button>
-              <button
-                type="button"
-                onClick={() => switchMode('login')}
-                className={`py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  mode === 'login'
-                    ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40'
-                    : 'text-white/65 hover:text-white hover:bg-line-default/[0.04]'
-                }`}
-              >
-                Sign In
-              </button>
-            </div>
+            {/* 3.9.160 — Sign Up / Sign In toggle removed. The form
+                adapts as the user types their email (see emailProbe
+                effect), and Firebase's error codes flip the intent
+                on submit if the probe was wrong. Users no longer have
+                to answer "am I signing in or up" up front. */}
 
             {/* Sign in with Apple — native iOS only (Apple Store requirement when offering Google sign-in) */}
             {/* Always visible now. Hiding when the email form was
@@ -670,6 +657,32 @@ const SimpleAuth: React.FC = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onBlur={async () => {
+                    const email = formData.email.trim().toLowerCase();
+                    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                      setEmailProbe('idle');
+                      return;
+                    }
+                    if (emailProbeRef.current === email) return;
+                    emailProbeRef.current = email;
+                    setEmailProbe('probing');
+                    try {
+                      const methods = await fetchSignInMethodsForEmail(getAuth(), email);
+                      if (emailProbeRef.current !== email) return; // raced
+                      if (methods && methods.length > 0) {
+                        setEmailProbe('known');
+                        setMode('login');
+                      } else {
+                        setEmailProbe('unknown');
+                        setMode('register');
+                      }
+                    } catch {
+                      // Firebase throws on some rate-limit / offline
+                      // states — leave the probe idle and let the
+                      // submit-time error-code fallback handle it.
+                      setEmailProbe('idle');
+                    }
+                  }}
                   className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
                     errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
                   }`}
@@ -677,6 +690,12 @@ const SimpleAuth: React.FC = () => {
                   disabled={isSubmitting}
                   autoComplete="email"
                 />
+                {emailProbe === 'known' && (
+                  <p className="text-slate-400 text-[11px] mt-1">Welcome back — enter your password to sign in.</p>
+                )}
+                {emailProbe === 'unknown' && (
+                  <p className="text-slate-400 text-[11px] mt-1">New here — pick a password and add your name below.</p>
+                )}
                 {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email}</p>}
               </div>
 
@@ -811,61 +830,18 @@ const SimpleAuth: React.FC = () => {
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                     <span>
-                      {mode === 'login' ? 'Signing in...' : 'Creating account...'}
+                      {emailProbe === 'known' ? 'Signing in...' : mode === 'login' ? 'Signing in...' : 'Creating account...'}
                     </span>
                   </>
                 ) : (
-                  <>
-                    {mode === 'login' && (
-                      <>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                        </svg>
-                        <span>Sign In</span>
-                      </>
-                    )}
-                    {mode === 'register' && (
-                      <>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                        </svg>
-                        <span>Create Account</span>
-                      </>
-                    )}
-                  </>
+                  <span>Continue</span>
                 )}
               </button>
-
-              {/* Mode Switching - Mobile optimized */}
-              <div className="text-center space-y-3 pt-2">
-                {mode === 'login' && (
-                  <p className="text-sm text-slate-400">
-                    Have an invite?{' '}
-                    <button
-                      type="button"
-                      onClick={() => switchMode('register')}
-                      className="font-semibold text-brand-primary-soft hover:text-ink-primary transition-colors duration-200"
-                      disabled={isSubmitting}
-                    >
-                      Join your team
-                    </button>
-                  </p>
-                )}
-                
-                {mode === 'register' && (
-                  <p className="text-sm text-slate-400">
-                    Already have an account?{' '}
-                    <button 
-                      type="button"
-                      onClick={() => switchMode('login')}
-                      className="font-semibold text-brand-primary-soft hover:text-ink-primary transition-colors duration-200"
-                      disabled={isSubmitting}
-                    >
-                      Sign in
-                    </button>
-                  </p>
-                )}
-              </div>
+              {/* Bottom mode-switch links removed — the email probe on
+                  blur decides sign-in vs sign-up automatically, and the
+                  submit-error fallback flips mode on wrong-mode error
+                  codes. Users no longer need to hunt for a "switch to
+                  the other one" link. */}
             </form>
 
             <p className="mt-6 text-center text-xs text-slate-500">

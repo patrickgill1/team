@@ -106,16 +106,36 @@ service cloud.firestore {
 
     // Public voting on player-of-the-match. Reads stay public because
     // the /vote page is shared with extended family who aren't signed
-    // in. Updates were `if true` (anyone on the internet could
-    // overwrite any voting doc) — tightened 2026-07-10 to require the
-    // update be a hasOnly() field-scoped write: adding a vote to
-    // votes[], bumping voteCount, or updatedAt. Full replacement of
-    // arbitrary fields requires auth AND scope through the worker.
+    // in.
+    //
+    // Update paths (2026-07-10 tighten broke coach-close; split
+    // rebuilt below):
+    //  1. Public vote submit — anyone (auth or not) can add to
+    //     votes[]/voteCount/updatedAt/lastVoteAt. Field-scoped so
+    //     internet randos can't overwrite winners or close a session.
+    //  2. Coach close/edit — a coach on the voting's team can write
+    //     the close fields (isActive/closedAt/winners/winner) plus
+    //     eligiblePlayerIds edits. Uses request.auth.token.teamIds
+    //     (custom claims minted by /users/refresh-claims) with a
+    //     userDoc() fallback for callers whose token hasn't refreshed
+    //     yet.
     // Delete is worker/service-account only.
     match /match_votings/{votingId} {
       allow read: if true;
       allow update: if request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['votes', 'voteCount', 'updatedAt', 'lastVoteAt']);
+        .hasOnly(['votes', 'voteCount', 'updatedAt', 'lastVoteAt'])
+        || (
+          request.auth != null
+          && resource.data.teamId is string
+          && (
+            resource.data.teamId in request.auth.token.get('teamIds', [])
+            || (
+              exists(/databases/$(database)/documents/users/$(request.auth.uid))
+              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamIds is list
+              && resource.data.teamId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamIds
+            )
+          )
+        );
       allow create: if request.auth != null;
       allow delete: if false;
     }
@@ -616,6 +636,15 @@ service cloud.firestore {
         || isPlatformAdmin()
         || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
         || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy'])
+        // Poll voting (2026-07-10 fix): any signed-in participant
+        // needs to write `poll.options` to toggle their vote. Previously
+        // only the poll's sender could vote — polls silently 403'd for
+        // everyone else. Field-scoped so non-poll fields stay locked.
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['poll'])
+        // Message acknowledgement — anyone auth'd adds themselves to
+        // acknowledgedBy[]. Sender's own message doesn't need this
+        // branch (senderId==auth.uid clause above covers them).
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['acknowledgedBy'])
       );
       allow delete: if request.auth != null && (
         resource.data.senderId == request.auth.uid
@@ -641,7 +670,11 @@ service cloud.firestore {
         && (resource.data.senderId == request.auth.uid
             || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
             || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
-            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy']));
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy'])
+            // Poll voting (2026-07-10): any signed-in reader can toggle
+            // their vote on a wall poll. Field-scoped so non-poll edits
+            // stay locked to the author.
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['poll']));
       allow delete: if request.auth != null
         && (resource.data.senderId == request.auth.uid
             || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);

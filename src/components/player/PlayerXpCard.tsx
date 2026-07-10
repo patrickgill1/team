@@ -10,6 +10,7 @@
 import React from 'react';
 import { Player, Team } from '../../types';
 import { computeXpLevel } from '../../utils/xpLevel';
+import BadgeIcon from './BadgeIcon';
 
 interface Props {
   player: Player;
@@ -90,9 +91,10 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               {badgeEntries.map(([slug, meta]) => (
-                <BadgeChip
+                <BadgeIcon
                   key={slug}
                   slug={slug}
+                  size={28}
                   count={typeof meta?.count === 'number' ? meta.count : undefined}
                   context={meta?.context}
                 />
@@ -107,31 +109,6 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
         </div>
       </div>
     </section>
-  );
-};
-
-const BADGE_META: Record<string, { label: string; tone: string }> = {
-  coach_pick: { label: "Coach's Pick", tone: 'text-amber-300 bg-amber-500/15 ring-amber-400/30' },
-  first_goal: { label: 'First Goal',   tone: 'text-emerald-300 bg-emerald-500/15 ring-emerald-400/30' },
-  first_potm: { label: 'First POTM',   tone: 'text-amber-300 bg-amber-500/15 ring-amber-400/30' },
-  first_assist: { label: 'First Assist', tone: 'text-brand-primary-soft bg-brand-primary/15 ring-brand-primary/30' },
-  perfect_attendance: { label: 'Perfect Attendance', tone: 'text-sky-300 bg-sky-500/15 ring-sky-400/30' },
-  streak_10: { label: '10-Day Streak', tone: 'text-violet-300 bg-violet-500/15 ring-violet-400/30' },
-};
-
-const BadgeChip: React.FC<{ slug: string; count?: number; context?: string }> = ({ slug, count, context }) => {
-  const meta = BADGE_META[slug] || { label: slug.replace(/_/g, ' '), tone: 'text-ink-primary/70 bg-line-default/[0.08] ring-line-default/15' };
-  const label = count && count > 1 ? `${meta.label} × ${count}` : meta.label;
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full ring-1 px-2.5 py-1 text-[11px] font-black tracking-wide ${meta.tone}`}
-      title={context || ''}
-    >
-      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
-      </svg>
-      {label}
-    </span>
   );
 };
 

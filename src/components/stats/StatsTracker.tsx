@@ -132,6 +132,19 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
       };
 
       await updatePlayerStats(selectedPlayer, updatedStats);
+      // Fire first-stat badges on 0→N crossings. Non-fatal.
+      try {
+        const { maybeGrantFirstStatBadges } = await import('../../utils/badgeGrants');
+        void maybeGrantFirstStatBadges(
+          selectedPlayer,
+          currentStats,
+          updatedStats,
+          {
+            existingBadges: (selectedPlayerData as any).badges,
+            context: opponent || 'Match',
+          },
+        );
+      } catch { /* non-fatal */ }
 
       const newGameStat: GameStat = {
         id: statId,

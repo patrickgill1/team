@@ -37,6 +37,7 @@ import { runWeeklyDigest, runWeeklyTeamWallDigest } from './digest';
 import { runRegistrationDrips } from './drips';
 import { runTrialExpirySweep } from './trialExpiry';
 import { runEventReminders } from './eventReminders';
+import { runPotmAutoCreate } from './potmAutoCreate';
 import { runAdminWeeklyRoundup } from './adminDigest';
 import {
   handleConnectStart,
@@ -949,6 +950,16 @@ async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionC
       // the flag and won't surface the paywall until the flag flips.
       ctx.waitUntil(
         runTrialExpirySweep(env).then(r => console.log('[cron] trial expiry sweep', JSON.stringify(r)))
+      );
+      // Post-game POTM auto-create. Scans events past their date but
+      // within 48h, type=game, opt-outs honored, no existing voting,
+      // creates match_voting + posts "Vote for Player of the Match"
+      // wall CTA on behalf of the head coach. Coach can still
+      // manually create; belt-and-suspenders guard picks that up.
+      ctx.waitUntil(
+        runPotmAutoCreate(env).then(r => {
+          if (r.created > 0 || r.errors.length > 0) console.log('[cron] potm auto-create', JSON.stringify(r));
+        })
       );
     } else if (cron === '*/5 * * * *') {
       // Campaign tick — only does work when scheduled campaigns are

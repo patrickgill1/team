@@ -60,6 +60,14 @@ const EventForm: React.FC<EventFormProps> = ({
     // hydration effect below flips it for editing mode so an admin
     // fixing a typo doesn't accidentally re-push the whole roster.
     notifyTeam: true,
+    // Game-only. Default ON for new games; coaches uncheck for a
+    // scrimmage/tournament that shouldn't skew season aggregates.
+    countsToStats: true,
+    // Game-only. When true, the daily worker cron creates a match_voting
+    // + posts the "Vote for Player of the Match" wall CTA after the
+    // game's date passes. Turn off for a practice game where you don't
+    // want family voting.
+    autoCreatePotm: true,
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -124,6 +132,8 @@ const EventForm: React.FC<EventFormProps> = ({
         // warrant a re-push. Admin opts back in when changing date /
         // time / location.
         notifyTeam: false,
+        countsToStats: (editingEvent as any).countsToStats !== false,
+        autoCreatePotm: (editingEvent as any).autoCreatePotm !== false,
       });
     } else {
       const defaultDate = selectedDate || new Date();
@@ -147,6 +157,8 @@ const EventForm: React.FC<EventFormProps> = ({
         developmentFocus: '',
         endTime: '',
         notifyTeam: true,
+        countsToStats: true,
+        autoCreatePotm: true,
       });
     }
     setErrors({});
@@ -493,6 +505,11 @@ const EventForm: React.FC<EventFormProps> = ({
         locationAddress: pickedAddress || null,
         fieldNumber: formData.fieldNumber.trim() || null,
         homeAway: formData.type === 'game' && formData.homeAway ? formData.homeAway : null,
+        // Game-only opt-outs. Reads treat undefined/null as true, so
+        // we only write an explicit false when the coach opted out.
+        // Non-game events get null (no meaning outside games).
+        countsToStats: formData.type === 'game' && formData.countsToStats === false ? false : null,
+        autoCreatePotm: formData.type === 'game' && formData.autoCreatePotm === false ? false : null,
         type: formData.type,
         teamId: selectedTeamId,
         createdBy: userData.uid,
@@ -619,6 +636,8 @@ const EventForm: React.FC<EventFormProps> = ({
         developmentFocus: '',
         endTime: '',
         notifyTeam: true,
+        countsToStats: true,
+        autoCreatePotm: true,
       });
       onClose();
     } catch (error) {
@@ -1140,6 +1159,39 @@ const EventForm: React.FC<EventFormProps> = ({
                   Set your kit colors in Team Settings so parents know what to pack.
                 </p>
               )}
+
+              {/* Game-only meta: opt out of season stats + skip the
+                  after-game POTM auto-post. Both default ON. */}
+              <div className="mt-4 space-y-3 rounded-lg border border-line-default/10 bg-surface-elevated p-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.countsToStats}
+                    onChange={(e) => setFormData({ ...formData, countsToStats: e.target.checked })}
+                    className="mt-0.5 w-4 h-4 accent-cyan-600"
+                  />
+                  <span>
+                    <span className="text-sm font-semibold text-ink-primary block">Count in season stats</span>
+                    <span className="text-[11px] text-ink-primary/60 block leading-snug mt-0.5">
+                      Uncheck for a scrimmage or tournament game you don't want in season aggregates or leaderboards.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.autoCreatePotm}
+                    onChange={(e) => setFormData({ ...formData, autoCreatePotm: e.target.checked })}
+                    className="mt-0.5 w-4 h-4 accent-cyan-600"
+                  />
+                  <span>
+                    <span className="text-sm font-semibold text-ink-primary block">Auto-open Player of the Match voting</span>
+                    <span className="text-[11px] text-ink-primary/60 block leading-snug mt-0.5">
+                      After this game's date, post a "Vote for POTM" prompt to the team wall automatically. Turn off for a practice game.
+                    </span>
+                  </span>
+                </label>
+              </div>
             </div>
           )}
 

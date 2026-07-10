@@ -152,6 +152,7 @@ export async function recomputeAndPersistPlayerStreak(
     let playerName: string | undefined;
     let teamId: string | null | undefined;
     let restDayOfWeek: number | null | undefined = 0;
+    let existingBadges: Record<string, any> | undefined;
     try {
       const snap = await getDoc(doc(db, 'players', playerId));
       if (snap.exists()) {
@@ -159,6 +160,7 @@ export async function recomputeAndPersistPlayerStreak(
         priorStreak = typeof data.currentStreakDays === 'number' ? data.currentStreakDays : 0;
         playerName = data.name;
         teamId = data.teamId;
+        existingBadges = data.badges;
       }
     } catch (err) {
       console.warn('streak prior read failed', err);
@@ -179,9 +181,16 @@ export async function recomputeAndPersistPlayerStreak(
 
     const streak = computeStreakDays(activePlansAfterUpdate, restDayOfWeek);
 
+    // Piggyback the streak-milestone badge grants onto the same
+    // updateDoc so we don't cost an extra round-trip. Fires only on
+    // priorStreak < N && streak >= N — a kid at prior=30 who already
+    // crossed pre-ship doesn't get retroactive badges.
+    const { computeStreakBadgePatch } = await import('./badgeGrants');
+    const badgePatch = computeStreakBadgePatch(priorStreak, streak, existingBadges, { playerName });
     await updateDoc(doc(db, 'players', playerId), {
       currentStreakDays: streak,
       currentStreakUpdatedAt: new Date(),
+      ...badgePatch,
     });
 
     if (actor && playerName && teamId) {

@@ -300,6 +300,19 @@ const PlayerMediaPage: React.FC = () => {
       };
       try {
         await updatePlayerStats(pid, next as any);
+        // Clip-credit can push a player across the 0→1 crossing on
+        // goals/assists (a shared player's first credited goal comes
+        // in via a tagged clip). Fire the same first-stat badge
+        // grant used by GameDay + StatsTracker.
+        try {
+          const { maybeGrantFirstStatBadges } = await import('../utils/badgeGrants');
+          void maybeGrantFirstStatBadges(
+            pid,
+            cur,
+            next,
+            { existingBadges: (player as any).badges, context: 'Clip credit' },
+          );
+        } catch { /* non-fatal */ }
       } catch (err) {
         console.error('Failed to update stats for player', pid, err);
       }

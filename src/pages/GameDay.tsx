@@ -399,12 +399,28 @@ const GameDay: React.FC = () => {
         if (t.kind === 'yellow') c.yellow++;
         if (t.kind === 'red') c.red++;
       });
-      for (const pid of Object.keys(counts)) {
-        const c = counts[pid];
+      // Clean-sheet detection: GKs who logged any minutes in a shutout
+      // get +1 clean sheet. isGoalkeeper checks primary/positions list.
+      const { isGoalkeeper } = await import('../utils/helpers');
+      const shutout = (game.oppScore || 0) === 0;
+      const cleanSheetPids = new Set<string>();
+      if (shutout) {
+        for (const pid of Object.keys(game.lineup?.minutes || {})) {
+          const secs = Number(game.lineup?.minutes?.[pid] || 0);
+          if (secs <= 0) continue;
+          const player = players.find(p => p.id === pid);
+          if (player && isGoalkeeper(player as any)) cleanSheetPids.add(pid);
+        }
+      }
+      const { maybeGrantFirstStatBadges } = await import('../utils/badgeGrants');
+      const allPids = new Set<string>([...Object.keys(counts), ...cleanSheetPids]);
+      for (const pid of allPids) {
+        const c = counts[pid] || { goals: 0, assists: 0, saves: 0, yellow: 0, red: 0, name: '' };
         const player = players.find(p => p.id === pid);
         if (!player) continue;
-        const prev = player.stats || { goals: 0, assists: 0, saves: 0, yellowCards: 0, redCards: 0, gamesPlayed: 0, minutesPlayed: 0 };
-        await updatePlayerStats(pid, {
+        const prev = player.stats || { goals: 0, assists: 0, saves: 0, yellowCards: 0, redCards: 0, gamesPlayed: 0, minutesPlayed: 0, cleanSheets: 0 } as any;
+        const csDelta = cleanSheetPids.has(pid) ? 1 : 0;
+        const nextStats = {
           ...prev,
           goals: (prev.goals || 0) + c.goals,
           assists: (prev.assists || 0) + c.assists,
@@ -412,11 +428,28 @@ const GameDay: React.FC = () => {
           yellowCards: (prev.yellowCards || 0) + c.yellow,
           redCards: (prev.redCards || 0) + c.red,
           gamesPlayed: (prev.gamesPlayed || 0) + 1,
-        });
+          cleanSheets: ((prev as any).cleanSheets || 0) + csDelta,
+        };
+        await updatePlayerStats(pid, nextStats);
+        // Fire first-stat badges on the 0→N crossing. Non-fatal —
+        // stat write already committed so a badge failure doesn't
+        // regress the game.
+        void maybeGrantFirstStatBadges(
+          pid,
+          prev,
+          nextStats,
+          { existingBadges: (player as any).badges, context: event.title || 'Match', seasonId: (event as any).seasonId },
+        );
+        // Write a per-game stat record for anyone who registered a
+        // timeline event OR earned a clean sheet. GK-only entries land
+        // with 0 across offensive stats + cleanSheets=1 so team-record
+        // aggregations pick them up.
+        const wroteTimeline = counts[pid] != null;
+        if (!wroteTimeline && csDelta === 0) continue;
         const { withSeasonId } = await import('../utils/seasons');
         const gsPayload = await withSeasonId({
           playerId: pid,
-          playerName: c.name,
+          playerName: c.name || player.name || '',
           gameId: eventId!,
           gameDate: new Date(event.date?.toDate ? event.date.toDate() : event.date),
           opponent: event.opponent || 'Opponent',
@@ -426,6 +459,7 @@ const GameDay: React.FC = () => {
           yellowCards: c.yellow,
           redCards: c.red,
           saves: c.saves,
+          cleanSheet: csDelta > 0 ? true : undefined,
           recordedBy: userData?.uid,
           recordedByName: userData?.name || 'Coach',
           teamId: event.teamId,

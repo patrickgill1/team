@@ -1685,6 +1685,23 @@ export interface CalendarEvent {
     generatedAt: any;
     generatedBy: string;
   };
+  /** Post-game POTM auto-create. When the event date passes and this
+   *  is not false, the worker's daily sweep creates a match_voting +
+   *  posts the "Vote for Player of the Match" CTA to the team wall.
+   *  Defaults to true for type='game'; coaches can uncheck for a
+   *  scrimmage. Only meaningful when type='game'. */
+  autoCreatePotm?: boolean;
+  /** Counts this game's stats + POTM toward season aggregates.
+   *  Defaults to true. Coaches flip false for scrimmages / tournaments
+   *  they want to run in the app but not have skew season leaderboards.
+   *  GameDay respects this at finalize (skips stats rollup) and the
+   *  POTM auto-create sweep skips events where this is false. */
+  countsToStats?: boolean;
+  /** Stamped by the worker after autoCreatePotm fires — id of the
+   *  created match_votings doc. Doubles as the idempotency guard so
+   *  the sweep never double-creates. */
+  potmVotingId?: string;
+  potmAutoCreatedAt?: Date;
 }
 
 export interface GalleryPhoto {

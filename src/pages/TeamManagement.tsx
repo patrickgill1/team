@@ -69,6 +69,11 @@ const TeamManagement: React.FC = () => {
     upcomingEvents: true,
   });
   const [teamEmailMessage, setTeamEmailMessage] = useState('');
+  // XP + Badges opt-in. Default OFF for existing teams (undefined
+  // xpConfig on the doc). New teams get true from /teams/create.
+  // Coach can toggle any time; disabling preserves existing xp +
+  // badges (data is not nuked, just hidden until re-enabled).
+  const [teamXpEnabled, setTeamXpEnabled] = useState<boolean>(false);
 
   // Coach invite form
   // inviteEmail / inviteLevel / inviteLink / linkCopied state
@@ -246,6 +251,13 @@ const TeamManagement: React.FC = () => {
           sections: teamEmailSections,
           message: teamEmailMessage.trim() || '',
         },
+        // Preserve the enabledAt stamp across toggles so we can show
+        // "since X" copy later. First-time-enable falls back to now.
+        xpConfig: {
+          enabled: teamXpEnabled,
+          enabledAt: (editingTeam as any).xpConfig?.enabledAt
+            || (teamXpEnabled ? new Date() : undefined),
+        },
       } as any);
       resetForm();
       setEditingTeam(null);
@@ -368,6 +380,10 @@ const TeamManagement: React.FC = () => {
       upcomingEvents: ecfg?.sections?.upcomingEvents ?? true,
     });
     setTeamEmailMessage(ecfg?.message || '');
+    // XP + Badges opt-in. Existing teams (undefined xpConfig) default
+    // to OFF; teams created after this ship default to ON via the
+    // worker /teams/create endpoint.
+    setTeamXpEnabled((team as any).xpConfig?.enabled === true);
   };
 
   const handleOpenTransfer = async (team: Team) => {
@@ -467,6 +483,7 @@ const TeamManagement: React.FC = () => {
     setTeamEmailDay(0);
     setTeamEmailSections({ pastEvents: true, teamWall: true, potm: true, upcomingEvents: true });
     setTeamEmailMessage('');
+    setTeamXpEnabled(false);
     setEditingTeam(null);
   };
 
@@ -990,6 +1007,27 @@ const TeamManagement: React.FC = () => {
                         </button>
                       ))}
                     </div>
+                  </div>
+                  <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={teamXpEnabled}
+                        onChange={(e) => setTeamXpEnabled(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                      />
+                      <span className="flex-1">
+                        <span className="block text-sm font-bold text-ink-primary">XP + Badges</span>
+                        <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                          Private XP that builds over the season and career badges the kid keeps forever. You can award recognition tokens for effort, attitude, or a defensive stand you loved. Every kid sees only their own XP; nobody sees rankings.
+                        </span>
+                        {teamXpEnabled && (
+                          <span className="block text-[10px] text-ink-primary/45 mt-1 leading-snug">
+                            Turn off any time. Existing XP + badges are preserved, just hidden until you re-enable.
+                          </span>
+                        )}
+                      </span>
+                    </label>
                   </div>
                   <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
                     <label className="flex items-start gap-3 cursor-pointer">

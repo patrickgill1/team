@@ -772,6 +772,24 @@ service cloud.firestore {
       allow update, delete: if isAuthed() && callerCanReadWhisper();
     }
 
+    // Player XP events — audit trail for the private-XP + badges
+    // system. Every coach recognition, POTM award, attendance mark,
+    // dev-plan log, and game-stat entry that grants XP writes one
+    // immutable doc here. Coaches + parents on the same team read
+    // to display the "XP over time" story on the player profile.
+    // Writes are worker-only (/xp/award-recognition and later
+    // /xp/backfill) so the per-kid-per-week cap can't be bypassed.
+    //
+    // Same read-scope semantics as parent_whispers — team coaches
+    // + player's parents. Uses the collection's teamId + playerId
+    // fields; the callerCanReadWhisper helper works verbatim since
+    // it reads exactly those two fields.
+    match /player_xp_events/{eventId} {
+      allow get: if isAuthed() && callerCanReadWhisper();
+      allow list: if isAuthed() && callerCanReadWhisper();
+      allow create, update, delete: if false;
+    }
+
     match /tasks/{taskId} {
       allow read, write: if request.auth != null;
     }

@@ -742,6 +742,11 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
     isActive: true,
     createdAt: new Date(),
     createdBy: claims.uid,
+    // XP + badges default ON for newly-created teams. Existing teams
+    // (created before this field existed) show undefined which the
+    // client reads as OFF — no surprise gamification for coaches
+    // who never opted in. See onboarding-xp memo.
+    xpConfig: { enabled: true, enabledAt: new Date() },
   };
   if (audienceType) teamFields.audienceType = audienceType;
   if (requestedClubId) teamFields.clubId = requestedClubId;
@@ -2125,6 +2130,251 @@ async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: a
   });
 }
 
+// ════════════════════════════════════════════════════════════════
+// XP + BADGES — Phase 1: coach recognition tokens
+// ════════════════════════════════════════════════════════════════
+//
+// The whole system is opt-in per team via team.xpConfig.enabled.
+// Coaches award a "recognition token" to a specific kid with a
+// required short note ("crushed the defensive shape today"). Each
+// award:
+//   1. Writes an immutable player_xp_events audit doc.
+//   2. Increments players/{id}.xp + xpCareer via commit-transform.
+//   3. Awards the "coach_pick" badge on the first-ever recognition,
+//      and bumps its `count` field on repeats (Coach's Pick × N).
+//   4. Writes a parent_whispers doc so the note lands in the parents'
+//      inbox alongside their existing whispers stream — no email or
+//      push added in Phase 1 (avoid over-notification while we
+//      validate the shape).
+//
+// Weekly cap enforced at the worker: at most 2 recognitions per kid
+// per coach per Monday-Monday week (America/Denver, per the worker
+// timezone memory). Cap is on the (coach, kid) pair so a big roster
+// isn't rationed by a shared pool, but no kid can be spammed.
+// ────────────────────────────────────────────────────────────────
+
+const RECOGNITION_XP_DEFAULT = 75;
+const RECOGNITION_PER_KID_PER_COACH_PER_WEEK = 2;
+const NOTE_MIN_LENGTH = 5;
+const NOTE_MAX_LENGTH = 500;
+
+/** Monday 00:00 America/Denver as a millisecond timestamp. Windows
+ *  reset weekly so a coach's quota rolls over at the start of the
+ *  next practice week (matches the streak-Sunday-skip cadence).
+ *  Denver rather than UTC per worker_timezone memory. */
+function startOfWeekDenverMs(now = new Date()): number {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Denver',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    weekday: 'short',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23',
+  });
+  const parts = fmt.formatToParts(now);
+  const get = (t: string) => parts.find(p => p.type === t)?.value || '';
+  const y = parseInt(get('year'), 10);
+  const m = parseInt(get('month'), 10);
+  const d = parseInt(get('day'), 10);
+  const dow = get('weekday'); // 'Mon','Tue',...
+  const dowIdx = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(dow);
+  // Days back to Monday. Mon=0, Sun=6, Sat=5, ...
+  const backToMon = dowIdx === 0 ? 6 : dowIdx - 1;
+  // Build a Date representing Monday of this week at midnight LOCAL
+  // Denver. Simplest approach: compute from now, subtract days +
+  // walk hours/minutes/seconds back to zero.
+  const currentMinutes = parseInt(get('hour'), 10) * 60 + parseInt(get('minute'), 10);
+  const daysBackMs = backToMon * 24 * 60 * 60 * 1000;
+  const intraDayMs = (currentMinutes * 60 + parseInt(get('second'), 10)) * 1000;
+  return now.getTime() - daysBackMs - intraDayMs;
+}
+
+async function handleXpAwardRecognition(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  const playerId = String(payload?.playerId || '');
+  const note = String(payload?.note || '').trim();
+  const xpRaw = Number(payload?.xp);
+  const xp = Number.isFinite(xpRaw) && xpRaw > 0 && xpRaw <= 300
+    ? Math.round(xpRaw)
+    : RECOGNITION_XP_DEFAULT;
+
+  if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+  if (note.length < NOTE_MIN_LENGTH) return json({ ok: false, error: 'note_required' }, 400);
+  if (note.length > NOTE_MAX_LENGTH) return json({ ok: false, error: 'note_too_long' }, 400);
+
+  // Guard: team must have XP enabled. Fetch team doc so we can also
+  // pass clubId/seasonId onto the audit.
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  if (!teamDoc?.data) return json({ ok: false, error: 'team_not_found' }, 404);
+  const teamData: any = teamDoc.data;
+  if (teamData?.xpConfig?.enabled !== true) {
+    return json({ ok: false, error: 'xp_not_enabled' }, 403);
+  }
+  const clubId = teamData.clubId ? String(teamData.clubId) : '';
+
+  // Guard: player must exist and be on this team. Prevents cross-team
+  // targeting by fabricating a playerId.
+  const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+  if (!playerDoc?.data) return json({ ok: false, error: 'player_not_found' }, 404);
+  const player: any = playerDoc.data;
+  const playerTeams: string[] = Array.isArray(player.teamIds)
+    ? player.teamIds
+    : (player.teamId ? [player.teamId] : []);
+  if (!playerTeams.includes(teamId)) {
+    return json({ ok: false, error: 'player_not_on_team' }, 403);
+  }
+  const playerName = String(player.name || 'Player');
+
+  // Weekly cap: count coach_recognition xp events by this coach for
+  // this player in the current Monday-Monday window. Bounded per-kid
+  // + per-coach so a large roster isn't rationed by a shared pool.
+  const weekStartMs = startOfWeekDenverMs();
+  let recentCount = 0;
+  try {
+    const events = await runQuery(
+      pid,
+      'player_xp_events',
+      [
+        { field: 'playerId', op: 'EQUAL', value: playerId },
+        { field: 'awardedBy', op: 'EQUAL', value: claims.uid },
+        { field: 'source', op: 'EQUAL', value: 'coach_recognition' },
+      ],
+      sa,
+      20,
+    );
+    for (const ev of events) {
+      const t = (ev.data as any)?.createdAt?.toDate?.()?.getTime?.()
+        ?? ((ev.data as any)?.createdAt?.seconds ? (ev.data as any).createdAt.seconds * 1000 : 0);
+      if (t >= weekStartMs) recentCount++;
+    }
+  } catch (err) {
+    console.warn('[xp] recent lookup failed, proceeding without cap enforcement:', (err as Error).message);
+  }
+  if (recentCount >= RECOGNITION_PER_KID_PER_COACH_PER_WEEK) {
+    return json({
+      ok: false,
+      error: 'weekly_cap_reached',
+      message: `You've already recognized ${playerName.split(' ')[0]} ${RECOGNITION_PER_KID_PER_COACH_PER_WEEK} times this week. Save the next one for next week.`,
+    }, 409);
+  }
+
+  // Resolve active season for stamping onto the audit doc + badge
+  // context. Non-fatal — legacy teams without a seasons/ doc get
+  // an undefined seasonId and the tier calc treats that as
+  // "belongs to the current season anyway".
+  let seasonId = '';
+  let seasonName = '';
+  try {
+    const seasonQ = await runQuery(
+      pid,
+      'seasons',
+      [
+        { field: 'teamId', op: 'EQUAL', value: teamId },
+        { field: 'isActive', op: 'EQUAL', value: true },
+      ],
+      sa,
+      1,
+    );
+    if (seasonQ.length > 0) {
+      seasonId = seasonQ[0].id;
+      seasonName = String((seasonQ[0].data as any)?.name || '');
+    }
+  } catch (err) {
+    console.warn('[xp] season lookup failed:', (err as Error).message);
+  }
+
+  const now = new Date();
+  const eventFields: Record<string, any> = {
+    playerId,
+    playerName,
+    teamId,
+    xp,
+    source: 'coach_recognition',
+    awardedBy: claims.uid,
+    awardedByRole: 'coach',
+    note,
+    createdAt: now,
+  };
+  if (seasonId) eventFields.seasonId = seasonId;
+  if (clubId) eventFields.clubId = clubId;
+
+  // 1. Write audit event.
+  const eventId = await createDocument(pid, 'player_xp_events', eventFields, sa);
+
+  // 2. Bump the player's xp + xpCareer aggregates.
+  await commitDocumentTransforms(
+    pid,
+    `players/${playerId}`,
+    [
+      { fieldPath: 'xp', kind: 'increment', value: xp },
+      { fieldPath: 'xpCareer', kind: 'increment', value: xp },
+    ],
+    null,
+    sa,
+  );
+
+  // 3. Award / bump the "coach_pick" badge. Read the current badge
+  //    first so we can either create it (first-ever) or bump its
+  //    count field. patchDocument uses updateMask so we only touch
+  //    the one nested key.
+  const currentBadges = (player.badges && typeof player.badges === 'object')
+    ? player.badges
+    : {};
+  const existingCoachPick: any = currentBadges.coach_pick;
+  const currentCount = typeof existingCoachPick?.count === 'number' ? existingCoachPick.count : 0;
+  const badgeUpdate: Record<string, any> = {
+    earnedAt: existingCoachPick?.earnedAt || now,
+    context: seasonName || existingCoachPick?.context || '',
+    count: currentCount + 1,
+  };
+  if (seasonId && !existingCoachPick) badgeUpdate.seasonId = seasonId;
+  await patchDocument(pid, `players/${playerId}`, { 'badges.coach_pick': badgeUpdate }, sa);
+
+  // 4. Write a parent_whispers doc so the note surfaces in the
+  //    parents' existing whispers inbox on /player/{id}. No email +
+  //    no push in Phase 1 — recognition tokens should feel warm, not
+  //    urgent, and we don't want families to feel spammed. Whisper
+  //    stream is the right home for "coach said something nice."
+  try {
+    await createDocument(
+      pid,
+      'parent_whispers',
+      {
+        playerId,
+        playerName,
+        clubId: clubId || null,
+        teamId,
+        coachUid: claims.uid,
+        coachName: String((await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null))?.data?.name || 'Coach'),
+        coachAvatarUrl: null,
+        message: note,
+        kind: 'recognition',
+        xp,
+        badgeSlug: 'coach_pick',
+        badgeCount: currentCount + 1,
+        recipientEmails: [],
+        recipientCount: 0,
+        createdAt: now,
+      },
+      sa,
+    );
+  } catch (err) {
+    console.warn('[xp] whisper fanout failed (non-fatal):', (err as Error).message);
+  }
+
+  return json({
+    ok: true,
+    eventId,
+    xp,
+    totalXp: (typeof player.xp === 'number' ? player.xp : 0) + xp,
+    remainingThisWeek: RECOGNITION_PER_KID_PER_COACH_PER_WEEK - (recentCount + 1),
+    badgeCount: currentCount + 1,
+  });
+}
+
 // ────────────────────────────────────────────────────────────────
 // Route dispatcher. index.ts calls this once for /guard/* paths
 // so we don't have to add a dozen if-blocks to the main handler.
@@ -2170,6 +2420,7 @@ export async function routeWriteGuard(
     case '/players/set-teams':     return handlePlayersSetTeams(req, env, payload);
     case '/club/set-admin':        return handleClubSetAdmin(req, env, payload);
     case '/club/remove-admin':     return handleClubRemoveAdmin(req, env, payload);
+    case '/xp/award-recognition':  return handleXpAwardRecognition(req, env, payload);
     default:                       return null;
   }
 }

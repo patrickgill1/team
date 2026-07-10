@@ -11,6 +11,8 @@ import ParentWhisperModal from '../components/coach/ParentWhisperModal';
 import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import ProfileHero from '../components/player/ProfileHero';
 import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
+import PlayerXpCard from '../components/player/PlayerXpCard';
+import CoachRecognitionModal from '../components/player/CoachRecognitionModal';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
 import PlayerCircleCard from '../components/player/PlayerCircleCard';
 import AddPlayer from '../components/player/AddPlayer';
@@ -92,6 +94,7 @@ const PlayerProfile: React.FC = () => {
   const [statsScope, setStatsScope] = useState<'team_season' | 'team_career' | 'all_time'>('team_season');
   const [lightboxItem, setLightboxItem] = useState<PlayerMedia | null>(null);
   const [showWhisper, setShowWhisper] = useState(false);
+  const [showRecognition, setShowRecognition] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadPercent, setDownloadPercent] = useState(0);
 
@@ -533,6 +536,15 @@ const PlayerProfile: React.FC = () => {
         streakDays={(player as any).currentStreakDays || 0}
         attendancePct={attendance.percent}
         jugglesBest={(player as any).juggles?.best || 0}
+      />
+
+      {/* Private XP + badges — renders only when team.xpConfig.enabled
+          is true. Coach opt-in per team. See goalkickr-xp memo. */}
+      <PlayerXpCard
+        player={player}
+        team={selectedTeam}
+        isCoach={!!userData && isCoach(userData.role)}
+        onRecognize={() => setShowRecognition(true)}
       />
 
       {/* Recruitment funnel moved to PersonAdmin (admin CRM only).
@@ -1611,6 +1623,14 @@ const PlayerProfile: React.FC = () => {
           activePlans={activePlans}
         />
       )}
+
+      <CoachRecognitionModal
+        open={showRecognition}
+        onClose={() => setShowRecognition(false)}
+        player={player}
+        teamId={selectedTeamId || (player as any).teamId || ''}
+        onAwarded={() => { void loadProfile(); }}
+      />
 
       <AddPlayer
         isOpen={editOpen}

@@ -593,6 +593,59 @@ export interface Player {
    *  manually from PersonAdmin for the external-league row + edge cases.
    *  See FunnelStepper.tsx for the canonical stage list + rendering. */
   funnelProgress?: FunnelProgress;
+  /** Private XP + badges — the "career, not a leaderboard" system.
+   *  `xp` is the current-season running total (resets when a new
+   *  season activates on the team). `xpCareer` is lifetime,
+   *  informational only. `badges` is a discrete achievement map;
+   *  once earned a badge lives forever with the season it was
+   *  earned in for context (e.g. "First Goal · Fall 2026").
+   *
+   *  All three fields are absent on teams where team.xpConfig is
+   *  disabled (undefined or enabled:false) — never populated, never
+   *  surfaced. Coach opt-in only. */
+  xp?: number;
+  xpCareer?: number;
+  badges?: Record<string, PlayerBadge>;
+}
+
+/** One badge on a player. Keyed by slug (e.g. 'coach_pick',
+ *  'first_goal', 'perfect_attendance', 'streak_10'). */
+export interface PlayerBadge {
+  earnedAt: Date;
+  seasonId?: string;
+  /** Human-readable context ("Fall 2026", "vs Riverside", etc.). */
+  context?: string;
+  /** For repeat-earnable badges (Coach's Pick × N), the running
+   *  count. Absent for one-shot badges. */
+  count?: number;
+}
+
+/** Audit-trail doc written to player_xp_events on every XP grant.
+ *  Immutable, indexed by teamId + createdAt for coach review. Worker
+ *  writes only; client never mutates. */
+export interface PlayerXpEvent {
+  id: string;
+  playerId: string;
+  playerName: string;
+  teamId: string;
+  seasonId?: string;
+  xp: number;
+  source:
+    | 'coach_recognition'
+    | 'attendance'
+    | 'potm'
+    | 'goal' | 'assist' | 'save' | 'clean_sheet'
+    | 'dev_plan_log'
+    | 'streak_milestone'
+    | 'team_win' | 'play_time'
+    | 'backfill';
+  /** Doc id of the underlying source (event id, plan id, stat id). */
+  sourceRef?: string;
+  awardedBy: string;
+  awardedByRole: 'coach' | 'team_manager' | 'system';
+  /** Required for coach_recognition; optional for auto-sourced. */
+  note?: string;
+  createdAt: Date;
 }
 
 /** One stage of the recruitment funnel. Persists when it was completed
@@ -1743,6 +1796,18 @@ export interface Team {
    *  preserving the original behavior. */
   streakConfig?: {
     restDayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6 | null;
+  };
+  /** XP + badges system opt-in. When enabled === true, the team
+   *  participates: XP accrues, badges display, coach can award
+   *  recognition tokens. When absent or false, the entire system is
+   *  silent for this team (no UI, no writes, no fanout). Default is
+   *  OFF for existing teams (undefined) and ON for newly-created
+   *  teams (worker /teams/create stamps enabledAt at creation).
+   *  Turning off mid-season preserves existing xp + badges; they
+   *  simply stop displaying. */
+  xpConfig?: {
+    enabled: boolean;
+    enabledAt?: Date;
   };
   /** Coach control over the weekly email digest sent to parents.
    *  Coach picks day + which sections appear + optional custom

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarEvent } from '../../types';
 import { mapsUrl } from '../../utils/maps';
+import { normalizeKit, kitColorLabel } from '../../utils/kitColors';
 import { useTeam } from '../../contexts/TeamContext';
 
 // Event list card — cinematic dark surface matching the GoalKickr v9
@@ -119,7 +120,9 @@ const EventListCard: React.FC<Props> = ({
   // White" — different teams have different uniforms.
   const { selectedTeam } = useTeam();
   const isHome = (event as any).homeAway === 'home';
-  const kitLabel = isHome ? selectedTeam?.homeKitColor : selectedTeam?.awayKitColor;
+  const rawKit = isHome ? selectedTeam?.homeKitColor : selectedTeam?.awayKitColor;
+  const kitHex = normalizeKit(rawKit);
+  const kitLabel = rawKit ? kitColorLabel(rawKit) : '';
 
   // RSVP pill chrome per status. The "going" pill is the loudest
   // (filled emerald) since it's a celebratory state; maybe/can't are
@@ -247,17 +250,14 @@ const EventListCard: React.FC<Props> = ({
               )}
               {event.type === 'game' && (event as any).homeAway && (
                 <>
-                  <span className="text-charcoal-500">·</span>
+                  <span className="text-ink-primary/40">·</span>
                   <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-widest uppercase">
                     <span
-                      className={`inline-block w-2.5 h-2.5 rounded-sm border ${
-                        isHome
-                          ? 'bg-surface-base border-charcoal-600'
-                          : 'bg-surface-raised border-charcoal-400'
-                      }`}
+                      className="inline-block w-3 h-3 rounded-sm ring-1 ring-line-default/25"
+                      style={{ backgroundColor: kitHex || 'transparent' }}
                       aria-hidden
                     />
-                    <span className="text-charcoal-300">
+                    <span className="text-ink-primary/75">
                       {kitLabel || (isHome ? 'Home' : 'Away')}
                     </span>
                   </span>

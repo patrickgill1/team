@@ -7,6 +7,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { osmEmbedUrl, geocodeForward, geocodeResolve, hasMapbox, hasNotifyProxy, isGoogleAvailable, GeocodeHit } from '../../utils/maps';
+import { normalizeKit, kitColorLabel } from '../../utils/kitColors';
 import { autoPostGameToWall } from '../../utils/autoPostToWall';
 import { sendPushToTeam } from '../../utils/notify';
 
@@ -1107,11 +1108,15 @@ const EventForm: React.FC<EventFormProps> = ({
                       : 'bg-surface-elevated text-ink-primary border-line-default/10 hover:border-line-default/20'
                   }`}
                 >
-                  <span className={`inline-block w-3.5 h-3.5 rounded-sm border ${formData.homeAway === 'home' ? 'bg-surface-elevated border-line-default/25' : 'bg-surface-elevated border-line-default/15'}`} aria-hidden />
+                  <span
+                    className="inline-block w-4 h-4 rounded-sm ring-1 ring-line-default/25"
+                    style={{ backgroundColor: normalizeKit(selectedTeam?.homeKitColor) || 'transparent' }}
+                    aria-hidden
+                  />
                   Home
                   {selectedTeam?.homeKitColor && (
                     <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'home' ? 'text-ink-primary/70' : 'text-ink-primary/50'}`}>
-                      {selectedTeam.homeKitColor}
+                      {kitColorLabel(selectedTeam.homeKitColor)}
                     </span>
                   )}
                 </button>
@@ -1124,11 +1129,15 @@ const EventForm: React.FC<EventFormProps> = ({
                       : 'bg-surface-elevated text-ink-primary border-line-default/10 hover:border-line-default/20'
                   }`}
                 >
-                  <span className="inline-block w-3.5 h-3.5 rounded-sm bg-surface-elevated border border-line-default/20" aria-hidden />
+                  <span
+                    className="inline-block w-4 h-4 rounded-sm ring-1 ring-line-default/25"
+                    style={{ backgroundColor: normalizeKit(selectedTeam?.awayKitColor) || 'transparent' }}
+                    aria-hidden
+                  />
                   Away
                   {selectedTeam?.awayKitColor && (
                     <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'away' ? 'text-ink-primary/60' : 'text-ink-primary/50'}`}>
-                      {selectedTeam.awayKitColor}
+                      {kitColorLabel(selectedTeam.awayKitColor)}
                     </span>
                   )}
                 </button>

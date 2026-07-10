@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import type { WallPost } from '../../types';
+import { normalizeKit } from '../../utils/kitColors';
 
 // Sports-page hero for game-recap wall posts. Renders a big score bug
 // with kit-color accents, the outcome as an outsized initial (W/L/D),
@@ -129,27 +130,5 @@ const TeamPill: React.FC<{ name: string; kitColor?: string; align: 'left' | 'rig
     </div>
   );
 };
-
-// Map free-text kit color labels ("Red", "Navy/Yellow stripe") to a
-// display hex. Only the base color needs to render; the more elaborate
-// stripe / accent detail belongs on the marketing site, not the tab.
-function normalizeKit(raw?: string): string | undefined {
-  if (!raw) return undefined;
-  const key = raw.trim().toLowerCase().split(/[\/\s]+/)[0];
-  const MAP: Record<string, string> = {
-    red: '#ef4444', crimson: '#dc2626', maroon: '#7f1d1d',
-    orange: '#f97316',
-    yellow: '#facc15', gold: '#eab308',
-    green: '#22c55e', emerald: '#10b981',
-    blue: '#3b82f6', navy: '#1e3a8a', sky: '#0ea5e9',
-    teal: '#14b8a6', cyan: '#06b6d4',
-    purple: '#8b5cf6', violet: '#7c3aed',
-    pink: '#ec4899',
-    black: '#0f172a', charcoal: '#1e293b',
-    white: '#f8fafc', bone: '#f5f5f4', cream: '#fefce8',
-    grey: '#94a3b8', gray: '#94a3b8',
-  };
-  return MAP[key];
-}
 
 export default GameRecapCard;

@@ -5,6 +5,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { Team, Player, CoachInvite, Invite } from '../types';
 import { isCoach, isCoachOfTeam } from '../utils/helpers';
+import { normalizeKit } from '../utils/kitColors';
 import { createStaffInvite } from '../utils/invites';
 import { getShareOrigin } from '../utils/origin';
 import InviteShareModal from '../components/common/InviteShareModal';
@@ -1114,25 +1115,56 @@ const TeamManagement: React.FC = () => {
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
+                    {/* Native color picker so coaches don't type free-text
+                        that then has to be mapped to a hex. Legacy text
+                        values (like "Black" or "Red") still resolve via
+                        normalizeKit() on read — the picker just starts
+                        with whatever normalized value we can get. Tap
+                        the swatch to open the OS color wheel; hex string
+                        saves as the source of truth. */}
                     <div>
-                      <label className="block text-sm font-medium text-ink-primary/85 mb-1">Home Kit</label>
-                      <input
-                        type="text"
-                        value={teamHomeKit}
-                        onChange={e => setTeamHomeKit(e.target.value)}
-                        className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
-                        placeholder="e.g. Black"
-                      />
+                      <label className="block text-sm font-medium text-ink-primary/85 mb-1">Home kit color</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={normalizeKit(teamHomeKit) || '#0f172a'}
+                          onChange={e => setTeamHomeKit(e.target.value)}
+                          className="h-11 w-14 rounded-lg cursor-pointer bg-transparent ring-1 ring-line-default/15 p-1"
+                          aria-label="Home kit color"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className="h-6 rounded-md ring-1 ring-line-default/15"
+                            style={{ backgroundColor: normalizeKit(teamHomeKit) || '#0f172a' }}
+                            aria-hidden
+                          />
+                          <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-ink-primary/50 tabular-nums">
+                            {(normalizeKit(teamHomeKit) || '').toUpperCase()}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-ink-primary/85 mb-1">Away Kit</label>
-                      <input
-                        type="text"
-                        value={teamAwayKit}
-                        onChange={e => setTeamAwayKit(e.target.value)}
-                        className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
-                        placeholder="e.g. White"
-                      />
+                      <label className="block text-sm font-medium text-ink-primary/85 mb-1">Away kit color</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={normalizeKit(teamAwayKit) || '#f8fafc'}
+                          onChange={e => setTeamAwayKit(e.target.value)}
+                          className="h-11 w-14 rounded-lg cursor-pointer bg-transparent ring-1 ring-line-default/15 p-1"
+                          aria-label="Away kit color"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className="h-6 rounded-md ring-1 ring-line-default/15"
+                            style={{ backgroundColor: normalizeKit(teamAwayKit) || '#f8fafc' }}
+                            aria-hidden
+                          />
+                          <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-ink-primary/50 tabular-nums">
+                            {(normalizeKit(teamAwayKit) || '').toUpperCase()}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

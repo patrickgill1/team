@@ -796,12 +796,29 @@ async function handleClaimOfferDecline(req: Request, env: Env, payload: any): Pr
   if (normEmail(offer.parentEmail) !== normEmail(claims.email)) {
     return json({ ok: false, error: 'wrong_recipient' }, 403);
   }
+  const now = new Date();
+  const reason = String(payload?.reason || '').slice(0, 500);
   await patchDocument(
     pid,
     `offers/${offerId}`,
-    { status: 'declined', declinedAt: new Date(), declinedBy: claims.uid, declineReason: String(payload?.reason || '').slice(0, 500) },
+    { status: 'declined', declinedAt: now, declinedBy: claims.uid, declineReason: reason },
     sa,
   );
+
+  // Also flip the linked registration back to declined + stamp the
+  // decline reason in notes. Previously the client tried this itself
+  // and 403'd on the registrations.update rule (parent-branch hasOnly
+  // allowlist doesn't include 'notes'). Consolidated here so the
+  // caller only makes one round-trip and the audit trail is coherent.
+  const linkedRegId = String(offer?.registrationId || '');
+  if (linkedRegId) {
+    const notes = reason ? `Offer declined: ${reason}` : undefined;
+    const regPatch: Record<string, any> = { status: 'declined', updatedAt: now };
+    if (notes) regPatch.notes = notes;
+    await patchDocument(pid, `registrations/${linkedRegId}`, regPatch, sa).catch(err => {
+      console.warn('registration decline patch failed', linkedRegId, err);
+    });
+  }
   return json({ ok: true });
 }
 

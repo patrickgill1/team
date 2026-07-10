@@ -306,6 +306,35 @@ service cloud.firestore {
           && !request.resource.data.diff(resource.data).affectedKeys()
               .hasAny(['parentIds'])
         )
+        // Club-scoped branch (added 2026-07-10). Any member of the
+        // player's club (userDoc.clubIds contains player.clubId — set
+        // by every path that grants team or club membership) can
+        // update non-membership fields on any player in that club.
+        //
+        // Motivation: the MedicalEditModal and HouseholdLinkModal are
+        // club-admin surfaces that need to edit players across every
+        // team in the club, not just the caller's roster. Previously
+        // 403'd on the onTeam branch when the admin wasn't a coach on
+        // the target's specific team. Same shape as the
+        // /players/stamp-funnel worker endpoint, but exposed to the
+        // client for the non-funnel edits (medical, household, etc.).
+        //
+        // Membership fields (parentIds, teamId, teamIds, coachIds,
+        // clubId, isActive) stay worker-only. Non-membership fields
+        // (medical, householdId, jerseyNumber, position, etc.) writable
+        // from this branch.
+        || (
+          resource.data.clubId is string
+          && resource.data.clubId in userDoc().get('clubIds', [])
+          && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny([
+                'parentIds', 'coachIds', 'teamId', 'teamIds', 'clubId', 'isActive',
+                // Also lock the public-share flag from this branch —
+                // parent-driven action, not a club-admin one. Parent
+                // branch already covers it.
+                'publicShare',
+              ])
+        )
         || (
           resource.data.parentIds is list
           && request.auth.uid in resource.data.parentIds

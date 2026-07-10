@@ -263,11 +263,9 @@ const Offer: React.FC = () => {
       if (!declineRes.ok || !declineData?.ok) {
         throw new Error(declineData?.error || `decline-${declineRes.status}`);
       }
-      await updateDoc(doc(db, 'registrations', registration.id), {
-        status: 'declined',
-        notes: declineReason.trim() ? `Offer declined: ${declineReason.trim()}` : undefined,
-        updatedAt: serverTimestamp(),
-      });
+      // Registration status + notes get flipped inside the worker
+      // handler (parent-branch hasOnly on registrations.update doesn't
+      // allow 'notes', so a client updateDoc here 403'd).
       await logActivity({
         clubId: offer.clubId,
         kind: 'offer_declined',

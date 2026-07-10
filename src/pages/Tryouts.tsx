@@ -243,12 +243,38 @@ const Tryouts: React.FC = () => {
         updatedAt: serverTimestamp(),
       } as any);
       if (linkedPlayerId) {
-        const { deleteField } = await import('firebase/firestore');
-        await updateDoc(doc(db, 'players', linkedPlayerId), {
-          'funnelProgress.tryouts': wasAttended
-            ? deleteField()
-            : { completedAt: serverTimestamp(), by: myUid, meta: { registrationId: r.id } },
-        } as any);
+        if (wasAttended) {
+          // Undo path: still writes a delete on the player funnel key.
+          // Only fires when the caller is on the player's team — the
+          // stamp-funnel worker endpoint only handles stamp-forward.
+          // Rare tap, and if it 403s the registration flip above still
+          // stuck.
+          try {
+            const { deleteField } = await import('firebase/firestore');
+            await updateDoc(doc(db, 'players', linkedPlayerId), {
+              'funnelProgress.tryouts': deleteField(),
+            } as any);
+          } catch (err) {
+            console.warn('funnel.tryouts clear failed (non-fatal)', err);
+          }
+        } else {
+          // Stamp via worker so cross-team club admins/coaches don't
+          // 403 on the players.update rule. Same shape SendOfferModal
+          // uses for offer_sent.
+          try {
+            const { workerFetch } = await import('../utils/workerFetch');
+            await workerFetch('/players/stamp-funnel', {
+              method: 'POST',
+              body: JSON.stringify({
+                playerId: linkedPlayerId,
+                key: 'tryouts',
+                meta: { registrationId: r.id, seasonId: r.seasonId },
+              }),
+            });
+          } catch (err) {
+            console.warn('funnel.tryouts stamp failed (non-fatal)', err);
+          }
+        }
       }
     } catch (err) {
       console.warn('attendance toggle failed', err);

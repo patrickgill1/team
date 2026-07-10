@@ -709,6 +709,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }).catch(err => console.warn('nativeShell import failed', err));
 
+    // Custom JWT claims refresh. Worker /users/refresh-claims stamps
+    // request.auth.token.clubIds and request.auth.token.teamIds from
+    // the current userDoc, then we force a token refresh so LIST
+    // rules can statically verify the caller's scope without falling
+    // back to `if isAuthed()` (which is what today's rules do while
+    // the older userDoc()-based rules can't be resolved for LIST).
+    // Non-fatal — sign-in still works if this fails; the rules keep
+    // their permissive fallback branches during migration.
+    (async () => {
+      try {
+        const { workerFetch } = await import('../utils/workerFetch');
+        const res = await workerFetch('/users/refresh-claims', {
+          method: 'POST',
+          body: JSON.stringify({}),
+        });
+        if (!res.ok) {
+          console.warn('[claims] refresh non-2xx', res.status);
+          return;
+        }
+        // Web SDK: force a fresh ID token so the new claim shows up.
+        try {
+          await auth.currentUser?.getIdToken(true);
+        } catch (err) {
+          console.warn('[claims] web getIdToken(true) failed', err);
+        }
+        // Native SDK parity: Capacitor plugin has its own token cache
+        // used by tryBridgeNativeSession.
+        try {
+          const { Capacitor } = await import('@capacitor/core');
+          if (Capacitor.isNativePlatform()) {
+            const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+            await FirebaseAuthentication.getIdToken({ forceRefresh: true });
+          }
+        } catch (err) {
+          console.warn('[claims] native getIdToken(true) failed', err);
+        }
+      } catch (err) {
+        console.warn('[claims] refresh threw', err);
+      }
+    })();
+
     // The four legacy background writes that used to live here
     // (temp team ID fix, teamIds backfill, parent-email auto-link,
     // authoritative parent teamIds sync) are removed 2026-07-06.

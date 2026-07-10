@@ -330,6 +330,8 @@ const TeamChat: React.FC = () => {
     return () => window.clearTimeout(t);
   }, [threadsReady]);
   const [teamMembers, setTeamMembers] = useState<{ uid: string; name: string; role?: string; email?: string; photoURL?: string; childNames?: string[] }[]>([]);
+  const [teamMembersLoadFailed, setTeamMembersLoadFailed] = useState(false);
+  const [teamMembersRetryTick, setTeamMembersRetryTick] = useState(0);
   // Cross-team user cache. Populated on demand by resolveUnknownUids
   // when MessageBubble's Seen-by sheet sees a UID the active-team
   // roster can't name (former teammates, coaches who moved teams,
@@ -1041,6 +1043,7 @@ const TeamChat: React.FC = () => {
   // player(s) a member is connected to.
   useEffect(() => {
     let cancelled = false;
+    setTeamMembersLoadFailed(false);
     (async () => {
       try {
         const [allUsers, teamPlayers] = await Promise.all([
@@ -1076,12 +1079,17 @@ const TeamChat: React.FC = () => {
             childNames: childrenByParent.get(u.uid || u.id) || [],
           }));
         setTeamMembers(filtered);
-      } catch {
-        /* ignore */
+      } catch (err) {
+        console.warn('[chat] teamMembers load failed', err);
+        // The two inner queries already .catch(() => []), so an outer
+        // throw here means something systemic broke (dynamic import,
+        // aggregate rejection). Silent empty state would leave the
+        // DM picker looking broken; surface a retry instead.
+        if (!cancelled) setTeamMembersLoadFailed(true);
       }
     })();
     return () => { cancelled = true; };
-  }, [selectedTeamId, getDocuments]);
+  }, [selectedTeamId, getDocuments, teamMembersRetryTick]);
 
   // Load messages for selected thread
   useEffect(() => {
@@ -2342,11 +2350,23 @@ const TeamChat: React.FC = () => {
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {dmCandidates.length === 0 ? (
-            <div className="p-6 text-center text-sm text-ink-primary/50">
-              {teamMembers.length <= 1
-                ? 'No other members on this team yet.'
-                : 'No matches for that search.'}
-            </div>
+            teamMembersLoadFailed && teamMembers.length === 0 ? (
+              <div className="p-6 text-center">
+                <p className="text-sm text-ink-primary/70 mb-3">Couldn't load team members.</p>
+                <button
+                  onClick={() => setTeamMembersRetryTick(t => t + 1)}
+                  className="text-sm font-semibold text-cyan-600 hover:text-cyan-700"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-sm text-ink-primary/50">
+                {teamMembers.length <= 1
+                  ? 'No other members on this team yet.'
+                  : 'No matches for that search.'}
+              </div>
+            )
           ) : (
             dmCandidates.map(m => {
               const checked = selectedDmUids.has(m.uid);

@@ -42,6 +42,7 @@ import {
   FirestoreDoc,
   PreconditionFailedError,
 } from './firestore';
+import { setCustomClaims } from './identityToolkit';
 
 interface Env {
   FIREBASE_PROJECT_ID?: string;
@@ -65,6 +66,51 @@ function projectAndSA(env: Env): { pid: string; sa: ServiceAccount } {
 // against player.parentEmails which is stored lowercased.
 const normEmail = (v: unknown): string =>
   typeof v === 'string' ? v.trim().toLowerCase() : '';
+
+// ────────────────────────────────────────────────────────────────
+// Refresh Firebase Auth custom claims for a user so LIST rules can
+// verify `request.auth.token.clubIds` / `.teamIds` statically against
+// query where() constraints. Call this at the END of every handler
+// that mutates the target uid's user.clubIds or user.teamIds so the
+// claim payload matches the Firestore state.
+//
+// Non-fatal on failure: if the Identity Toolkit round-trip errors,
+// the mutation stays committed and the user's next sign-in / next
+// refresh cycle picks up the new claims. Rules still fall back to
+// the userDoc()-based branches during the transition.
+//
+// Callers who mutate their OWN membership then force-refresh their
+// ID token client-side (auth.currentUser.getIdToken(true)) to see
+// the new claim immediately. Callers who mutate SOMEONE ELSE's uid
+// (add-coach, set-admin) — the target's token in-flight stays
+// valid for up to 1hr; we accept that lag rather than pushing an
+// invalidation.
+// ────────────────────────────────────────────────────────────────
+async function refreshClaimsForUid(
+  uid: string,
+  pid: string,
+  sa: ServiceAccount,
+): Promise<void> {
+  if (!uid) return;
+  try {
+    const userDoc = await getDocument(pid, `users/${uid}`, sa).catch(() => null);
+    const data: any = userDoc?.data || {};
+    const isPlatformAdmin = data.isClubAdmin === true;
+    const clubIds = Array.isArray(data.clubIds) ? data.clubIds.filter((s: unknown) => typeof s === 'string') : [];
+    const teamIds = Array.isArray(data.teamIds) ? data.teamIds.filter((s: unknown) => typeof s === 'string') : [];
+    const claims = {
+      clubIds,
+      teamIds,
+      ...(isPlatformAdmin ? { admin: true } : {}),
+    };
+    const res = await setCustomClaims(sa, uid, claims);
+    if (!res.ok) {
+      console.warn('[claims] refresh failed', uid, res.error);
+    }
+  } catch (err) {
+    console.warn('[claims] refresh threw', uid, err);
+  }
+}
 
 // ────────────────────────────────────────────────────────────────
 // /users/bootstrap — first-time user-doc creation.
@@ -213,6 +259,11 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
   // AFTER any auto-link writes so `active` correctly reflects a
   // just-linked parent instead of showing needs_player for one tick.
   await stampStage(claims.uid, pid, sa);
+
+  // Custom claims: fresh user doc now has final teamIds + clubIds.
+  // Stamp them onto the JWT so first-session LIST rules can verify
+  // scope without the userDoc() runtime lookup.
+  await refreshClaimsForUid(claims.uid, pid, sa);
 
   return json({
     ok: true,
@@ -397,6 +448,13 @@ async function applyMembership(
   // the success path (idempotent shortcircuits in the shims call
   // stampStageFor() themselves so this doesn't need a special case).
   await stampStageFor(op.targetUid, pid, sa);
+
+  // Step 5 — reconcile custom claims with post-write teamIds/clubIds
+  // so LIST rules see the fresh scope on the target's next token
+  // refresh. Covers /claim/invite, /claim/coach-invite,
+  // /claim/player-link, /claim/offer-accept — every applyMembership
+  // caller in one line.
+  await refreshClaimsForUid(op.targetUid, pid, sa);
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -938,6 +996,11 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
   // active.
   await stampStage(claims.uid, pid, sa);
 
+  // Reconcile custom claims — caller just got teamIds + clubIds
+  // arrayUnion'd. LIST rules that read request.auth.token pick up
+  // the new scope on the client's next getIdToken(true).
+  await refreshClaimsForUid(claims.uid, pid, sa);
+
   return json({ ok: true, teamId: newTeamId, clubId: effectiveClubId || null });
 }
 
@@ -1037,6 +1100,10 @@ async function handleClubsCreate(req: Request, env: Env, payload: any): Promise<
   // (club_admin identity → active, coach with new team → active).
   await stampStage(claims.uid, pid, sa);
 
+  // Reconcile custom claims — caller now has clubIds and (optionally)
+  // teamIds updated.
+  await refreshClaimsForUid(claims.uid, pid, sa);
+
   return json({ ok: true, clubId, teamId });
 }
 
@@ -1121,6 +1188,12 @@ async function handleTeamsRemoveCoach(req: Request, env: Env, payload: any): Pro
   // Phase A: TARGET user lost a team — recompute their stage. They
   // may still have other teams (active) or be back to needs_team.
   await stampStageFor(coachUid, pid, sa);
+
+  // Reconcile the removed coach's custom claims — their teamIds
+  // shrank. Their in-flight token is still valid until it expires
+  // (up to 1hr); LIST rules tolerate that lag via the userDoc()
+  // fallback branches.
+  await refreshClaimsForUid(coachUid, pid, sa);
 
   return json({ ok: true });
 }
@@ -1306,6 +1379,8 @@ async function handleClubSetAdmin(req: Request, env: Env, payload: any): Promise
     null,
     sa,
   );
+  // Reconcile target's custom claims — clubIds grew.
+  await refreshClaimsForUid(targetUid, pid, sa);
   return json({ ok: true });
 }
 
@@ -1331,6 +1406,8 @@ async function handleClubRemoveAdmin(req: Request, env: Env, payload: any): Prom
     null,
     sa,
   );
+  // Reconcile target's custom claims — clubIds shrank.
+  await refreshClaimsForUid(targetUid, pid, sa);
   return json({ ok: true });
 }
 
@@ -2472,6 +2549,8 @@ async function handleUsersSetTeams(req: Request, env: Env, payload: any): Promis
     { teamIds: newTeamIds, teamId: newTeamIds[0] || '', updatedAt: new Date() },
     sa,
   );
+  // Reconcile target's custom claims — teamIds was fully replaced.
+  await refreshClaimsForUid(targetUid, pid, sa);
   return json({ ok: true });
 }
 
@@ -2669,6 +2748,14 @@ async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: a
     }
   }
 
+  // Custom claims: heal is also the natural place to reconcile the
+  // JWT claim payload with the just-updated teamIds set. Fire-and-
+  // forget — mutation stays committed if the Identity Toolkit call
+  // fails (see refreshClaimsForUid comment).
+  if (toAdd.length > 0) {
+    await refreshClaimsForUid(claims.uid, pid, sa);
+  }
+
   return json({
     ok: true,
     added: toAdd,
@@ -2680,6 +2767,21 @@ async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: a
     onboardingStage: nextStage,
     stageChanged,
   });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /users/refresh-claims — self-serve claim reconciliation. Client
+// AuthContext fires this after every sign-in so token.clubIds and
+// token.teamIds match Firestore state. Also correct target of a
+// manual retry after a stale-claim 403.
+//
+// No payload required — target uid is always the caller.
+// ────────────────────────────────────────────────────────────────
+async function handleUsersRefreshClaims(req: Request, env: Env, _payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  await refreshClaimsForUid(claims.uid, pid, sa);
+  return json({ ok: true });
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2987,6 +3089,7 @@ export async function routeWriteGuard(
     case '/users/deactivate':      return handleUsersDeactivate(req, env, payload);
     case '/users/set-teams':       return handleUsersSetTeams(req, env, payload);
     case '/users/heal-team-membership': return handleUsersHealTeamMembership(req, env, payload);
+    case '/users/refresh-claims':  return handleUsersRefreshClaims(req, env, payload);
     case '/players/create':        return handlePlayersCreate(req, env, payload);
     case '/events/batch-create':   return handleEventsBatchCreate(req, env, payload);
     case '/players/set-active':    return handlePlayersSetActive(req, env, payload);

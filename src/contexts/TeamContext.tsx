@@ -93,6 +93,10 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               format: (data as any).format,
               homeKitColor: (data as any).homeKitColor,
               awayKitColor: (data as any).awayKitColor,
+              // XP + Badges opt-in — same projection trap that bit
+              // audienceType. Without it here, PlayerXpCard reads
+              // undefined and never renders.
+              xpConfig: (data as any).xpConfig,
               isActive: data.isActive !== false,
               archivedAt: data.archivedAt?.toDate?.() || undefined,
               isDemo: data.isDemo === true,
@@ -166,6 +170,10 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               format: (data as any).format,
               homeKitColor: (data as any).homeKitColor,
               awayKitColor: (data as any).awayKitColor,
+              // XP + Badges opt-in — same projection trap that bit
+              // audienceType. Without it here, PlayerXpCard reads
+              // undefined and never renders.
+              xpConfig: (data as any).xpConfig,
               isActive: data.isActive !== false,
               archivedAt: data.archivedAt?.toDate?.() || undefined,
               isDemo: data.isDemo === true,

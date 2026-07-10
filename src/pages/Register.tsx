@@ -31,16 +31,16 @@ interface ParentDraft {
 }
 
 const Register: React.FC = () => {
-  // Auth gate split — Register itself has ONE hook (useAuth) and
-  // decides which sub-component to render. The actual form is
-  // RegisterForm below, and ALL its hooks run together every render
-  // it's mounted. This avoids the "rendered fewer hooks than expected"
-  // (React #310) we hit when the conditional return sat in the same
-  // component as 20+ other hooks declared below it.
-  const { currentUser } = useAuth();
-  if (!currentUser) {
-    return <RegisterAuthGate onAuthed={() => { /* AuthContext re-render flips us into the form */ }} />;
-  }
+  // 3.9.159: auth gate moved out of the top wrapper. Splash (step 1)
+  // now renders unauth'd so parents see the club logo, season name,
+  // question count, and price BEFORE committing an account — matches
+  // the pattern 360Player uses and is a documented conversion win.
+  // Auth is intercepted inside RegisterForm on the step 1 → 2
+  // transition (or step 3 submit if they somehow skip step 2).
+  //
+  // The hooks-split rule from before still applies: RegisterForm owns
+  // every non-auth hook to avoid React #310 when the auth check flips
+  // the render tree. Register itself stays hook-free.
   return <RegisterForm />;
 };
 
@@ -116,6 +116,20 @@ const RegisterForm: React.FC = () => {
   // Matches the 360Player flow Patrick showed — splash sets expectation,
   // form does the data work, cart is the explicit payment moment.
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  // Auth interception — set true when the user taps "Register" on the
+  // splash but isn't signed in yet. Renders RegisterAuthGate as a
+  // full-screen intercept; onAuthed advances to step 2 automatically.
+  const [awaitingAuth, setAwaitingAuth] = useState(false);
+  // Bridge: if the user is already authenticated when they hit the
+  // splash CTA, skip the intercept and go straight to step 2. Also
+  // clears awaitingAuth when auth completes so the intercept doesn't
+  // stick around.
+  useEffect(() => {
+    if (awaitingAuth && currentUser) {
+      setAwaitingAuth(false);
+      setStep(2);
+    }
+  }, [awaitingAuth, currentUser]);
   // Branded club shell — pulled once the clubId resolves. Used for the
   // splash card. Missing clubLogo is fine; we fall back to the GoalKickr
   // mark.
@@ -548,6 +562,13 @@ const RegisterForm: React.FC = () => {
     );
   }
 
+  // Auth intercept — user tapped Register on the splash but hasn't
+  // signed in yet. Renders the auth chrome full-screen; the effect
+  // above flips to step 2 automatically once currentUser is set.
+  if (awaitingAuth && !currentUser) {
+    return <RegisterAuthGate onAuthed={() => { /* effect handles the step advance */ }} />;
+  }
+
   if (submittedRegId) {
     return (
       <CenterMessage
@@ -642,7 +663,13 @@ const RegisterForm: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  // If already authed, straight to step 2. Otherwise
+                  // show the auth intercept — the effect above flips
+                  // to step 2 once currentUser lands.
+                  if (currentUser) setStep(2);
+                  else setAwaitingAuth(true);
+                }}
                 className="w-full py-3.5 rounded-xl font-bold text-base text-white bg-brand-primary hover:bg-brand-primary shadow-lg shadow-brand-primary-dim/40 transition-all"
               >
                 Register

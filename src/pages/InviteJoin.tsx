@@ -95,6 +95,10 @@ const InviteJoin: React.FC = () => {
               id: p.id, name: v.name, jerseyNumber: v.jerseyNumber, position: v.position,
               profilePhotoUrl: v.profilePhotoUrl,
               teamId: v.teamId, isActive: v.isActive,
+              // Adult-team pickup players use the same invite path as
+              // youth players, but the copy has to swap so a 30-year-old
+              // doesn't read "Joining as parent" on their own claim.
+              isAdultPlayer: v.isAdultPlayer === true,
               createdAt: v.createdAt?.toDate ? v.createdAt.toDate() : new Date(),
             } as Player);
           }
@@ -301,14 +305,20 @@ const InviteJoin: React.FC = () => {
           </div>
         )}
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Joining as parent</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">
+            {(player as any).isAdultPlayer ? 'Claim your spot' : 'Joining as parent'}
+          </p>
           <h1 className="text-2xl font-black leading-tight">{player.name}</h1>
           <p className="text-white/70 text-sm">
             {player.jerseyNumber ? `#${player.jerseyNumber}` : ''}{player.jerseyNumber && player.position ? ' · ' : ''}{player.position}
           </p>
         </div>
       </div>
-      <p className="text-white/80 text-sm">Are you {player.name.split(' ')[0]}'s parent? Create an account or sign in below to follow their stats, clips, and team updates.</p>
+      <p className="text-white/80 text-sm">
+        {(player as any).isAdultPlayer
+          ? `Sign in below to lock in your roster spot on ${teamName || 'the team'} — RSVPs, tagged clips, and team splits will land on your device.`
+          : `Are you ${player.name.split(' ')[0]}'s parent? Create an account or sign in below to follow their stats, clips, and team updates.`}
+      </p>
     </>
   ) : invite?.type === 'coach' ? (
     <>

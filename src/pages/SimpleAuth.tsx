@@ -53,10 +53,35 @@ const SimpleAuth: React.FC = () => {
   // 'join with code' which pre-focuses the invite input).
   const [emailFormOpen, setEmailFormOpen] = useState(false);
 
-  // Redirect if user is already logged in AND has userData
+  // Redirect if user is already logged in AND has userData.
+  //
+  // Landing-intent-aware routing (item #2 from the simplification pass):
+  // if the user came in via "Set up a new team" AND they're a fresh
+  // coach with no team yet, skip the AppLayout OnboardingGate flash
+  // and land them straight in the wizard where they already said they
+  // wanted to be. Same for the "Join with a code" flow that produced
+  // an unlinked parent — bounce them straight into /join if we have an
+  // invite code in sessionStorage. Everyone else goes to /dashboard
+  // and the layout gate handles the edge cases.
   useEffect(() => {
     if (!loading && currentUser && userData) {
-      console.log('User is authenticated and userData is loaded, redirecting to dashboard');
+      const teamIds: string[] = Array.isArray((userData as any).teamIds) ? (userData as any).teamIds : [];
+      const hasTeam = teamIds.length > 0 || !!(userData as any).teamId;
+      const stashedInvite = (() => {
+        try { return sessionStorage.getItem('firefc.pendingInviteTeamId') || ''; } catch { return ''; }
+      })();
+      const role = String((userData as any).role || '');
+      if (!hasTeam && (role === 'coach' || role === 'team_manager')) {
+        navigate('/onboarding?step=team', { replace: true });
+        return;
+      }
+      if (!hasTeam && role === 'parent' && stashedInvite) {
+        // Landed in "Join a team with a code" but the invite consume
+        // hasn't fired yet. Send them straight into the /join path.
+        try { sessionStorage.removeItem('firefc.pendingInviteTeamId'); } catch { /* ignore */ }
+        navigate(`/join/${stashedInvite}`, { replace: true });
+        return;
+      }
       navigate('/dashboard', { replace: true });
     }
   }, [currentUser, userData, loading, navigate]);

@@ -148,14 +148,23 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────
     function callerCanReadWhisper() {
       // Whispers are coach-private notes to a player's parent(s).
-      // Read scope: the authoring coach, any coach on the whisper's
-      // team, the player's parents, or platform admin.
+      // Read scope: the authoring coach, any ACTUAL coach on the
+      // whisper's team (team.coachIds membership — NOT just a
+      // caller who self-identifies as role='coach'), the player's
+      // parents, or platform admin.
+      //
+      // Pre-3.9.159 this trusted isCoachRole() + teamId in user.teamIds
+      // — meaning a parent who flipped to role='coach' via Settings
+      // would inherit read access to coach-private notes about every
+      // kid on their team. Fixed by checking team.coachIds directly.
       return isPlatformAdmin()
         || resource.data.coachUid == request.auth.uid
         || (
-          isCoachRole()
-          && resource.data.teamId is string
-          && resource.data.teamId in userDoc().get('teamIds', [])
+          resource.data.teamId is string
+          && exists(/databases/$(database)/documents/teams/$(resource.data.teamId))
+          && 'coachIds' in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data
+          && get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.coachIds is list
+          && request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.coachIds
         )
         || (
           resource.data.playerId is string
@@ -182,8 +191,16 @@ service cloud.firestore {
     function callerCanReadFormSubmission() {
       // Form submissions store medical notes, signed acknowledgements,
       // waiver answers. Read scope: parent of the player the submission
-      // is for, coach on that player's team, club admin of the doc's
-      // clubId, or platform admin.
+      // is for, an ACTUAL coach on the player's primary team (checked
+      // against team.coachIds, NOT the caller's self-declared role),
+      // club admin of the doc's clubId, or platform admin.
+      //
+      // Pre-3.9.159 fix history: the coach branch trusted isCoachRole()
+      // + teamIds overlap, which made role='coach' a magic key to every
+      // family's medical + waiver data on the team. Fixed by walking
+      // player → primary team → coachIds. `teamIds[0]` is the primary
+      // team; players on multiple teams get their form submissions
+      // gated by the first-listed team's coach roster.
       return isPlatformAdmin()
         || (
           resource.data.playerId is string
@@ -191,8 +208,12 @@ service cloud.firestore {
           && (
             request.auth.uid in get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.parentIds
             || (
-              isCoachRole()
-              && get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.teamIds.hasAny(userDoc().get('teamIds', []))
+              get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.teamIds is list
+              && get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.teamIds.size() > 0
+              && exists(/databases/$(database)/documents/teams/$(get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.teamIds[0]))
+              && 'coachIds' in get(/databases/$(database)/documents/teams/$(get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.teamIds[0])).data
+              && get(/databases/$(database)/documents/teams/$(get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.teamIds[0])).data.coachIds is list
+              && request.auth.uid in get(/databases/$(database)/documents/teams/$(get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.teamIds[0])).data.coachIds
             )
           )
         )

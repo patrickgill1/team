@@ -466,9 +466,24 @@ const Dashboard: React.FC = () => {
   // here a second time.
   useEffect(() => {
     if (!myPlayer) { setTonightGoal(null); setGoalLoaded(false); return; }
-    setGoalLoaded(false);
+    // Cache-first render: if the Dashboard has already computed
+    // tonightGoal for this player in this session, paint the last
+    // value INSTANTLY and refetch in the background. Kills the
+    // "quick verifying" flash Patrick reported on every home visit.
+    // Cache lives in src/utils/queryCache.ts.
+    const cacheKey = `dashboard:tonightGoal:${myPlayer.id}`;
+    // Dynamic import so a first-load Dashboard doesn't pay a bundle
+    // hit for a module a parent already loaded.
     let cancelled = false;
     (async () => {
+      const { readCache, writeCache } = await import('../utils/queryCache');
+      const cached = readCache<any>(cacheKey);
+      if (cached !== undefined && !cancelled) {
+        setTonightGoal(cached);
+        setGoalLoaded(true);
+      } else {
+        setGoalLoaded(false);
+      }
       try {
         const { collection: fsColl, query, where, getDocs, orderBy } = await import('firebase/firestore');
         const { db } = await import('../utils/firebase');
@@ -558,7 +573,7 @@ const Dashboard: React.FC = () => {
             // goal to surface. Use the same recomputed value here.
             const { computeStreakDays: csd } = await import('../utils/devPlanActions');
             const freshStreak = csd(plans as any);
-            setTonightGoal({
+            const goal = {
               planId: plan.id,
               goalId: next.id,
               planTitle: plan.title || 'Plan',
@@ -568,11 +583,14 @@ const Dashboard: React.FC = () => {
               loggedToday,
               thisWeek,
               streakDays: freshStreak,
-            });
+            };
+            setTonightGoal(goal);
+            writeCache(cacheKey, goal);
             return;
           }
         }
         setTonightGoal(null);
+        writeCache(cacheKey, null);
       } catch (err) {
         console.warn('tonight goal load failed', err);
       } finally {

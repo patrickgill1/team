@@ -29,6 +29,14 @@ export async function quickDidIt(
     g.id === goalId ? { ...g, practiceLog: [...(g.practiceLog || []), entry] } : g
   );
   await updateDoc(doc(db, 'development_plans', plan.id), { goals: updatedGoals });
+  // Invalidate the Dashboard tonight-goal cache so the next Dashboard
+  // mount refetches instead of showing the stale "not logged today"
+  // state for a beat. Fire-and-forget dynamic import so devPlanActions
+  // stays lightweight for callers that never touch the cache.
+  try {
+    const { invalidateCache } = await import('./queryCache');
+    invalidateCache(`dashboard:tonightGoal:${plan.playerId}`);
+  } catch { /* non-fatal */ }
   return updatedGoals;
 }
 

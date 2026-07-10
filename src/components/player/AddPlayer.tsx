@@ -567,7 +567,16 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             });
             const data: any = await res.json().catch(() => ({}));
             if (!res.ok || !data?.ok) {
+              const err = String(data?.error || `status ${res.status}`);
               console.warn('[isMyKid] toggle-self-parent failed', { status: res.status, data });
+              // Surface the failure in the modal so it doesn't silently
+              // save "everything else" and lose the parent link. Coach
+              // sees the toast + can retry with a fresh attempt.
+              setUploadError(
+                shouldBeParent
+                  ? `Saved the player, but couldn't link you as parent (${err}). Try again from the profile.`
+                  : `Saved the player, but couldn't unlink you as parent (${err}).`
+              );
             } else {
               console.log('[isMyKid] toggle-self-parent ok');
               const nextParentIds = new Set<string>(currentParentIds);
@@ -575,8 +584,11 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               else nextParentIds.delete(userData.uid);
               savedPlayer = { ...savedPlayer, parentIds: Array.from(nextParentIds) };
             }
-          } catch (err) {
+          } catch (err: any) {
             console.warn('[isMyKid] toggle-self-parent threw', err);
+            setUploadError(
+              `Saved the player, but the "this is my kid" link didn't go through (${err?.message || 'network error'}).`
+            );
           }
         }
       }

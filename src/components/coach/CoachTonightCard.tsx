@@ -6,7 +6,7 @@ import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useViewMode } from '../../contexts/ViewModeContext';
-import { isCoach } from '../../utils/helpers';
+import { isCoachOfTeam } from '../../utils/helpers';
 import type { CalendarEvent } from '../../types';
 
 /**
@@ -33,7 +33,7 @@ import type { CalendarEvent } from '../../types';
 
 const CoachTonightCard: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const [event, setEvent] = useState<CalendarEvent | null>(null);
   const [loaded, setLoaded] = useState(false);
   // Tick every 60s so the countdown stays fresh without re-running
@@ -41,7 +41,7 @@ const CoachTonightCard: React.FC = () => {
   const [now, setNow] = useState(() => new Date());
 
   const { viewMode } = useViewMode();
-  const isUserCoach = isCoach((userData as any)?.role) && viewMode === 'coach';
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam) && viewMode === 'coach';
 
   useEffect(() => {
     if (!isUserCoach || !selectedTeamId) { setLoaded(true); return; }

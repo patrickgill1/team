@@ -6,7 +6,7 @@ import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useViewMode } from '../../contexts/ViewModeContext';
-import { isCoach } from '../../utils/helpers';
+import { isCoachOfTeam } from '../../utils/helpers';
 
 /**
  * Coach team-health roll-up — one-glance summary of how the team's
@@ -40,12 +40,12 @@ interface PlayerLite {
 
 const CoachTeamHealthCard: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const [players, setPlayers] = useState<PlayerLite[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const { viewMode } = useViewMode();
-  const isUserCoach = isCoach((userData as any)?.role) && viewMode === 'coach';
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam) && viewMode === 'coach';
 
   useEffect(() => {
     if (!isUserCoach || !selectedTeamId) { setLoaded(true); return; }

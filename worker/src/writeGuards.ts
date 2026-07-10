@@ -1132,11 +1132,21 @@ async function handleClubSetAdmin(req: Request, env: Env, payload: any): Promise
     scopes.length > 0 ? { [`adminScopes.${targetUid}`]: scopes } : null,
     sa,
   );
+  // Stamp clubIds arrayUnion so the target's TeamContext picks up
+  // the club scope. Explicitly do NOT set user.isClubAdmin here —
+  // that field is the platform-admin bypass in firestore.rules
+  // (line 26, "Platform admin bypasses everything") and is intended
+  // to be granted manually to Patrick only. Setting it here was a
+  // /clubs/create → /club/set-admin(self) privilege-escalation chain
+  // that let any signed-up user become platform admin. Legitimate
+  // club-admin scope is granted via role='club_admin' (from the
+  // /clubs/create "not a coach" flow) plus clubs.adminUids
+  // membership; both are checked by requireClubAdmin.
   await commitDocumentTransforms(
     pid,
     `users/${targetUid}`,
     [{ fieldPath: 'clubIds', kind: 'arrayUnion', value: clubId }],
-    { isClubAdmin: true },
+    null,
     sa,
   );
   return json({ ok: true });
@@ -2256,8 +2266,18 @@ async function handleXpAwardRecognition(req: Request, env: Env, payload: any): P
       20,
     );
     for (const ev of events) {
-      const t = (ev.data as any)?.createdAt?.toDate?.()?.getTime?.()
-        ?? ((ev.data as any)?.createdAt?.seconds ? (ev.data as any).createdAt.seconds * 1000 : 0);
+      // The worker's decodeValue returns a plain JS Date for
+      // Firestore timestampValue (not a Firestore SDK Timestamp).
+      // Previous check called .toDate() / read .seconds — both
+      // undefined on a plain Date, so every timestamp resolved to 0
+      // and the weekly cap silently did nothing. Fixed 2026-07-10.
+      const raw: any = (ev.data as any)?.createdAt;
+      let t = 0;
+      if (raw instanceof Date) t = raw.getTime();
+      else if (typeof raw?.toDate === 'function') { try { t = raw.toDate().getTime(); } catch { /* ignore */ } }
+      else if (typeof raw?.seconds === 'number') t = raw.seconds * 1000;
+      else if (typeof raw === 'number') t = raw;
+      else if (typeof raw === 'string') { const d = new Date(raw); if (!Number.isNaN(d.getTime())) t = d.getTime(); }
       if (t >= weekStartMs) recentCount++;
     }
   } catch (err) {

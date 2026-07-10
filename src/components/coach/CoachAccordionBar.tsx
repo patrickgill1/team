@@ -6,7 +6,7 @@ import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useViewMode } from '../../contexts/ViewModeContext';
-import { isCoach } from '../../utils/helpers';
+import { isCoachOfTeam } from '../../utils/helpers';
 
 /**
  * Coach accordion bar — ambient status indicator for coaches. Patrick
@@ -61,7 +61,7 @@ interface MessagePreview {
 
 const CoachAccordionBar: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const [items, setItems] = useState<StatusItem[]>([]);
   // Inbox preview: latest message per thread from senders other
   // than this coach, last 24h. Surfaced inline in the expanded
@@ -103,7 +103,7 @@ const CoachAccordionBar: React.FC = () => {
   // coach view mode in the profile sheet. Multi-role users (admin+
   // coach+parent — Patrick himself) flip to parent view to clear
   // the dashboard of coach chrome when they're in family-context.
-  const isUserCoach = isCoach((userData as any)?.role) && viewMode === 'coach';
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam) && viewMode === 'coach';
 
   useEffect(() => {
     if (!isUserCoach || !selectedTeamId) {

@@ -25,6 +25,8 @@ import { ChatThread } from '../types';
 import CoachAccordionBar from '../components/coach/CoachAccordionBar';
 import CoachTonightCard from '../components/coach/CoachTonightCard';
 import CoachTeamHealthCard from '../components/coach/CoachTeamHealthCard';
+import DashboardDigestSheet, { DigestItem } from '../components/dashboard/DashboardDigestSheet';
+import { useDashboardActivity } from '../hooks/useDashboardActivity';
 import { useViewMode } from '../contexts/ViewModeContext';
 import AdminCockpit from '../components/admin/AdminCockpit';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
@@ -93,6 +95,11 @@ const Dashboard: React.FC = () => {
   // many good ones, I find it hard to communicate to someone before
   // I feel like I am talking too much.' Tour does the showing instead.
   const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+  // Busy-parent digest sheet — opens from the hero strip when the
+  // parent taps "N things need you." Silent when nothing's pending;
+  // strip auto-hides in that case so the button is never dead.
+  const [digestSheetOpen, setDigestSheetOpen] = useState(false);
+  const activity = useDashboardActivity(selectedTeamId, userData?.uid);
   useEffect(() => {
     // Defer one tick so the dashboard paints first, then the
     // walkthrough fades over it — feels less like a forced gate.
@@ -900,6 +907,57 @@ const Dashboard: React.FC = () => {
     return { going, maybe, no, pending };
   }, [nextEvent, players.length]);
 
+  // Busy-parent digest — count of upcoming events where the parent's
+  // linked kid(s) have no RSVP recorded yet. Skips the empty-team
+  // case (no linked kid → nothing to answer). Kept tight to the
+  // parent path since coaches don't RSVP the same way.
+  const upcomingRsvpPending = useMemo(() => {
+    if (!isParentMode) return 0;
+    const myPlayerIds = new Set(myPlayers.map(p => p.id));
+    if (myPlayerIds.size === 0) return 0;
+    let count = 0;
+    for (const ev of upcomingEvents) {
+      const playerR = ((ev as any)?.playerRsvps || {}) as Record<string, { status: string }>;
+      // If ANY of the parent's kids has no RSVP on this event, it
+      // counts as one item ("this event needs you"). Not per-kid
+      // multiplied — that would over-inflate the digest for
+      // multi-kid families.
+      const anyUnanswered = Array.from(myPlayerIds).some(id => !playerR[id]);
+      if (anyUnanswered) count++;
+    }
+    return count;
+  }, [isParentMode, upcomingEvents, myPlayers]);
+
+  // Compose the digest items array. Only categories with count > 0
+  // survive into the sheet (silent-empty rule) — but the total is
+  // summed here so the hero strip has the number to show.
+  const digestItems: DigestItem[] = useMemo(() => ([
+    {
+      key: 'chat', label: activity.chat === 1 ? 'unread message' : 'unread messages',
+      count: activity.chat, href: '/chat', tone: 'brand',
+    },
+    {
+      key: 'wall', label: activity.wall === 1 ? 'new team post' : 'new team posts',
+      count: activity.wall, href: '/wall', tone: 'amber',
+    },
+    {
+      key: 'events', label: activity.events === 1 ? 'event update' : 'event updates',
+      count: activity.events, href: '/calendar', tone: 'sky',
+    },
+    {
+      key: 'rsvp', label: upcomingRsvpPending === 1 ? 'event to answer' : 'events to answer',
+      count: upcomingRsvpPending, href: '/calendar', tone: 'emerald',
+    },
+    {
+      key: 'highlights',
+      label: newForYouPosts.length === 1 ? 'new highlight' : 'new highlights',
+      detail: myPlayer ? `About ${myPlayer.name.split(' ')[0]}` : undefined,
+      count: newForYouPosts.length, href: '/wall', tone: 'violet',
+    },
+  ]), [activity.chat, activity.wall, activity.events, upcomingRsvpPending, newForYouPosts.length, myPlayer]);
+
+  const digestTotal = digestItems.reduce((sum, i) => sum + (i.count > 0 ? i.count : 0), 0);
+
   const eventEmoji = (t: string) => t === 'game' ? '⚽' : t === 'practice' ? '🏃' : '📅';
   const eventGradient = (t: string) =>
     t === 'game' ? 'from-rose-500 to-orange-500'
@@ -972,6 +1030,13 @@ const Dashboard: React.FC = () => {
         goingLabel={posterGoingLabel}
         noLabel={posterNoLabel}
         onRsvp={quickRsvp}
+        digestTotal={digestTotal}
+        onOpenDigest={() => setDigestSheetOpen(true)}
+      />
+      <DashboardDigestSheet
+        open={digestSheetOpen}
+        onClose={() => setDigestSheetOpen(false)}
+        items={digestItems}
       />
       {/* Coach accordion bar — slim color-coded status indicator that
           surfaces only when there's actionable coach work (RSVPs
@@ -1002,13 +1067,13 @@ const Dashboard: React.FC = () => {
           if (inWelcomeGrace) return null;
           return (
             <>
-              {/* New-messages nudge sits above the standard banners so
-                  a fresh unread thread is the first thing you see when
-                  you open the app. Only renders when there's actually
-                  something new — silent otherwise. Wall moved to the
-                  menu, so this was the missing "you have activity"
-                  signal on the home surface. */}
-              <UnreadMessagesCard count={newMessagesCount} thread={freshestUnreadThread} />
+              {/* UnreadMessagesCard removed 3.9.163 — replaced by the
+                  busy-parent digest strip inside the hero (under the
+                  greeting). Chat-only banner over-promised "you have
+                  stuff" but only surfaced chat, leaving the parent
+                  wondering if the wall / RSVP / form activity was
+                  represented. Digest folds all five in and opens a
+                  bottom sheet on tap. */}
               <NotificationsBanner />
               <TrialCountdownBanner />
               <GettingStartedCard players={players} events={upcomingEvents} dataLoading={loading} />

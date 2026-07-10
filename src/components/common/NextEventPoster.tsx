@@ -37,6 +37,12 @@ interface Props {
   noLabel: string;
   onRsvp: (status: RsvpStatus) => void | Promise<void>;
   hourOverride?: number;
+  /** Optional busy-parent digest: total count of unread/pending
+   *  signals across chat/wall/events/RSVPs/kid-highlights. Renders
+   *  as a slim strip under the greeting when > 0. Null/zero =
+   *  hero looks exactly like today. Tap fires onOpenDigest. */
+  digestTotal?: number;
+  onOpenDigest?: () => void;
 }
 
 const MONTHS_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
@@ -68,6 +74,8 @@ const NextEventPoster: React.FC<Props> = ({
   noLabel,
   onRsvp,
   hourOverride,
+  digestTotal = 0,
+  onOpenDigest,
 }) => {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -147,6 +155,7 @@ const NextEventPoster: React.FC<Props> = ({
               {isCoach ? 'Welcome' : 'Hi'}
             </p>
             <p className="mt-1 text-sm text-white/80 drop-shadow">{greeting}, {firstName}</p>
+            <DigestStrip total={digestTotal} onOpen={onOpenDigest} />
           </div>
 
           <div className="flex-1" />
@@ -219,9 +228,10 @@ const NextEventPoster: React.FC<Props> = ({
 
         {/* Header row: greeting (left) + weather chip (right) */}
         <div className="relative flex items-start justify-between px-5 pt-5 sm:pt-6">
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] font-extrabold tracking-[0.25em] uppercase text-brand-primary-soft">Next Up</p>
             <p className="mt-1 text-sm text-white/80 drop-shadow">{greeting}, {firstName}</p>
+            <DigestStrip total={digestTotal} onOpen={onOpenDigest} />
           </div>
           {weather && (
             <div className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-black/40 ring-1 ring-line-default/10 px-2.5 py-1 backdrop-blur-sm">
@@ -310,6 +320,40 @@ const NextEventPoster: React.FC<Props> = ({
     </section>
   );
 };
+
+// Slim strip under the greeting that answers the busy-parent
+// question: "did I miss anything?" — one line, one tap. Silent when
+// there's nothing to show (returns null so the greeting layout is
+// unchanged on quiet days). Warm brand tint so it reads as "come
+// see this" without competing with the greeting text above it.
+//
+// Tap fires the parent's onOpen callback which opens the digest
+// sheet on Dashboard. No navigation — the parent stays on the
+// dashboard, sees a categorized list, then chooses where to go.
+function DigestStrip({ total, onOpen }: {
+  total: number;
+  onOpen?: () => void;
+}) {
+  if (!total || total <= 0 || !onOpen) return null;
+  const label = total === 1 ? '1 thing needs you' : `${total} things need you`;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-brand-primary/25 ring-1 ring-brand-primary/45 px-2.5 py-1 text-[11px] font-black tracking-wide text-white shadow-sm backdrop-blur-sm hover:bg-brand-primary/35 active:scale-[0.98] transition"
+      aria-label={`${label}. Tap for details.`}
+    >
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      </svg>
+      <span>{label}</span>
+      <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M9 6l6 6-6 6" />
+      </svg>
+    </button>
+  );
+}
 
 function RsvpButton({ tone, active, label, onClick }: {
   tone: RsvpStatus;

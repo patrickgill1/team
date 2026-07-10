@@ -36,6 +36,7 @@ const TeamChat: React.FC = () => {
     getDocuments,
     getOrCreateDMThread,
     getPlayersByTeam,
+    getUsersByTeam,
   } = useFirestore();
   
   // Simple mobile-first state management
@@ -1043,7 +1044,7 @@ const TeamChat: React.FC = () => {
     (async () => {
       try {
         const [allUsers, teamPlayers] = await Promise.all([
-          getDocuments('users', []).catch(() => []),
+          selectedTeamId ? getUsersByTeam(selectedTeamId).catch(() => []) : Promise.resolve([]),
           selectedTeamId ? getPlayersByTeam(selectedTeamId).catch(() => []) : Promise.resolve([]),
         ]);
         if (cancelled) return;

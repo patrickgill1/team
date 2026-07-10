@@ -17,7 +17,7 @@ import { useActiveSeason } from '../hooks/useActiveSeason';
 const TeamManagement: React.FC = () => {
   const { userData } = useAuth();
   const { teams, refreshTeams, selectedTeamId, setSelectedTeamId } = useTeam();
-  const { createTeam, updateTeam, updateDocument, getDocuments, getCoachInvitesByTeam, getPlayersByTeam, deleteDocument } = useFirestore();
+  const { createTeam, updateTeam, updateDocument, getDocuments, getCoachInvitesByTeam, getPlayersByTeam, getUsersByTeam, deleteDocument } = useFirestore();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   // showInviteCoachModal + the matching modal at the bottom of
@@ -140,7 +140,7 @@ const TeamManagement: React.FC = () => {
         getPlayersByTeam(selectedTeamId).catch(() => []),
         Promise.all(otherTeamIds.map(id => getPlayersByTeam(id).catch(() => []))),
         getCoachInvitesByTeam(selectedTeamId).catch(() => []),
-        getDocuments('users', []).catch(() => []),
+        getUsersByTeam(selectedTeamId).catch(() => []),
       ]);
       setPlayers(teamPlayers.map((p: any) => ({
         ...p,
@@ -373,8 +373,8 @@ const TeamManagement: React.FC = () => {
   const handleOpenTransfer = async (team: Team) => {
     // Load coach users for this team
     try {
-      const allUsers = await getDocuments('users', []);
-      const coaches = allUsers.filter((u: any) =>
+      const teamUsers = await getUsersByTeam(team.id);
+      const coaches = teamUsers.filter((u: any) =>
         u.role === 'coach' && team.coachIds?.includes(u.uid || u.id)
       );
       setTeamCoaches(coaches);

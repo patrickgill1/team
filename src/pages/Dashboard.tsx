@@ -64,6 +64,7 @@ const Dashboard: React.FC = () => {
   const isParentMode = viewMode === 'parent';
   const {
     getPlayersByTeam,
+    getUsersByTeam,
     getEventsByTeam,
     getPlayerMediaByTeam,
     getTeamPlayerStatsMap,
@@ -205,10 +206,10 @@ const Dashboard: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        const allUsers = await getDocuments('users', []);
+        const teamUsers = await getUsersByTeam(selectedTeamId);
         if (cancelled) return;
         const map: Record<string, string> = {};
-        for (const u of allUsers as any[]) {
+        for (const u of teamUsers as any[]) {
           const uid = u?.uid || u?.id;
           // Google sign-up users have profilePhotoUrl (OAuth avatar)
           // but no photoURL (no manual Settings upload). Fall back so

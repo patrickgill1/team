@@ -395,7 +395,23 @@ service cloud.firestore {
     }
     match /users/{userId} {
       allow get:  if isAuthed() && callerCanReadUser(userId);
-      allow list: if isAuthed() && callerCanReadUser(userId);
+      // LIST rule follows the same shape as players (July 9 fix):
+      // callerCanReadUser calls userDoc() which Firestore can't
+      // statically resolve against a `where teamIds array-contains X`
+      // predicate, so a scoped LIST would 403 outright even though
+      // per-doc runtime eval would pass. Directory / People /
+      // VolunteerScheduler / Dashboard all fell into this trap the
+      // day the tight rule went in. Follow-up: replace with a
+      // custom-claims shape (request.auth.token.teamIds) that
+      // Firestore CAN statically verify. Until then, LIST is
+      // `if isAuthed()` and every client caller is scoped with
+      // `where teamIds array-contains teamId` via getUsersByTeam
+      // so a well-behaved client only sees its own team's users.
+      // A rogue authed client could dump the users collection —
+      // matches the trust boundary players already sits on. Real
+      // PII (medical, whispers, form submissions) still has tight
+      // per-doc guards on those collections.
+      allow list: if isAuthed();
       // Create still allowed self-only so the Firebase-Auth-to-
       // Firestore bootstrap on first sign-in works. The worker's
       // /users/bootstrap endpoint uses admin creds so THIS branch
@@ -574,8 +590,19 @@ service cloud.firestore {
     }
 
     // Live games (gameday tracker) — team-scoped throughout.
+    // live_games / practice_plans / stats / development_plans — the
+    // team-scoped foursome. Same LIST-authorization trap as users +
+    // players: onTeam() calls userDoc() which Firestore can't
+    // statically resolve against a scoped query, so a `where teamId
+    // == X` LIST 403's outright even when per-doc runtime eval would
+    // pass. Split read → get + list. GET stays tight so random-id
+    // fishing still fails. LIST is `if isAuthed()` and clients are
+    // expected to scope with `where teamId == selectedTeamId`. Same
+    // trust posture as players (July 9 fix). Custom-claims teamIds
+    // is the long-term shape that lets us re-tighten.
     match /live_games/{gameId} {
-      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow get:  if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow list: if isAuthed();
       allow create: if isAuthed()
         && onTeam(request.resource.data.teamId)
         && canCoachWrite();
@@ -584,7 +611,8 @@ service cloud.firestore {
 
     // Practice plans — team-scoped throughout.
     match /practice_plans/{planId} {
-      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow get:  if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow list: if isAuthed();
       allow create: if isAuthed()
         && onTeam(request.resource.data.teamId)
         && canCoachWrite();
@@ -593,14 +621,16 @@ service cloud.firestore {
 
     // Stats records (per-game player stats). Team-scoped.
     match /stats/{statId} {
-      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow get:  if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow list: if isAuthed();
       allow create: if isAuthed() && onTeam(request.resource.data.teamId);
       allow update, delete: if isAuthed();
     }
 
     // Player development plans. Team-scoped.
     match /development_plans/{planId} {
-      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow get:  if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow list: if isAuthed();
       allow create: if isAuthed()
         && onTeam(request.resource.data.teamId)
         && canCoachWrite();
@@ -616,6 +646,14 @@ service cloud.firestore {
     }
 
     match /volunteers/{volunteerId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Volunteer sign-up slots created off events (snacks, drivers,
+    // etc). VolunteerScheduler queries scoped by teamId client-side.
+    // Missing this rule was making the page silently deny — collection
+    // was undefined so fell to the catch-all deny at the bottom.
+    match /volunteer_opportunities/{oppId} {
       allow read, write: if request.auth != null;
     }
 

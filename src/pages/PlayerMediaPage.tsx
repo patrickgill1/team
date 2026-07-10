@@ -33,7 +33,7 @@ const PlayerMediaPage: React.FC = () => {
   const { isAdult: isAdultTeam } = useTeamAudience(selectedTeam);
   const navigate = useNavigate();
   const canManageMedia = canManageTeamMedia(userData, selectedTeam);
-  const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, getPlayersByTeam, deleteDocument, updateDocument, updatePlayerStats, addGameStat } = useFirestore();
+  const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, getPlayersByTeam, getUsersByTeam, deleteDocument, updateDocument, updatePlayerStats, addGameStat } = useFirestore();
   const { uploadFile } = useStorage();
 
   const [players, setPlayers] = useState<Player[]>([]);
@@ -190,7 +190,7 @@ const PlayerMediaPage: React.FC = () => {
         getPlayersByTeam(selectedTeamId).catch(() => []),
         mediaPromise,
         galleryPromise,
-        getDocuments('users', []).catch(() => []),
+        getUsersByTeam(selectedTeamId).catch(() => []),
       ]);
 
       // Build uid -> name lookup for likes/views display

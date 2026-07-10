@@ -38,7 +38,7 @@ const ClubOverview: React.FC = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
   const { setSelectedTeamId } = useTeam();
-  const { getDocuments, getPlayersByTeam } = useFirestore();
+  const { getDocuments, getPlayersByTeam, getUsersByTeam } = useFirestore();
   const { clubId: scopedClubId } = useClubId();
   const { has: hasClubScope } = useClubScopes(scopedClubId);
 
@@ -126,15 +126,15 @@ const ClubOverview: React.FC = () => {
       }
       const teamIdSet = new Set<string>(teamDocs.map(t => t.id));
 
-      // Players are team-scoped now. Fan out across every team in the
-      // club, dedupe by id (shared players roster'd to two teams show
-      // once). Events + users LIST rules stayed permissive so they
-      // still fetch broadly and filter client-side by teamIdSet.
+      // Players + users are team-scoped now. Fan out across every
+      // team in the club, dedupe by id (shared players roster'd to
+      // two teams show once, coaches on multiple teams the same).
+      // Events LIST stays permissive.
       const teamIdList = teamDocs.map(t => t.id).filter(Boolean);
-      const [playerSets, e, u] = await Promise.all([
+      const [playerSets, e, userSets] = await Promise.all([
         Promise.all(teamIdList.map(id => getPlayersByTeam(id).catch(() => []))),
         getDocuments('events', []).catch(() => []),
-        getDocuments('users', []).catch(() => []),
+        Promise.all(teamIdList.map(id => getUsersByTeam(id).catch(() => []))),
       ]);
       const seenP = new Set<string>();
       const p: any[] = [];
@@ -143,6 +143,16 @@ const ClubOverview: React.FC = () => {
           if (seenP.has(pl.id)) continue;
           seenP.add(pl.id);
           p.push(pl);
+        }
+      }
+      const seenU = new Set<string>();
+      const u: any[] = [];
+      for (const set of userSets) {
+        for (const usr of set as any[]) {
+          const key = usr.uid || usr.id;
+          if (!key || seenU.has(key)) continue;
+          seenU.add(key);
+          u.push(usr);
         }
       }
       setTeams(teamDocs);

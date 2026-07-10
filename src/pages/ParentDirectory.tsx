@@ -41,7 +41,7 @@ interface ProfileFormData {
 const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getDocuments, updateDocument, getDocument, getPlayersByTeam } = useFirestore();
+  const { getDocuments, updateDocument, getDocument, getPlayersByTeam, getUsersByTeam } = useFirestore();
   const [directory, setDirectory] = useState<DirectoryEntry[]>([]);
   const [pendingMembers, setPendingMembers] = useState<any[]>([]);
   const [allTeamPlayers, setAllTeamPlayers] = useState<any[]>([]);
@@ -136,26 +136,19 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
     try {
       setLoading(true);
       
-      // Players are team-scoped via getPlayersByTeam (post-2026-07-08
-      // rule tightening — unfiltered players LIST silently 403s once
-      // multi-tenant data exists). Users still fetched broadly because
-      // the users LIST rule permits cross-tenant reads for the
-      // directory-lookup case; filtered by teamIds below.
-      const [users, teamPlayers] = await Promise.all([
-        getDocuments('users', []),
+      // Users + players both team-scoped. getUsersByTeam merges
+      // `teamIds array-contains` + `teamId ==` legacy queries so
+      // the rule-check-per-doc passes and the client only sees the
+      // caller's own team's users.
+      const [teamUsers, teamPlayers] = await Promise.all([
+        getUsersByTeam(selectedTeamId),
         getPlayersByTeam(selectedTeamId),
       ]);
-
-      // Filter users properly - include both parents AND coaches, but filter by team
-      const teamUsers = users.filter((user: any) => {
-        const isTeamMember = user.teamId === selectedTeamId || (user.teamIds && user.teamIds.includes(selectedTeamId));
-        const isActiveUser = user.isActive !== false;
-        return isTeamMember && isActiveUser;
-      });
+      const teamUsersActive = teamUsers.filter((u: any) => u.isActive !== false);
 
       // Separate pending (unapproved parents) from approved members
-      const pending = teamUsers.filter((u: any) => u.role === 'parent' && u.approved === false);
-      const approvedUsers = teamUsers.filter((u: any) => u.role === 'coach' || u.approved !== false);
+      const pending = teamUsersActive.filter((u: any) => u.role === 'parent' && u.approved === false);
+      const approvedUsers = teamUsersActive.filter((u: any) => u.role === 'coach' || u.approved !== false);
       setPendingMembers(pending);
 
       setAllTeamPlayers(teamPlayers);

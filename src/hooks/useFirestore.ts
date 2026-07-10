@@ -233,6 +233,35 @@ const getUserData = useCallback(async (uid: string) => {
     return updateDocument('players', playerId, updateData);
   }, []);
 
+  // Scope users LIST to a single team, mirroring getPlayersByTeam.
+  // The unfiltered `getDocuments('users', [])` pattern that used to
+  // live in Directory / People / VolunteerScheduler / etc. 403's
+  // now that the users LIST rule requires a statically-resolvable
+  // where clause. Callers can safely swap `getDocuments('users', [])`
+  // for `getUsersByTeam(teamId)` — the union of teamIds + legacy
+  // teamId matches what the client-side filter used to compute.
+  //
+  // Deduplication is by uid (or fallback to doc id). Inactive users
+  // are still returned because callers often want to distinguish
+  // "pending" from "gone" — apply an `isActive !== false` filter at
+  // the call site if you want to hide deactivated members.
+  const getUsersByTeam = useCallback(async (teamId: string) => {
+    if (!teamId) return [];
+    const [byTeamIds, byLegacyTeamId] = await Promise.all([
+      getDocuments('users', [where('teamIds', 'array-contains', teamId)]).catch(() => []),
+      getDocuments('users', [where('teamId', '==', teamId)]).catch(() => []),
+    ]);
+    const seen = new Set<string>();
+    const merged: any[] = [];
+    for (const u of [...byTeamIds, ...byLegacyTeamId] as any[]) {
+      const key = u.uid || u.id;
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      merged.push(u);
+    }
+    return merged;
+  }, [getDocuments]);
+
   const getPlayersByTeam = useCallback(async (teamId: string) => {
     // Scope to the requested team AT THE QUERY LEVEL. The old
     // "fetch every active player, filter client-side" pattern worked
@@ -958,6 +987,8 @@ const getUserData = useCallback(async (uid: string) => {
     // User functions
     getUserData,
     createUser,
+    // User functions
+    getUsersByTeam,
     // Player functions
     addPlayer,
     updatePlayer,

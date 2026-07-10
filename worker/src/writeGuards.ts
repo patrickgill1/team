@@ -218,10 +218,14 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
     ok: true,
     uid: claims.uid,
     linkedCount: linked.length,
-    // Return the resolved role so the client can update its cached
-    // userData without a round-trip refresh. Callers that don't need
-    // this ignore the field.
-    role: linked.length > 0 && wantRole === 'coach' ? 'parent' : wantRole,
+    // Return the ACTUAL stored role (wantRole) so the client's cached
+    // userData matches Firestore. The prior expression returned
+    // 'parent' when a coach signed up whose email happened to match a
+    // player's parentEmails — but the DB was still stamped 'coach' at
+    // line 108. Client rendered parent UI briefly, then flipped to
+    // coach on hard refresh. Exact 3.9.156 regression class this
+    // endpoint was supposed to fix. Audited 2026-07-10.
+    role: wantRole,
   });
 }
 
@@ -461,16 +465,34 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
   // a retry hits the idempotent short-circuit above and heals. For
   // maxUses>1 invites both arrayUnion and increment are commutative,
   // so two concurrent callers both succeed correctly.
-  await commitDocumentTransforms(
-    pid,
-    `invites/${inviteId}`,
-    [
-      { fieldPath: 'usedCount', kind: 'increment', value: 1 },
-      { fieldPath: 'usedBy', kind: 'arrayUnion', value: claims.uid },
-    ],
-    null,
-    sa,
-  );
+  //
+  // For maxUses=1 there's a real TOCTOU: both callers pass the
+  // usedCount<maxUses check, both commit, invite ends up with
+  // usedCount=2 and both get the grant. When the invite is
+  // single-use, pass an updateTime precondition so only one commit
+  // wins. Multi-use invites keep commutative semantics (no
+  // precondition) since both callers should succeed.
+  const preconditionOnSingleUse = maxUses <= 1 && inviteDoc.updateTime
+    ? { updateTime: inviteDoc.updateTime }
+    : undefined;
+  try {
+    await commitDocumentTransforms(
+      pid,
+      `invites/${inviteId}`,
+      [
+        { fieldPath: 'usedCount', kind: 'increment', value: 1 },
+        { fieldPath: 'usedBy', kind: 'arrayUnion', value: claims.uid },
+      ],
+      null,
+      sa,
+      preconditionOnSingleUse,
+    );
+  } catch (err) {
+    if (err instanceof PreconditionFailedError) {
+      return json({ ok: false, error: 'invite_exhausted' }, 410);
+    }
+    throw err;
+  }
 
   // Club coverage lookup — coach + team_manager joining a NON-solo
   // club inherit coverage. Non-fatal: a bad lookup logs and skips
@@ -731,7 +753,15 @@ async function handleClaimOfferDecline(req: Request, env: Env, payload: any): Pr
   const offerDoc = await getDocument(pid, `offers/${offerId}`, sa).catch(() => null);
   if (!offerDoc?.data) return json({ ok: false, error: 'offer_not_found' }, 404);
   const offer: any = offerDoc.data;
-  if (offer.parentEmail && normEmail(offer.parentEmail) !== normEmail(claims.email)) {
+  // Recipient guard: refuse decline unless offer.parentEmail is set
+  // AND matches the caller's email. Previous check let a decline
+  // through when parentEmail was empty because the leading truthy
+  // check short-circuited — any authed user could DoS an unclaimed
+  // offer by force-declining it. Audit 2026-07-10.
+  if (!offer.parentEmail || !claims.email) {
+    return json({ ok: false, error: 'wrong_recipient' }, 403);
+  }
+  if (normEmail(offer.parentEmail) !== normEmail(claims.email)) {
     return json({ ok: false, error: 'wrong_recipient' }, 403);
   }
   await patchDocument(
@@ -956,11 +986,22 @@ async function handleClubsCreate(req: Request, env: Env, payload: any): Promise<
 // ────────────────────────────────────────────────────────────────
 async function handleTeamsAddCoach(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
-  await requireCoachOfTeam(req, env, teamId);
+  const claims = await requireCoachOfTeam(req, env, teamId);
   const { pid, sa } = projectAndSA(env);
   const coachUid = String(payload?.coachUid || '');
   if (!coachUid) return json({ ok: false, error: 'coach_uid_required' }, 400);
-  const coachLevel = payload?.coachLevel === 'head_coach' ? 'head_coach' : 'assistant';
+  // Assistant coaches cannot promote themselves or an alt account to
+  // head_coach via /teams/add-coach — head transfer has its own
+  // endpoint (/teams/transfer-head). Assistant callers who pass
+  // head_coach silently get downgraded to assistant. Head coach can
+  // still pass any level; club/team_manager caller too. Closes the
+  // 2026-07-10 audit vuln: assistant crowns their alt account, then
+  // removes the real head via /teams/remove-coach.
+  const teamDocForRole = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  const currentHeadId = String(teamDocForRole?.data?.headCoachId || '');
+  const isHead = currentHeadId && currentHeadId === claims.uid;
+  const requestedLevel = payload?.coachLevel === 'head_coach' ? 'head_coach' : 'assistant';
+  const coachLevel = requestedLevel === 'head_coach' && !isHead ? 'assistant' : requestedLevel;
 
   await applyMembership({
     operationSource: 'teams_add_coach',
@@ -983,10 +1024,23 @@ async function handleTeamsAddCoach(req: Request, env: Env, payload: any): Promis
 // ────────────────────────────────────────────────────────────────
 async function handleTeamsRemoveCoach(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
-  await requireCoachOfTeam(req, env, teamId);
+  const claims = await requireCoachOfTeam(req, env, teamId);
   const { pid, sa } = projectAndSA(env);
   const coachUid = String(payload?.coachUid || '');
   if (!coachUid) return json({ ok: false, error: 'coach_uid_required' }, 400);
+  // Protect the head coach: any coach can remove themselves or a
+  // peer, but only the head (or platform admin) can remove the head.
+  // Otherwise an assistant would be able to eject the head coach
+  // and rearrange the roster. Self-removal is always allowed.
+  const teamDocForHeadCheck = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  const currentHeadId = String(teamDocForHeadCheck?.data?.headCoachId || '');
+  if (coachUid === currentHeadId && claims.uid !== currentHeadId) {
+    return json({
+      ok: false,
+      error: 'cannot_remove_head_coach',
+      message: 'Only the head coach can remove themselves. Use "Transfer head coach" first.',
+    }, 403);
+  }
 
   await commitDocumentTransforms(
     pid,
@@ -1261,6 +1315,54 @@ async function handleUsersSetSelfRole(req: Request, env: Env, payload: any): Pro
   }
   await patchDocument(pid, `users/${claims.uid}`, patch, sa);
 
+  // Coach → parent demotion: clean up team.coachIds so the user no
+  // longer appears in the roster of any team they coached. Without
+  // this, requireCoachOfTeam continued to succeed for them despite
+  // their public role='parent' — a stale-membership bug the audit
+  // caught 2026-07-10. Only fires on demotion; parent→coach path
+  // above is blocked entirely.
+  if (currentRole === 'coach' && nextRole === 'parent') {
+    const teamIds: string[] = Array.isArray(current.data.teamIds) ? current.data.teamIds : [];
+    for (const tid of teamIds) {
+      if (!tid) continue;
+      try {
+        const team = await getDocument(pid, `teams/${tid}`, sa).catch(() => null);
+        if (!team?.data) continue;
+        const coachIds: string[] = Array.isArray(team.data.coachIds) ? team.data.coachIds : [];
+        const assistantIds: string[] = Array.isArray(team.data.assistantCoachIds) ? team.data.assistantCoachIds : [];
+        const managerIds: string[] = Array.isArray(team.data.managerIds) ? team.data.managerIds : [];
+        const teamTransforms: any[] = [];
+        if (coachIds.includes(claims.uid)) {
+          teamTransforms.push({ fieldPath: 'coachIds', kind: 'arrayRemove', value: claims.uid });
+        }
+        if (assistantIds.includes(claims.uid)) {
+          teamTransforms.push({ fieldPath: 'assistantCoachIds', kind: 'arrayRemove', value: claims.uid });
+        }
+        if (managerIds.includes(claims.uid)) {
+          teamTransforms.push({ fieldPath: 'managerIds', kind: 'arrayRemove', value: claims.uid });
+        }
+        // Also clear headCoachId if they were the head. Team is now
+        // orphaned head-coach-wise; another coach must take over via
+        // /teams/transfer-head-coach.
+        const teamPatch: Record<string, any> = {};
+        if (team.data.headCoachId === claims.uid) {
+          teamPatch.headCoachId = null;
+        }
+        if (teamTransforms.length > 0 || Object.keys(teamPatch).length > 0) {
+          await commitDocumentTransforms(
+            pid,
+            `teams/${tid}`,
+            teamTransforms,
+            Object.keys(teamPatch).length ? teamPatch : null,
+            sa,
+          );
+        }
+      } catch (err) {
+        console.warn('[setSelfRole] team cleanup failed for', tid, (err as Error).message);
+      }
+    }
+  }
+
   // Phase A: role changed → stage may need to move between
   // needs_team ↔ needs_player.
   await stampStage(claims.uid, pid, sa);
@@ -1275,7 +1377,7 @@ async function handleUsersSetSelfRole(req: Request, env: Env, payload: any): Pro
 // ────────────────────────────────────────────────────────────────
 async function handleUsersSetRole(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
-  await requireCoachOfTeam(req, env, teamId);
+  const claims = await requireCoachOfTeam(req, env, teamId);
   const { pid, sa } = projectAndSA(env);
   const targetUid = String(payload?.targetUid || '');
   const nextRole = payload?.role === 'coach' ? 'coach' : 'parent';
@@ -1286,7 +1388,23 @@ async function handleUsersSetRole(req: Request, env: Env, payload: any): Promise
   if (!targetTeams.includes(teamId)) {
     return json({ ok: false, error: 'target_not_on_team' }, 403);
   }
-  const patch: Record<string, any> = { role: nextRole, approved: true };
+  // Head-coach protection: refuse to change the head coach's role
+  // unless the caller is the head themselves. Otherwise an assistant
+  // could demote the head to parent. Also never auto-set approved
+  // when target's global role is 'club_admin' (director path).
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  const currentHeadId = String(teamDoc?.data?.headCoachId || '');
+  if (targetUid === currentHeadId && claims.uid !== currentHeadId) {
+    return json({
+      ok: false,
+      error: 'cannot_change_head_role',
+      message: 'Only the head coach can change their own role. Transfer head first.',
+    }, 403);
+  }
+  if (target.data.role === 'club_admin') {
+    return json({ ok: false, error: 'cannot_change_club_admin_role' }, 403);
+  }
+  const patch: Record<string, any> = { role: nextRole };
   if (nextRole === 'coach') patch.coachLevel = 'assistant';
   await patchDocument(pid, `users/${targetUid}`, patch, sa);
   // If promoting to coach, also add to team.coachIds.
@@ -1352,7 +1470,7 @@ async function handleUsersApprove(req: Request, env: Env, payload: any): Promise
 // ────────────────────────────────────────────────────────────────
 async function handleUsersDeactivate(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
-  await requireCoachOfTeam(req, env, teamId);
+  const claims = await requireCoachOfTeam(req, env, teamId);
   const { pid, sa } = projectAndSA(env);
   const targetUid = String(payload?.targetUid || '');
   if (!targetUid) return json({ ok: false, error: 'target_uid_required' }, 400);
@@ -1361,6 +1479,18 @@ async function handleUsersDeactivate(req: Request, env: Env, payload: any): Prom
   const targetTeams: string[] = Array.isArray(target.data.teamIds) ? target.data.teamIds : [];
   if (!targetTeams.includes(teamId)) {
     return json({ ok: false, error: 'target_not_on_team' }, 403);
+  }
+  // Head-coach protection: an assistant cannot deactivate the head
+  // coach. The head must transfer first, then deactivate themselves
+  // (which is a self-op and always allowed).
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  const currentHeadId = String(teamDoc?.data?.headCoachId || '');
+  if (targetUid === currentHeadId && claims.uid !== currentHeadId) {
+    return json({
+      ok: false,
+      error: 'cannot_deactivate_head',
+      message: 'Only the head coach can deactivate themselves. Transfer head first.',
+    }, 403);
   }
   const patch: Record<string, any> = { isActive: false };
   if (payload?.reject === true) patch.approved = false;
@@ -1947,7 +2077,35 @@ async function handlePlayersLinkParent(req: Request, env: Env, payload: any): Pr
   const playerId = String(payload?.playerId || '');
   const parentUid = String(payload?.parentUid || '');
   if (!playerId || !parentUid) return json({ ok: false, error: 'ids_required' }, 400);
-  const parentEmail = payload?.parentEmail ? normEmail(payload.parentEmail) : '';
+
+  // Consent gate (audit 2026-07-10): the target uid MUST exist as a
+  // real user AND its email MUST already be on the player's
+  // parentEmails. Without this, a coach could pass any uid — random
+  // uid from another club, a support account, a personal alt — and
+  // silently attach them as a parent + fan the coach's team onto
+  // the victim's user.teamIds. The player.parentEmails membership
+  // check acts as "the coach already added this email to the player,
+  // so linking the uid behind that email is the intended action".
+  const targetUser = await getDocument(pid, `users/${parentUid}`, sa).catch(() => null);
+  if (!targetUser?.data) {
+    return json({ ok: false, error: 'target_user_not_found' }, 404);
+  }
+  const player = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+  if (!player?.data) {
+    return json({ ok: false, error: 'player_not_found' }, 404);
+  }
+  const targetEmail = targetUser.data?.email ? normEmail(targetUser.data.email) : '';
+  const playerEmails: string[] = Array.isArray(player.data?.parentEmails)
+    ? player.data.parentEmails.map(normEmail)
+    : [];
+  if (!targetEmail || !playerEmails.includes(targetEmail)) {
+    return json({
+      ok: false,
+      error: 'consent_missing',
+      message: "Add the parent's email to this player first — that's what signals they should be linked.",
+    }, 403);
+  }
+  const parentEmail = payload?.parentEmail ? normEmail(payload.parentEmail) : targetEmail;
   const transforms: any[] = [{ fieldPath: 'parentIds', kind: 'arrayUnion', value: parentUid }];
   if (parentEmail) transforms.push({ fieldPath: 'parentEmails', kind: 'arrayUnion', value: parentEmail });
   await commitDocumentTransforms(pid, `players/${playerId}`, transforms, null, sa);
@@ -2317,7 +2475,23 @@ async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: a
   const { pid, sa } = projectAndSA(env);
   // Load user first — need role, teamId (legacy singular), teamIds
   // (canonical), clubIds for the heal set + diagnostic response.
+  //
+  // Phantom user guard (audit 2026-07-10): if the /users/{uid} doc
+  // doesn't exist yet, we must NOT create one via arrayUnion patches
+  // (Firestore commit with a transform+patch on a missing doc creates
+  // it, leaving a fields-partial phantom user with no email / uid /
+  // createdAt). The /users/bootstrap endpoint is the sole legitimate
+  // create path; heal running before bootstrap indicates a client
+  // race, not a real user. Return a soft 200 so the client's periodic
+  // heal loop stops complaining without blocking downstream work.
   const currentUser = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+  if (!currentUser?.data) {
+    return json({
+      ok: true,
+      status: 'user_doc_missing',
+      hint: 'bootstrap the user doc first via /users/bootstrap',
+    });
+  }
   const legacyTeamId: string | null = typeof currentUser?.data?.teamId === 'string' && currentUser.data.teamId
     ? currentUser.data.teamId
     : null;

@@ -66,56 +66,19 @@ const Offer: React.FC = () => {
     if (!offer || !registration) return;
     setSubmitting(true);
     try {
-      // Player now exists from registration time — accepting an offer
-      // just rosters them onto the coach's team. No new Player doc.
-      // Fall back to creating one ONLY for legacy registrations from
-      // before the auth-gated /register that pre-creates the Player.
-      let playerId = registration.promotedToPlayerId || registration.playerId;
-      if (playerId) {
-        // Add the team to the existing player. Preserve any teams
-        // already there (a kid on Sat-Skills + getting a primary
-        // team offer should end up on both).
-        const playerSnap = await getDoc(doc(db, 'players', playerId));
-        const existingTeamIds: string[] = playerSnap.exists()
-          ? ((playerSnap.data() as any)?.teamIds || [])
-          : [];
-        const nextTeamIds = Array.from(new Set([...existingTeamIds, offer.teamId]));
-        await updateDoc(doc(db, 'players', playerId), {
-          teamId: offer.teamId,
-          teamIds: nextTeamIds,
-          ...(offer.offerPosition ? { position: offer.offerPosition } : {}),
-          ...(offer.offerJerseyNumber != null ? { jerseyNumber: offer.offerJerseyNumber } : {}),
-          rosteredFromOfferId: offer.id,
-          rosteredAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      } else {
-        // Legacy path — pre-auth registrations that never created a
-        // Player. Create one now from the Registration snapshot.
-        const parentEmails = (registration.parents || [])
-          .map(p => p.email?.toLowerCase().trim())
-          .filter(Boolean) as string[];
-        const playerData: Record<string, any> = {
-          name: `${registration.player.firstName} ${registration.player.lastName}`,
-          firstName: registration.player.firstName,
-          lastName: registration.player.lastName,
-          dateOfBirth: registration.player.dateOfBirth ? new Date(registration.player.dateOfBirth) : null,
-          gender: registration.player.gender,
-          position: offer.offerPosition || registration.player.preferredPosition || null,
-          jerseyNumber: offer.offerJerseyNumber ?? null,
-          teamId: offer.teamId,
-          teamIds: [offer.teamId],
-          clubId: offer.clubId,
-          parentEmails,
-          medicalInfo: registration.player.medicalNotes || null,
-          isActive: true,
-          createdAt: serverTimestamp(),
-          promotedFromRegistrationId: registration.id,
-          promotedFromOfferId: offer.id,
-        };
-        const playerRef = await addDoc(collection(db, 'players'), playerData);
-        playerId = playerRef.id;
-      }
+      // Whole accept flow lives on the worker now (2026-07-10). The
+      // previous client updateDoc that stamped teamId + position on
+      // the player fired FIRST and always 403'd — Firestore rules
+      // block parents from writing teamId on player docs, so every
+      // real family tapping Accept got a red error toast while the
+      // worker call never even ran. Worker /claim/offer-accept:
+      //   - flips offer → accepted
+      //   - patches player (teamId, teamIds arrayUnion, position,
+      //     jerseyNumber, rosteredFromOfferId, rosteredAt)
+      //   - grants the accepting parent team membership via
+      //     applyMembership (parentIds + user.teamIds + children +
+      //     role=parent + stampStage).
+      const playerId = registration.promotedToPlayerId || registration.playerId;
 
       // Persist a form_signatures doc per bundled waiver before the
       // offer flips to accepted. We key each doc as ${playerId}_${formId}
@@ -160,24 +123,46 @@ const Offer: React.FC = () => {
       const { workerFetch } = await import('../utils/workerFetch');
       const acceptRes = await workerFetch('/claim/offer-accept', {
         method: 'POST',
-        body: JSON.stringify({ offerId: offer.id }),
+        body: JSON.stringify({
+          offerId: offer.id,
+          player: {
+            position: offer.offerPosition,
+            jerseyNumber: offer.offerJerseyNumber,
+          },
+        }),
       });
       const acceptData: any = await acceptRes.json().catch(() => ({}));
       if (!acceptRes.ok || !acceptData?.ok) {
         throw new Error(acceptData?.error || `accept-${acceptRes.status}`);
       }
-      await updateDoc(doc(db, 'offers', offer.id), {
-        promotedToPlayerId: playerId,
-        promotedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      await updateDoc(doc(db, 'registrations', registration.id), {
-        status: 'accepted',
-        promotedToPlayerId: playerId,
-        promotedToTeamId: offer.teamId,
-        promotedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+
+      // Stamp promoted-fields on offer + registration for admin
+      // reporting. These are the fields in the offers rule allowlist
+      // (status | respondedAt | declineReason | promotedToPlayerId |
+      // promotedAt | updatedAt) so the client can write them; the
+      // registration side is currently any-authed writable and will
+      // move to a worker-endpoint-owned write once the registrations
+      // rule tightens.
+      try {
+        await updateDoc(doc(db, 'offers', offer.id), {
+          promotedToPlayerId: playerId,
+          promotedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.warn('offer promoted-fields update failed (non-fatal)', err);
+      }
+      try {
+        await updateDoc(doc(db, 'registrations', registration.id), {
+          status: 'accepted',
+          promotedToPlayerId: playerId,
+          promotedToTeamId: offer.teamId,
+          promotedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.warn('registration promoted-fields update failed (non-fatal)', err);
+      }
 
       // Activities.
       await logActivity({

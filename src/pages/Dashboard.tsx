@@ -660,7 +660,7 @@ const Dashboard: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        const w = await getWeatherForEvent(nextEvent.location, new Date(nextEvent.date));
+        const w = await getWeatherForEvent(nextEvent.location, new Date(nextEvent.date), (nextEvent as any).locationCoords);
         if (!cancelled) setNextEventWeather(w);
       } catch { /* ignore */ }
     })();

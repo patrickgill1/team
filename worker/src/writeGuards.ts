@@ -265,6 +265,7 @@ type MembershipOperationSource =
   | 'claim_invite'
   | 'claim_coach_invite'
   | 'claim_player_link'
+  | 'claim_offer_accept'
   | 'teams_add_coach';
 type MembershipApprovalStatus =
   | 'auto'
@@ -655,28 +656,69 @@ async function handleClaimOfferAccept(req: Request, env: Env, payload: any): Pro
 
   const teamId = String(offer.teamId || '');
   const playerId = String(offer.playerId || '');
+  const now = new Date();
+
+  // 1. Flip the offer to accepted (audit trail).
   await patchDocument(
     pid,
     `offers/${offerId}`,
-    { status: 'accepted', acceptedAt: new Date(), acceptedBy: claims.uid },
+    {
+      status: 'accepted',
+      acceptedAt: now,
+      acceptedBy: claims.uid,
+      updatedAt: now,
+    },
     sa,
   );
+
+  // 2. Player patch — accepts optional position/jersey/roster fields
+  //    from the client so the coach's roster picks them up on the
+  //    same commit. Previously the client attempted this write and
+  //    hit permission-denied (players.update blocks teamId edits
+  //    from the parent branch). Consolidated here so the whole
+  //    accept flow lands atomically via the service account.
   if (playerId && teamId) {
+    const playerPatch: Record<string, any> = {
+      teamId,
+      rosteredFromOfferId: offerId,
+      rosteredAt: now,
+    };
+    const p: any = payload?.player || {};
+    if (p.position) playerPatch.position = String(p.position).slice(0, 40);
+    if (typeof p.jerseyNumber === 'number') playerPatch.jerseyNumber = p.jerseyNumber;
     await commitDocumentTransforms(
       pid,
       `players/${playerId}`,
       [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId }],
-      { teamId },
+      playerPatch,
       sa,
     );
   }
 
-  // Phase A: offer accept usually means the parent's own user doc
-  // already had this team on teamIds (they registered with an email
-  // that matched a player linked here). Restamp anyway — the offer
-  // accept flow can grant coverage in edge cases (returning family
-  // moving between teams within the same club).
-  await stampStage(claims.uid, pid, sa);
+  // 3. Grant the accepting parent team + player-link membership.
+  //    Uses applyMembership so parentIds arrayUnion, user.teamIds
+  //    arrayUnion, user.children arrayUnion, role='parent',
+  //    approvalStatus='auto', stampStageFor all fire in one shot.
+  //    Previously omitted — parent accepted the offer but never got
+  //    the team in their switcher, chat, RSVPs, etc. Silent breakage
+  //    of the tryout happy path for every family who accepted.
+  if (playerId && teamId) {
+    await applyMembership({
+      operationSource: 'claim_offer_accept',
+      targetUid: claims.uid,
+      teamIds: [teamId],
+      legacyTeamId: teamId,
+      role: 'parent',
+      relationship: 'parent',
+      approvalStatus: 'auto',
+      invitedVia: `offer:${offerId}`,
+      playerLink: { playerId },
+    }, pid, sa);
+  } else {
+    // Offer without a linked player+team can still fire stage
+    // recompute (edge case: pre-Phase-1 offers).
+    await stampStage(claims.uid, pid, sa);
+  }
 
   return json({ ok: true, teamId, playerId });
 }
@@ -1631,6 +1673,200 @@ async function handleEventsBatchCreate(req: Request, env: Env, payload: any): Pr
   return json({ ok: true, created: ids.length, ids });
 }
 
+// ════════════════════════════════════════════════════════════════
+// /register/submit — cold + returning family registration.
+// ════════════════════════════════════════════════════════════════
+//
+// Owned server-side because the two writes it makes (Player create
+// + Registration create) both target collections with strict
+// per-doc rules that no cold-signup parent can satisfy from the
+// client:
+//   - players create rule: canCoachWrite() && onTeam(teamId)
+//     A parent isn't on any team yet, so cold submits 403 every
+//     time (Register.tsx:401 pre-refactor).
+//   - registrations rule: post-2026-07-10 tightening will require
+//     the caller's email be on the parentEmails denorm array;
+//     that denorm didn't exist client-side.
+//
+// This endpoint atomically:
+//   1. Creates or updates a Player doc (teamId:null, parentIds:[uid],
+//      parentEmails from the parents[] payload, medical, clubId,
+//      registrationSeasonId).
+//   2. Creates a Registration doc with everything the admin timeline
+//      needs, PLUS a parentEmails: string[] denorm for the tightened
+//      rule.
+//   3. Stamps player.funnelProgress.register so the FunnelStepper
+//      visualizes the kid past the first hurdle from day one.
+//
+// Idempotency: if the client retries after a network drop, pass
+// idempotencyKey (any stable string) and we look up an existing
+// registration with that key on the same clubId; if found, we
+// return its ids without re-creating.
+// ────────────────────────────────────────────────────────────────
+async function handleRegisterSubmit(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  const clubId = String(payload?.clubId || '');
+  const seasonId = String(payload?.seasonId || '');
+  if (!clubId) return json({ ok: false, error: 'club_id_required' }, 400);
+  if (!seasonId) return json({ ok: false, error: 'season_id_required' }, 400);
+
+  const season = await getDocument(pid, `seasons/${seasonId}`, sa).catch(() => null);
+  if (!season?.data) return json({ ok: false, error: 'season_not_found' }, 404);
+  if ((season.data as any).registrationOpen !== true) {
+    return json({ ok: false, error: 'registration_closed' }, 409);
+  }
+
+  const p: any = payload?.player || {};
+  const firstName = String(p.firstName || '').trim().slice(0, 60);
+  const lastName = String(p.lastName || '').trim().slice(0, 60);
+  const name = `${firstName} ${lastName}`.trim();
+  if (!name) return json({ ok: false, error: 'player_name_required' }, 400);
+
+  const parentsRaw = Array.isArray(payload?.parents) ? payload.parents : [];
+  const parents = parentsRaw
+    .filter((x: any) => x?.firstName && x?.email)
+    .slice(0, 4)
+    .map((x: any) => ({
+      firstName: String(x.firstName).trim().slice(0, 60),
+      lastName: String(x.lastName || '').trim().slice(0, 60),
+      email: normEmail(x.email),
+      phone: String(x.phone || '').trim().slice(0, 30) || undefined,
+      relationship: String(x.relationship || 'parent').slice(0, 30),
+    }));
+  if (parents.length === 0) return json({ ok: false, error: 'parents_required' }, 400);
+
+  const parentEmails: string[] = Array.from(new Set(
+    parents.map((p: { email: string }) => p.email).filter(Boolean).concat(claims.email ? [normEmail(claims.email)] : [])
+  ));
+
+  // Idempotency guard: check for an existing registration keyed to
+  // the same (clubId, uid, seasonId, idempotencyKey) tuple.
+  const idempotencyKey = String(payload?.idempotencyKey || '').slice(0, 80);
+  if (idempotencyKey) {
+    try {
+      const existing = await runQuery(
+        pid,
+        'registrations',
+        [
+          { field: 'clubId', op: 'EQUAL', value: clubId },
+          { field: 'idempotencyKey', op: 'EQUAL', value: idempotencyKey },
+          { field: 'createdByUid', op: 'EQUAL', value: claims.uid },
+        ],
+        sa,
+        1,
+      );
+      if (existing.length > 0) {
+        const doc: any = existing[0];
+        return json({
+          ok: true,
+          idempotent: true,
+          registrationId: doc.id,
+          playerId: doc.data?.playerId || null,
+        });
+      }
+    } catch (err) {
+      console.warn('[register] idempotency lookup failed, proceeding:', (err as Error).message);
+    }
+  }
+
+  const returnPlayerId = String(payload?.returnPlayerId || '');
+  let playerId = returnPlayerId;
+  const now = new Date();
+
+  if (returnPlayerId) {
+    // Returning family — attach the current parent's uid + email to
+    // the existing player without clobbering the roster's teamIds or
+    // other coach-side fields.
+    const playerTransforms: any[] = [
+      { fieldPath: 'parentIds', kind: 'arrayUnion', value: claims.uid },
+    ];
+    if (parentEmails.length > 0) {
+      playerTransforms.push({ fieldPath: 'parentEmails', kind: 'arrayUnion', value: parentEmails });
+    }
+    await commitDocumentTransforms(pid, `players/${returnPlayerId}`, playerTransforms, {
+      registrationSeasonId: seasonId,
+      isActive: true,
+    }, sa);
+  } else {
+    const playerFields: Record<string, any> = {
+      name,
+      firstName,
+      lastName,
+      teamId: null,
+      teamIds: [],
+      clubId,
+      parentIds: [claims.uid],
+      parentEmails,
+      isActive: true,
+      registrationSeasonId: seasonId,
+      createdAt: now,
+      createdBy: claims.uid,
+    };
+    if (p.dateOfBirth) playerFields.dateOfBirth = String(p.dateOfBirth);
+    if (p.gender) playerFields.gender = String(p.gender).slice(0, 20);
+    if (p.preferredPosition) playerFields.position = String(p.preferredPosition).slice(0, 40);
+    if (p.medicalNotes) playerFields.medicalInfo = String(p.medicalNotes).slice(0, 2000);
+    if (p.ageGroup) playerFields.ageGroup = String(p.ageGroup).slice(0, 20);
+    playerId = await createDocument(pid, 'players', playerFields, sa);
+  }
+
+  const regFields: Record<string, any> = {
+    clubId,
+    seasonId,
+    playerId,
+    player: {
+      firstName,
+      lastName,
+      dateOfBirth: p.dateOfBirth || undefined,
+      gender: p.gender || undefined,
+      preferredPosition: p.preferredPosition || undefined,
+      playedBefore: p.playedBefore || undefined,
+      ageGroup: p.ageGroup || undefined,
+      medicalNotes: p.medicalNotes || undefined,
+      jerseySizeRequested: p.jerseySizeRequested || undefined,
+    },
+    parents,
+    parentEmails,
+    status: (payload?.status === 'pending_review' ? 'pending_review' : 'pending_payment'),
+    productId: payload?.productId || undefined,
+    productName: payload?.productName || undefined,
+    pricingTierId: payload?.pricingTierId || undefined,
+    pricingTierLabel: payload?.pricingTierLabel || undefined,
+    registrationFeeCents: Number.isFinite(payload?.registrationFeeCents) ? payload.registrationFeeCents : undefined,
+    couponCode: payload?.couponCode || undefined,
+    couponDiscountCents: Number.isFinite(payload?.couponDiscountCents) ? payload.couponDiscountCents : undefined,
+    amountPaidCents: Number.isFinite(payload?.amountPaidCents) ? payload.amountPaidCents : undefined,
+    stripeSurchargeCents: Number.isFinite(payload?.stripeSurchargeCents) ? payload.stripeSurchargeCents : undefined,
+    earlyBirdApplied: payload?.earlyBirdApplied === true,
+    customAnswers: payload?.customAnswers || undefined,
+    customAnswerLabels: payload?.customAnswerLabels || undefined,
+    source: returnPlayerId ? 'returning' : 'cold',
+    promotedToPlayerId: playerId,
+    createdAt: now,
+    createdByUid: claims.uid,
+  };
+  if (idempotencyKey) regFields.idempotencyKey = idempotencyKey;
+
+  const registrationId = await createDocument(pid, 'registrations', regFields, sa);
+
+  // Funnel stage 1 — auto-write the 'register' checkpoint.
+  try {
+    await patchDocument(pid, `players/${playerId}`, {
+      'funnelProgress.register': {
+        completedAt: now,
+        by: 'system',
+        meta: { registrationId, seasonId },
+      },
+    }, sa);
+  } catch (err) {
+    console.warn('[register] funnel stamp failed (non-fatal):', (err as Error).message);
+  }
+
+  return json({ ok: true, registrationId, playerId });
+}
+
 async function handlePlayersCreate(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
   const claims = await requireCoachOfTeam(req, env, teamId);
@@ -2451,6 +2687,7 @@ export async function routeWriteGuard(
     case '/club/set-admin':        return handleClubSetAdmin(req, env, payload);
     case '/club/remove-admin':     return handleClubRemoveAdmin(req, env, payload);
     case '/xp/award-recognition':  return handleXpAwardRecognition(req, env, payload);
+    case '/register/submit':       return handleRegisterSubmit(req, env, payload);
     default:                       return null;
   }
 }

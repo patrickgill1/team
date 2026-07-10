@@ -13,9 +13,11 @@ export interface WeatherSummary {
 
 interface GeoResult { lat: number; lon: number; name: string; }
 
-// Fallback when a location string can't be geocoded. All Fire FC games are in
-// St George, UT, so this gives us a useful forecast for vague venue names.
-const DEFAULT_GEO: GeoResult = { lat: 37.0965, lon: -113.5684, name: 'St. George, UT' };
+// St-George-fallback removed 2026-07-10: every non-St-George team was
+// silently getting a St. George forecast whenever the location string
+// didn't geocode. Now: no coords → no forecast, no forecast row. Better
+// to show nothing than a wrong number that misleads the coach's
+// rain-out decision.
 
 const GEO_CACHE_KEY = 'weatherGeoCache.v3';
 const FORECAST_CACHE_PREFIX = 'weatherForecast.v3:';
@@ -77,10 +79,10 @@ export async function geocodeLocation(location: string): Promise<GeoResult | nul
     }
   }
   // eslint-disable-next-line no-console
-  console.warn(`[weather] could not geocode "${original}" — falling back to St. George, UT.`);
-  cache[key] = DEFAULT_GEO;
+  console.warn(`[weather] could not geocode "${original}" — no forecast will render.`);
+  cache[key] = null;
   setGeoCache(cache);
-  return DEFAULT_GEO;
+  return null;
 }
 
 // WMO weather code -> emoji + label
@@ -105,14 +107,36 @@ function ymd(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-export async function getWeatherForEvent(location: string, date: Date): Promise<WeatherSummary | null> {
+/**
+ * Fetch a forecast for an event.
+ *
+ * Coord-first: if the event has locationCoords stamped by the
+ * onboarding wizard or EventForm's autocomplete, we use those
+ * directly and skip geocoding entirely — cheapest + most accurate
+ * path. If coords aren't available (legacy event or free-text-only
+ * location), fall back to geocoding the location string.
+ *
+ * Returns null when we can't determine WHERE the event actually is.
+ * Callers should render "no weather" (silent) rather than confidently
+ * showing a wrong forecast.
+ */
+export async function getWeatherForEvent(
+  location: string,
+  date: Date,
+  coords?: { lat?: number | null; lon?: number | null } | null,
+): Promise<WeatherSummary | null> {
   if (!date) return null;
   const eventDay = new Date(date);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const diffDays = Math.floor((eventDay.getTime() - today.getTime()) / 86400000);
   if (diffDays < 0 || diffDays > 15) return null; // forecast horizon
 
-  const geo = location ? (await geocodeLocation(location)) : DEFAULT_GEO;
+  let geo: GeoResult | null = null;
+  if (coords && typeof coords.lat === 'number' && typeof coords.lon === 'number') {
+    geo = { lat: coords.lat, lon: coords.lon, name: location || 'Event location' };
+  } else if (location) {
+    geo = await geocodeLocation(location);
+  }
   if (!geo) return null;
 
   const cacheKey = `${FORECAST_CACHE_PREFIX}${geo.lat.toFixed(2)},${geo.lon.toFixed(2)}`;

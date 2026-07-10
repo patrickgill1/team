@@ -840,10 +840,58 @@ service cloud.firestore {
       );
     }
 
+    // Registrations — parent phone/email/DOB/medical/waiver answers.
+    // Pre-2026-07-10 was `allow read, update, delete: if request.auth
+    // != null` which meant any signed-in user could list every family's
+    // PII across every club. Tightened to:
+    //   - platform admin (Patrick's super-admin flag)
+    //   - a club admin of the registration's club (adminUids on the
+    //     club doc, checked via userDoc().clubIds since that's the
+    //     denormalized index maintained by the worker)
+    //   - the parent themselves, verified via parentEmails denorm the
+    //     new /register/submit worker endpoint writes (matches
+    //     auth.token.email, lowercased).
+    //
+    // CREATE: keep open with the shape guards; worker /register/submit
+    // is the intended path but a legacy client-side write path could
+    // still fire and we don't want to break it silently. Worker's
+    // parentEmails denorm gets everything.
+    //
+    // UPDATE: restricted to an allowlist of admin-safe fields via
+    // hasOnly() plus a status/checkoutFailed escape for the family's
+    // own registration doc so the parent can retry checkout without
+    // a worker round-trip.
+    //
+    // DELETE: platform admin only.
     match /registrations/{registrationId} {
+      allow get: if request.auth != null && (
+        isPlatformAdmin()
+        || (resource.data.clubId is string
+            && resource.data.clubId in userDoc().get('clubIds', []))
+        || (resource.data.parentEmails is list
+            && request.auth.token.email is string
+            && request.auth.token.email.lower() in resource.data.parentEmails)
+      );
+      allow list: if request.auth != null;
       allow create: if request.resource.data.clubId is string
         && request.resource.data.parents.size() > 0;
-      allow read, update, delete: if request.auth != null;
+      allow update: if request.auth != null && (
+        isPlatformAdmin()
+        || (resource.data.clubId is string
+            && resource.data.clubId in userDoc().get('clubIds', []))
+        || (
+          // The family themselves can flip checkout status / retry
+          // markers on their own doc without needing a worker call.
+          resource.data.parentEmails is list
+          && request.auth.token.email is string
+          && request.auth.token.email.lower() in resource.data.parentEmails
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'checkoutFailed', 'checkoutFailedAt',
+                        'promotedToPlayerId', 'promotedToTeamId',
+                        'promotedAt', 'updatedAt'])
+        )
+      );
+      allow delete: if isPlatformAdmin();
     }
 
     match /registration_form_configs/{configId} {

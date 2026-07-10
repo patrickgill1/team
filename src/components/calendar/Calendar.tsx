@@ -965,7 +965,8 @@ const EventCard: React.FC<EventCardProps> = ({
     if (Number.isNaN(dt.getTime())) return;
     const diffDays = Math.floor((dt.getTime() - Date.now()) / 86400_000);
     if (diffDays < 0 || diffDays > 15) return;
-    getWeatherForEvent(event.location || '', dt).then(w => { if (!cancelled) setWeather(w); });
+    const coords = (event as any).locationCoords || null;
+    getWeatherForEvent(event.location || '', dt, coords).then(w => { if (!cancelled) setWeather(w); });
     return () => { cancelled = true; };
   }, [event?.id, event?.location, event?.date, isPast]);
 

@@ -357,11 +357,13 @@ const EventForm: React.FC<EventFormProps> = ({
     const dt = new Date(`${formData.date}T${formData.time}`);
     if (Number.isNaN(dt.getTime())) return;
     const handle = setTimeout(async () => {
-      const w = await getWeatherForEvent(formData.location.trim(), dt);
+      // Prefer the coords picked from the location autocomplete so we
+      // hit the real venue's forecast, not a fallback / mis-geocode.
+      const w = await getWeatherForEvent(formData.location.trim(), dt, pickedCoords);
       if (!cancelled) setWeather(w);
     }, 400);
     return () => { cancelled = true; clearTimeout(handle); };
-  }, [formData.date, formData.time, formData.location]);
+  }, [formData.date, formData.time, formData.location, pickedCoords]);
 
   // Function to create related attendance event
   const createAttendanceEvent = async (calendarEvent: any) => {

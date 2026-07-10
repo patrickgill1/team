@@ -369,43 +369,18 @@ const RegisterForm: React.FC = () => {
     setSubmitting(true);
     setError(null);
     try {
-      // Create a real Player doc immediately at registration time.
-      // No more snapshot-then-promote dance — the Player exists from
-      // the moment the family signs up. Offer acceptance later just
-      // assigns Player.teamId; no new doc creation needed. Returning
-      // families reuse their existing Player rather than create a new
-      // one. teamId stays null until the kid is rostered.
-      const fullName = `${firstName.trim()} ${lastName.trim()}`;
-      const parentEmailsLower = parents
-        .filter(p => p.email.trim())
-        .map(p => p.email.trim().toLowerCase());
-      let playerId = returnPlayerId;
-      if (!playerId) {
-        const playerData: any = {
-          name: fullName,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          dateOfBirth: dob ? new Date(dob) : null,
-          gender,
-          position: preferredPosition.trim() || null,
-          teamId: null,
-          teamIds: [],
-          clubId,
-          parentIds: currentUser?.uid ? [currentUser.uid] : [],
-          parentEmails: parentEmailsLower,
-          medicalInfo: medicalNotes.trim() || null,
-          isActive: true,
-          registrationSeasonId: season.id,
-          createdAt: serverTimestamp(),
-        };
-        const playerRef = await addDoc(collection(db, 'players'), playerData);
-        playerId = playerRef.id;
-      }
-
-      const payload: any = {
+      // Both writes (Player create + Registration create) go through
+      // worker /register/submit. Previous client addDocs hit
+      // permission-denied for cold families (players.create rule
+      // requires canCoachWrite() + onTeam which a parent can't
+      // satisfy), showing a generic red error alert with the family
+      // stuck at the form. Worker uses service account, atomically
+      // creates Player + Registration + stamps funnelProgress.register.
+      const idempotencyKey = `${clubId}-${season.id}-${currentUser?.uid || 'anon'}-${firstName.trim().toLowerCase()}-${(dob || '').slice(0, 10)}`;
+      const submitPayload: any = {
         clubId,
         seasonId: season.id,
-        playerId,
+        returnPlayerId: returnPlayerId || undefined,
         player: {
           firstName: firstName.trim(),
           lastName: lastName.trim(),
@@ -441,37 +416,31 @@ const RegisterForm: React.FC = () => {
         customAnswerLabels: visibleQuestions.length > 0
           ? Object.fromEntries(visibleQuestions.map(q => [q.id, q.label]))
           : undefined,
-        source: returnPlayerId ? 'returning' : 'cold',
-        // The Player now exists from registration submit, so set this
-        // immediately. UI surfaces (Tryouts, Registrations) use this
-        // to render PROFILE links — they'll work from day one rather
-        // than waiting until offer acceptance.
-        promotedToPlayerId: playerId,
-        createdAt: serverTimestamp(),
+        idempotencyKey,
       };
-      const ref = await addDoc(collection(db, 'registrations'), payload);
 
-      // Funnel stage 1 — auto-write the 'register' checkpoint on the
-      // player doc so the FunnelStepper visualizes the kid as past the
-      // first hurdle the moment the family submits. Returning families
-      // are treated the same (re-stamping is idempotent and lets coaches
-      // see when the latest season's registration came in).
-      if (playerId) {
-        try {
-          const { updateDoc: updateDocFn } = await import('firebase/firestore');
-          await updateDocFn(doc(db, 'players', playerId), {
-            'funnelProgress.register': {
-              completedAt: serverTimestamp(),
-              by: 'system',
-              meta: { registrationId: ref.id, seasonId: season.id },
-            },
-          } as any);
-        } catch (err) {
-          // Non-fatal — the registration itself succeeded. Coach can
-          // mark the stage manually from PersonAdmin if this hiccups.
-          console.warn('funnel.register write failed', err);
-        }
+      const { workerFetch } = await import('../utils/workerFetch');
+      const submitRes = await workerFetch('/register/submit', {
+        method: 'POST',
+        body: JSON.stringify(submitPayload),
+      });
+      const submitData: any = await submitRes.json().catch(() => ({}));
+      if (!submitRes.ok || !submitData?.ok) {
+        const code = String(submitData?.error || `status ${submitRes.status}`);
+        setError(
+          code === 'registration_closed' ? 'Registration is closed for this season.'
+          : code === 'season_not_found' ? 'This registration link is out of date.'
+          : code === 'parents_required' ? 'At least one parent contact is required.'
+          : code === 'player_name_required' ? 'Player name is required.'
+          : 'Submission failed. Please try again.'
+        );
+        return;
       }
+      const playerId: string = submitData.playerId;
+      // Fake "ref" shape for the downstream Stripe checkout call that
+      // still expects ref.id. Minimal shim so we don't refactor
+      // that block too.
+      const ref = { id: submitData.registrationId as string };
 
       // Log the activity for the admin timeline.
       void logActivity({
@@ -515,6 +484,13 @@ const RegisterForm: React.FC = () => {
       // If the registration has a balance owing AND the club is Stripe-
       // ready, redirect to Checkout. Otherwise show the success screen
       // and admin marks paid manually (or it's a free registration).
+      //
+      // 2026-07-10: previously the try/catch fell through to the
+      // success screen even when checkout failed — family walked away
+      // thinking they'd paid while the registration sat unpaid. Now,
+      // if there's money owed AND checkout fails, we STAY on the form
+      // with a specific error, flag the registration as checkoutFailed
+      // for admin follow-up, and let the family retry.
       if (quote.totalCents > 0) {
         try {
           const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
@@ -528,14 +504,28 @@ const RegisterForm: React.FC = () => {
               window.location.assign(data.url);
               return;
             }
-            // Soft fail — show success but leave a hint in the console
-            // for the admin to follow up. The Registration is saved
-            // either way; admin can mark paid manually.
-            console.warn('checkout session not created — falling back to success screen', data);
+            console.warn('checkout session not created', data);
+          } else {
+            console.warn('worker config missing — cannot start checkout');
           }
         } catch (err) {
-          console.warn('checkout request threw — falling back to success screen', err);
+          console.warn('checkout request threw', err);
         }
+        // Reaching this point means checkout failed. Flag the
+        // registration for admin follow-up, surface a specific error,
+        // and DO NOT navigate to the fake success screen.
+        try {
+          const { updateDoc: uDoc } = await import('firebase/firestore');
+          await uDoc(doc(db, 'registrations', ref.id), {
+            checkoutFailed: true,
+            checkoutFailedAt: serverTimestamp(),
+          } as any);
+        } catch { /* non-fatal, error already surfaced */ }
+        setError(
+          'We saved your registration but couldn\'t start payment. '
+          + 'Please try again or contact the club — your info is saved.'
+        );
+        return;
       }
 
       setSubmittedRegId(ref.id);

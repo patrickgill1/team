@@ -87,6 +87,23 @@ service cloud.firestore {
       return isPlatformAdmin() || !isCoachRole() || hasActiveSub() || hasClubCoverage();
     }
 
+    // Team-scoped coach check — reads team.coachIds via a get()
+    // walk. Use this when a rule needs "is the caller ACTUALLY a
+    // coach on THIS team" (not the global user.role and not the
+    // trial-wall canCoachWrite gate). Added 2026-07-10 after
+    // audit found live_games / practice_plans / development_plans /
+    // wall_posts CREATE gated only on onTeam() + canCoachWrite —
+    // meaning any parent on the team with a sub could seed fake
+    // gamedays, plans, and wall posts on the team's surfaces.
+    function isTeamCoach(teamId) {
+      return isAuthed()
+        && teamId is string
+        && exists(/databases/$(database)/documents/teams/$(teamId))
+        && 'coachIds' in get(/databases/$(database)/documents/teams/$(teamId)).data
+        && get(/databases/$(database)/documents/teams/$(teamId)).data.coachIds is list
+        && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.coachIds;
+    }
+
     // Public: anyone can read active votings (for the /vote page)
     match /match_votings/{votingId} {
       allow read: if true;
@@ -316,11 +333,39 @@ service cloud.firestore {
       // (/teams/create, /teams/add-coach, /teams/share-player, etc)
       // use the service account and bypass this rule.
       //
-      // Non-security-critical client writes that remain (team name,
-      // description, league, kit colors, assistantCoachIds label
-      // mirror) go through this branch and are fine because the
-      // caller must be a coach to reach them.
-      allow update, delete: if isAuthed() && (
+      // 2026-07-10 hardening: added a denylist on the coach branch so
+      // an assistant coach can't PATCH team.coachIds to eject the
+      // head, or add an alt uid granting themselves broader access
+      // via downstream rules that trust team.coachIds. Cosmetic
+      // fields (name, kit, digest configs, etc) still writable from
+      // the client. Security-critical membership + club-scope fields
+      // must go through worker endpoints:
+      //   coachIds        → /teams/add-coach, /teams/remove-coach
+      //   headCoachId     → /teams/transfer-head
+      //   assistantCoachIds → derived; also worker-only
+      //   managerIds      → /teams/set-staff-role
+      //   ownerUid        → never mutable by client
+      //   clubId          → move-team is a club admin action
+      //   isActive        → /teams/archive, /teams/restore
+      //   subscription*   → Stripe webhook only
+      //   staffPermissions → /teams/set-staff-permissions
+      allow update: if isAuthed() && (
+        isPlatformAdmin()
+        || (
+          resource.data.coachIds is list
+          && request.auth.uid in resource.data.coachIds
+          && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny([
+                'coachIds', 'headCoachId', 'assistantCoachIds',
+                'managerIds', 'staffPermissions',
+                'ownerUid', 'clubId',
+                'isActive', 'archivedAt',
+                'subscriptionActive', 'subscriptionExpiresAt',
+                'subscriptionStatus', 'subscriptionTier',
+              ])
+        )
+      );
+      allow delete: if isAuthed() && (
         isPlatformAdmin()
         || (resource.data.coachIds is list && request.auth.uid in resource.data.coachIds)
       );
@@ -467,10 +512,29 @@ service cloud.firestore {
     // the app via parent/extended-family invites now. LIST stays
     // open to any auth (followup audit — many pages dump events
     // client-side then filter). CREATE + DELETE coach-paid-gated.
+    // Events — team calendar. GET/LIST intentionally open to any
+    // authed (a parent on Team A viewing a share link should be able
+    // to read the event doc when they land there). UPDATE previously
+    // let any non-coach (parent) PATCH any field on any event across
+    // any team via the `!isCoachRole()` short-circuit — meaning a
+    // parent could rewrite another team's event title/time/teamId
+    // silently. Tightened 2026-07-10 to a per-team allowlist: coach
+    // of the event's team gets full update (via canCoachWrite trial
+    // wall), parents get an RSVP-fields-only path when on the team.
     match /events/{eventId} {
       allow get, list: if request.auth != null;
-      allow update: if request.auth != null
-        && (resource == null || canCoachWrite() || !isCoachRole());
+      allow update: if request.auth != null && (
+        // Fresh doc branch preserved for legacy setDoc paths.
+        resource == null
+        // Coach on this team can update anything.
+        || (isTeamCoach(resource.data.teamId) && canCoachWrite())
+        // Parent on this team can flip RSVP-style fields only.
+        || (
+          onTeam(resource.data.teamId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['rsvps', 'playerRsvps', 'attendance', 'viewedBy'])
+        )
+      );
       allow create: if request.auth != null && canCoachWrite();
       allow delete: if request.auth != null && canCoachWrite();
     }
@@ -498,9 +562,27 @@ service cloud.firestore {
     // CAN send messages (no canCoachWrite check) so they can reply
     // in team chat. The trial wall applies to coaches creating NEW
     // threads (above), not posting messages in existing ones.
+    //
+    // Update/delete tightened 2026-07-10: was `if request.auth != null`
+    // which meant any signed-in user could edit or delete anyone
+    // else's message across every team/club. Now requires the caller
+    // OWNS the message (senderId === auth.uid) OR is platform admin,
+    // with an escape hatch for reaction / readBy field-only updates
+    // that legitimately come from other participants.
     match /chat_messages/{messageId} {
       allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.senderId == request.auth.uid;
+      allow update: if request.auth != null && (
+        resource.data.senderId == request.auth.uid
+        || isPlatformAdmin()
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy'])
+      );
+      allow delete: if request.auth != null && (
+        resource.data.senderId == request.auth.uid
+        || isPlatformAdmin()
+      );
     }
 
     // Per-message push delivery log. Worker-only writes.
@@ -603,20 +685,20 @@ service cloud.firestore {
     match /live_games/{gameId} {
       allow get:  if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow list: if isAuthed();
-      allow create: if isAuthed()
-        && onTeam(request.resource.data.teamId)
-        && canCoachWrite();
-      allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
+      // CREATE + UPDATE + DELETE require the caller be a coach ON
+      // THIS SPECIFIC TEAM (team.coachIds membership), not just any
+      // team member. Previously gated on onTeam() which let any
+      // parent seed a fake gameday. Coach-role-model memory rule.
+      allow create: if isTeamCoach(request.resource.data.teamId) && canCoachWrite();
+      allow update, delete: if isTeamCoach(resource.data.teamId);
     }
 
     // Practice plans — team-scoped throughout.
     match /practice_plans/{planId} {
       allow get:  if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow list: if isAuthed();
-      allow create: if isAuthed()
-        && onTeam(request.resource.data.teamId)
-        && canCoachWrite();
-      allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
+      allow create: if isTeamCoach(request.resource.data.teamId) && canCoachWrite();
+      allow update, delete: if isTeamCoach(resource.data.teamId);
     }
 
     // Stats records (per-game player stats). Team-scoped.
@@ -628,13 +710,23 @@ service cloud.firestore {
     }
 
     // Player development plans. Team-scoped.
+    // UPDATE stays open to parents so "I did it today" logging works
+    // from the parent side. Restricted to coach-of-team OR
+    // parent-of-plan-player so a random authed user can't rewrite
+    // someone else's plan. DELETE is coach-only.
     match /development_plans/{planId} {
       allow get:  if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow list: if isAuthed();
-      allow create: if isAuthed()
-        && onTeam(request.resource.data.teamId)
-        && canCoachWrite();
-      allow update, delete: if isAuthed();
+      allow create: if isTeamCoach(request.resource.data.teamId) && canCoachWrite();
+      allow update: if isAuthed() && (
+        isTeamCoach(resource.data.teamId)
+        || (
+          resource.data.playerId is string
+          && exists(/databases/$(database)/documents/players/$(resource.data.playerId))
+          && request.auth.uid in get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.parentIds
+        )
+      );
+      allow delete: if isTeamCoach(resource.data.teamId);
     }
 
     match /attendance/{attendanceId} {
@@ -651,10 +743,24 @@ service cloud.firestore {
 
     // Volunteer sign-up slots created off events (snacks, drivers,
     // etc). VolunteerScheduler queries scoped by teamId client-side.
-    // Missing this rule was making the page silently deny — collection
-    // was undefined so fell to the catch-all deny at the bottom.
+    //
+    // 2026-07-10: previously any-authed read/write which meant a
+    // parent on Team A could enumerate every team's slots or flip
+    // assignees anywhere. GET/UPDATE/DELETE now require teamId in
+    // caller's teamIds. LIST stays isAuthed() (userDoc().teamIds
+    // can't be verified against a scoped LIST query — clients scope
+    // by teamId). CREATE requires the target teamId is on the
+    // caller's teamIds so a signup can't be forged into another team.
     match /volunteer_opportunities/{oppId} {
-      allow read, write: if request.auth != null;
+      allow get: if request.auth != null
+        && (resource.data.teamId in userDoc().get('teamIds', [])
+            || isPlatformAdmin());
+      allow list: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.teamId in userDoc().get('teamIds', []);
+      allow update, delete: if request.auth != null
+        && (resource.data.teamId in userDoc().get('teamIds', [])
+            || isPlatformAdmin());
     }
 
     // Player + staff memberships (season-scoped roster pivot tables).
@@ -697,14 +803,41 @@ service cloud.firestore {
     // tasks, activities.
     // ────────────────────────────────────────────────────────────
 
+    // Club-module collections — 2026-07-10 hardening: previously
+    // accepted any-authed writes, so a signed-up parent could
+    // updateDoc(products/{competitorId}, {price: 0}) and break
+    // another club's registration fees / platform-fee math, or
+    // clobber another club's seasons and form configs. Locked down
+    // to writes where the target doc's clubId is in the caller's
+    // clubIds (or teamId in caller's teamIds for personal-team
+    // seasons that don't belong to a formal club).
+    //
+    // Reads left open — product prices and season labels are
+    // shown on public registration pages and shouldn't require auth.
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.clubId is string
+        && request.resource.data.clubId in userDoc().get('clubIds', []);
+      allow update, delete: if request.auth != null
+        && resource.data.clubId is string
+        && resource.data.clubId in userDoc().get('clubIds', []);
     }
 
     match /seasons/{seasonId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if request.auth != null && (
+        (request.resource.data.clubId is string
+         && request.resource.data.clubId in userDoc().get('clubIds', []))
+        || (request.resource.data.teamId is string
+            && request.resource.data.teamId in userDoc().get('teamIds', []))
+      );
+      allow update, delete: if request.auth != null && (
+        (resource.data.clubId is string
+         && resource.data.clubId in userDoc().get('clubIds', []))
+        || (resource.data.teamId is string
+            && resource.data.teamId in userDoc().get('teamIds', []))
+      );
     }
 
     match /registrations/{registrationId} {
@@ -715,7 +848,12 @@ service cloud.firestore {
 
     match /registration_form_configs/{configId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.clubId is string
+        && request.resource.data.clubId in userDoc().get('clubIds', []);
+      allow update, delete: if request.auth != null
+        && resource.data.clubId is string
+        && resource.data.clubId in userDoc().get('clubIds', []);
     }
 
     match /activities/{activityId} {
@@ -724,16 +862,24 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // ROLLBACK STAGE: reverting to pre-Phase-2 offer rules.
-    // /claim/offer-accept + /claim/offer-decline still route through
-    // worker; this rule doesn't block those (worker uses service
-    // account). Client-side updates that write status still happen
-    // in some paths I need to migrate before tightening.
+    // Offers (tryout / roster invitations). Public share links used
+    // to require unauthenticated reads, but that leaked every kid's
+    // name + club + terms to the public internet. Tightened 2026-07-10
+    // to authed-only. Public-share pattern for offers should go
+    // through a worker endpoint that returns a sanitized shape (same
+    // pattern as PublicPlayerCard fix in the queue).
+    //
+    // Update: previously had an `|| request.auth != null` escape hatch
+    // that made the diff().affectedKeys() allowlist meaningless — any
+    // authed user could forge acceptance or overwrite arbitrary
+    // fields. Escape hatch removed. Non-status-field updates now must
+    // go through the worker (/claim/offer-accept, /claim/offer-decline
+    // both use the service account).
     match /offers/{offerId} {
-      allow read: if true;
-      allow update: if request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['status', 'respondedAt', 'declineReason', 'promotedToPlayerId', 'promotedAt', 'updatedAt'])
-        || request.auth != null;
+      allow read: if request.auth != null;
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'respondedAt', 'declineReason', 'promotedToPlayerId', 'promotedAt', 'updatedAt']);
       allow create, delete: if request.auth != null;
     }
 
@@ -743,7 +889,12 @@ service cloud.firestore {
 
     match /form_definitions/{formId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.clubId is string
+        && request.resource.data.clubId in userDoc().get('clubIds', []);
+      allow update, delete: if request.auth != null
+        && resource.data.clubId is string
+        && resource.data.clubId in userDoc().get('clubIds', []);
     }
 
     match /form_signatures/{signatureId} {
@@ -790,8 +941,22 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Tasks — club-scoped todo items. Client (Tasks.tsx) scopes reads
+    // by clubId already. 2026-07-10 hardening: was any-authed
+    // read/write which meant any signed-in user could enumerate every
+    // club's tasks and mutate them. Writes now require clubId in the
+    // caller's clubIds.
     match /tasks/{taskId} {
-      allow read, write: if request.auth != null;
+      allow get: if request.auth != null
+        && (resource.data.clubId in userDoc().get('clubIds', [])
+            || isPlatformAdmin());
+      allow list: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.clubId is string
+        && request.resource.data.clubId in userDoc().get('clubIds', []);
+      allow update, delete: if request.auth != null
+        && (resource.data.clubId in userDoc().get('clubIds', [])
+            || isPlatformAdmin());
     }
 
     // households — parent email lists + linked players used for
@@ -799,9 +964,15 @@ service cloud.firestore {
     // delete scoped to household members or the household's club admin.
     // Create left auth-only so parents can initiate a household when
     // linking a partner (HouseholdLinkModal).
+    //
+    // LIST: same userDoc()-in-rule trap that bit players / users on
+    // July 9 — callerCanReadHousehold() calls userDoc() so Firestore
+    // rejects every scoped LIST at static-analysis time. Split into
+    // tight GET + open LIST until custom-claims land. Clients scope
+    // by parentEmails array-contains OR clubId already.
     match /households/{householdId} {
       allow get: if isAuthed() && callerCanReadHousehold();
-      allow list: if isAuthed() && callerCanReadHousehold();
+      allow list: if isAuthed();
       allow create: if isAuthed();
       allow update, delete: if isAuthed() && callerCanReadHousehold();
     }
@@ -907,11 +1078,17 @@ service cloud.firestore {
     // Author can always read + reply to their own tickets. No client
     // can delete; admin handles deletion via admin portal.
     match /support_tickets/{ticketId} {
-      allow get, list: if request.auth != null && (
+      // GET stays tight per-doc. LIST split to isAuthed() because the
+      // userDoc().clubIds lookup on the club-scope branch can't be
+      // statically verified against a `where clubId == X` LIST query;
+      // Firestore rejects it outright. Same July 9 pattern. Clients
+      // filter by clubId or authorUid already.
+      allow get: if request.auth != null && (
         isPlatformAdmin()
         || resource.data.authorUid == request.auth.uid
         || (resource.data.scope == 'club' && resource.data.clubId in userDoc().get('clubIds', []))
       );
+      allow list: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.authorUid == request.auth.uid
         && request.resource.data.scope in ['club', 'platform']

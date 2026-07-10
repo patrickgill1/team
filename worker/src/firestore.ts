@@ -51,6 +51,20 @@ function encodeValue(v: any): any {
 export interface FirestoreDoc {
   id: string;
   data: Record<string, any>;
+  // ISO string returned by Firestore. Optional so existing readers stay
+  // untouched; applyMembership() uses it as the precondition argument
+  // for TOCTOU-safe status flips on single-use invites.
+  updateTime?: string;
+}
+
+// Distinct error so shims can catch precondition losses (concurrent
+// write raced us) and translate to a clean 409, without swallowing
+// real 5xx errors.
+export class PreconditionFailedError extends Error {
+  constructor(public path: string, public expectedUpdateTime: string) {
+    super(`precondition failed on ${path}`);
+    this.name = 'PreconditionFailedError';
+  }
 }
 
 export async function listDocuments(projectId: string, collection: string, sa: ServiceAccount, pageSize = 300): Promise<FirestoreDoc[]> {
@@ -82,6 +96,7 @@ export async function getDocument(projectId: string, path: string, sa: ServiceAc
   return {
     id: String(j.name).split('/').pop() || '',
     data: decodeFields(j.fields || {}),
+    updateTime: typeof j.updateTime === 'string' ? j.updateTime : undefined,
   };
 }
 
@@ -144,6 +159,7 @@ export async function commitDocumentTransforms(
   transforms: FieldTransform[],
   patchFields: Record<string, any> | null,
   sa: ServiceAccount,
+  precondition?: { updateTime: string },
 ): Promise<void> {
   const token = await getAccessToken(sa, FIRESTORE_SCOPE);
   const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:commit`;
@@ -151,16 +167,20 @@ export async function commitDocumentTransforms(
   const writes: any[] = [];
   if (patchFields && Object.keys(patchFields).length > 0) {
     const keys = Object.keys(patchFields);
-    writes.push({
+    const update: any = {
       update: {
         name: docName,
         fields: Object.fromEntries(keys.map(k => [k, encodeValue(patchFields[k])])),
       },
       updateMask: { fieldPaths: keys },
-    });
+    };
+    if (precondition?.updateTime) {
+      update.currentDocument = { updateTime: precondition.updateTime };
+    }
+    writes.push(update);
   }
   if (transforms.length > 0) {
-    writes.push({
+    const xform: any = {
       transform: {
         document: docName,
         fieldTransforms: transforms.map(t => {
@@ -182,7 +202,14 @@ export async function commitDocumentTransforms(
           };
         }),
       },
-    });
+    };
+    // A precondition attached to a transform-only commit needs its own
+    // `currentDocument` on the transform write. Firestore requires it
+    // exactly once when there's no companion update() write.
+    if (precondition?.updateTime && writes.length === 0) {
+      xform.currentDocument = { updateTime: precondition.updateTime };
+    }
+    writes.push(xform);
   }
   if (writes.length === 0) return;
   const r = await fetch(url, {
@@ -190,7 +217,17 @@ export async function commitDocumentTransforms(
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({ writes }),
   });
-  if (!r.ok) throw new Error(`firestore commit ${path} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  if (!r.ok) {
+    const body = await r.text();
+    // Firestore returns 400 with a FAILED_PRECONDITION status when
+    // currentDocument.updateTime doesn't match. Translate to a
+    // catchable class so callers can retry/return 409 without matching
+    // string messages.
+    if (precondition?.updateTime && /FAILED_PRECONDITION|failed_precondition/i.test(body)) {
+      throw new PreconditionFailedError(path, precondition.updateTime);
+    }
+    throw new Error(`firestore commit ${path} ${r.status}: ${body.slice(0, 200)}`);
+  }
 }
 
 export async function createDocument(projectId: string, collection: string, fields: Record<string, any>, sa: ServiceAccount, docId?: string): Promise<string> {

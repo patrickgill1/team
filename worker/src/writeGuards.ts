@@ -40,6 +40,7 @@ import {
   runQuery,
   commitDocumentTransforms,
   FirestoreDoc,
+  PreconditionFailedError,
 } from './firestore';
 
 interface Env {
@@ -224,6 +225,175 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
   });
 }
 
+// ════════════════════════════════════════════════════════════════
+// Phase B — applyMembership() unified core
+// ════════════════════════════════════════════════════════════════
+//
+// Thin core that grants team/player membership to a targetUid. All
+// four membership-attach endpoints (/claim/invite,
+// /claim/coach-invite, /claim/player-link, /teams/add-coach) call
+// this after their own invite reservation + authorization phase.
+//
+// Consolidating the write phase closes drift that had accumulated
+// across the four handlers:
+//   1. team.coachIds arrayUnion when role='coach' with an attach
+//      team (was silently MISSING in /claim/invite type='coach' —
+//      coach could claim a legacy invite doc, get role=coach and
+//      teamIds+=teamId, but team.coachIds stayed empty so
+//      requireCoachOfTeam still refused them the writes they'd
+//      just been granted by role).
+//   2. onboardingStage stamped exactly once on the success path —
+//      including idempotent re-runs of /teams/add-coach where a
+//      previous stamp may have gone stale via another mutation.
+//   3. Uniform approvalStatus + approvedAt stamp. /teams/add-coach
+//      previously wrote neither, leaving admin-granted coaches with
+//      a schema-shape that diverged from invite-consumed coaches.
+//   4. Consume-first ordering (reserve the invite BEFORE granting
+//      access) is enforced by every shim: if applyMembership throws
+//      mid-flight, the invite is already burned. A retry hits the
+//      idempotent short-circuit (usedBy includes uid / claimedBy ==
+//      uid) and heals without double-consuming.
+//
+// The invite-consume phase itself stays in each shim because the
+// shape differs too much (`invites` vs `coach_invites` vs no-invite
+// path) to squeeze into a single argument type. The core is
+// intentionally invite-agnostic.
+// ────────────────────────────────────────────────────────────────
+
+type MembershipRole = 'parent' | 'coach' | 'team_manager';
+type MembershipOperationSource =
+  | 'claim_invite'
+  | 'claim_coach_invite'
+  | 'claim_player_link'
+  | 'teams_add_coach';
+type MembershipApprovalStatus =
+  | 'auto'
+  | 'invite-consumed'
+  | 'player-link'
+  | 'admin-grant';
+
+interface MembershipOp {
+  operationSource: MembershipOperationSource;
+  targetUid: string;
+  role?: MembershipRole;
+  // Team ids arrayUnion'd onto users.teamIds. Duplicates are fine —
+  // arrayUnion dedupes server-side.
+  teamIds: string[];
+  // If set AND role==='coach', also arrayUnion targetUid onto
+  // teams/{attachToTeamCoachIds}.coachIds. Uniform closure of the
+  // /claim/invite type='coach' drift bug.
+  attachToTeamCoachIds?: string;
+  // Legacy single-team pointer. Stamped as users.teamId so anything
+  // still reading that scalar keeps working.
+  legacyTeamId?: string;
+  coachLevel?: string;                                  // role='coach' only
+  relationship?: string;                                // role='parent' only
+  approvalStatus: MembershipApprovalStatus;
+  invitedBy?: string | null;
+  invitedVia?: string;
+  playerLink?: { playerId: string; isAdultPlayer?: boolean };
+  coverage?: { source: 'club'; clubId: string };
+  // Escape hatch for one-off fields (e.g. selfPlayerId when the
+  // player-link path lands an adult self-claim). Merged into the
+  // user patch verbatim.
+  extraUserPatch?: Record<string, any>;
+}
+
+/**
+ * Parse an invite expiresAt value that can be either an ISO string
+ * or a Firestore Timestamp-shaped `{ seconds }` object. Returns
+ * true if the invite has expired. Uniform across all four
+ * endpoints — closes the /claim/coach-invite drift where only ISO
+ * was handled and real Timestamp expiries silently passed.
+ */
+function isInviteExpired(expiresAt: any): boolean {
+  if (!expiresAt) return false;
+  const ms = typeof expiresAt === 'string'
+    ? new Date(expiresAt).getTime()
+    : (typeof expiresAt?.seconds === 'number' ? expiresAt.seconds * 1000 : 0);
+  return ms > 0 && ms < Date.now();
+}
+
+async function applyMembership(
+  op: MembershipOp,
+  pid: string,
+  sa: ServiceAccount,
+): Promise<void> {
+  const now = new Date();
+
+  // Step 1 — team.coachIds fanout for coach roles with an attach
+  // team. Guard-drift closure #1. Runs BEFORE the user grant so
+  // that requireCoachOfTeam sees the coach on team.coachIds by the
+  // time the user grant lands.
+  if (op.attachToTeamCoachIds && op.role === 'coach') {
+    await commitDocumentTransforms(
+      pid,
+      `teams/${op.attachToTeamCoachIds}`,
+      [{ fieldPath: 'coachIds', kind: 'arrayUnion', value: op.targetUid }],
+      null,
+      sa,
+    );
+  }
+
+  // Step 2 — player link. Adds targetUid to players.parentIds and
+  // optionally flips isAdultPlayer. Only when playerLink is set.
+  if (op.playerLink) {
+    const playerPatch: Record<string, any> = {};
+    if (op.playerLink.isAdultPlayer) playerPatch.isAdultPlayer = true;
+    await commitDocumentTransforms(
+      pid,
+      `players/${op.playerLink.playerId}`,
+      [{ fieldPath: 'parentIds', kind: 'arrayUnion', value: op.targetUid }],
+      Object.keys(playerPatch).length ? playerPatch : null,
+      sa,
+    );
+  }
+
+  // Step 3 — user grant. teamIds arrayUnion + role/approval/coverage
+  // stamp. approved=true + approvalStatus + approvedAt uniformly
+  // applied (guard-drift closure #3).
+  const userTransforms: any[] = [];
+  const uniqueTeamIds = Array.from(new Set(op.teamIds.filter(Boolean)));
+  if (uniqueTeamIds.length > 0) {
+    userTransforms.push({ fieldPath: 'teamIds', kind: 'arrayUnion', value: uniqueTeamIds });
+  }
+  if (op.playerLink) {
+    userTransforms.push({ fieldPath: 'children', kind: 'arrayUnion', value: op.playerLink.playerId });
+  }
+  const userPatch: Record<string, any> = {
+    approved: true,
+    approvalStatus: op.approvalStatus,
+    approvedAt: now,
+  };
+  if (op.role) userPatch.role = op.role;
+  if (op.role === 'coach' && op.coachLevel) userPatch.coachLevel = op.coachLevel;
+  if (op.role === 'parent' && op.relationship) userPatch.relationship = op.relationship;
+  if (op.legacyTeamId) userPatch.teamId = op.legacyTeamId;
+  if (op.invitedBy !== undefined) userPatch.invitedBy = op.invitedBy;
+  if (op.invitedVia) userPatch.invitedVia = op.invitedVia;
+  if (op.coverage) {
+    userPatch.coverageSource = op.coverage.source;
+    userPatch.coverageClubId = op.coverage.clubId;
+  }
+  if (op.playerLink?.isAdultPlayer) userPatch.selfPlayerId = op.playerLink.playerId;
+  if (op.extraUserPatch) Object.assign(userPatch, op.extraUserPatch);
+
+  if (userTransforms.length > 0 || Object.keys(userPatch).length > 0) {
+    await commitDocumentTransforms(
+      pid,
+      `users/${op.targetUid}`,
+      userTransforms,
+      userPatch,
+      sa,
+    );
+  }
+
+  // Step 4 — stage stamp. Guard-drift closure #2: always fires on
+  // the success path (idempotent shortcircuits in the shims call
+  // stampStageFor() themselves so this doesn't need a special case).
+  await stampStageFor(op.targetUid, pid, sa);
+}
+
 // ────────────────────────────────────────────────────────────────
 // /claim/invite — signed-in user consumes an invites/{id}. Replaces
 // src/utils/invites.ts consumeInvite. Handles all three invite
@@ -255,67 +425,41 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
   if (!inviteDoc?.data) return json({ ok: false, error: 'invite_not_found' }, 404);
   const invite: any = inviteDoc.data;
   if (invite.revokedAt) return json({ ok: false, error: 'invite_revoked' }, 410);
-  if (invite.expiresAt) {
-    const exp = typeof invite.expiresAt === 'string'
-      ? new Date(invite.expiresAt).getTime()
-      : (typeof invite.expiresAt?.seconds === 'number' ? invite.expiresAt.seconds * 1000 : 0);
-    if (exp && exp < Date.now()) return json({ ok: false, error: 'invite_expired' }, 410);
-  }
+  if (isInviteExpired(invite.expiresAt)) return json({ ok: false, error: 'invite_expired' }, 410);
   const usedCount = typeof invite.usedCount === 'number' ? invite.usedCount : 0;
   const maxUses = typeof invite.maxUses === 'number' ? invite.maxUses : 1;
   if (usedCount >= maxUses) return json({ ok: false, error: 'invite_exhausted' }, 410);
-  const usedBy: string[] = Array.isArray(invite.usedBy) ? invite.usedBy : [];
-  if (usedBy.includes(claims.uid)) {
-    // Already claimed by this uid — respond OK so client retries are
-    // safe. Matches the old client's early-return posture.
-    return json({ ok: true, teamId: invite.teamId, playerId: invite.playerId, idempotent: true });
-  }
   const teamId = String(invite.teamId || '');
   if (!teamId) return json({ ok: false, error: 'invite_missing_team' }, 400);
   const inviteType = String(invite.type || '');
-
-  const nowIso = new Date();
-  const userTransforms: any[] = [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId }];
-  const userPatch: Record<string, any> = {
-    approved: true,
-    approvalStatus: 'auto',
-    approvedAt: nowIso,
-    invitedBy: invite.createdBy || null,
-    invitedVia: inviteId,
-    teamId, // legacy single-team pointer
-  };
-
-  if (inviteType === 'player') {
-    const playerId = String(invite.playerId || '');
-    if (!playerId) return json({ ok: false, error: 'invite_missing_player' }, 400);
-    const isAdultPlayer = invite.isAdultPlayer === true;
-    const relationship = String(invite.relationship || 'parent');
-
-    const playerPatch: Record<string, any> = {};
-    if (isAdultPlayer) playerPatch.isAdultPlayer = true;
-    await commitDocumentTransforms(
-      pid,
-      `players/${playerId}`,
-      [{ fieldPath: 'parentIds', kind: 'arrayUnion', value: claims.uid }],
-      Object.keys(playerPatch).length ? playerPatch : null,
-      sa,
-    );
-
-    userPatch.role = 'parent';
-    userPatch.relationship = relationship;
-    if (isAdultPlayer) userPatch.selfPlayerId = playerId;
-  } else if (inviteType === 'coach') {
-    userPatch.role = 'coach';
-    userPatch.coachLevel = String(invite.role || 'assistant_coach');
-  } else if (inviteType === 'team_manager') {
-    userPatch.role = 'team_manager';
-  } else {
+  if (inviteType !== 'player' && inviteType !== 'coach' && inviteType !== 'team_manager') {
     return json({ ok: false, error: 'unknown_invite_type' }, 400);
   }
+  // Player-type invite must carry playerId. Check here rather than
+  // after the reservation so we don't consume a malformed invite.
+  let playerId = '';
+  if (inviteType === 'player') {
+    playerId = String(invite.playerId || '');
+    if (!playerId) return json({ ok: false, error: 'invite_missing_player' }, 400);
+  }
 
-  await commitDocumentTransforms(pid, `users/${claims.uid}`, userTransforms, userPatch, sa);
+  const usedBy: string[] = Array.isArray(invite.usedBy) ? invite.usedBy : [];
+  if (usedBy.includes(claims.uid)) {
+    // Idempotent replay — user already consumed this. Restamp stage
+    // in case it drifted via another mutation and return the same
+    // shape as before. Bug-for-bug preservation: this branch OMITS
+    // the 'type' field that the fresh-consume branch returns, so
+    // mobile 3.9.160 clients that never expected it here don't
+    // suddenly see a schema change.
+    await stampStage(claims.uid, pid, sa);
+    return json({ ok: true, teamId: invite.teamId, playerId: invite.playerId, idempotent: true });
+  }
 
-  // Mark invite consumed.
+  // Consume-first ordering: reserve the invite BEFORE the grant. If
+  // applyMembership() throws mid-flight the invite is already burned;
+  // a retry hits the idempotent short-circuit above and heals. For
+  // maxUses>1 invites both arrayUnion and increment are commutative,
+  // so two concurrent callers both succeed correctly.
   await commitDocumentTransforms(
     pid,
     `invites/${inviteId}`,
@@ -327,34 +471,51 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
     sa,
   );
 
-  // Post-primary: coach + team_manager joining a NON-solo club
-  // inherit coverage from the club. Deferred until after the main
-  // writes so a bad club-lookup can't block the invite consume.
+  // Club coverage lookup — coach + team_manager joining a NON-solo
+  // club inherit coverage. Non-fatal: a bad lookup logs and skips
+  // rather than blocking the whole flow.
+  let coverage: MembershipOp['coverage'];
   if (inviteType === 'coach' || inviteType === 'team_manager') {
     try {
       const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
-      const teamData: any = teamDoc?.data || {};
-      const clubId = teamData.clubId ? String(teamData.clubId) : '';
+      const clubId = teamDoc?.data?.clubId ? String(teamDoc.data.clubId) : '';
       if (clubId) {
         const clubDoc = await getDocument(pid, `clubs/${clubId}`, sa).catch(() => null);
-        const clubData: any = clubDoc?.data || {};
-        if (clubData.isDefaultSoloClub !== true) {
-          await patchDocument(
-            pid,
-            `users/${claims.uid}`,
-            { coverageSource: 'club', coverageClubId: clubId },
-            sa,
-          );
+        if (clubDoc?.data?.isDefaultSoloClub !== true) {
+          coverage = { source: 'club', clubId };
         }
       }
     } catch (err) {
-      console.warn('[claim-invite] club coverage stamp failed:', (err as Error).message);
+      console.warn('[claim-invite] club coverage lookup failed:', (err as Error).message);
     }
   }
 
-  // Phase A: stamp onboardingStage — invite consume just granted
-  // team/player membership, so the user is now 'active'.
-  await stampStage(claims.uid, pid, sa);
+  const op: MembershipOp = {
+    operationSource: 'claim_invite',
+    targetUid: claims.uid,
+    teamIds: [teamId],
+    legacyTeamId: teamId,
+    invitedBy: invite.createdBy || null,
+    invitedVia: inviteId,
+    approvalStatus: 'auto',
+    coverage,
+  };
+  if (inviteType === 'player') {
+    op.role = 'parent';
+    op.relationship = String(invite.relationship || 'parent');
+    op.playerLink = { playerId, isAdultPlayer: invite.isAdultPlayer === true };
+  } else if (inviteType === 'coach') {
+    op.role = 'coach';
+    op.coachLevel = String(invite.role || 'assistant_coach');
+    // Guard-drift closure #1: previously omitted. Coach claiming a
+    // legacy invite must also land on team.coachIds so
+    // requireCoachOfTeam works after the grant.
+    op.attachToTeamCoachIds = teamId;
+  } else {
+    op.role = 'team_manager';
+  }
+
+  await applyMembership(op, pid, sa);
 
   return json({ ok: true, type: inviteType, teamId, playerId: invite.playerId || null });
 }
@@ -374,47 +535,58 @@ async function handleClaimCoachInvite(req: Request, env: Env, payload: any): Pro
   if (!inviteDoc?.data) return json({ ok: false, error: 'invite_not_found' }, 404);
   const invite: any = inviteDoc.data;
   if (invite.revokedAt || invite.status === 'revoked') return json({ ok: false, error: 'invite_revoked' }, 410);
-  if (invite.status === 'claimed') return json({ ok: false, error: 'already_used' }, 409);
-  if (typeof invite.expiresAt === 'string' && new Date(invite.expiresAt).getTime() < Date.now()) {
-    return json({ ok: false, error: 'invite_expired' }, 410);
-  }
+  // Timestamp/ISO uniform via isInviteExpired — closes drift where
+  // {seconds} Timestamps silently passed through as unexpired.
+  if (isInviteExpired(invite.expiresAt)) return json({ ok: false, error: 'invite_expired' }, 410);
+
   const teamId = String(invite.teamId || '');
   if (!teamId) return json({ ok: false, error: 'invite_missing_team' }, 400);
   const coachLevel = invite.coachLevel === 'assistant' ? 'assistant' : 'head_coach';
 
-  await commitDocumentTransforms(
-    pid,
-    `teams/${teamId}`,
-    [{ fieldPath: 'coachIds', kind: 'arrayUnion', value: claims.uid }],
-    null,
-    sa,
-  );
-  const userPatch: Record<string, any> = {
+  // Idempotent retry by the same uid: they already claimed this
+  // invite and are hitting the endpoint again (double-tap, retry
+  // after network blip). Return 200 rather than the historical 409
+  // so mobile clients treat it as success. Different-uid retries
+  // still 409 below.
+  if (invite.status === 'claimed' && invite.claimedBy === claims.uid) {
+    await stampStage(claims.uid, pid, sa);
+    return json({ ok: true, teamId, idempotent: true });
+  }
+  if (invite.status === 'claimed') return json({ ok: false, error: 'already_used' }, 409);
+
+  // TOCTOU-safe reservation: flip status to 'claimed' with a
+  // currentDocument.updateTime precondition. If another caller wins
+  // the race between our getDocument above and this commit, Firestore
+  // returns FAILED_PRECONDITION → PreconditionFailedError → 409. This
+  // is the single-use invite mutex; without it two coaches sharing
+  // a link could both attach.
+  try {
+    await commitDocumentTransforms(
+      pid,
+      `coach_invites/${inviteId}`,
+      [],
+      { status: 'claimed', claimedBy: claims.uid, claimedAt: new Date() },
+      sa,
+      inviteDoc.updateTime ? { updateTime: inviteDoc.updateTime } : undefined,
+    );
+  } catch (err) {
+    if (err instanceof PreconditionFailedError) {
+      return json({ ok: false, error: 'already_used' }, 409);
+    }
+    throw err;
+  }
+
+  await applyMembership({
+    operationSource: 'claim_coach_invite',
+    targetUid: claims.uid,
+    teamIds: [teamId],
+    attachToTeamCoachIds: teamId,
     role: 'coach',
     coachLevel,
-    approved: true,
     approvalStatus: 'invite-consumed',
-  };
-  if (invite.clubId) {
-    userPatch.coverageSource = 'club';
-    userPatch.coverageClubId = String(invite.clubId);
-  }
-  await commitDocumentTransforms(
-    pid,
-    `users/${claims.uid}`,
-    [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId }],
-    userPatch,
-    sa,
-  );
-  await patchDocument(
-    pid,
-    `coach_invites/${inviteId}`,
-    { status: 'claimed', claimedBy: claims.uid, claimedAt: new Date() },
-    sa,
-  );
-
-  // Phase A: coach invite consume → caller is now on a team → active.
-  await stampStage(claims.uid, pid, sa);
+    invitedVia: inviteId,
+    coverage: invite.clubId ? { source: 'club', clubId: String(invite.clubId) } : undefined,
+  }, pid, sa);
 
   return json({ ok: true, teamId });
 }
@@ -444,36 +616,17 @@ async function handleClaimPlayerLink(req: Request, env: Env, payload: any): Prom
     return json({ ok: false, error: 'not_authorized' }, 403);
   }
 
-  const playerPatch: Record<string, any> = {};
-  if (isAdultClaim) playerPatch.isAdultPlayer = true;
-  await commitDocumentTransforms(
-    pid,
-    `players/${playerId}`,
-    [{ fieldPath: 'parentIds', kind: 'arrayUnion', value: claims.uid }],
-    Object.keys(playerPatch).length ? playerPatch : null,
-    sa,
-  );
-
   const teamIds: string[] = Array.isArray(player.teamIds) && player.teamIds.length > 0
     ? player.teamIds
     : (player.teamId ? [player.teamId] : []);
-  const userPatch: Record<string, any> = {
-    approved: true,
-    approvalStatus: 'player-link',
-  };
-  if (isAdultClaim) userPatch.selfPlayerId = playerId;
-  const userTransforms: any[] = [
-    { fieldPath: 'children', kind: 'arrayUnion', value: playerId },
-  ];
-  if (teamIds.length > 0) {
-    userTransforms.push({ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamIds });
-  }
-  await commitDocumentTransforms(pid, `users/${claims.uid}`, userTransforms, userPatch, sa);
 
-  // Phase A: player-link claim → active for the caller (they've been
-  // added to at least one player's parentIds and got the player's
-  // teams fanned onto their teamIds).
-  await stampStage(claims.uid, pid, sa);
+  await applyMembership({
+    operationSource: 'claim_player_link',
+    targetUid: claims.uid,
+    teamIds,
+    approvalStatus: 'player-link',
+    playerLink: { playerId, isAdultPlayer: isAdultClaim },
+  }, pid, sa);
 
   return json({ ok: true, playerId, linkedTeams: teamIds.length });
 }
@@ -762,25 +915,18 @@ async function handleTeamsAddCoach(req: Request, env: Env, payload: any): Promis
   if (!coachUid) return json({ ok: false, error: 'coach_uid_required' }, 400);
   const coachLevel = payload?.coachLevel === 'head_coach' ? 'head_coach' : 'assistant';
 
-  await commitDocumentTransforms(
-    pid,
-    `teams/${teamId}`,
-    [{ fieldPath: 'coachIds', kind: 'arrayUnion', value: coachUid }],
-    null,
-    sa,
-  );
-  await commitDocumentTransforms(
-    pid,
-    `users/${coachUid}`,
-    [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId }],
-    { role: 'coach', coachLevel },
-    sa,
-  );
-
-  // Phase A: TARGET user (coachUid, not caller) just got added to a
-  // team, so restamp their onboardingStage. Fire-and-forget-ish: any
-  // stamp failure is logged, doesn't fail the add-coach request.
-  await stampStageFor(coachUid, pid, sa);
+  await applyMembership({
+    operationSource: 'teams_add_coach',
+    targetUid: coachUid,
+    teamIds: [teamId],
+    attachToTeamCoachIds: teamId,
+    role: 'coach',
+    coachLevel,
+    // Guard-drift closure #3: previously omitted approvalStatus. Now
+    // uniformly stamped so admin-granted coaches have the same shape
+    // as invite-consumed coaches.
+    approvalStatus: 'admin-grant',
+  }, pid, sa);
 
   return json({ ok: true });
 }

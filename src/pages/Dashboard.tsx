@@ -818,6 +818,7 @@ const Dashboard: React.FC = () => {
           respondedAt: new Date(),
         };
       }
+      const prevPlayerRsvps = ((nextEvent as any).playerRsvps) || {};
       setUpcomingEvents((prev) =>
         prev.map((e) => (e.id === nextEvent.id ? ({ ...e, playerRsvps: nextMap } as any) : e))
       );
@@ -825,6 +826,10 @@ const Dashboard: React.FC = () => {
         await updateDocument('events', nextEvent.id, { playerRsvps: nextMap });
       } catch (err) {
         console.error('[dashboard] quick kid rsvp failed', err);
+        setUpcomingEvents((prev) =>
+          prev.map((e) => (e.id === nextEvent.id ? ({ ...e, playerRsvps: prevPlayerRsvps } as any) : e))
+        );
+        alert("Couldn't save your RSVP. Check your connection and try again.");
       }
       return;
     }

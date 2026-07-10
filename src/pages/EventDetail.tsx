@@ -492,6 +492,8 @@ const EventDetail: React.FC = () => {
 
   const setMyRsvp = async (status: RsvpStatus) => {
     if (!event || !userData?.uid) return;
+    const prevRsvps = event.rsvps;
+    const prevEvent = event;
     const next = {
       ...(event.rsvps || {}),
       [userData.uid]: {
@@ -506,6 +508,8 @@ const EventDetail: React.FC = () => {
       await updateDocument('events', event.id, { rsvps: next });
     } catch (err) {
       console.error('rsvp failed', err);
+      setEvent({ ...prevEvent, rsvps: prevRsvps } as CalendarEvent);
+      alert("Couldn't save your RSVP. Check your connection and try again.");
     }
   };
 
@@ -520,6 +524,8 @@ const EventDetail: React.FC = () => {
 
   const setCoachRsvp = async (status: RsvpStatus | null) => {
     if (!event || !userData?.uid || !isUserCoach) return;
+    const prevRsvps = event.rsvps;
+    const prevEvent = event;
     const next: Record<string, any> = { ...(event.rsvps || {}) };
     if (status === null) {
       delete next[userData.uid];
@@ -536,6 +542,8 @@ const EventDetail: React.FC = () => {
       await updateDocument('events', event.id, { rsvps: next });
     } catch (err) {
       console.error('coach rsvp failed', err);
+      setEvent({ ...prevEvent, rsvps: prevRsvps } as CalendarEvent);
+      alert("Couldn't save your RSVP. Check your connection and try again.");
     }
   };
 
@@ -1607,6 +1615,7 @@ const EventDetail: React.FC = () => {
             await updateDocument('events', event.id, next);
           } catch (err) {
             console.error('packing save failed', err);
+            alert("Couldn't save the packing list. Check your connection and try again.");
           }
         }}
       />
@@ -1631,14 +1640,20 @@ const EventDetail: React.FC = () => {
           const next = [...(((event as any).carpoolPosts || []) as CarpoolPost[]), entry];
           setEvent({ ...event, carpoolPosts: next } as any);
           try { await updateDocument('events', event.id, { carpoolPosts: next }); }
-          catch (err) { console.error('carpool add failed', err); }
+          catch (err) {
+            console.error('carpool add failed', err);
+            alert("Couldn't post to the carpool board. Check your connection and try again.");
+          }
         }}
         onDelete={async (postId) => {
           if (!event) return;
           const next = (((event as any).carpoolPosts || []) as CarpoolPost[]).filter(p => p.id !== postId);
           setEvent({ ...event, carpoolPosts: next } as any);
           try { await updateDocument('events', event.id, { carpoolPosts: next }); }
-          catch (err) { console.error('carpool delete failed', err); }
+          catch (err) {
+            console.error('carpool delete failed', err);
+            alert("Couldn't remove that carpool post. Check your connection and try again.");
+          }
         }}
         onToggleClaim={async (postId) => {
           if (!event || !userData?.uid) return;
@@ -1659,7 +1674,10 @@ const EventDetail: React.FC = () => {
           });
           setEvent({ ...event, carpoolPosts: next } as any);
           try { await updateDocument('events', event.id, { carpoolPosts: next }); }
-          catch (err) { console.error('carpool claim failed', err); }
+          catch (err) {
+            console.error('carpool claim failed', err);
+            alert("Couldn't update your carpool claim. Check your connection and try again.");
+          }
         }}
       />
 

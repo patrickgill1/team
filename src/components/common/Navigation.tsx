@@ -155,6 +155,7 @@ const Navigation: React.FC = () => {
       await logout();
     } catch (error) {
       console.error('Logout error:', error);
+      alert("Sign-out failed. Please try again. You're still signed in.");
     }
   };
 

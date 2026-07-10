@@ -793,7 +793,13 @@ const Wall: React.FC = () => {
             try {
               await updateDoc(doc(db, 'wall_posts', newPostId), { emailedAt: Date.now() });
             } catch (e) { console.warn('wall emailedAt stamp failed', e); }
-          } catch (e) { console.warn('wall email blast failed', e); }
+          } catch (e) {
+            console.warn('wall email blast failed', e);
+            alert("Post published, but the email blast failed. Tap Resend from the post menu.");
+            try {
+              await updateDoc(doc(db, 'wall_posts', newPostId), { emailBlastFailed: true });
+            } catch (e2) { console.warn('wall emailBlastFailed stamp failed', e2); }
+          }
         }
       }
     } catch (err: any) {
@@ -869,7 +875,10 @@ const Wall: React.FC = () => {
       // before the email goes out. Best-effort flip.
       if (!post.isPublic) {
         try { await updateDoc(doc(db, 'wall_posts', post.id), { isPublic: true }); }
-        catch (e) { console.warn('isPublic flip failed', e); }
+        catch (e) {
+          console.warn('isPublic flip failed', e);
+          alert("Couldn't update sharing setting.");
+        }
       }
       // Resolve the recipient list FIRST so we can give an honest
       // error message — the wrapper sendEmailToTeam() returns 0 for

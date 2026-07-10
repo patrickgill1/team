@@ -457,6 +457,7 @@ const PlayerDevelopment: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error updating goal:', error);
+      alert("Couldn't save. Try again.");
     }
   };
 
@@ -503,6 +504,7 @@ const PlayerDevelopment: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error verifying goal:', error);
+      alert("Couldn't verify. Try again.");
     }
   };
 
@@ -515,6 +517,7 @@ const PlayerDevelopment: React.FC = () => {
       await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
     } catch (error) {
       console.error('Error saving note:', error);
+      alert("Couldn't save your note. Try again.");
     }
   };
 
@@ -529,6 +532,7 @@ const PlayerDevelopment: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error toggling ready for review:', error);
+      alert("Couldn't mark ready. Try again.");
     }
   };
 
@@ -606,6 +610,7 @@ const PlayerDevelopment: React.FC = () => {
       loadData({ silent: true });
     } catch (error) {
       console.error('Error logging quick did-it:', error);
+      alert("Couldn't log 'did it' today. Try again.");
     }
   };
 
@@ -690,6 +695,7 @@ const PlayerDevelopment: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error removing video link:', error);
+      alert("Couldn't remove the video. Try again.");
     }
   };
 
@@ -716,6 +722,7 @@ const PlayerDevelopment: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error archiving plan:', error);
+      alert("Couldn't archive the plan. Try again.");
     }
   };
 
@@ -730,6 +737,7 @@ const PlayerDevelopment: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error deleting plan:', error);
+      alert("Couldn't delete. Try again.");
     }
   };
 

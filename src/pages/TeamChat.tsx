@@ -1797,6 +1797,7 @@ const TeamChat: React.FC = () => {
       });
     } catch (err) {
       console.error('Poll send failed:', err);
+      alert("Poll couldn't send. Try again.");
     }
   };
 

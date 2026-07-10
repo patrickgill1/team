@@ -229,7 +229,7 @@ const PracticePlanBuilder: React.FC = () => {
     setPlans(prev => prev.map(p => p.id === next.id ? next : p));
     try {
       await updateDoc(doc(db, 'practice_plans', next.id), { ...next, updatedAt: serverTimestamp() } as any);
-    } catch (e) { console.error('save failed', e); }
+    } catch (e) { console.error('save failed', e); alert("Couldn't save the practice plan. Try again."); }
   };
 
   const update = (mutator: (p: PracticePlan) => PracticePlan) => {

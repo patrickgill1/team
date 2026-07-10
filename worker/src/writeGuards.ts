@@ -970,6 +970,37 @@ async function handleClubRemoveAdmin(req: Request, env: Env, payload: any): Prom
 }
 
 // ────────────────────────────────────────────────────────────────
+// /users/set-self-role — a signed-in user changes their OWN role
+// between coach and parent. Safety net for anyone who got
+// misassigned during signup (either through the pre-3.9.156
+// email-match auto-flip, or a stray tap on the wrong landing
+// button). Only touches the caller's own user doc; can only flip
+// between the two user-selectable roles; never grants elevated
+// scopes (isClubAdmin, team_manager, etc.).
+//
+// Body: { role: 'coach' | 'parent' }
+// ────────────────────────────────────────────────────────────────
+async function handleUsersSetSelfRole(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const nextRole = payload?.role === 'coach' ? 'coach' : payload?.role === 'parent' ? 'parent' : null;
+  if (!nextRole) return json({ ok: false, error: 'role_must_be_coach_or_parent' }, 400);
+  const { pid, sa } = projectAndSA(env);
+  const current = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+  if (!current?.data) return json({ ok: false, error: 'user_not_found' }, 404);
+  const patch: Record<string, any> = { role: nextRole, updatedAt: new Date() };
+  // Clean up coach-shaped fields when demoting to parent so a UI
+  // check like `isCoach(role) && coachLevel === 'head_coach'`
+  // doesn't leave dangling state. Not touching teamIds or per-team
+  // team.coachIds arrays — those get normalized by the next
+  // /users/heal-team-membership tick + admin cleanup if needed.
+  if (nextRole === 'parent') {
+    patch.coachLevel = null;
+  }
+  await patchDocument(pid, `users/${claims.uid}`, patch, sa);
+  return json({ ok: true, role: nextRole });
+}
+
+// ────────────────────────────────────────────────────────────────
 // /users/set-role — coach changes another user's role in the
 // Parent Directory (parent ↔ coach). Requires caller to be a coach
 // on a team the target user shares.
@@ -1763,6 +1794,7 @@ export async function routeWriteGuard(
     case '/users/bootstrap':       return handleUsersBootstrap(req, env, payload);
     case '/users/set-widget-player': return handleUsersSetWidgetPlayer(req, env, payload);
     case '/users/set-role':        return handleUsersSetRole(req, env, payload);
+    case '/users/set-self-role':   return handleUsersSetSelfRole(req, env, payload);
     case '/claim/invite':          return handleClaimInvite(req, env, payload);
     case '/claim/parent-invite':   return handleClaimInvite(req, env, payload);  // legacy alias
     case '/claim/coach-invite':    return handleClaimCoachInvite(req, env, payload);

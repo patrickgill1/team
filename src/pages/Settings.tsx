@@ -62,6 +62,46 @@ const Settings: React.FC = () => {
 
   const [linkedPlayers, setLinkedPlayers] = useState<LinkedPlayer[]>([]);
   const [loadingPlayers, setLoadingPlayers] = useState(true);
+  // Self-service role switch state. Firing directly to /users/set-
+  // self-role on the worker — client-side users writes can't touch
+  // role per firestore.rules. Optimistic UI: mark busy → fire →
+  // refreshUserData on success → surface any error inline.
+  const [roleBusy, setRoleBusy] = useState<null | 'coach' | 'parent'>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  const currentGlobalRole = userData?.role === 'coach' ? 'coach'
+    : userData?.role === 'parent' ? 'parent'
+    : null;
+  const handleSwitchRole = async (next: 'coach' | 'parent') => {
+    if (!currentGlobalRole || currentGlobalRole === next || roleBusy) return;
+    const label = next === 'coach' ? 'coach' : 'parent';
+    const other = currentGlobalRole === 'coach' ? 'parent' : 'coach';
+    const ok = window.confirm(
+      `Switch your account from ${other} to ${label}?\n\n` +
+      (next === 'coach'
+        ? 'Coach mode gives you the tools to build a team, run practices, and post to the wall. You still see any players linked to your email.'
+        : 'Parent mode focuses on RSVPs, chats, and your linked players. You can switch back to coach any time.')
+    );
+    if (!ok) return;
+    setRoleBusy(next);
+    setRoleError(null);
+    try {
+      const { workerFetch } = await import('../utils/workerFetch');
+      const resp = await workerFetch('/users/set-self-role', {
+        method: 'POST',
+        body: JSON.stringify({ role: next }),
+      });
+      const j: any = await resp.json().catch(() => ({}));
+      if (!resp.ok || !j?.ok) {
+        setRoleError(j?.error || `HTTP ${resp.status}`);
+        return;
+      }
+      await refreshUserData?.();
+    } catch (err: any) {
+      setRoleError(err?.message || 'Switch failed');
+    } finally {
+      setRoleBusy(null);
+    }
+  };
   // Bumped by ClaimChildWidget on successful claim so the linked
   // players list re-fetches without the parent needing to reload.
   const [linkedReloadTick, setLinkedReloadTick] = useState(0);
@@ -399,6 +439,58 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </section>
+
+        {/* ── ACCOUNT ROLE ────────────────────────────────────────
+            Safety net for anyone who got misassigned during signup.
+            Only surfaces the switch for users whose role is exactly
+            'coach' or 'parent' — team_manager, club admins, etc.
+            keep their more specific role and aren't down-shifted here.
+            Global role is identity, not a per-team gate — see
+            reference_coach_role_model. */}
+        {currentGlobalRole && (
+          <section>
+            <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Account role</h2>
+            <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4 space-y-3">
+              <p className="text-sm text-ink-primary/70 leading-snug">
+                You&apos;re signed in as a <span className="font-black text-ink-primary">{currentGlobalRole === 'coach' ? 'Coach' : 'Parent'}</span>.
+                {currentGlobalRole === 'parent'
+                  ? ' If you meant to sign up as a coach, switch here — no need to make a new account.'
+                  : ' Switch to parent mode if you’re joining a team as a family member instead of running one.'}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSwitchRole('coach')}
+                  disabled={!!roleBusy || currentGlobalRole === 'coach'}
+                  className={`py-2.5 rounded-lg text-sm font-black tracking-wider uppercase transition ${
+                    currentGlobalRole === 'coach'
+                      ? 'bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary/30 cursor-default'
+                      : 'bg-line-default/5 text-ink-primary/70 ring-1 ring-line-default/15 hover:bg-line-default/10 hover:text-ink-primary'
+                  } ${roleBusy === 'coach' ? 'opacity-70' : ''}`}
+                >
+                  {roleBusy === 'coach' ? 'Switching…' : currentGlobalRole === 'coach' ? 'Coach · current' : 'Switch to Coach'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchRole('parent')}
+                  disabled={!!roleBusy || currentGlobalRole === 'parent'}
+                  className={`py-2.5 rounded-lg text-sm font-black tracking-wider uppercase transition ${
+                    currentGlobalRole === 'parent'
+                      ? 'bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary/30 cursor-default'
+                      : 'bg-line-default/5 text-ink-primary/70 ring-1 ring-line-default/15 hover:bg-line-default/10 hover:text-ink-primary'
+                  } ${roleBusy === 'parent' ? 'opacity-70' : ''}`}
+                >
+                  {roleBusy === 'parent' ? 'Switching…' : currentGlobalRole === 'parent' ? 'Parent · current' : 'Switch to Parent'}
+                </button>
+              </div>
+              {roleError && (
+                <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/25 rounded-lg p-2">
+                  Couldn&apos;t switch: {roleError}
+                </p>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* ── MY PLAYERS PROFILES ───────────────────────────────── */}
         <section>

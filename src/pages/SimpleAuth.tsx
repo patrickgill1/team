@@ -172,15 +172,17 @@ const SimpleAuth: React.FC = () => {
             console.warn('precheck failed, treating as no match', e);
             hasPlayer = false;
           }
-          if (hasPlayer) {
-            // Email matched a player → they're a parent. Force the
-            // role so a 'pick Coach' attempt on the form can't
-            // backdoor them into elevated permissions.
-            formData.role = 'parent';
-          }
-          // hasPlayer=false: don't force role. They'll see the
-          // OnboardingGate after auth + pick Create Team / Create
-          // Club / Enter Invite. role stays whatever the form has.
+          // 3.9.156: NO LONGER force-flip role on email match. The
+          // user's explicit landing choice (joinFlow) is now the
+          // source of truth, matching the worker's new posture. The
+          // "elevated permissions" concern the old comment raised
+          // doesn't hold — global role isn't the gate for anything
+          // security-critical; per-team coachIds membership is.
+          //
+          // We STILL surface hasPlayer to the caller (see the
+          // preApproveOnAutoLink hint below) so the OnboardingGate
+          // can adjust its flow — but role stays whatever the user
+          // explicitly picked on the landing screen.
         }
 
         const tempTeamId = formData.inviteCode || `team_${Date.now()}`;
@@ -236,7 +238,14 @@ const SimpleAuth: React.FC = () => {
     
     try {
       console.log('Attempting Google sign-in');
-      await signInWithGoogle(formData.inviteCode || undefined);
+      // Pass the explicit role choice from the landing screen so
+      // the worker doesn't have to guess. joinFlow === true means
+      // "Join a team with a code" (parent path); joinFlow === false
+      // is "Set up a new team" (coach path). See writeGuards.ts
+      // /users/bootstrap — the role field lands verbatim, and the
+      // worker no longer flips it based on email match.
+      const explicitRole: 'coach' | 'parent' = joinFlow ? 'parent' : 'coach';
+      await signInWithGoogle(formData.inviteCode || undefined, explicitRole);
       console.log('Google sign-in successful - waiting for auth state change');
     } catch (error: any) {
       console.error('Google sign-in error:', error);
@@ -524,7 +533,10 @@ const SimpleAuth: React.FC = () => {
                     setErrors({});
                     setIsSubmitting(true);
                     try {
-                      await signInWithApple(formData.inviteCode || undefined);
+                      // Same explicit-role plumbing as the Google
+                      // handler — joinFlow decides parent vs coach.
+                      const appleRole: 'coach' | 'parent' = joinFlow ? 'parent' : 'coach';
+                      await signInWithApple(formData.inviteCode || undefined, appleRole);
                     } catch (err: any) {
                       // Surface the Apple-specific error to the chip
                       // the UI actually renders (errors.submit). Don't

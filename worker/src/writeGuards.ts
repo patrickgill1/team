@@ -172,19 +172,25 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
 
   if (linked.length > 0) {
     const teamsToAdd = Array.from(new Set(linked.flatMap(l => l.teamIds).filter(Boolean)));
-    // Always stamp approved + parent role when there was a match —
-    // even if the initial write set role='coach' from the client
-    // default. The email match is the source of truth for parent
-    // status. If they're ALSO a coach somewhere (their email on
-    // team.coachIds), the per-team check picks that up separately;
-    // the global role stays 'parent'.
+    // 3.9.156: NO LONGER force-flip role to parent on email match.
+    // The user's explicit choice on the landing screen ("Set up a
+    // new team" vs "Join a team with a code") is now the source of
+    // truth for role. Auto-link still runs — parentIds stamped on
+    // every matching player + the player's teamIds fanned onto the
+    // user — so a coach whose email happens to be on their own
+    // kid's parentEmails still sees the kid in the app and gets
+    // events/media pushes for them. But the global role stays
+    // whatever they picked, so a genuine new coach whose email was
+    // already on some player's parentEmails (test data, leftover
+    // from another club, spouse added them) doesn't silently get
+    // demoted to parent.
+    //
+    // approved:true still applies — email match IS a good signal
+    // they're a real user of the club, so we skip the pending gate.
     const patch: Record<string, any> = {
       approved: true,
       approvalStatus: 'auto-email-match',
     };
-    if (wantRole === 'coach') {
-      patch.role = 'parent';
-    }
     if (teamsToAdd.length > 0) {
       await commitDocumentTransforms(
         pid,
@@ -195,8 +201,8 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
       );
     } else {
       // Match with no teamIds on the player (unusual — orphaned
-      // player, or team just deleted). Still patch role + approved
-      // so at least the identity is right.
+      // player, or team just deleted). Still patch approved so at
+      // least the pending gate doesn't strand them.
       await patchDocument(pid, `users/${claims.uid}`, patch, sa);
     }
   }

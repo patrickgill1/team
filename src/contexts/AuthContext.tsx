@@ -58,8 +58,8 @@ interface AuthContextType {
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, userData: Omit<UserData, 'uid'>) => Promise<void>;
-  signInWithGoogle: (inviteTeamId?: string) => Promise<void>;
-  signInWithApple: (inviteTeamId?: string) => Promise<void>;
+  signInWithGoogle: (inviteTeamId?: string, wantRole?: 'coach' | 'parent') => Promise<void>;
+  signInWithApple: (inviteTeamId?: string, wantRole?: 'coach' | 'parent') => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -191,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signInWithGoogle = async (inviteTeamId?: string): Promise<void> => {
+  const signInWithGoogle = async (inviteTeamId?: string, wantRole?: 'coach' | 'parent'): Promise<void> => {
     try {
       console.log('Starting Google sign-in...', inviteTeamId ? `with invite team: ${inviteTeamId}` : '');
       setLoading(true);
@@ -227,10 +227,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const isMobileWeb = typeof navigator !== 'undefined'
           && /Android|iPhone|iPad|iPod|Mobile/.test(navigator.userAgent);
         if (isMobileWeb) {
-          // Stash the optional invite team id so we can pick it back
-          // up on return — the redirect navigates the whole tab away.
+          // Stash both the invite team id AND the explicit role
+          // choice so we can pick them back up on return — the
+          // redirect navigates the whole tab away. Without the
+          // role stash, the redirect-return path defaults everyone
+          // to coach and silently overrides the landing choice.
           if (inviteTeamId) {
             try { sessionStorage.setItem('firefc.pendingInviteTeamId', inviteTeamId); } catch { /* ignore */ }
+          }
+          if (wantRole === 'coach' || wantRole === 'parent') {
+            try { sessionStorage.setItem('firefc.pendingWantRole', wantRole); } catch { /* ignore */ }
           }
           await signInWithRedirect(auth, provider);
           // signInWithRedirect navigates away; control returns via
@@ -255,14 +261,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Post to /users/bootstrap for the user-doc create + email-
         // match auto-link. Same posture as the email signUp path:
         // worker owns all sensitive writes (role, teamIds, approved,
-        // players.parentIds). Role defaults to coach unless the
-        // signup came via an invite (parent path).
+        // players.parentIds).
+        //
+        // Role resolution priority (3.9.156):
+        //   1. Explicit choice from the landing screen ("Set up a
+        //      team" → coach, "Join with code" → parent), passed
+        //      as wantRole. Always wins if provided.
+        //   2. Fallback: inviteTeamId present → parent, else coach.
+        // Worker no longer force-flips role based on email match,
+        // so this stated intent is the source of truth.
         try {
           const { workerFetch } = await import('../utils/workerFetch');
+          const resolvedRoleG = wantRole ?? (inviteTeamId ? 'parent' : 'coach');
           const bootstrapRes = await workerFetch('/users/bootstrap', {
             method: 'POST',
             body: JSON.stringify({
-              role: inviteTeamId ? 'parent' : 'coach',
+              role: resolvedRoleG,
               name: fullName,
               email: (user.email || '').toLowerCase(),
               authProvider: 'google',
@@ -387,7 +401,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Firebase Authentication plugin and follows the same downstream flow as
   // Google: onAuthStateChanged fires, a Firestore user doc gets created if
   // the uid is new.
-  const signInWithApple = async (inviteTeamId?: string): Promise<void> => {
+  const signInWithApple = async (inviteTeamId?: string, wantRole?: 'coach' | 'parent'): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -425,10 +439,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const fullName = user.displayName || (user.email ? user.email.split('@')[0] : 'Player');
         try {
           const { workerFetch } = await import('../utils/workerFetch');
+          const resolvedRoleA = wantRole ?? (inviteTeamId ? 'parent' : 'coach');
           const bootstrapRes = await workerFetch('/users/bootstrap', {
             method: 'POST',
             body: JSON.stringify({
-              role: inviteTeamId ? 'parent' : 'coach',
+              role: resolvedRoleA,
               name: fullName,
               email: (user.email || '').toLowerCase(),
               authProvider: 'apple',
@@ -731,11 +746,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const existing = await getUserData(user.uid);
         if (existing) return; // onAuthStateChanged will pick this up
 
-        // Pull the invite team id we stashed before the redirect (if any).
+        // Pull the invite team id AND the explicit role choice we
+        // stashed before the redirect (if any). Both get consumed
+        // one-shot — sessionStorage is per-tab so a fresh tab
+        // doesn't accidentally inherit stale intent.
         let inviteTeamId = '';
+        let stashedWantRole: 'coach' | 'parent' | null = null;
         try {
           inviteTeamId = sessionStorage.getItem('firefc.pendingInviteTeamId') || '';
           sessionStorage.removeItem('firefc.pendingInviteTeamId');
+          const rawRole = sessionStorage.getItem('firefc.pendingWantRole');
+          sessionStorage.removeItem('firefc.pendingWantRole');
+          if (rawRole === 'coach' || rawRole === 'parent') stashedWantRole = rawRole;
         } catch { /* ignore */ }
 
         const displayName = user.displayName || '';
@@ -744,10 +766,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // link runs server-side during /users/bootstrap.
         try {
           const { workerFetch } = await import('../utils/workerFetch');
+          const resolvedRoleRR = stashedWantRole ?? (inviteTeamId ? 'parent' : 'coach');
           const bootstrapRes = await workerFetch('/users/bootstrap', {
             method: 'POST',
             body: JSON.stringify({
-              role: inviteTeamId ? 'parent' : 'coach',
+              role: resolvedRoleRR,
               name: fullName,
               email: (user.email || '').toLowerCase(),
               authProvider: 'google',

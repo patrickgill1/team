@@ -542,26 +542,42 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         console.log('New player created with ID:', savedPlayerId);
       }
 
-      if (isMyKid !== initialIsMyKid && userData?.uid) {
-        try {
-          const { workerFetch } = await import('../../utils/workerFetch');
-          const res = await workerFetch('/players/toggle-self-parent', {
-            method: 'POST',
-            body: JSON.stringify({ playerId: savedPlayerId, on: isMyKid }),
-          });
-          const data: any = await res.json().catch(() => ({}));
-          if (!res.ok || !data?.ok) {
-            console.warn('toggle-self-parent failed', data);
-          } else {
-            // Reflect the link locally so the caller sees fresh state
-            // without an extra reload.
-            const nextParentIds = new Set<string>(Array.isArray(savedPlayer.parentIds) ? savedPlayer.parentIds : []);
-            if (isMyKid) nextParentIds.add(userData.uid);
-            else nextParentIds.delete(userData.uid);
-            savedPlayer = { ...savedPlayer, parentIds: Array.from(nextParentIds) };
+      // "This is my kid" toggle. Fire whenever the desired state
+      // doesn't match what's actually persisted on parentIds — using
+      // the persisted array as source of truth, NOT the hydrated
+      // initialIsMyKid. Prior version gated on `isMyKid !==
+      // initialIsMyKid`; if the modal opened with a stale hydration
+      // (e.g. parent list still loading when the effect ran), the
+      // gate would be true=true and the worker call would silently
+      // skip. Patrick 2026-07-10 report.
+      if (userData?.uid) {
+        const currentParentIds: string[] = Array.isArray(savedPlayer.parentIds) ? savedPlayer.parentIds : [];
+        const alreadyParent = currentParentIds.includes(userData.uid);
+        const shouldBeParent = isMyKid;
+        console.log('[isMyKid] toggle check', {
+          alreadyParent, shouldBeParent, initialIsMyKid, isMyKid,
+          userUid: userData.uid, playerId: savedPlayerId,
+        });
+        if (shouldBeParent !== alreadyParent) {
+          try {
+            const { workerFetch } = await import('../../utils/workerFetch');
+            const res = await workerFetch('/players/toggle-self-parent', {
+              method: 'POST',
+              body: JSON.stringify({ playerId: savedPlayerId, on: shouldBeParent }),
+            });
+            const data: any = await res.json().catch(() => ({}));
+            if (!res.ok || !data?.ok) {
+              console.warn('[isMyKid] toggle-self-parent failed', { status: res.status, data });
+            } else {
+              console.log('[isMyKid] toggle-self-parent ok');
+              const nextParentIds = new Set<string>(currentParentIds);
+              if (shouldBeParent) nextParentIds.add(userData.uid);
+              else nextParentIds.delete(userData.uid);
+              savedPlayer = { ...savedPlayer, parentIds: Array.from(nextParentIds) };
+            }
+          } catch (err) {
+            console.warn('[isMyKid] toggle-self-parent threw', err);
           }
-        } catch (err) {
-          console.warn('toggle-self-parent threw', err);
         }
       }
 

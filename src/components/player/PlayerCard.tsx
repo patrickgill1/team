@@ -137,39 +137,42 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             without the bubbly blur-blob look. */}
         <div className="absolute -top-12 -right-12 w-32 h-32 bg-brand-primary/10 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Edit / Delete actions */}
-        {canEdit && (
-          <div className="absolute top-3 right-3 z-10 flex space-x-1">
-            <button
-              onClick={() => onEdit && onEdit(player)}
-              className="p-2 bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 rounded-full text-ink-primary/70 hover:text-ink-primary backdrop-blur transition-colors"
-              title="Edit Player"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 bg-line-default/10 hover:bg-amber-500/20 ring-1 ring-line-default/15 rounded-full text-ink-primary/70 hover:text-ink-primary backdrop-blur transition-colors"
-              title="Archive player (preserves stats; can be restored)"
-            >
-              {/* Archive box icon (less alarming than a trash can) */}
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-              </svg>
-            </button>
-          </div>
-        )}
-
         <div className="relative flex-1 flex flex-col">
-          {/* Position pill */}
-          {player.position && (
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 text-[10px] font-bold uppercase tracking-wider mb-4 backdrop-blur">
-              <span className={`w-2 h-2 rounded-full ${positionDot(player.position)}`} />
-              {player.position}
-            </div>
-          )}
+          {/* Top row: position pill (left) + edit/archive actions
+              (right) on the same flex line. Was previously an
+              absolute-positioned button cluster overlapping the pill
+              on narrow cards; the flex row guarantees they never
+              collide regardless of viewport width. */}
+          <div className="flex items-start justify-between gap-3 mb-4">
+            {player.position ? (
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 text-[10px] font-bold uppercase tracking-wider backdrop-blur">
+                <span className={`w-2 h-2 rounded-full ${positionDot(player.position)}`} />
+                {player.position}
+              </div>
+            ) : <span aria-hidden />}
+            {canEdit && (
+              <div className="flex space-x-1 shrink-0">
+                <button
+                  onClick={() => onEdit && onEdit(player)}
+                  className="p-2 bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 rounded-full text-ink-primary/70 hover:text-ink-primary backdrop-blur transition-colors"
+                  title="Edit Player"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-2 bg-line-default/10 hover:bg-amber-500/20 ring-1 ring-line-default/15 rounded-full text-ink-primary/70 hover:text-ink-primary backdrop-blur transition-colors"
+                  title="Archive player (preserves stats; can be restored)"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Photo + Name row */}
           <div className="flex items-center gap-4 mb-5">

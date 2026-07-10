@@ -987,12 +987,25 @@ async function handleUsersSetSelfRole(req: Request, env: Env, payload: any): Pro
   const { pid, sa } = projectAndSA(env);
   const current = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
   if (!current?.data) return json({ ok: false, error: 'user_not_found' }, 404);
+  // SELF-PROMOTION GUARD: only allow role changes that DEMOTE — a
+  // coach can flip themselves to parent, but a parent can NOT flip
+  // themselves to coach through this path. Otherwise a parent on
+  // any team could gain read access to parent_whispers +
+  // form_submissions for every kid on that team via the
+  // callerCanReadWhisper / callerCanReadFormSubmission rules that
+  // trust isCoachRole() as a proxy for "coach on the team."
+  // Parent → coach requires an admin action (or the user starting
+  // a fresh team via /teams/create which stamps them on team.coachIds
+  // properly).
+  const currentRole = current.data.role || null;
+  if (currentRole === 'parent' && nextRole === 'coach') {
+    return json({
+      ok: false,
+      error: 'self_promotion_blocked',
+      hint: 'A parent cannot promote themselves to coach. Ask an admin, or start a new team from the landing screen — that path is the correct one for taking on a coach role.',
+    }, 403);
+  }
   const patch: Record<string, any> = { role: nextRole, updatedAt: new Date() };
-  // Clean up coach-shaped fields when demoting to parent so a UI
-  // check like `isCoach(role) && coachLevel === 'head_coach'`
-  // doesn't leave dangling state. Not touching teamIds or per-team
-  // team.coachIds arrays — those get normalized by the next
-  // /users/heal-team-membership tick + admin cleanup if needed.
   if (nextRole === 'parent') {
     patch.coachLevel = null;
   }

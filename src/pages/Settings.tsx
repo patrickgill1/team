@@ -441,48 +441,32 @@ const Settings: React.FC = () => {
         </section>
 
         {/* ── ACCOUNT ROLE ────────────────────────────────────────
-            Safety net for anyone who got misassigned during signup.
-            Only surfaces the switch for users whose role is exactly
-            'coach' or 'parent' — team_manager, club admins, etc.
-            keep their more specific role and aren't down-shifted here.
-            Global role is identity, not a per-team gate — see
-            reference_coach_role_model. */}
-        {currentGlobalRole && (
+            Coach-only self-service demotion. A coach can flip to
+            parent (they misidentified during signup, or they've
+            handed off the team). PARENT → COACH IS INTENTIONALLY
+            NOT OFFERED here — that direction would let a parent on
+            any team gain access to parent_whispers +
+            form_submissions for every kid on that team via the two
+            rule branches that trust isCoachRole() as a proxy for
+            "coach on the team." A parent who needs to become a
+            coach either (a) starts a new team from the landing
+            screen or (b) gets flipped by an admin. */}
+        {currentGlobalRole === 'coach' && (
           <section>
             <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Account role</h2>
             <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4 space-y-3">
               <p className="text-sm text-ink-primary/70 leading-snug">
-                You&apos;re signed in as a <span className="font-black text-ink-primary">{currentGlobalRole === 'coach' ? 'Coach' : 'Parent'}</span>.
-                {currentGlobalRole === 'parent'
-                  ? ' If you meant to sign up as a coach, switch here — no need to make a new account.'
-                  : ' Switch to parent mode if you’re joining a team as a family member instead of running one.'}
+                You&apos;re signed in as a <span className="font-black text-ink-primary">Coach</span>.
+                Switch to parent mode if you&apos;re joining a team as a family member instead of running one. Switching back to coach later needs an admin.
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleSwitchRole('coach')}
-                  disabled={!!roleBusy || currentGlobalRole === 'coach'}
-                  className={`py-2.5 rounded-lg text-sm font-black tracking-wider uppercase transition ${
-                    currentGlobalRole === 'coach'
-                      ? 'bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary/30 cursor-default'
-                      : 'bg-line-default/5 text-ink-primary/70 ring-1 ring-line-default/15 hover:bg-line-default/10 hover:text-ink-primary'
-                  } ${roleBusy === 'coach' ? 'opacity-70' : ''}`}
-                >
-                  {roleBusy === 'coach' ? 'Switching…' : currentGlobalRole === 'coach' ? 'Coach · current' : 'Switch to Coach'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSwitchRole('parent')}
-                  disabled={!!roleBusy || currentGlobalRole === 'parent'}
-                  className={`py-2.5 rounded-lg text-sm font-black tracking-wider uppercase transition ${
-                    currentGlobalRole === 'parent'
-                      ? 'bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary/30 cursor-default'
-                      : 'bg-line-default/5 text-ink-primary/70 ring-1 ring-line-default/15 hover:bg-line-default/10 hover:text-ink-primary'
-                  } ${roleBusy === 'parent' ? 'opacity-70' : ''}`}
-                >
-                  {roleBusy === 'parent' ? 'Switching…' : currentGlobalRole === 'parent' ? 'Parent · current' : 'Switch to Parent'}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleSwitchRole('parent')}
+                disabled={!!roleBusy}
+                className={`w-full py-2.5 rounded-lg text-sm font-black tracking-wider uppercase transition bg-line-default/5 text-ink-primary/70 ring-1 ring-line-default/15 hover:bg-line-default/10 hover:text-ink-primary ${roleBusy === 'parent' ? 'opacity-70' : ''}`}
+              >
+                {roleBusy === 'parent' ? 'Switching…' : 'Switch to Parent'}
+              </button>
               {roleError && (
                 <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/25 rounded-lg p-2">
                   Couldn&apos;t switch: {roleError}

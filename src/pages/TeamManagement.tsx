@@ -748,7 +748,7 @@ const TeamManagement: React.FC = () => {
                     </div>
                   ) : (
                     <div className="w-10 h-10 bg-brand-primary/15 rounded-full flex items-center justify-center text-brand-primary font-bold text-sm flex-shrink-0">
-                      {player.jerseyNumber || player.name.charAt(0)}
+                      {player.jerseyNumber || (player.name || '?').charAt(0)}
                     </div>
                   )}
                   <div>

@@ -142,7 +142,7 @@ const PhotoUploadDialog: React.FC<Props> = ({
                 if (e.dataTransfer?.files?.length) acceptFiles(e.dataTransfer.files);
               }}
               className={`block rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer transition ${
-                dragging ? 'border-cyan-500 bg-cyan-500/10' : 'border-line-default/25 hover:border-cyan-500/50 hover:bg-cyan-500/[0.04]'
+                dragging ? 'border-brand-primary bg-brand-primary/10' : 'border-line-default/25 hover:border-brand-primary/50 hover:bg-brand-primary/[0.04]'
               }`}
             >
               <input
@@ -154,7 +154,7 @@ const PhotoUploadDialog: React.FC<Props> = ({
                 onChange={(e) => e.target.files && acceptFiles(e.target.files)}
                 className="hidden"
               />
-              <svg className="w-12 h-12 mx-auto mb-3 text-cyan-500/70" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m8-8H4M6 20h12" /></svg>
+              <svg className="w-12 h-12 mx-auto mb-3 text-brand-primary-soft/70" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m8-8H4M6 20h12" /></svg>
               <p className="text-sm font-bold text-ink-primary mb-1">Drop photos here or tap to pick</p>
               <p className="text-[11px] text-ink-primary/60">Up to {MAX_FILES} at a time · JPG · PNG · HEIC</p>
             </label>
@@ -181,7 +181,7 @@ const PhotoUploadDialog: React.FC<Props> = ({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="aspect-square rounded-lg border-2 border-dashed border-line-default/20 flex items-center justify-center text-ink-primary/50 hover:border-cyan-500/50 hover:text-cyan-500 transition"
+                    className="aspect-square rounded-lg border-2 border-dashed border-line-default/20 flex items-center justify-center text-ink-primary/50 hover:border-brand-primary/50 hover:text-brand-primary-soft transition"
                   >
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                   </button>
@@ -204,7 +204,7 @@ const PhotoUploadDialog: React.FC<Props> = ({
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                   placeholder="Optional — e.g. Saturday's win vs Riverside"
-                  className="w-full bg-surface-base border border-line-default/10 rounded-lg px-3 py-2 text-sm text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:border-cyan-500/50"
+                  className="w-full bg-surface-base border border-line-default/10 rounded-lg px-3 py-2 text-sm text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:border-brand-primary/50"
                   maxLength={280}
                 />
               </div>
@@ -222,8 +222,8 @@ const PhotoUploadDialog: React.FC<Props> = ({
                         onClick={() => setTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])}
                         className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition ${
                           sel
-                            ? 'bg-cyan-600 text-white border-cyan-600'
-                            : 'bg-surface-base text-ink-primary/80 border-line-default/15 hover:border-cyan-500/40'
+                            ? 'bg-brand-primary text-white border-brand-primary'
+                            : 'bg-surface-base text-ink-primary/80 border-line-default/15 hover:border-brand-primary/40'
                         }`}
                       >
                         {t}
@@ -241,7 +241,7 @@ const PhotoUploadDialog: React.FC<Props> = ({
                   value={playerSearch}
                   onChange={(e) => setPlayerSearch(e.target.value)}
                   placeholder="Search players to tag..."
-                  className="w-full bg-surface-base border border-line-default/10 rounded-lg px-3 py-2 text-sm text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:border-cyan-500/50 mb-2"
+                  className="w-full bg-surface-base border border-line-default/10 rounded-lg px-3 py-2 text-sm text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:border-brand-primary/50 mb-2"
                 />
                 <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
                   {filteredPlayers.slice(0, 60).map((p) => {
@@ -253,8 +253,8 @@ const PhotoUploadDialog: React.FC<Props> = ({
                         onClick={() => setTaggedPlayerIds((prev) => prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id])}
                         className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition ${
                           sel
-                            ? 'bg-cyan-600 text-white border-cyan-600'
-                            : 'bg-surface-base text-ink-primary/80 border-line-default/15 hover:border-cyan-500/40'
+                            ? 'bg-brand-primary text-white border-brand-primary'
+                            : 'bg-surface-base text-ink-primary/80 border-line-default/15 hover:border-brand-primary/40'
                         }`}
                       >
                         {p.name}
@@ -274,7 +274,7 @@ const PhotoUploadDialog: React.FC<Props> = ({
                   <select
                     value={eventId || ''}
                     onChange={(e) => setEventId(e.target.value || null)}
-                    className="w-full bg-surface-base border border-line-default/10 rounded-lg px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-cyan-500/50"
+                    className="w-full bg-surface-base border border-line-default/10 rounded-lg px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-brand-primary/50"
                   >
                     <option value="">No event</option>
                     {events.slice(0, 100).map((ev) => (
@@ -298,7 +298,7 @@ const PhotoUploadDialog: React.FC<Props> = ({
           {uploading && (
             <div className="mb-2">
               <div className="h-1.5 w-full bg-line-default/[0.15] rounded-full overflow-hidden">
-                <div className="h-full bg-cyan-500 transition-all" style={{ width: `${progressPct}%` }} />
+                <div className="h-full bg-brand-primary transition-all" style={{ width: `${progressPct}%` }} />
               </div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-ink-primary/50 mt-1">
                 Uploading… {Math.round(progressPct)}%
@@ -318,7 +318,7 @@ const PhotoUploadDialog: React.FC<Props> = ({
               type="button"
               onClick={submit}
               disabled={uploading || files.length === 0}
-              className="flex-1 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-black disabled:opacity-40 transition"
+              className="flex-1 py-2.5 rounded-lg bg-brand-primary hover:bg-brand-primary-hov text-white text-sm font-black disabled:opacity-40 transition"
             >
               {uploading ? 'Uploading…' : `Upload ${files.length || ''} photo${files.length !== 1 ? 's' : ''}`}
             </button>

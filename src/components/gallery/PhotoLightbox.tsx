@@ -212,7 +212,7 @@ const PhotoLightbox: React.FC<Props> = ({
               className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder:text-white/40 text-sm focus:outline-none focus:border-white/40"
               maxLength={280}
             />
-            <button onClick={saveCaption} className="px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold">Save</button>
+            <button onClick={saveCaption} className="px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hov text-white text-xs font-bold">Save</button>
             <button onClick={() => setCaptionEditing(false)} className="px-2 py-2 rounded-lg bg-white/10 text-xs font-bold">Cancel</button>
           </div>
         ) : (
@@ -244,11 +244,11 @@ const PhotoLightbox: React.FC<Props> = ({
           {taggedIds.map((pid) => {
             const p = playerMap.get(pid);
             return (
-              <span key={pid} className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-cyan-500/25 border border-cyan-400/40 text-cyan-50 text-[11px] font-bold">
+              <span key={pid} className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-brand-primary/25 border border-brand-primary/40 text-white text-[11px] font-bold">
                 {p?.name || 'Player'}
                 <button
                   onClick={() => onTagsChange(photo, taggedIds.filter((id) => id !== pid))}
-                  className="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full bg-cyan-900/40 hover:bg-cyan-900/80"
+                  className="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full bg-brand-primary-dim/40 hover:bg-brand-primary-dim/80"
                   aria-label={`Remove ${p?.name || 'player'}`}
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.6} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -290,7 +290,7 @@ const PhotoLightbox: React.FC<Props> = ({
                 <button
                   key={p.id}
                   onClick={() => onTagsChange(photo, [...taggedIds, p.id])}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 hover:bg-cyan-500/30 border border-white/20 hover:border-cyan-400/50 text-white text-[11px] font-semibold transition"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 hover:bg-brand-primary-hov/30 border border-white/20 hover:border-brand-primary/50 text-white text-[11px] font-semibold transition"
                 >
                   {p.name}
                 </button>

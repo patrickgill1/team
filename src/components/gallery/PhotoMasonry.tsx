@@ -50,7 +50,7 @@ const PhotoMasonry: React.FC<Props> = ({ photos, players, currentUid, onOpen }) 
             <button
               key={photo.id}
               onClick={() => onOpen(i)}
-              className="pm-tile relative w-full block rounded-xl overflow-hidden bg-surface-elevated ring-1 ring-line-default/10 group hover:ring-cyan-500/40 transition"
+              className="pm-tile relative w-full block rounded-xl overflow-hidden bg-surface-elevated ring-1 ring-line-default/10 group hover:ring-brand-primary/40 transition"
             >
               <img
                 src={photo.thumbnailUrl || photo.url}
@@ -68,7 +68,7 @@ const PhotoMasonry: React.FC<Props> = ({ photos, players, currentUid, onOpen }) 
                 <div className="flex items-center justify-between text-[10px] font-bold">
                   <div className="flex items-center gap-1 flex-wrap truncate">
                     {firstTag && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-cyan-500/70 text-white truncate max-w-[100px]">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-brand-primary/70 text-white truncate max-w-[100px]">
                         {firstTag.name}
                       </span>
                     )}

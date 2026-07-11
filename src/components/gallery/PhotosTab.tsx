@@ -277,7 +277,7 @@ const PhotosTab: React.FC<Props> = ({ players, events }) => {
   if (!loaded && showProgress) {
     return (
       <div className="min-h-[40vh] flex items-center justify-center">
-        <div className="h-6 w-6 rounded-full border-2 border-cyan-500/40 border-t-cyan-500 animate-spin" />
+        <div className="h-6 w-6 rounded-full border-2 border-brand-primary/40 border-t-brand-primary animate-spin" />
       </div>
     );
   }
@@ -296,8 +296,8 @@ const PhotosTab: React.FC<Props> = ({ players, events }) => {
       <div className="p-3">
         {filtered.length === 0 ? (
           <div className="min-h-[40vh] flex flex-col items-center justify-center text-center px-8">
-            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center mb-3">
-              <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+            <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/25 flex items-center justify-center mb-3">
+              <svg className="w-6 h-6 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
             </div>
             <p className="text-base font-black text-ink-primary mb-1">
               {photos.length === 0 ? 'Team photos live here.' : 'No photos match your filters.'}
@@ -309,7 +309,7 @@ const PhotosTab: React.FC<Props> = ({ players, events }) => {
             </p>
             <button
               onClick={() => setUploadOpen(true)}
-              className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-black uppercase tracking-widest px-4 py-2.5 rounded-full transition"
+              className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-hov text-white text-sm font-black uppercase tracking-widest px-4 py-2.5 rounded-full transition"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.4} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
               Upload photos
@@ -329,7 +329,7 @@ const PhotosTab: React.FC<Props> = ({ players, events }) => {
       {filtered.length > 0 && (
         <button
           onClick={() => setUploadOpen(true)}
-          className="fixed z-30 bottom-24 right-4 w-14 h-14 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white shadow-2xl flex items-center justify-center transition active:scale-95"
+          className="fixed z-30 bottom-24 right-4 w-14 h-14 rounded-full bg-brand-primary hover:bg-brand-primary-hov text-white shadow-2xl flex items-center justify-center transition active:scale-95"
           aria-label="Upload photos"
           title="Upload photos"
         >

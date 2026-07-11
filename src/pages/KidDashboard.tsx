@@ -8,6 +8,7 @@ import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import KidModePinModal from '../components/player/KidModePinModal';
 import KidChatRoom from '../components/kidChat/KidChatRoom';
 import KidHeroCard from '../components/kidChat/KidHeroCard';
+import { awardMicroXp } from '../utils/microXp';
 
 type RsvpStatus = 'going' | 'maybe' | 'no';
 
@@ -212,6 +213,7 @@ const KidDashboard: React.FC = () => {
                       playerPhotoUrl={player.profilePhotoUrl || null}
                       parentUid={(userData as any)?.uid}
                       currentStatus={currentStatus}
+                      xpEnabled={Boolean((team as any)?.xpConfig?.enabled)}
                     />
                   </li>
                 );
@@ -406,12 +408,19 @@ const KidRsvpButtons: React.FC<{
   playerPhotoUrl?: string | null;
   parentUid?: string;
   currentStatus?: RsvpStatus;
-}> = ({ eventId, playerId, playerName, playerPhotoUrl, parentUid, currentStatus }) => {
+  xpEnabled?: boolean;
+}> = ({ eventId, playerId, playerName, playerPhotoUrl, parentUid, currentStatus, xpEnabled }) => {
   const [busy, setBusy] = useState<RsvpStatus | null>(null);
 
   const setStatus = async (status: RsvpStatus) => {
     if (!parentUid || busy) return;
     setBusy(status);
+    // Snapshot the transition BEFORE the write so the RSVP =>
+    // 'going' micro-XP only fires on a fresh crossing. A kid tapping
+    // 'going' twice in a row (once already going) will not double-
+    // grant. Toggling going -> no -> going grants twice, which is
+    // an accepted spam edge case in v1.
+    const crossedIntoGoing = status === 'going' && currentStatus !== 'going';
     try {
       await updateDoc(doc(db, 'events', eventId), {
         [`playerRsvps.${playerId}`]: {
@@ -424,6 +433,12 @@ const KidRsvpButtons: React.FC<{
           respondedAt: new Date(),
         },
       });
+      if (crossedIntoGoing) {
+        void awardMicroXp(playerId, 5, {
+          xpEnabled: Boolean(xpEnabled),
+          actionKey: 'rsvp_going',
+        });
+      }
     } catch (err) {
       console.error('[kid-rsvp] failed', err);
       alert('Could not save your RSVP. Try again.');

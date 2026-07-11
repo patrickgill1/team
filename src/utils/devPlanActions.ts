@@ -193,6 +193,14 @@ export async function recomputeAndPersistPlayerStreak(
     // teams that didn't opt into XP don't silently accumulate badges.
     const { computeStreakBadgePatch } = await import('./badgeGrants');
     const badgePatch = computeStreakBadgePatch(priorStreak, streak, existingBadges, { playerName, xpEnabled });
+    // Compose +5 practice-log micro-XP into the SAME write. When a
+    // streak badge crossed on this tick, badgePatch already carries
+    // an xp/xpCareer increment sentinel — Firestore's increment does
+    // not stack across two updates to the same field in one write, so
+    // composeMicroXpIntoPatch recomputes the badge XP amount from the
+    // touched slugs and merges into a single combined increment.
+    const { composeMicroXpIntoPatch } = await import('./microXp');
+    await composeMicroXpIntoPatch(badgePatch, 5, xpEnabled);
     await updateDoc(doc(db, 'players', playerId), {
       currentStreakDays: streak,
       currentStreakUpdatedAt: new Date(),

@@ -17,6 +17,7 @@ import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import type { KidChatMessage, Player, Team } from '../../types';
 import { isCoachOfTeam } from '../../utils/helpers';
+import { awardMicroXp } from '../../utils/microXp';
 
 interface Props {
   /** The kid whose bubble the message will be attributed to. When
@@ -130,6 +131,15 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
         text: body,
         createdAt: serverTimestamp(),
         isDeleted: false,
+      });
+      // Micro-XP: +2 per message, daily cap 20 (10 messages). Fires
+      // fire-and-forget so the player-doc round-trip doesn't block
+      // the composer clearing. awardMicroXp is fail-closed on
+      // xpEnabled, so teams that never turned XP on write nothing.
+      void awardMicroXp(actingAsPlayer.id, 2, {
+        xpEnabled: Boolean((team as any)?.xpConfig?.enabled),
+        dailyCap: 20,
+        actionKey: 'chat_message',
       });
       setText('');
       // Force scroll-to-bottom after own send even if user had

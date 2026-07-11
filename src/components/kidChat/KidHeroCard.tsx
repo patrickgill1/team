@@ -51,6 +51,15 @@ const FlameIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+// Soccer ball icon for the JUGGLES metric tile (personal best). Same
+// style family as the other monoline stroked icons.
+const BallIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <polygon points="12,8 15.5,10.5 14,14.5 10,14.5 8.5,10.5" />
+  </svg>
+);
+
 const ShieldIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
     <path d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z" />
@@ -104,18 +113,15 @@ function rarityFor(level: number | null): string {
   return 'ROOKIE';
 }
 
-// Pick which streak-shield PNG hangs off the avatar. Highest earned
-// milestone wins so the shield reads as a trophy the kid actually
-// unlocked. Fallback to streak_5 art when the kid has an active streak
-// but hasn't crossed the first milestone yet, so the shield shows up
-// on day 1 instead of waiting until day 5.
-function streakShieldSlug(badges: Record<string, unknown>, streak: number): string | null {
-  if (streak <= 0) return null;
-  for (let i = STREAK_MILESTONES.length - 1; i >= 0; i--) {
-    const slug = `streak_${STREAK_MILESTONES[i]}`;
-    if (badges[slug]) return slug;
-  }
-  return 'streak_5';
+// Warm-orange tone scale for the streak flame pill. Matches Dashboard
+// MyPlayerCard + Squad PlayerCard heroLayout so the streak reads the
+// same everywhere. Blazing gradient at 25+, gradient at 10+, solid
+// orange at 5+, soft at 1-4.
+function streakBadgeTone(streak: number): string {
+  if (streak >= 25) return 'bg-gradient-to-br from-amber-300 to-orange-600 ring-amber-200/60';
+  if (streak >= 10) return 'bg-gradient-to-br from-orange-400 to-orange-600 ring-orange-200/50';
+  if (streak >= 5) return 'bg-orange-500 ring-orange-300/50';
+  return 'bg-orange-500/85 ring-orange-300/40';
 }
 
 const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
@@ -124,6 +130,7 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
   const badges = ((player as any).badges ?? {}) as Record<string, unknown>;
   const xpEnabled = Boolean((team as any)?.xpConfig?.enabled);
   const isPotm = Boolean((player as any).isCurrentPotm);
+  const jugglesBest = Math.max(0, Number((player as any).juggles?.best ?? 0) | 0);
 
   const age = player.dateOfBirth ? computeDobAge(player.dateOfBirth as any) : null;
   const level = xpEnabled ? computeXpLevel(xp) : null;
@@ -131,7 +138,7 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
   const totalBadgeSlots = BADGE_SLOTS.length;
   const initials = getInitials(player.name);
   const rarity = rarityFor(level ? level.level : null);
-  const shieldSlug = streakShieldSlug(badges, streak);
+  const streakTone = streakBadgeTone(streak);
 
   // Locker: earned badges first, then locks. If the kid has more than
   // 9 badges we still render 9 cells but the last shows a "+N" overflow
@@ -195,24 +202,20 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
             )}
           </div>
 
-          {/* Streak shield hangs off the bottom-left of the avatar.
-              Only renders when the kid has an active streak. The PNG
-              art already has its milestone number baked in so we don't
-              overlay a text label. */}
-          {shieldSlug && (
-            <div
-              className="absolute -bottom-1 -left-2 w-10 h-10 sm:w-11 sm:h-11 drop-shadow-[0_2px_6px_rgba(200,32,44,0.5)]"
-              aria-label={`${streak}-day streak`}
-              title={`${streak}-day streak`}
+          {/* Streak flame pill — shows the CURRENT streak day count
+              (not the last milestone), matching the flame+number
+              treatment on Dashboard MyPlayerCard + Squad PlayerCard.
+              Day 6 shows "6", day 12 shows "12". Warm-orange scale
+              intensifies at 5/10/25 thresholds. */}
+          {streak > 0 && (
+            <span
+              className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center gap-0.5 h-8 min-w-8 px-1.5 rounded-full text-[12px] font-black tabular-nums text-white ring-2 ring-offset-2 ring-offset-transparent shadow-[0_2px_6px_rgba(200,32,44,0.35)] ${streakTone}`}
+              title={`${streak}-day practice streak`}
+              aria-label={`${streak}-day practice streak`}
             >
-              <img
-                src={badgeImageSrc(shieldSlug, 72)}
-                srcSet={badgeSrcSet(shieldSlug, 44)}
-                alt=""
-                className="w-full h-full object-contain"
-                draggable={false}
-              />
-            </div>
+              <FlameIcon className="w-3.5 h-3.5 shrink-0" />
+              {streak}
+            </span>
           )}
 
           {isPotm && (
@@ -245,15 +248,16 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
             </div>
           )}
 
-          {/* Metric tiles — chunky pills, one per momentum axis. When
-              XP is off the SEASON XP tile drops, leaving STREAK +
-              BADGES so the row still reads balanced. */}
+          {/* Metric tiles — chunky pills, one per momentum axis.
+              Streak already shows on the avatar flame pill, so the
+              tile row uses JUGGLES BEST instead (kid's personal
+              record — grows over time, no stale-stat feel). */}
           <div className={'mt-3 grid gap-1.5 sm:gap-2 ' + (xpEnabled ? 'grid-cols-3' : 'grid-cols-2')}>
             <MetricTile
-              icon={<FlameIcon className="w-3.5 h-3.5 text-orange-500" />}
-              label="Streak"
-              value={String(streak)}
-              hint={streak === 1 ? 'day' : 'days'}
+              icon={<BallIcon className="w-3.5 h-3.5 text-emerald-400" />}
+              label="Juggles"
+              value={String(jugglesBest)}
+              hint="best"
             />
             <MetricTile
               icon={<ShieldIcon className="w-3.5 h-3.5 text-amber-500" />}
@@ -264,9 +268,9 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
             {xpEnabled && level && (
               <MetricTile
                 icon={<HexXpIcon className="w-3.5 h-3.5 text-brand-primary" />}
-                label="Season XP"
+                label="XP"
                 value={xp.toLocaleString()}
-                hint="total"
+                hint="season"
               />
             )}
           </div>
@@ -389,8 +393,11 @@ interface MetricTileProps {
 
 const MetricTile: React.FC<MetricTileProps> = ({ icon, label, value, hint }) => (
   <div className="rounded-xl bg-white/[0.05] ring-1 ring-white/10 px-2 py-1.5 flex flex-col min-w-0 backdrop-blur-sm">
-    <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-white/60">
-      {icon}
+    {/* Tracking-wider (not widest) + smaller text so "SEASON XP" and
+        "BADGES" fit the ~90px tile width on iPhone SE without
+        truncating. Icon shrinks-0 so it never clips the label. */}
+    <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-white/60 whitespace-nowrap overflow-hidden">
+      <span className="shrink-0">{icon}</span>
       <span className="truncate">{label}</span>
     </div>
     <div className="mt-0.5 flex items-baseline gap-1 min-w-0">

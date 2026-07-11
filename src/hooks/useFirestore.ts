@@ -406,10 +406,11 @@ const getUserData = useCallback(async (uid: string) => {
   }, []);
 
   const getPhotosByTeam = useCallback(async (teamId: string) => {
-    return getDocuments('gallery', [
+    const docs = await getDocuments('gallery', [
       where('teamId', '==', teamId),
       orderBy('createdAt', 'desc')
     ]);
+    return docs.filter((d: any) => d.isActive !== false);
   }, [getDocuments]);
 
   /** Subscribe (live) to all gallery photos tagged to a specific event,
@@ -889,22 +890,26 @@ const getUserData = useCallback(async (uid: string) => {
     const docs = await getDocuments('player_media', [
       where('playerId', '==', playerId),
     ]);
-    return docs.sort((a: any, b: any) => {
-      const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt || 0).getTime();
-      const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt || 0).getTime();
-      return bTime - aTime;
-    });
+    return docs
+      .filter((d: any) => d.isActive !== false)
+      .sort((a: any, b: any) => {
+        const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt || 0).getTime();
+        const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt || 0).getTime();
+        return bTime - aTime;
+      });
   }, [getDocuments]);
 
   const getPlayerMediaByTeam = useCallback(async (teamId: string) => {
     const docs = await getDocuments('player_media', [
       where('teamId', '==', teamId),
     ]);
-    return docs.sort((a: any, b: any) => {
-      const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt || 0).getTime();
-      const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt || 0).getTime();
-      return bTime - aTime;
-    });
+    return docs
+      .filter((d: any) => d.isActive !== false)
+      .sort((a: any, b: any) => {
+        const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt || 0).getTime();
+        const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt || 0).getTime();
+        return bTime - aTime;
+      });
   }, [getDocuments]);
 
   // ================================

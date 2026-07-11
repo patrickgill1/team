@@ -166,3 +166,29 @@ export async function getStreamDownloadUrl(uid: string): Promise<StreamDownloadS
   }
   return { ready: false, url: '', percent: Number(json.percentComplete) || 0 };
 }
+
+/** Delete a Cloudflare Stream video by uid. Fires against
+ *  /api/stream-delete (Vercel serverless), which holds the
+ *  CLOUDFLARE_STREAM_API_TOKEN. Non-throwing helper — caller decides
+ *  whether to await + surface. Silent no-op on missing uid. */
+export async function deleteStreamVideo(uid: string): Promise<{ ok: boolean; error?: string }> {
+  if (!uid) return { ok: true };
+  try {
+    const user = auth.currentUser;
+    if (!user) return { ok: false, error: 'not-signed-in' };
+    const token = await user.getIdToken();
+    const { getShareOrigin } = await import('./origin');
+    const res = await fetch(`${getShareOrigin()}/api/stream-delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ uid }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      return { ok: false, error: `stream-${res.status}: ${detail.slice(0, 200)}` };
+    }
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || String(err) };
+  }
+}

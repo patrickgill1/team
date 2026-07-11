@@ -671,14 +671,54 @@ const PlayerMediaPage: React.FC = () => {
           {},
         );
       }
+
+      // Soft-delete pattern (memory: never hard-delete user-facing
+      // records — PITR isn't on). Set isActive:false + deletedAt so the
+      // doc stays reversible. Queries filter isActive===false so the
+      // user sees the item disappear immediately. Prior shape hard-
+      // deleted, which also violated the pattern.
+      const now = new Date();
+      const { updateDocument } = { updateDocument: async (col: string, docId: string, patch: any) => {
+        const { doc: fsDoc, updateDoc: fsUpdate } = await import('firebase/firestore');
+        const { db: fsDb } = await import('../utils/firebase');
+        await fsUpdate(fsDoc(fsDb, col, docId), patch);
+      }};
       if (mediaItem.id.startsWith('gallery_')) {
-        await deleteDocument('gallery', mediaItem.id.replace('gallery_', ''));
+        await updateDocument('gallery', mediaItem.id.replace('gallery_', ''), {
+          isActive: false,
+          deletedAt: now,
+          deletedBy: userData?.uid || null,
+        });
       } else {
-        await deleteDocument('player_media', mediaItem.id);
+        await updateDocument('player_media', mediaItem.id, {
+          isActive: false,
+          deletedAt: now,
+          deletedBy: userData?.uid || null,
+        });
       }
+
+      // Delete the Cloudflare Stream video too — prior shape left every
+      // deleted clip's Stream asset as a paid orphan indefinitely.
+      // Fire-and-forget so a Stream API failure doesn't strand the
+      // Firestore soft-delete; the daily media-orphan cleanup cron
+      // (deferred followup) will catch stragglers.
+      const streamUid = m.streamUid;
+      if (streamUid) {
+        void (async () => {
+          try {
+            const { deleteStreamVideo } = await import('../utils/streamUpload');
+            const res = await deleteStreamVideo(streamUid);
+            if (!res.ok) console.warn('[media] Stream delete failed', streamUid, res.error);
+          } catch (err) {
+            console.warn('[media] Stream delete threw', err);
+          }
+        })();
+      }
+
       loadData();
     } catch (error) {
       console.error('Error deleting media:', error);
+      alert("Couldn't delete that media. Try again.");
     }
   };
 

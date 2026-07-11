@@ -58,7 +58,7 @@ import { handleParentEmailPrecheck } from './precheck';
 import { logWorkerError } from './errorLog';
 import { handleUnsubscribe, handleOpenPixel, runDueCampaigns } from './campaigns';
 import { handleSendVerification } from './authMail';
-import { routeWriteGuard } from './writeGuards';
+import { routeWriteGuard, drainPendingBackground } from './writeGuards';
 
 export interface Env {
   // NOTIFY_SECRET is retained on the env for backwards compatibility
@@ -182,8 +182,15 @@ async function safeFetch(req: Request, env: Env): Promise<Response> {
 }
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
-    return safeFetch(req, env);
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const resp = await safeFetch(req, env);
+    // Drain background work (custom-claims mint, cleanup) into
+    // ctx.waitUntil so the promises live past the Response return.
+    // Without this Cloudflare kills any in-flight fetch the moment
+    // we hand back a Response and the claim mint gets dropped.
+    const pending = drainPendingBackground();
+    if (pending.length > 0) ctx.waitUntil(Promise.all(pending));
+    return resp;
   },
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     return scheduledHandler(event, env, ctx);

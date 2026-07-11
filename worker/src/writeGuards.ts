@@ -68,6 +68,37 @@ const normEmail = (v: unknown): string =>
   typeof v === 'string' ? v.trim().toLowerCase() : '';
 
 // ────────────────────────────────────────────────────────────────
+// Background-work registry.
+//
+// Cloudflare Workers kill any pending fetch/setTimeout the moment a
+// Response is returned unless `ctx.waitUntil()` is holding it. Handlers
+// that want to fire fire-and-forget work (custom claims mint, cleanup
+// tasks, log fanouts) push their promise here; the top-level fetch
+// handler drains this array after routing and hands it to
+// ctx.waitUntil so the promises survive to completion.
+//
+// Module scope in Cloudflare Workers is shared across concurrent
+// requests within the same isolate — the drain-after-route pattern
+// works because whichever request finishes first collects any
+// straggler promises and waits on them. Slight over-attribution is
+// acceptable (it's just "how long the worker instance stays alive").
+// ────────────────────────────────────────────────────────────────
+const pendingBackground: Array<Promise<unknown>> = [];
+
+/** Register a fire-and-forget promise for `ctx.waitUntil`. Handlers
+ *  call this instead of awaiting so the response goes out fast. */
+export function trackBackground(p: Promise<unknown>): void {
+  pendingBackground.push(p.catch(() => { /* logged inside — don't crash the drain */ }));
+}
+
+/** Called by the top-level fetch handler after routing. Drains and
+ *  returns the currently-pending promises so the fetch handler can
+ *  wrap them in ctx.waitUntil. */
+export function drainPendingBackground(): Promise<unknown>[] {
+  return pendingBackground.splice(0);
+}
+
+// ────────────────────────────────────────────────────────────────
 // Refresh Firebase Auth custom claims for a user so LIST rules can
 // verify `request.auth.token.clubIds` / `.teamIds` statically against
 // query where() constraints. Call this at the END of every handler
@@ -86,30 +117,39 @@ const normEmail = (v: unknown): string =>
 // valid for up to 1hr; we accept that lag rather than pushing an
 // invalidation.
 // ────────────────────────────────────────────────────────────────
-async function refreshClaimsForUid(
+function refreshClaimsForUid(
   uid: string,
   pid: string,
   sa: ServiceAccount,
-): Promise<void> {
+): void {
   if (!uid) return;
-  try {
-    const userDoc = await getDocument(pid, `users/${uid}`, sa).catch(() => null);
-    const data: any = userDoc?.data || {};
-    const isPlatformAdmin = data.isClubAdmin === true;
-    const clubIds = Array.isArray(data.clubIds) ? data.clubIds.filter((s: unknown) => typeof s === 'string') : [];
-    const teamIds = Array.isArray(data.teamIds) ? data.teamIds.filter((s: unknown) => typeof s === 'string') : [];
-    const claims = {
-      clubIds,
-      teamIds,
-      ...(isPlatformAdmin ? { admin: true } : {}),
-    };
-    const res = await setCustomClaims(sa, uid, claims);
-    if (!res.ok) {
-      console.warn('[claims] refresh failed', uid, res.error);
+  // Fire-and-forget via the background registry. Prior shape awaited
+  // and blocked every mutation response by the Identity Toolkit round-
+  // trip (~150-500ms) AND swallowed failures returning ok:true — the
+  // client then force-refreshed to a stale token. Now the response
+  // returns fast; the refresh completes under ctx.waitUntil's watch.
+  // On failure the client's subsequent /users/refresh-claims call or
+  // the next background heal-team-membership tick catches up.
+  trackBackground((async () => {
+    try {
+      const userDoc = await getDocument(pid, `users/${uid}`, sa).catch(() => null);
+      const data: any = userDoc?.data || {};
+      const isPlatformAdmin = data.isClubAdmin === true;
+      const clubIds = Array.isArray(data.clubIds) ? data.clubIds.filter((s: unknown) => typeof s === 'string') : [];
+      const teamIds = Array.isArray(data.teamIds) ? data.teamIds.filter((s: unknown) => typeof s === 'string') : [];
+      const claims = {
+        clubIds,
+        teamIds,
+        ...(isPlatformAdmin ? { admin: true } : {}),
+      };
+      const res = await setCustomClaims(sa, uid, claims);
+      if (!res.ok) {
+        console.warn('[claims] refresh failed', uid, res.error);
+      }
+    } catch (err) {
+      console.warn('[claims] refresh threw', uid, err);
     }
-  } catch (err) {
-    console.warn('[claims] refresh threw', uid, err);
-  }
+  })());
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -263,7 +303,7 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
   // Custom claims: fresh user doc now has final teamIds + clubIds.
   // Stamp them onto the JWT so first-session LIST rules can verify
   // scope without the userDoc() runtime lookup.
-  await refreshClaimsForUid(claims.uid, pid, sa);
+  refreshClaimsForUid(claims.uid, pid, sa);
 
   return json({
     ok: true,
@@ -454,7 +494,7 @@ async function applyMembership(
   // refresh. Covers /claim/invite, /claim/coach-invite,
   // /claim/player-link, /claim/offer-accept — every applyMembership
   // caller in one line.
-  await refreshClaimsForUid(op.targetUid, pid, sa);
+  refreshClaimsForUid(op.targetUid, pid, sa);
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -1018,7 +1058,7 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
   // Reconcile custom claims — caller just got teamIds + clubIds
   // arrayUnion'd. LIST rules that read request.auth.token pick up
   // the new scope on the client's next getIdToken(true).
-  await refreshClaimsForUid(claims.uid, pid, sa);
+  refreshClaimsForUid(claims.uid, pid, sa);
 
   return json({ ok: true, teamId: newTeamId, clubId: effectiveClubId || null });
 }
@@ -1121,7 +1161,7 @@ async function handleClubsCreate(req: Request, env: Env, payload: any): Promise<
 
   // Reconcile custom claims — caller now has clubIds and (optionally)
   // teamIds updated.
-  await refreshClaimsForUid(claims.uid, pid, sa);
+  refreshClaimsForUid(claims.uid, pid, sa);
 
   return json({ ok: true, clubId, teamId });
 }
@@ -1212,7 +1252,7 @@ async function handleTeamsRemoveCoach(req: Request, env: Env, payload: any): Pro
   // shrank. Their in-flight token is still valid until it expires
   // (up to 1hr); LIST rules tolerate that lag via the userDoc()
   // fallback branches.
-  await refreshClaimsForUid(coachUid, pid, sa);
+  refreshClaimsForUid(coachUid, pid, sa);
 
   return json({ ok: true });
 }
@@ -1258,6 +1298,9 @@ async function handleTeamsSharePlayer(req: Request, env: Env, payload: any): Pro
       null,
       sa,
     ).catch(() => undefined);
+    // Reconcile the parent's custom claims so LIST rules pick up the
+    // new team scope without waiting for a full re-sign-in.
+    refreshClaimsForUid(parentUid, pid, sa);
   }
   return json({ ok: true });
 }
@@ -1331,6 +1374,9 @@ async function handleTeamsUnsharePlayer(req: Request, env: Env, payload: any): P
           null,
           sa,
         );
+        // Reconcile parent's claims after teamIds arrayRemove so a
+        // subsequent LIST doesn't overreport the removed team.
+        refreshClaimsForUid(parentUid, pid, sa);
       }
     } catch (err) {
       console.warn('[unshare-player] parent trim failed:', (err as Error).message);
@@ -1399,7 +1445,7 @@ async function handleClubSetAdmin(req: Request, env: Env, payload: any): Promise
     sa,
   );
   // Reconcile target's custom claims — clubIds grew.
-  await refreshClaimsForUid(targetUid, pid, sa);
+  refreshClaimsForUid(targetUid, pid, sa);
   return json({ ok: true });
 }
 
@@ -1426,7 +1472,7 @@ async function handleClubRemoveAdmin(req: Request, env: Env, payload: any): Prom
     sa,
   );
   // Reconcile target's custom claims — clubIds shrank.
-  await refreshClaimsForUid(targetUid, pid, sa);
+  refreshClaimsForUid(targetUid, pid, sa);
   return json({ ok: true });
 }
 
@@ -1833,6 +1879,7 @@ async function handleTeamsSetStaffRole(req: Request, env: Env, payload: any): Pr
         [{ fieldPath: 'teamIds', kind: 'arrayRemove', value: teamId }],
         null, sa,
       );
+      refreshClaimsForUid(staffUid, pid, sa);
     }
   } else {
     if (!userTeamIds.includes(teamId)) {
@@ -1841,6 +1888,7 @@ async function handleTeamsSetStaffRole(req: Request, env: Env, payload: any): Pr
         [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId }],
         null, sa,
       );
+      refreshClaimsForUid(staffUid, pid, sa);
     }
   }
 
@@ -2339,6 +2387,10 @@ async function handlePlayersLinkParent(req: Request, env: Env, payload: any): Pr
   // Phase A: linked parent just got a team + a player link → active.
   await stampStageFor(parentUid, pid, sa);
 
+  // Reconcile parent's custom claims so their next Firestore read
+  // sees the new team in token.teamIds.
+  refreshClaimsForUid(parentUid, pid, sa);
+
   return json({ ok: true });
 }
 
@@ -2434,6 +2486,11 @@ async function handlePlayersToggleSelfParent(req: Request, env: Env, payload: an
   // still recompute in case this was their only link.
   await stampStage(claims.uid, pid, sa);
 
+  // Reconcile caller's claims — teamIds grew (on) or unchanged (off).
+  // Always call so the client's next getIdToken(true) sees fresh
+  // claims either way.
+  refreshClaimsForUid(claims.uid, pid, sa);
+
   return json({ ok: true });
 }
 
@@ -2515,6 +2572,12 @@ async function handlePlayersSetTeams(req: Request, env: Env, payload: any): Prom
       }
     }
   }
+  // Reconcile claims for every parent whose teamIds changed. Fires
+  // once per parent regardless of add/remove — cheap module-registry
+  // push, actual round-trip runs under ctx.waitUntil after response.
+  if (added.length > 0 || removed.length > 0) {
+    for (const parentUid of parentIds) refreshClaimsForUid(parentUid, pid, sa);
+  }
   return json({ ok: true });
 }
 
@@ -2569,7 +2632,7 @@ async function handleUsersSetTeams(req: Request, env: Env, payload: any): Promis
     sa,
   );
   // Reconcile target's custom claims — teamIds was fully replaced.
-  await refreshClaimsForUid(targetUid, pid, sa);
+  refreshClaimsForUid(targetUid, pid, sa);
   return json({ ok: true });
 }
 
@@ -2772,7 +2835,7 @@ async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: a
   // forget — mutation stays committed if the Identity Toolkit call
   // fails (see refreshClaimsForUid comment).
   if (toAdd.length > 0) {
-    await refreshClaimsForUid(claims.uid, pid, sa);
+    refreshClaimsForUid(claims.uid, pid, sa);
   }
 
   return json({
@@ -2799,7 +2862,7 @@ async function handleUsersHealTeamMembership(req: Request, env: Env, _payload: a
 async function handleUsersRefreshClaims(req: Request, env: Env, _payload: any): Promise<Response> {
   const claims = await requireUser(req, env);
   const { pid, sa } = projectAndSA(env);
-  await refreshClaimsForUid(claims.uid, pid, sa);
+  refreshClaimsForUid(claims.uid, pid, sa);
   return json({ ok: true });
 }
 

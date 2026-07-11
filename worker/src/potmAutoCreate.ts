@@ -50,11 +50,19 @@ export async function runPotmAutoCreate(env: Env): Promise<{
 
   const now = new Date();
   const windowStart = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-  const windowEnd = now;
+  // Post-game buffer: never auto-create while a game may still be
+  // on the field. Kids matches run ~60min + warmup / OT / handshake;
+  // adult games ~90min + buffer. 3h from kickoff is a safe "the ref
+  // has definitely whistled full time" heuristic. Coaches who use
+  // GameDay to run the live game get the wall CTA immediately when
+  // they tap End Game via the live_games shortcut below — so this
+  // buffer only affects coaches who don't run GameDay.
+  const GAME_END_BUFFER_MS = 3 * 60 * 60 * 1000;
+  const bufferedEnd = new Date(now.getTime() - GAME_END_BUFFER_MS);
 
   const events = await runQuery(projectId, 'events', [
     { field: 'date', op: 'GREATER_THAN_OR_EQUAL', value: windowStart },
-    { field: 'date', op: 'LESS_THAN', value: windowEnd },
+    { field: 'date', op: 'LESS_THAN', value: now },
   ], sa, 300).catch((err: any) => {
     errors.push(`events-query-failed: ${String(err?.message || err).slice(0, 200)}`);
     return [] as Array<{ id: string; data: any }>;
@@ -71,6 +79,24 @@ export async function runPotmAutoCreate(env: Env): Promise<{
     if (data.countsToStats === false) continue;
     if (data.potmVotingId) continue;
     if (!data.teamId) continue;
+
+    // Game-end guard: skip while the match is (likely) still on the
+    // field. Two accept paths:
+    //   1. GameDay live_games doc for this event has status='final' →
+    //      fire immediately (coach ended the game manually).
+    //   2. Event kickoff was more than GAME_END_BUFFER_MS ago →
+    //      whistle has definitely blown; fire.
+    const eventDateRaw: any = data.date;
+    let eventMs = 0;
+    if (eventDateRaw instanceof Date) eventMs = eventDateRaw.getTime();
+    else if (typeof eventDateRaw?.toDate === 'function') { try { eventMs = eventDateRaw.toDate().getTime(); } catch { /* ignore */ } }
+    else if (typeof eventDateRaw?.seconds === 'number') eventMs = eventDateRaw.seconds * 1000;
+    if (eventMs > bufferedEnd.getTime()) {
+      // Still inside the buffer window — allow only if the coach ended
+      // the game in GameDay (live_games status=final).
+      const liveDoc = await getDocument(projectId, `live_games/${eid}`, sa).catch(() => null);
+      if (liveDoc?.data?.status !== 'final') continue;
+    }
 
     // Skip demo teams — no fake CTAs on the screenshot team.
     try {

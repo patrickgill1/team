@@ -399,26 +399,68 @@ const GameDay: React.FC = () => {
         if (t.kind === 'yellow') c.yellow++;
         if (t.kind === 'red') c.red++;
       });
+      // Accrue remaining on-field time BEFORE reading minutes. Prior
+      // shape (audit 2026-07-10) iterated only lineup.minutes, which
+      // is populated on sub-off — a keeper who plays 60/60 and is
+      // never subbed had no entry, so cleanSheet never fired.
+      // effectiveMinutes now includes the current shift for anyone
+      // still on the field at final whistle.
+      const persistedMinutes: Record<string, number> = { ...(game.lineup?.minutes || {}) };
+      const effectiveMinutes: Record<string, number> = { ...persistedMinutes };
+      for (const slot of (game.lineup?.onField || [])) {
+        if (!slot?.playerId) continue;
+        const extra = Math.max(0, liveSeconds - (slot.enteredAtSec || 0));
+        effectiveMinutes[slot.playerId] = (effectiveMinutes[slot.playerId] || 0) + extra;
+      }
+      // Persist the accrued minutes back to the game doc so read-side
+      // aggregations (MinutesPlayedCard, etc.) reflect actual playing
+      // time, not just tracked sub-outs. Fire-and-forget.
+      try {
+        await patch({ 'lineup.minutes': effectiveMinutes } as any);
+      } catch (err) {
+        console.warn('[gameday] persist minutes accrual failed', err);
+      }
+
       // Clean-sheet detection: GKs who logged any minutes in a shutout
       // get +1 clean sheet. isGoalkeeper checks primary/positions list.
       const { isGoalkeeper } = await import('../utils/helpers');
       const shutout = (game.oppScore || 0) === 0;
       const cleanSheetPids = new Set<string>();
       if (shutout) {
-        for (const pid of Object.keys(game.lineup?.minutes || {})) {
-          const secs = Number(game.lineup?.minutes?.[pid] || 0);
+        for (const pid of Object.keys(effectiveMinutes)) {
+          const secs = Number(effectiveMinutes[pid] || 0);
           if (secs <= 0) continue;
           const player = players.find(p => p.id === pid);
           if (player && isGoalkeeper(player as any)) cleanSheetPids.add(pid);
         }
       }
       const { maybeGrantFirstStatBadges } = await import('../utils/badgeGrants');
+      const { doc: fsDoc, getDoc: fsGet } = await import('firebase/firestore');
+      const { db: firestoreDb } = await import('../utils/firebase');
       const allPids = new Set<string>([...Object.keys(counts), ...cleanSheetPids]);
       for (const pid of allPids) {
         const c = counts[pid] || { goals: 0, assists: 0, saves: 0, yellow: 0, red: 0, name: '' };
         const player = players.find(p => p.id === pid);
         if (!player) continue;
-        const prev = player.stats || { goals: 0, assists: 0, saves: 0, yellowCards: 0, redCards: 0, gamesPlayed: 0, minutesPlayed: 0, cleanSheets: 0 } as any;
+        // Read fresh player doc RIGHT BEFORE the stat write. Prior
+        // shape used the page's mount-time snapshot for prev.stats
+        // and prev.badges — if a clip-credit or StatsTracker landed
+        // in the meantime, the endGame write clobbered the intermediate
+        // +1 (full-field overwrite of stats:) AND re-issued a first_X
+        // badge with a fresh earnedAt. Audit 2026-07-10.
+        let freshStats: any = player.stats;
+        let freshBadges: any = (player as any).badges;
+        try {
+          const snap = await fsGet(fsDoc(firestoreDb, 'players', pid));
+          if (snap.exists()) {
+            const data: any = snap.data();
+            freshStats = data.stats || freshStats;
+            freshBadges = data.badges || freshBadges;
+          }
+        } catch (err) {
+          console.warn('[gameday] fresh player read failed', pid, err);
+        }
+        const prev = freshStats || { goals: 0, assists: 0, saves: 0, yellowCards: 0, redCards: 0, gamesPlayed: 0, minutesPlayed: 0, cleanSheets: 0 } as any;
         const csDelta = cleanSheetPids.has(pid) ? 1 : 0;
         const nextStats = {
           ...prev,
@@ -433,12 +475,13 @@ const GameDay: React.FC = () => {
         await updatePlayerStats(pid, nextStats);
         // Fire first-stat badges on the 0→N crossing. Non-fatal —
         // stat write already committed so a badge failure doesn't
-        // regress the game.
+        // regress the game. Uses freshBadges so a same-game clip
+        // credit doesn't get its first_goal re-clobbered here.
         void maybeGrantFirstStatBadges(
           pid,
           prev,
           nextStats,
-          { existingBadges: (player as any).badges, context: event.title || 'Match', seasonId: (event as any).seasonId },
+          { existingBadges: freshBadges, context: event.title || 'Match', seasonId: (event as any).seasonId },
         );
         // Write a per-game stat record for anyone who registered a
         // timeline event OR earned a clean sheet. GK-only entries land

@@ -386,8 +386,18 @@ const Onboarding: React.FC = () => {
         const data: any = await res.json().catch(() => ({}));
         if (!res.ok || !data?.ok) {
           console.warn('batch schedule create failed', data);
-          // Don't hard-block the wizard on a batch failure — coach
-          // can add practices later from Events.
+          alert("Couldn't save your practice schedule. You can add practices later from Events.");
+        } else {
+          // Assert every event actually landed. Worker's per-event
+          // try/catch swallows individual failures and returns
+          // {ok:true, created:N} — a wholesale zero-write silently
+          // advanced the coach thinking their schedule was set.
+          // Surface the mismatch so they can retry now instead of
+          // discovering an empty calendar tomorrow.
+          const created = Number(data?.created || 0);
+          if (created < events.length) {
+            alert(`Saved ${created} of ${events.length} practices. Some couldn't save — you can add the missing ones from Events after finishing setup.`);
+          }
         }
       }
       goStep('invite');

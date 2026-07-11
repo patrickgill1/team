@@ -129,6 +129,7 @@ const Tryouts: React.FC = () => {
       ...(r.coachStates?.[myUid] || {}),
       ...patch,
     };
+    const prevRegs = registrations;
     setRegistrations(prev => prev.map(rr => rr.id === r.id ? {
       ...rr,
       coachStates: { ...(rr.coachStates || {}), [myUid]: next },
@@ -139,7 +140,14 @@ const Tryouts: React.FC = () => {
         updatedAt: serverTimestamp(),
       });
     } catch (err) {
+      // Revert optimistic state + surface the failure. Prior silent
+      // catch let a coach think they'd favorited/rated/noted a
+      // candidate when the write never landed — the "held by
+      // another coach" signal in particular is coordination gold, so
+      // silent loss is dangerous.
       console.warn('coach state update failed', err);
+      setRegistrations(prevRegs);
+      alert("Couldn't save that change. Check your connection and try again.");
     }
   };
 
@@ -195,6 +203,7 @@ const Tryouts: React.FC = () => {
       return;
     }
     const next = heldByMe ? null : { heldByUid: myUid, heldByName: myName, heldUntil: addDays(new Date(), 7) };
+    const prevRegs = registrations;
     setRegistrations(prev => prev.map(rr => rr.id === r.id ? {
       ...rr,
       heldByUid: next?.heldByUid as any,
@@ -210,6 +219,9 @@ const Tryouts: React.FC = () => {
       });
     } catch (err) {
       console.warn('hold update failed', err);
+      setRegistrations(prevRegs);
+      alert("Couldn't place / release that hold. Check your connection and try again.");
+      return;
     }
     void logActivity({
       clubId: r.clubId,
@@ -231,6 +243,7 @@ const Tryouts: React.FC = () => {
     if (!myUid) return;
     const linkedPlayerId = (r as any).playerId || (r as any).promotedToPlayerId;
     const wasAttended = !!(r as any).tryoutAttended;
+    const prevRegs = registrations;
     setRegistrations(prev => prev.map(rr => rr.id === r.id ? ({
       ...rr,
       tryoutAttended: !wasAttended,
@@ -278,6 +291,9 @@ const Tryouts: React.FC = () => {
       }
     } catch (err) {
       console.warn('attendance toggle failed', err);
+      setRegistrations(prevRegs);
+      alert("Couldn't save attendance for this candidate. Check your connection and try again.");
+      return;
     }
     void logActivity({
       clubId: r.clubId,

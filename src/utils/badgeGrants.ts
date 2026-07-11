@@ -1,6 +1,6 @@
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db } from './firebase';
-import { BadgeSlug } from './badgeMeta';
+import { BadgeSlug, badgeXp } from './badgeMeta';
 
 // Badge grant helpers. Every grant fires ONLY on the crossing action
 // from ship-forward — never retroactively from historical stats.
@@ -53,21 +53,35 @@ export async function maybeGrantFirstStatBadges(
 
   const existing = ctx.existingBadges || {};
   const patch: Record<string, any> = {};
+  let xpAwarded = 0;
 
   if (prevG === 0 && nextG > 0 && !existing.first_goal) {
     patch['badges.first_goal'] = makeBadge(ctx.context, ctx.seasonId);
+    xpAwarded += badgeXp('first_goal');
   }
   if (prevA === 0 && nextA > 0 && !existing.first_assist) {
     patch['badges.first_assist'] = makeBadge(ctx.context, ctx.seasonId);
+    xpAwarded += badgeXp('first_assist');
   }
   if (prevS === 0 && nextS > 0 && !existing.first_save) {
     patch['badges.first_save'] = makeBadge(ctx.context, ctx.seasonId);
+    xpAwarded += badgeXp('first_save');
   }
   if (prevC === 0 && nextC > 0 && !existing.first_clean_sheet) {
     patch['badges.first_clean_sheet'] = makeBadge(ctx.context, ctx.seasonId);
+    xpAwarded += badgeXp('first_clean_sheet');
   }
 
   if (Object.keys(patch).length === 0) return;
+  if (xpAwarded > 0) {
+    // Increment aggregates in the same write so the parent whisper /
+    // XP card render doesn't temporarily show badge earned but XP
+    // untouched. player_xp_events audit doc is worker-only (rules
+    // deny client create) — the badge entry itself is the durable
+    // audit trail for auto-earned badges.
+    patch.xp = increment(xpAwarded);
+    patch.xpCareer = increment(xpAwarded);
+  }
   try {
     await updateDoc(doc(db, 'players', playerId), patch);
   } catch (err) {
@@ -98,13 +112,19 @@ export function computeStreakBadgePatch(
   ];
   const existing = existingBadges || {};
   const patch: Record<string, any> = {};
+  let xpAwarded = 0;
   for (const [n, slug] of thresholds) {
     if (priorStreak < n && newStreak >= n && !existing[slug]) {
       patch[`badges.${slug}`] = makeBadge(
         ctx.playerName ? `${n}-day streak` : undefined,
         ctx.seasonId,
       );
+      xpAwarded += badgeXp(slug);
     }
+  }
+  if (xpAwarded > 0) {
+    patch.xp = increment(xpAwarded);
+    patch.xpCareer = increment(xpAwarded);
   }
   return patch;
 }
@@ -118,5 +138,10 @@ export function computeFirstPotmPatch(
 ): Record<string, any> | null {
   const existing = existingBadges || {};
   if (existing.first_potm) return null;
-  return { 'badges.first_potm': makeBadge(ctx.gameTitle, ctx.seasonId) };
+  const xp = badgeXp('first_potm');
+  return {
+    'badges.first_potm': makeBadge(ctx.gameTitle, ctx.seasonId),
+    xp: increment(xp),
+    xpCareer: increment(xp),
+  };
 }

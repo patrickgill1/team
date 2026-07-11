@@ -1215,6 +1215,12 @@ export interface OfferLetter {
    *  once every required form has a signature. Empty / missing = no
    *  bundled waivers (legacy offers without this flow). */
   requiredWaiverIds?: string[];
+  /** Linked player id — snapshotted at send time from the registration's
+   *  playerId / promotedToPlayerId. Consumed by /claim/offer-accept to
+   *  grant the accepting parent team + player-link membership. Absent
+   *  on legacy offers created before the SendOfferModal fix; the accept
+   *  handler falls back to a registration lookup. */
+  playerId?: string;
   status: 'sent' | 'accepted' | 'declined' | 'expired' | 'rescinded';
   /** Parent's response. */
   respondedAt?: Date;

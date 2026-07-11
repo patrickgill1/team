@@ -116,7 +116,14 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
 
       const id = `off_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const expiresAt = addDays(new Date(), Math.max(1, expiresDays));
-      const offer: Omit<OfferLetter, 'id' | 'createdAt'> & { createdAt: any } = {
+      // linkedPlayerId is what handleClaimOfferAccept needs to grant
+      // the parent player-link + team membership. Prior audit found
+      // offers were being written without playerId, so accepts silently
+      // no-op'd. Stamp it now via `playerId`; the accept handler falls
+      // back to a registration lookup when this field is missing so
+      // legacy offers still work.
+      const linkedPlayerId = (registration as any).playerId || (registration as any).promotedToPlayerId;
+      const offer: Omit<OfferLetter, 'id' | 'createdAt'> & { createdAt: any; playerId?: string } = {
         clubId: registration.clubId,
         registrationId: registration.id,
         playerName: fullName,
@@ -135,6 +142,7 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
         requiredWaiverIds: requiredWaiverIds.length > 0 ? requiredWaiverIds : undefined,
         status: 'sent',
         createdAt: serverTimestamp(),
+        ...(linkedPlayerId ? { playerId: linkedPlayerId } : {}),
       };
       await setDoc(doc(db, 'offers', id), offer);
 
@@ -153,7 +161,6 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
       // the worker /players/stamp-funnel endpoint which enforces
       // caller-club-matches-player-club and uses the service account
       // to write.
-      const linkedPlayerId = (registration as any).playerId || (registration as any).promotedToPlayerId;
       if (linkedPlayerId) {
         try {
           const { workerFetch } = await import('../../utils/workerFetch');

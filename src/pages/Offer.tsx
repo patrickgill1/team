@@ -125,6 +125,11 @@ const Offer: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           offerId: offer.id,
+          // Explicitly pass playerId — handleClaimOfferAccept prefers
+          // offer.playerId, falls back to registration lookup, and finally
+          // takes this payload value. Belt-and-suspenders for legacy
+          // offers that don't have playerId stamped.
+          playerId,
           player: {
             position: offer.offerPosition,
             jerseyNumber: offer.offerJerseyNumber,

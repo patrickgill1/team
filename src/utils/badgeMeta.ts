@@ -21,21 +21,31 @@ export interface BadgeMeta {
   label: string;
   /** Short one-liner used in wall posts + celebration toasts. */
   celebration?: string;
+  /** Canonical XP the player receives on earning this badge. Scaled
+   *  against the coach-recognition default of 75 XP: firsts are worth
+   *  more than a single recognition, streaks scale steeply, season-long
+   *  achievements dominate. Consumed by the badge grant helpers so
+   *  every badge write is paired with an xp/xpCareer increment. */
+  xp: number;
 }
 
 export const BADGE_META: Record<BadgeSlug, BadgeMeta> = {
-  coach_pick: { label: "Coach's Pick", celebration: 'earned a Coach Recognition!' },
-  first_goal: { label: 'First Goal', celebration: 'scored their first goal!' },
-  first_assist: { label: 'First Assist', celebration: 'notched their first assist!' },
-  first_save: { label: 'First Save', celebration: 'made their first save!' },
-  first_clean_sheet: { label: 'First Clean Sheet', celebration: 'kept a clean sheet!' },
-  first_potm: { label: 'First POTM', celebration: 'won their first Player of the Match!' },
-  perfect_attendance: { label: 'Perfect Attendance', celebration: 'made every event this season!' },
-  streak_5: { label: '5-Day Streak', celebration: 'is on a 5-day training streak!' },
-  streak_10: { label: '10-Day Streak', celebration: 'hit a 10-day streak!' },
-  streak_25: { label: '25-Day Streak', celebration: 'reached a 25-day streak!' },
-  streak_50: { label: '50-Day Streak', celebration: 'crushed a 50-day streak!' },
+  coach_pick:         { label: "Coach's Pick",       celebration: 'earned a Coach Recognition!',           xp: 75 },
+  first_goal:         { label: 'First Goal',         celebration: 'scored their first goal!',              xp: 100 },
+  first_assist:       { label: 'First Assist',       celebration: 'notched their first assist!',           xp: 100 },
+  first_save:         { label: 'First Save',         celebration: 'made their first save!',                xp: 100 },
+  first_clean_sheet:  { label: 'First Clean Sheet',  celebration: 'kept a clean sheet!',                   xp: 100 },
+  first_potm:         { label: 'First POTM',         celebration: 'won their first Player of the Match!',  xp: 150 },
+  perfect_attendance: { label: 'Perfect Attendance', celebration: 'made every event this season!',         xp: 200 },
+  streak_5:           { label: '5-Day Streak',       celebration: 'is on a 5-day training streak!',        xp: 50 },
+  streak_10:          { label: '10-Day Streak',      celebration: 'hit a 10-day streak!',                  xp: 100 },
+  streak_25:          { label: '25-Day Streak',      celebration: 'reached a 25-day streak!',              xp: 200 },
+  streak_50:          { label: '50-Day Streak',      celebration: 'crushed a 50-day streak!',              xp: 400 },
 };
+
+export function badgeXp(slug: string): number {
+  return (BADGE_META as any)[slug]?.xp || 0;
+}
 
 // Available PNG sizes on disk under /public/badges/. Not every size is
 // used everywhere — chip renders lean on the small ones, celebration

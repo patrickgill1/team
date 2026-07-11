@@ -274,27 +274,48 @@ const Wall: React.FC = () => {
 
   // Vote / unvote on a post's poll. Single-choice (default) means
   // voting on option B removes your vote from option A first.
+  //
+  // 2026-07-10: two bugs found and fixed in one pass.
+  //   1. Single-choice branch was inverted (`!had` → skipped removing
+  //      the stale vote), so users ended up counted on both the old
+  //      and new option.
+  //   2. Read-modify-write race: simultaneous voters computed
+  //      nextOptions from local state and clobbered each other. Same
+  //      class as the chat-poll bug fixed in 3.9.181.
+  // Now wraps in runTransaction (tx reads server state) AND uses the
+  // correct `has` condition.
   const voteOnPoll = async (post: WallPost, optionId: string) => {
     if (!userData?.uid || !post.poll) return;
     const uid = userData.uid;
-    const multi = !!post.poll.multi;
-    const nextOptions = post.poll.options.map(o => {
-      const had = o.voters.includes(uid);
-      if (o.id === optionId) {
-        return { ...o, voters: had ? o.voters.filter(u => u !== uid) : [...o.voters, uid] };
-      }
-      // Single-choice → remove this user's vote from every other option
-      // when they cast on a new one. Skip if user wasn't voting here.
-      if (!multi && !had) return { ...o, voters: o.voters.filter(u => u !== uid) };
-      return o;
-    });
-    const nextPoll = { ...post.poll, options: nextOptions };
-    setPosts(prev => prev.map(p => p.id === post.id ? { ...p, poll: nextPoll } : p));
     try {
-      await updateDoc(doc(db, 'wall_posts', post.id), { poll: nextPoll });
+      const { runTransaction, doc: fsDoc, getFirestore } = await import('firebase/firestore');
+      const firestore = getFirestore();
+      await runTransaction(firestore, async (tx) => {
+        const ref = fsDoc(firestore, 'wall_posts', post.id);
+        const snap = await tx.get(ref);
+        if (!snap.exists()) return;
+        const data = snap.data() as any;
+        const poll = data.poll;
+        if (!poll || !Array.isArray(poll.options)) return;
+        const multi = !!poll.multi;
+        const nextOptions = poll.options.map((o: any) => {
+          const voters: string[] = Array.isArray(o.voters) ? o.voters : [];
+          const has = voters.includes(uid);
+          if (o.id === optionId) {
+            return { ...o, voters: has ? voters.filter((u) => u !== uid) : [...voters, uid] };
+          }
+          // Single-choice: casting on a NEW option clears the vote from
+          // wherever it was.
+          if (!multi && has) {
+            return { ...o, voters: voters.filter((u) => u !== uid) };
+          }
+          return { ...o, voters };
+        });
+        tx.update(ref, { poll: { ...poll, options: nextOptions } });
+      });
     } catch (err) {
       console.error('poll vote failed', err);
-      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, poll: post.poll } : p));
+      alert('Could not save your vote. Please try again.');
     }
   };
 

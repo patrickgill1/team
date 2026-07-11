@@ -767,7 +767,26 @@ async function handleClaimOfferAccept(req: Request, env: Env, payload: any): Pro
   }
 
   const teamId = String(offer.teamId || '');
-  const playerId = String(offer.playerId || '');
+  let playerId = String(offer.playerId || '');
+  // Fallback for offers created before SendOfferModal started stamping
+  // playerId on the offer doc (audit 2026-07-10). Look at the linked
+  // registration and take its playerId / promotedToPlayerId. Without
+  // this the whole applyMembership grant below silently no-ops for
+  // legacy offers — parent taps Accept, sees green, but stays outside
+  // the team.
+  if (!playerId && offer.registrationId) {
+    const regDoc = await getDocument(pid, `registrations/${String(offer.registrationId)}`, sa).catch(() => null);
+    const regData: any = regDoc?.data;
+    if (regData) {
+      const fromReg = String(regData.playerId || regData.promotedToPlayerId || '');
+      if (fromReg) playerId = fromReg;
+    }
+  }
+  // Last-resort override from client payload — Offer.tsx accept flow
+  // has the playerId in memory and can pass it explicitly.
+  if (!playerId && payload?.playerId) {
+    playerId = String(payload.playerId);
+  }
   const now = new Date();
 
   // 1. Flip the offer to accepted (audit trail).

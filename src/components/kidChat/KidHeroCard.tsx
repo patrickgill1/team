@@ -248,32 +248,6 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
             </div>
           )}
 
-          {/* Metric tiles — chunky pills, one per momentum axis.
-              Streak already shows on the avatar flame pill, so the
-              tile row uses JUGGLES BEST instead (kid's personal
-              record — grows over time, no stale-stat feel). */}
-          <div className={'mt-3 grid gap-1.5 sm:gap-2 ' + (xpEnabled ? 'grid-cols-3' : 'grid-cols-2')}>
-            <MetricTile
-              icon={<BallIcon className="w-3.5 h-3.5 text-emerald-400" />}
-              label="Juggles"
-              value={String(jugglesBest)}
-              hint="best"
-            />
-            <MetricTile
-              icon={<ShieldIcon className="w-3.5 h-3.5 text-amber-500" />}
-              label="Badges"
-              value={String(badgeCount)}
-              hint={`/ ${totalBadgeSlots}`}
-            />
-            {xpEnabled && level && (
-              <MetricTile
-                icon={<HexXpIcon className="w-3.5 h-3.5 text-brand-primary" />}
-                label="XP"
-                value={xp.toLocaleString()}
-                hint="season"
-              />
-            )}
-          </div>
         </div>
 
         {/* RIGHT: Theme/Skins placeholder pill above LEVEL numeral.
@@ -296,6 +270,36 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
                 {level.level}
               </div>
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Metric tiles — full-width row so labels like "JUGGLES" and
+          "BADGES" have room to render whole instead of truncating
+          inside the squeezed identity column. Streak already shows
+          on the avatar flame pill, so tiles are Juggles / Badges /
+          XP. When XP is off the row collapses to a 2-col grid. */}
+      <div className="relative px-4 sm:px-5 pb-2">
+        <div className={'grid gap-1.5 sm:gap-2 ' + (xpEnabled ? 'grid-cols-3' : 'grid-cols-2')}>
+          <MetricTile
+            icon={<BallIcon className="w-3.5 h-3.5 text-emerald-400" />}
+            label="Juggles"
+            value={String(jugglesBest)}
+            hint="best"
+          />
+          <MetricTile
+            icon={<ShieldIcon className="w-3.5 h-3.5 text-amber-500" />}
+            label="Badges"
+            value={String(badgeCount)}
+            hint={`/ ${totalBadgeSlots}`}
+          />
+          {xpEnabled && level && (
+            <MetricTile
+              icon={<HexXpIcon className="w-3.5 h-3.5 text-brand-primary" />}
+              label="XP"
+              value={xp.toLocaleString()}
+              hint="season"
+            />
           )}
         </div>
       </div>
@@ -392,17 +396,17 @@ interface MetricTileProps {
 }
 
 const MetricTile: React.FC<MetricTileProps> = ({ icon, label, value, hint }) => (
-  <div className="rounded-xl bg-white/[0.05] ring-1 ring-white/10 px-2 py-1.5 flex flex-col min-w-0 backdrop-blur-sm">
-    {/* Tracking-wider (not widest) + smaller text so "SEASON XP" and
-        "BADGES" fit the ~90px tile width on iPhone SE without
-        truncating. Icon shrinks-0 so it never clips the label. */}
-    <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-white/60 whitespace-nowrap overflow-hidden">
+  <div className="rounded-xl bg-white/[0.05] ring-1 ring-white/10 px-3 py-2 flex flex-col min-w-0 backdrop-blur-sm">
+    {/* Tiles now sit in a full-width row (not the squeezed identity
+        column), so labels + hints render whole. tracking-wider keeps
+        the HUD feel without eating horizontal space. */}
+    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-white/70 whitespace-nowrap">
       <span className="shrink-0">{icon}</span>
-      <span className="truncate">{label}</span>
+      <span>{label}</span>
     </div>
-    <div className="mt-0.5 flex items-baseline gap-1 min-w-0">
-      <span className="text-lg sm:text-xl font-black text-white tabular-nums leading-none">{value}</span>
-      <span className="text-[10px] font-semibold text-white/55 tabular-nums truncate">{hint}</span>
+    <div className="mt-1 flex items-baseline gap-1.5 min-w-0">
+      <span className="text-xl sm:text-2xl font-black text-white tabular-nums leading-none">{value}</span>
+      <span className="text-[10px] font-semibold text-white/55 tabular-nums whitespace-nowrap">{hint}</span>
     </div>
   </div>
 );

@@ -4,7 +4,7 @@ import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { isCoach, isClubAdmin as isClubAdminFn } from '../utils/helpers';
-import { getDedicatedKidPlayerId, verifyPin } from '../utils/kidMode';
+import { getDedicatedKidPlayerId, verifyPin, suppressPushForKidMode, restorePushAfterKidMode } from '../utils/kidMode';
 
 /**
  * ViewModeContext — Patrick 2026-06-21: 'my dashboard is coach, my
@@ -164,6 +164,22 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return getDedicatedKidPlayerId();
   });
 
+  // Cold-boot push suppression on a dedicated kid device. If we land
+  // straight into kid mode (activeKidPlayerId set from localStorage
+  // before the parent could tap "enter"), immediately pull this
+  // device's FCM token off the parent user doc so incoming pushes
+  // don't leak parent-scoped notifications to the kid device.
+  useEffect(() => {
+    const uid = (userData as any)?.uid;
+    if (!uid) return;
+    if (activeKidPlayerId) {
+      suppressPushForKidMode(uid);
+    }
+    // Only wants to fire once on mount + on uid resolution; the
+    // enterKidMode / exitKidMode functions handle transitions.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(userData as any)?.uid]);
+
   // Verify PIN against the player doc's stored hash. Reads through the
   // client SDK; rules already allow authed users to GET a player doc
   // via callerCanReadPlayer branches so no worker round-trip needed.
@@ -177,6 +193,11 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const ok = await verifyPin(playerId, pin, km.pinHash);
       if (!ok) return false;
       setActiveKidPlayerId(playerId);
+      // Pull this device's FCM token off the parent user doc so
+      // parent-scoped pushes stop reaching this device while kid is
+      // using it. Restored on exit.
+      const uid = (userData as any)?.uid;
+      if (uid) suppressPushForKidMode(uid);
       return true;
     } catch (err) {
       console.warn('[view-mode] enterKidMode failed', err);
@@ -189,7 +210,10 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const snap = await getDoc(doc(db, 'players', activeKidPlayerId));
       if (!snap.exists()) {
-        // Player gone — fail-safe to parent view.
+        // Player gone — fail-safe to parent view. Still try to
+        // restore push in case suppression happened before.
+        const uid = (userData as any)?.uid;
+        if (uid) restorePushAfterKidMode(uid);
         setActiveKidPlayerId(null);
         return true;
       }
@@ -198,6 +222,9 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const ok = await verifyPin(activeKidPlayerId, pin, km.pinHash);
       if (!ok) return false;
       setActiveKidPlayerId(null);
+      // Restore the FCM token so parent starts receiving push again.
+      const uid = (userData as any)?.uid;
+      if (uid) restorePushAfterKidMode(uid);
       return true;
     } catch (err) {
       console.warn('[view-mode] exitKidMode failed', err);

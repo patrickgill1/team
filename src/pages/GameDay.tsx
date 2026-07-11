@@ -481,7 +481,12 @@ const GameDay: React.FC = () => {
           pid,
           prev,
           nextStats,
-          { existingBadges: freshBadges, context: event.title || 'Match', seasonId: (event as any).seasonId },
+          {
+            existingBadges: freshBadges,
+            context: event.title || 'Match',
+            seasonId: (event as any).seasonId,
+            xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
+          },
         );
         // Write a per-game stat record for anyone who registered a
         // timeline event OR earned a clean sheet. GK-only entries land

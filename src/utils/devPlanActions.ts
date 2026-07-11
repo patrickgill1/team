@@ -153,6 +153,7 @@ export async function recomputeAndPersistPlayerStreak(
     let teamId: string | null | undefined;
     let restDayOfWeek: number | null | undefined = 0;
     let existingBadges: Record<string, any> | undefined;
+    let xpEnabled = false;
     try {
       const snap = await getDoc(doc(db, 'players', playerId));
       if (snap.exists()) {
@@ -169,10 +170,14 @@ export async function recomputeAndPersistPlayerStreak(
       try {
         const teamSnap = await getDoc(doc(db, 'teams', teamId));
         if (teamSnap.exists()) {
-          const cfg = (teamSnap.data() as any).streakConfig;
+          const teamData = teamSnap.data() as any;
+          const cfg = teamData.streakConfig;
           if (cfg && Object.prototype.hasOwnProperty.call(cfg, 'restDayOfWeek')) {
             restDayOfWeek = cfg.restDayOfWeek === null ? null : Number(cfg.restDayOfWeek);
           }
+          // Piggyback the XP-enabled read on the same team fetch so
+          // streak-badge grants can gate on the team's opt-in state.
+          xpEnabled = teamData?.xpConfig?.enabled === true;
         }
       } catch (err) {
         console.warn('team streak config read failed', err);
@@ -184,9 +189,10 @@ export async function recomputeAndPersistPlayerStreak(
     // Piggyback the streak-milestone badge grants onto the same
     // updateDoc so we don't cost an extra round-trip. Fires only on
     // priorStreak < N && streak >= N — a kid at prior=30 who already
-    // crossed pre-ship doesn't get retroactive badges.
+    // crossed pre-ship doesn't get retroactive badges. XP-gated so
+    // teams that didn't opt into XP don't silently accumulate badges.
     const { computeStreakBadgePatch } = await import('./badgeGrants');
-    const badgePatch = computeStreakBadgePatch(priorStreak, streak, existingBadges, { playerName });
+    const badgePatch = computeStreakBadgePatch(priorStreak, streak, existingBadges, { playerName, xpEnabled });
     await updateDoc(doc(db, 'players', playerId), {
       currentStreakDays: streak,
       currentStreakUpdatedAt: new Date(),

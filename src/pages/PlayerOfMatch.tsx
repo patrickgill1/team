@@ -420,7 +420,11 @@ const PlayerOfMatch: React.FC = () => {
             const player = players.find(p => p.id === w.playerId);
             const firstPotmPatch = computeFirstPotmPatch(
               (player as any)?.badges,
-              { gameTitle: activeVoting.gameTitle, seasonId: (activeVoting as any).seasonId },
+              {
+                gameTitle: activeVoting.gameTitle,
+                seasonId: (activeVoting as any).seasonId,
+                xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
+              },
             );
             const patch: Record<string, any> = { isCurrentPotm: true, potmAt: new Date() };
             if (firstPotmPatch) Object.assign(patch, firstPotmPatch);

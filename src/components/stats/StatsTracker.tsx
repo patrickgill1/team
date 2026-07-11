@@ -24,7 +24,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
   initialPlayerId = ''
 }) => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { addGameStat, updatePlayerStats } = useFirestore();
 
   const [selectedPlayer, setSelectedPlayer] = useState(initialPlayerId);
@@ -142,6 +142,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
           {
             existingBadges: (selectedPlayerData as any).badges,
             context: opponent || 'Match',
+            xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
           },
         );
       } catch { /* non-fatal */ }

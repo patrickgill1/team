@@ -259,8 +259,10 @@ const KidDashboard: React.FC = () => {
         mode="exit"
       />
 
-      {/* Chat modal — full-screen sheet on mobile, keeps kid inside
-          the KidDashboard route so kid-mode routing guarantees hold. */}
+      {/* Chat modal — full-screen sheet on mobile (covers status bar
+          + home indicator with safe-area padding), bounded card on
+          desktop. Keeps kid inside the KidDashboard route so kid-mode
+          routing guarantees hold. */}
       {chatOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col"
@@ -270,8 +272,12 @@ const KidDashboard: React.FC = () => {
           onClick={() => setChatOpen(false)}
         >
           <div
-            className="mt-auto sm:mt-[10vh] sm:mx-auto w-full sm:max-w-lg bg-surface-elevated rounded-t-3xl sm:rounded-3xl overflow-hidden ring-1 ring-line-default flex flex-col h-[85vh] sm:h-[75vh]"
+            className="w-full h-full sm:mt-[10vh] sm:mx-auto sm:max-w-lg sm:h-[75vh] bg-surface-elevated sm:rounded-3xl overflow-hidden sm:ring-1 sm:ring-line-default flex flex-col"
             onClick={(ev) => ev.stopPropagation()}
+            style={{
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-line-default/40 shrink-0">
               <div>

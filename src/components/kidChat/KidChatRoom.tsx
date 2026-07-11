@@ -171,19 +171,32 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
 
   return (
     <div className={wrapperClass}>
-      {/* Message list */}
+      {/* Message list — empty state centers vertically in the pane
+          so the composer at the bottom doesn't feel like it's
+          floating alone with a headline stuck at the top. */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto px-1 py-2 space-y-2"
+        className={
+          'flex-1 min-h-0 overflow-y-auto px-1 py-2 ' +
+          (messages.length === 0 ? 'flex flex-col items-center justify-center' : 'space-y-2')
+        }
       >
         {loading ? (
           <p className="text-sm text-ink-primary/50 text-center py-6">Loading messages...</p>
         ) : messages.length === 0 ? (
-          <p className="text-sm text-ink-primary/55 text-center py-6 leading-snug">
-            {canPost
-              ? "No messages yet. Say hi to your teammates!"
-              : "Nothing here yet."}
-          </p>
+          <div className="flex flex-col items-center gap-3 max-w-xs text-center px-4">
+            <svg viewBox="0 0 120 80" className="w-24 h-16 text-brand-primary/70" aria-hidden>
+              <rect x="6" y="10" width="70" height="42" rx="12" fill="none" stroke="currentColor" strokeWidth="2.4" />
+              <rect x="44" y="28" width="70" height="42" rx="12" fill="none" stroke="currentColor" strokeWidth="2.4" />
+              <circle cx="79" cy="49" r="6.5" fill="currentColor" />
+              <path d="M75.5 46.5 L79 43.5 L82.5 46.5 L82.5 51.5 L79 54.5 L75.5 51.5 Z" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" />
+            </svg>
+            <p className="text-sm font-semibold text-ink-primary/70 leading-snug">
+              {canPost
+                ? "No messages yet. Say hi to your teammates!"
+                : "Nothing here yet."}
+            </p>
+          </div>
         ) : (
           messages.map(m => (
             <KidMessageBubble

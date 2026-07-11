@@ -43,6 +43,7 @@ import {
   PreconditionFailedError,
 } from './firestore';
 import { setCustomClaims } from './identityToolkit';
+import { createLeague, createFixture, reportFixtureScore, recomputeStandings } from './leagues';
 
 interface Env {
   FIREBASE_PROJECT_ID?: string;
@@ -2066,6 +2067,65 @@ async function handleEventsRsvp(req: Request, env: Env, payload: any): Promise<R
   return json({ ok: false, error: 'contention', message: 'Too many concurrent RSVPs — please try again.' }, 409);
 }
 
+// ────────────────────────────────────────────────────────────────
+// League endpoints — thin wrappers around worker/src/leagues.ts
+// helpers. All league writes go through here so admin-scope
+// (adminUids / ownerUid) is enforced server-side. Public reads of
+// leagues + fixtures + standings are Firestore-rule-scoped (see
+// firestore.rules).
+// ────────────────────────────────────────────────────────────────
+async function handleLeaguesCreate(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  try {
+    const out = await createLeague(pid, sa, claims.uid, payload);
+    return json({ ok: true, ...out });
+  } catch (err: any) {
+    return json({ ok: false, error: String(err?.message || err).slice(0, 100) }, 400);
+  }
+}
+
+async function handleLeaguesFixtureCreate(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  try {
+    const out = await createFixture(pid, sa, claims.uid, payload);
+    return json({ ok: true, ...out });
+  } catch (err: any) {
+    const code = String(err?.message || 'error').slice(0, 100);
+    const status = code === 'not_league_admin' ? 403 : code === 'league_not_found' ? 404 : 400;
+    return json({ ok: false, error: code }, status);
+  }
+}
+
+async function handleLeaguesReportScore(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  try {
+    const out = await reportFixtureScore(pid, sa, claims.uid, payload);
+    return json({ ok: true, standings: out.standings });
+  } catch (err: any) {
+    const code = String(err?.message || 'error').slice(0, 100);
+    const status = code === 'not_league_admin' ? 403 : code === 'fixture_not_found' ? 404 : 400;
+    return json({ ok: false, error: code }, status);
+  }
+}
+
+async function handleLeaguesRecompute(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  const leagueId = String(payload?.leagueId || '');
+  if (!leagueId) return json({ ok: false, error: 'league_id_required' }, 400);
+  const league = await getDocument(pid, `leagues/${leagueId}`, sa).catch(() => null);
+  if (!league?.data) return json({ ok: false, error: 'league_not_found' }, 404);
+  const admins: string[] = Array.isArray(league.data.adminUids) ? league.data.adminUids : [];
+  if (!admins.includes(claims.uid) && String(league.data.ownerUid || '') !== claims.uid) {
+    return json({ ok: false, error: 'not_league_admin' }, 403);
+  }
+  const standings = await recomputeStandings(pid, leagueId, sa);
+  return json({ ok: true, standings });
+}
+
 async function handleEventsBatchCreate(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
   const claims = await requireCoachOfTeam(req, env, teamId);
@@ -3327,6 +3387,10 @@ export async function routeWriteGuard(
     case '/players/create':        return handlePlayersCreate(req, env, payload);
     case '/events/batch-create':   return handleEventsBatchCreate(req, env, payload);
     case '/events/rsvp':           return handleEventsRsvp(req, env, payload);
+    case '/leagues/create':        return handleLeaguesCreate(req, env, payload);
+    case '/leagues/fixture-create': return handleLeaguesFixtureCreate(req, env, payload);
+    case '/leagues/report-score':  return handleLeaguesReportScore(req, env, payload);
+    case '/leagues/recompute':     return handleLeaguesRecompute(req, env, payload);
     case '/players/set-active':    return handlePlayersSetActive(req, env, payload);
     case '/players/link-parent':   return handlePlayersLinkParent(req, env, payload);
     case '/players/stamp-funnel':  return handlePlayersStampFunnel(req, env, payload);

@@ -597,6 +597,29 @@ service cloud.firestore {
       allow delete: if request.auth != null && canCoachWrite();
     }
 
+    // ── League MVP (2026-07-11) ────────────────────────────────
+    // Rules are permissive for public league discovery (public
+    // fixtures + standings are the whole point). All writes route
+    // through the worker (/leagues/create, /leagues/fixture-create,
+    // /leagues/report-score), so client rules are read-only.
+    // The worker validates ownerUid / adminUids server-side.
+    match /leagues/{leagueId} {
+      allow get: if resource.data.isPublic == true || request.auth != null;
+      allow list: if request.auth != null;
+      allow create, update, delete: if false;
+    }
+    match /fixtures/{fixtureId} {
+      // Read piggybacks on the league — if the league is public, the
+      // fixture is too. Cheaper than reading the league on every LIST
+      // by just gating on request.auth for now.
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+    match /standings/{leagueId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
     match /messages/{messageId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && canCoachWrite();

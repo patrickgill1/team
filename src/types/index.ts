@@ -1804,6 +1804,87 @@ export interface Photo {
 
 export type GameFormat = '7v7' | '9v9' | '11v11';
 
+// ── League MVP (2026-07-11) ──────────────────────────────────────
+// Represents a round-robin competition among 2-24 teams. Fixtures
+// belong to the league; each fixture is a scheduled game between
+// two league teams. Standings are a projected/persisted table
+// derived from finalized fixtures.
+//
+// Team.leagueIds carries the league memberships (a team can play in
+// multiple leagues concurrently — winter indoor + spring outdoor).
+// League admin can post scores + schedule fixtures via the League
+// Console page. Public standings page at /l/:leagueId shows a
+// read-only fixtures + table view (no auth needed).
+
+export interface League {
+  id: string;
+  name: string;
+  season?: string;             // e.g. "Fall 2026"
+  clubId?: string;             // optional owning club (null = platform-hosted)
+  format?: GameFormat;
+  ownerUid: string;            // creator
+  adminUids: string[];         // manage fixtures + post scores
+  teamIds: string[];           // teams in the league (source of truth)
+  /** Points scheme. Default 3/1/0 (W/D/L). */
+  pointsWin?: number;
+  pointsDraw?: number;
+  pointsLoss?: number;
+  /** Sort tiebreak order for the standings table. */
+  tiebreak?: Array<'gd' | 'gf' | 'ga' | 'h2h'>;
+  /** Public visibility of the /l/:id page. Defaults to true —
+   *  a shareable table is the whole point. */
+  isPublic?: boolean;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface Fixture {
+  id: string;
+  leagueId: string;
+  homeTeamId: string;
+  awayTeamId: string;
+  /** Nicely denormed team names — snapshotted at fixture create so
+   *  a mid-season team rename doesn't blow up historical fixture
+   *  cards. */
+  homeTeamName: string;
+  awayTeamName: string;
+  /** Scheduled kickoff. */
+  date: Date;
+  location?: string;
+  /** Match week / round number for grouping in the fixtures list. */
+  matchday?: number;
+  /** Set on score-report. When both are set the fixture is final. */
+  homeScore?: number;
+  awayScore?: number;
+  status: 'scheduled' | 'live' | 'final' | 'postponed' | 'cancelled';
+  reportedAt?: Date;
+  reportedBy?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface StandingsRow {
+  teamId: string;
+  teamName: string;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+}
+
+export interface StandingsDoc {
+  /** Same id as the league — one standings doc per league. */
+  id: string;
+  leagueId: string;
+  rows: StandingsRow[];
+  /** Stamped by the worker after each score report. */
+  updatedAt: Date;
+}
+
 export interface Team {
   id: string;
   name: string;
@@ -1853,6 +1934,12 @@ export interface Team {
    *    availability polling + post-match ratings enabled.
    *  Absent = 'youth' so the entire existing base stays intact. */
   audienceType?: 'youth' | 'adult';
+  /** League memberships. A team can play in multiple leagues at once
+   *  (winter indoor + spring outdoor). League.teamIds is the source
+   *  of truth; this denorm speeds up "leagues this team is in" reads
+   *  without an inverse query. Populated by the worker's league
+   *  add/remove endpoints. */
+  leagueIds?: string[];
   /** Opt-in flag for a public shareable fixture page at /f/{teamId}.
    *  When true, anyone with the link can see: team name/logo,
    *  upcoming games (opponent, date, venue), recent results, and

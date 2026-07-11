@@ -773,6 +773,7 @@ const EventForm: React.FC<EventFormProps> = ({
               <option value="Passing">Passing</option>
               <option value="Defending">Defending</option>
               <option value="Finishing">Finishing</option>
+              <option value="Keeper training">Keeper training</option>
               <option value="Confidence">Confidence</option>
               <option value="Communication">Communication</option>
               <option value="Effort">Effort</option>

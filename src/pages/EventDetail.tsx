@@ -501,6 +501,56 @@ const EventDetail: React.FC = () => {
 
   const setMyRsvp = async (status: RsvpStatus) => {
     if (!event || !userData?.uid) return;
+    const hasCap = typeof (event as any).rsvpCap === 'number' && (event as any).rsvpCap > 0;
+
+    // Capped events: route through worker /events/rsvp for atomic
+    // cap enforcement + waitlist auto-promotion. Uncapped events
+    // keep the fast dotted-path client write (no read needed, no
+    // race for the common youth case).
+    if (hasCap) {
+      try {
+        const { workerFetch } = await import('../utils/workerFetch');
+        const res = await workerFetch('/events/rsvp', {
+          method: 'POST',
+          body: JSON.stringify({
+            eventId: event.id,
+            status,
+            name: userData.name || userData.email || 'Unknown',
+            role: (userData as any).role,
+          }),
+        });
+        const data: any = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) {
+          alert(data?.message || "Couldn't save your RSVP. Try again.");
+          return;
+        }
+        // Re-fetch the event so we render the fresh rsvps + waitlist
+        // (the worker may have promoted someone from the waitlist
+        // when we released a going slot).
+        try {
+          const { doc: fsDoc, getDoc: fsGet } = await import('firebase/firestore');
+          const { db } = await import('../utils/firebase');
+          const snap = await fsGet(fsDoc(db, 'events', event.id));
+          if (snap.exists()) {
+            const raw: any = snap.data();
+            setEvent({ ...event, ...raw, id: event.id } as CalendarEvent);
+          }
+        } catch { /* fall through — client will re-fetch on next load */ }
+        if (data.waitlisted) {
+          alert(`You're on the waitlist — position ${data.waitlistPosition}. If someone drops out you'll be moved up automatically.`);
+        } else if (data.promoted) {
+          // Optional celebration for the coach — someone got promoted.
+          console.log('[rsvp] promoted from waitlist', data.promoted);
+        }
+      } catch (err) {
+        console.error('rsvp failed', err);
+        alert("Couldn't save your RSVP. Check your connection and try again.");
+      }
+      return;
+    }
+
+    // Uncapped path — fast dotted-path write, no race (Firestore
+    // merges into the map field). Optimistic UI with rollback.
     const prevRsvps = event.rsvps;
     const prevEvent = event;
     const next = {
@@ -514,7 +564,13 @@ const EventDetail: React.FC = () => {
     };
     setEvent({ ...event, rsvps: next } as CalendarEvent);
     try {
-      await updateDocument('events', event.id, { rsvps: next });
+      // Dotted-path so simultaneous RSVPs across the roster don't
+      // clobber each other (audit 2026-07-11 race fix).
+      const { doc: fsDoc, updateDoc: fsUpdate } = await import('firebase/firestore');
+      const { db } = await import('../utils/firebase');
+      await fsUpdate(fsDoc(db, 'events', event.id), {
+        [`rsvps.${userData.uid}`]: next[userData.uid],
+      });
     } catch (err) {
       console.error('rsvp failed', err);
       setEvent({ ...prevEvent, rsvps: prevRsvps } as CalendarEvent);
@@ -1231,7 +1287,14 @@ const EventDetail: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="relative overflow-hidden rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 px-3 py-2.5">
             <span className="absolute inset-x-0 top-0 h-0.5 bg-emerald-500" />
-            <div className="text-2xl font-black text-emerald-300 leading-none">{buckets.going.length}</div>
+            <div className="text-2xl font-black text-emerald-300 leading-none">
+              {buckets.going.length}
+              {typeof (event as any).rsvpCap === 'number' && (event as any).rsvpCap > 0 && (
+                <span className="text-sm text-emerald-300/70 font-black">
+                  {' / '}{(event as any).rsvpCap}
+                </span>
+              )}
+            </div>
             <div className="text-[9px] font-extrabold tracking-widest text-ink-primary/65 mt-1">GOING</div>
           </div>
           <div className="relative overflow-hidden rounded-lg bg-sky-500/15 ring-1 ring-sky-400/40 px-3 py-2.5">
@@ -1264,6 +1327,27 @@ const EventDetail: React.FC = () => {
             {remindToast && (
               <span className="text-[11px] font-semibold text-ink-primary/65">{remindToast}</span>
             )}
+          </div>
+        )}
+        {Array.isArray((event as any).waitlist) && (event as any).waitlist.length > 0 && (
+          <div className="mt-3 rounded-lg bg-amber-500/10 ring-1 ring-amber-400/30 px-3 py-2.5">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-300">
+                Waitlist · {(event as any).waitlist.length}
+              </span>
+              <span className="text-[10px] text-amber-200/70">Auto-promotes when a slot opens</span>
+            </div>
+            <ol className="space-y-0.5 text-[12px] text-amber-100/85">
+              {(event as any).waitlist.slice(0, 8).map((w: any, i: number) => (
+                <li key={w.uid || i} className="flex items-center gap-2">
+                  <span className="w-4 text-right text-amber-300/70 font-mono text-[10px]">{i + 1}.</span>
+                  <span className="truncate">{w.name || 'Member'}</span>
+                </li>
+              ))}
+              {(event as any).waitlist.length > 8 && (
+                <li className="text-[10px] text-amber-200/60 pl-6">+ {(event as any).waitlist.length - 8} more</li>
+              )}
+            </ol>
           </div>
         )}
         {buckets.going.length > 0 && (

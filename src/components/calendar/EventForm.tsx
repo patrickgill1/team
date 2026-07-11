@@ -53,6 +53,7 @@ const EventForm: React.FC<EventFormProps> = ({
     recurrence: 'none' as 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly',
     recurrenceUntil: '' as string,
     arriveOffsetMinutes: 0,
+    rsvpCap: '',
     developmentFocus: '',
     endTime: '' as string, // HH:mm, optional
     // Default ON for new events (you usually want to tell people about
@@ -121,6 +122,8 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrence: (editingEvent as any).recurrence || 'none',
         recurrenceUntil: untilDate ? untilDate.toISOString().split('T')[0] : '',
         arriveOffsetMinutes: (editingEvent as any).arriveOffsetMinutes || 0,
+        rsvpCap: typeof (editingEvent as any).rsvpCap === 'number' && (editingEvent as any).rsvpCap > 0
+          ? String((editingEvent as any).rsvpCap) : '',
         developmentFocus: (editingEvent as any).developmentFocus || '',
         endTime: (() => {
           const e = (editingEvent as any).endDate;
@@ -154,6 +157,7 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrence: 'none',
         recurrenceUntil: '',
         arriveOffsetMinutes: 0,
+    rsvpCap: '',
         developmentFocus: '',
         endTime: '',
         notifyTeam: true,
@@ -515,6 +519,12 @@ const EventForm: React.FC<EventFormProps> = ({
         createdBy: userData.uid,
         createdByName: userData.name,
         arriveOffsetMinutes: formData.arriveOffsetMinutes > 0 ? formData.arriveOffsetMinutes : null,
+        rsvpCap: (() => {
+          const raw = String(formData.rsvpCap || '').trim();
+          if (!raw) return null;
+          const n = Number(raw);
+          return Number.isFinite(n) && n > 0 ? Math.min(1000, Math.floor(n)) : null;
+        })(),
         developmentFocus: formData.developmentFocus.trim() || null,
         // Signal to the onEventCreate Cloud Function whether to fan
         // out push notifications. Set ONLY on create — edits do not
@@ -633,6 +643,7 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrence: 'none',
         recurrenceUntil: '',
         arriveOffsetMinutes: 0,
+    rsvpCap: '',
         developmentFocus: '',
         endTime: '',
         notifyTeam: true,
@@ -1194,6 +1205,29 @@ const EventForm: React.FC<EventFormProps> = ({
               </div>
             </div>
           )}
+
+          {/* RSVP cap — for pickup / limited-field-size events. When
+              set, additional "Going" taps beyond the cap land on the
+              waitlist and get auto-promoted as slots free up. */}
+          <div>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
+              Cap the "Going" list (optional)
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={1000}
+              value={formData.rsvpCap}
+              onChange={(e) => setFormData({ ...formData, rsvpCap: e.target.value })}
+              placeholder="e.g. 20 (blank = no cap)"
+              className="w-full px-3 py-2 bg-surface-base text-ink-primary border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+            />
+            {String(formData.rsvpCap || '').trim() && (
+              <p className="text-[11px] text-ink-primary/60 mt-1 leading-snug">
+                First {formData.rsvpCap} to tap Going are confirmed. Everyone else joins a waitlist and gets promoted automatically if someone drops out.
+              </p>
+            )}
+          </div>
 
           {/* Arrive early — recommended for games (warmups), useful for
               practices too. Offsets are stored so they auto-shift if the

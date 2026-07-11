@@ -1708,6 +1708,16 @@ export interface CalendarEvent {
    *  the sweep never double-creates. */
   potmVotingId?: string;
   potmAutoCreatedAt?: Date;
+  /** Cap on 'going' RSVPs. When set (adult pickup use case), the
+   *  worker's /events/rsvp endpoint enforces atomically: additional
+   *  "I'm going" taps beyond the cap land on the waitlist instead.
+   *  Absent = no cap (youth default). */
+  rsvpCap?: number;
+  /** Waitlist entries — RSVP-order, oldest first. When a going user
+   *  drops out or switches away, the first entry gets auto-promoted
+   *  to the rsvps map with status='going'. Empty / absent = no
+   *  waitlist activity. Worker owns writes. */
+  waitlist?: Array<{ uid: string; name: string; role?: string; addedAt: Date }>;
 }
 
 export interface GalleryPhoto {

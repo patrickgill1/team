@@ -1963,6 +1963,109 @@ async function handleTeamsRestore(req: Request, env: Env, payload: any): Promise
 // Body: { teamId, events: Array<{ title, type, date, endDate, location }> }
 // Response: { ok: true, created: number, ids: string[] }
 // ────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────
+// /events/rsvp — atomic RSVP with cap enforcement + waitlist auto-
+// promotion. Enables the adult-pickup use case ("first 20 confirmed,
+// rest waitlist"). Client for uncapped youth events still uses the
+// cheap dotted-path client write; this handler is called only when
+// event.rsvpCap is set.
+//
+// Race handling: uses commitDocumentTransforms with an updateTime
+// precondition so simultaneous RSVPs at 60-adult scale don't lose
+// updates. Retries up to 3× on PreconditionFailedError.
+//
+// Body: { eventId, status: 'going'|'maybe'|'no', name, role? }
+//
+// Response: { ok, waitlisted, waitlistPosition?, promoted? }
+// ────────────────────────────────────────────────────────────────
+async function handleEventsRsvp(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  const eventId = String(payload?.eventId || '');
+  const status = String(payload?.status || '');
+  const name = String(payload?.name || claims.email || 'Unknown').slice(0, 100);
+  const role = payload?.role ? String(payload.role).slice(0, 20) : undefined;
+  if (!eventId) return json({ ok: false, error: 'event_id_required' }, 400);
+  if (!['going', 'maybe', 'no'].includes(status)) {
+    return json({ ok: false, error: 'invalid_status' }, 400);
+  }
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const ev = await getDocument(pid, `events/${eventId}`, sa).catch(() => null);
+    if (!ev?.data) return json({ ok: false, error: 'event_not_found' }, 404);
+    const data: any = ev.data;
+    const rsvpCap: number | undefined = typeof data.rsvpCap === 'number' && data.rsvpCap > 0
+      ? Math.floor(data.rsvpCap)
+      : undefined;
+    const rsvps: Record<string, any> = data.rsvps && typeof data.rsvps === 'object' ? { ...data.rsvps } : {};
+    const waitlist: Array<any> = Array.isArray(data.waitlist) ? [...data.waitlist] : [];
+
+    const prevStatus = rsvps[claims.uid]?.status;
+    const now = new Date();
+
+    // Remove self from waitlist first — any state change requires
+    // re-inserting or promoting them.
+    const filteredWaitlist = waitlist.filter((w: any) => w?.uid !== claims.uid);
+
+    // Count going, excluding self so a re-tap on going doesn't
+    // self-block against the cap.
+    const goingCount = Object.entries(rsvps)
+      .filter(([uid, r]: [string, any]) => uid !== claims.uid && r?.status === 'going')
+      .length;
+
+    let waitlistPosition: number | undefined;
+    let promoted: { uid: string; name: string } | undefined;
+
+    if (status === 'going' && rsvpCap && goingCount >= rsvpCap) {
+      // Cap already reached — waitlist this user, clear any prior
+      // rsvps entry so they don't double-count.
+      delete rsvps[claims.uid];
+      filteredWaitlist.push({ uid: claims.uid, name, role, addedAt: now });
+      waitlistPosition = filteredWaitlist.length;
+    } else {
+      rsvps[claims.uid] = { status, name, ...(role ? { role } : {}), respondedAt: now };
+      // If the caller was previously 'going' and just released the
+      // slot, promote the first waitlisted person.
+      if (prevStatus === 'going' && status !== 'going' && filteredWaitlist.length > 0) {
+        const head = filteredWaitlist.shift();
+        if (head?.uid) {
+          rsvps[head.uid] = {
+            status: 'going',
+            name: head.name,
+            ...(head.role ? { role: head.role } : {}),
+            respondedAt: now,
+            promotedFromWaitlist: true,
+          };
+          promoted = { uid: head.uid, name: head.name };
+        }
+      }
+    }
+
+    try {
+      await commitDocumentTransforms(
+        pid,
+        `events/${eventId}`,
+        [],
+        { rsvps, waitlist: filteredWaitlist, updatedAt: now },
+        sa,
+        ev.updateTime ? { updateTime: ev.updateTime } : undefined,
+      );
+      return json({
+        ok: true,
+        waitlisted: waitlistPosition !== undefined,
+        waitlistPosition,
+        promoted,
+      });
+    } catch (err) {
+      if (err instanceof PreconditionFailedError && attempt < 2) {
+        continue; // read + retry
+      }
+      throw err;
+    }
+  }
+  return json({ ok: false, error: 'contention', message: 'Too many concurrent RSVPs — please try again.' }, 409);
+}
+
 async function handleEventsBatchCreate(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
   const claims = await requireCoachOfTeam(req, env, teamId);
@@ -3223,6 +3326,7 @@ export async function routeWriteGuard(
     case '/users/refresh-claims':  return handleUsersRefreshClaims(req, env, payload);
     case '/players/create':        return handlePlayersCreate(req, env, payload);
     case '/events/batch-create':   return handleEventsBatchCreate(req, env, payload);
+    case '/events/rsvp':           return handleEventsRsvp(req, env, payload);
     case '/players/set-active':    return handlePlayersSetActive(req, env, payload);
     case '/players/link-parent':   return handlePlayersLinkParent(req, env, payload);
     case '/players/stamp-funnel':  return handlePlayersStampFunnel(req, env, payload);

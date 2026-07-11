@@ -119,18 +119,33 @@ const ChevronIcon: React.FC<{ className?: string }> = ({ className }) => (
 
 const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) => {
   const xpConfig = (team as any)?.xpConfig;
-  if (!team || xpConfig?.enabled !== true) return null;
+  const xpEnabled = xpConfig?.enabled === true;
 
   const xp = typeof (player as any).xp === 'number' ? (player as any).xp : 0;
-  const level = computeXpLevel(xp);
+  const xpCareer = typeof (player as any).xpCareer === 'number' ? (player as any).xpCareer : xp;
   const badges: Record<string, any> = ((player as any).badges && typeof (player as any).badges === 'object')
     ? (player as any).badges
     : {};
   const ownedCount = Object.keys(badges).length;
+
+  // Team never opted into XP AND the player has no history yet.
+  // Nothing to show — return null so the profile stays clean. If they
+  // later earn badges (worker-only paths still fire) OR the coach
+  // flips XP on, the card comes back.
+  if (!team || (!xpEnabled && ownedCount === 0 && xpCareer === 0)) return null;
+
+  // "Paused" state: coach turned XP off (or never turned it on) BUT
+  // the player has history worth keeping. Card renders as a keepsake
+  // trophy cabinet — no level, no progression rail, no coach
+  // Recognize button. Just the badges they've earned + career XP
+  // total + a soft chip that explains the pause without making the
+  // kid feel like they're at zero.
+  const paused = !xpEnabled;
+  const level = computeXpLevel(xp);
   const totalSlots = BADGE_SLOTS.length;
   const coachPickCount = typeof badges?.coach_pick?.count === 'number' ? badges.coach_pick.count : 0;
 
-  const rarity = rarityForLevel(level.level);
+  const rarity = paused ? 'rookie' : rarityForLevel(level.level);
   const rarityStyle = RARITY_STYLES[rarity];
   const displayName = ((player as any).name || 'Player').toString();
 
@@ -163,15 +178,23 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
               aria-hidden
             />
 
-            {/* HEADER: rarity chip left, Recognize right. */}
+            {/* HEADER: chip left (rarity when live, "TROPHY CABINET"
+                when paused), Recognize right (coach-only + XP-on). */}
             <div className="relative px-4 sm:px-5 pt-3 flex items-center justify-between gap-2">
-              <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-[0.18em] ring-1 ${rarityStyle.chip}`}
-              >
-                <StarIcon className="w-2.5 h-2.5" />
-                {rarityStyle.label}
-              </span>
-              {isCoach && (
+              {paused ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-[0.18em] ring-1 bg-line-default/10 text-ink-primary/75 ring-line-default/25">
+                  <StarIcon className="w-2.5 h-2.5" />
+                  Trophy Cabinet
+                </span>
+              ) : (
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-[0.18em] ring-1 ${rarityStyle.chip}`}
+                >
+                  <StarIcon className="w-2.5 h-2.5" />
+                  {rarityStyle.label}
+                </span>
+              )}
+              {isCoach && !paused && (
                 <button
                   type="button"
                   onClick={onRecognize}
@@ -184,30 +207,36 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
               )}
             </div>
 
-            {/* POWER NUMBER: the big centered level — trading-card
-                eye magnet. Player name as card title below. */}
+            {/* POWER NUMBER + name. When XP is paused we skip the big
+                level number (kid doesn't have a current level to
+                celebrate) and keep just the name + kicker. */}
             <div className="relative px-4 sm:px-5 pt-1 pb-3 text-center">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.32em] text-ink-primary/50">
-                Level
-              </p>
-              <div
-                className={`mt-0.5 text-6xl sm:text-7xl font-black leading-none tabular-nums ${rarityStyle.levelText}`}
-                style={{ textShadow: '0 2px 0 rgba(200,32,44,0.15)' }}
-              >
-                {level.level}
-              </div>
-              <h3 className="mt-2 text-base sm:text-lg font-black text-ink-primary tracking-wide uppercase truncate">
+              {!paused && (
+                <>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.32em] text-ink-primary/50">
+                    Level
+                  </p>
+                  <div
+                    className={`mt-0.5 text-6xl sm:text-7xl font-black leading-none tabular-nums ${rarityStyle.levelText}`}
+                    style={{ textShadow: '0 2px 0 rgba(200,32,44,0.15)' }}
+                  >
+                    {level.level}
+                  </div>
+                </>
+              )}
+              <h3 className={`${paused ? '' : 'mt-2'} text-base sm:text-lg font-black text-ink-primary tracking-wide uppercase truncate`}>
                 {displayName}
               </h3>
               <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.22em] text-ink-primary/45">
-                Season Card
+                {paused ? 'Career Keepsake' : 'Season Card'}
               </p>
             </div>
 
-            {/* PROGRESS RAIL: always renders even at 0% so a fresh
-                kid sees the shape. Pulsing cyan-soft tip at the
-                leading edge (grafted from Direction A) makes the
-                grind feel live. */}
+            {/* PROGRESS RAIL: always renders even at 0% when XP is
+                on so a fresh kid sees the shape. Skipped entirely
+                when paused — no half-full bar implying they should
+                be grinding. */}
+            {!paused && (
             <div className="relative px-4 sm:px-5 pb-2">
               <div className="relative h-2.5 w-full rounded-full bg-surface-input ring-1 ring-line-default/30 overflow-visible">
                 <div
@@ -263,6 +292,7 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
                 </div>
               </div>
             </div>
+            )}
 
             {/* STAT ROW: Season XP + Collection count as headline
                 numbers. Two-panel divided plate feels like a card's
@@ -271,10 +301,10 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
               <div className="grid grid-cols-2 divide-x divide-line-default/25">
                 <div className="px-3 py-2">
                   <p className="text-[9px] font-black uppercase tracking-[0.22em] text-ink-primary/50">
-                    Season XP
+                    {paused ? 'Career XP' : 'Season XP'}
                   </p>
                   <p className="mt-0.5 text-lg font-black text-ink-primary leading-none tabular-nums">
-                    {xp.toLocaleString()}
+                    {(paused ? xpCareer : xp).toLocaleString()}
                   </p>
                 </div>
                 <div className="px-3 py-2">
@@ -340,10 +370,15 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
                 })}
               </div>
 
-              {/* Contextual footnote. Fresh kid gets a coach nudge or
-                  parent explainer; active collector gets a running
-                  Coach's Pick tally once it's a real streak. */}
-              {ownedCount === 0 ? (
+              {/* Contextual footnote. Paused state: gentle "XP is
+                  paused, badges stay yours" note so the kid doesn't
+                  read the locked slots as failure. Active state:
+                  coach nudge or Coach's Pick tally. */}
+              {paused ? (
+                <p className="mt-3 text-[11px] text-ink-primary/60 leading-snug text-center">
+                  XP program is paused by the coach. The badges you've earned stay right here.
+                </p>
+              ) : ownedCount === 0 ? (
                 <p className="mt-3 text-[11px] text-ink-primary/60 leading-snug text-center">
                   {isCoach
                     ? "Empty card. Tap Recognize to fill the first slot (Coach's Pick)."

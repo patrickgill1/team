@@ -225,14 +225,24 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
           )}
         </div>
 
-        {/* CENTER: rarity chip + name + 3 metric tiles. Colors are
-            light-on-dark by design because the card carries a photo
-            background + dark scrim regardless of theme mode. */}
+        {/* CENTER: rarity chip + name. Colors are light-on-dark by
+            design because the card carries a photo background + dark
+            scrim regardless of theme mode. When XP is disabled the
+            chip flips to "Career Mode" so kids don't see a ROOKIE
+            label that implies they're at the bottom of a ladder that
+            isn't actually running. */}
         <div className="min-w-0">
-          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-primary/25 text-brand-primary-soft text-[10px] font-black uppercase tracking-widest ring-1 ring-brand-primary/40">
-            <StarIcon className="w-3 h-3" />
-            {rarity}
-          </div>
+          {xpEnabled ? (
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-primary/25 text-brand-primary-soft text-[10px] font-black uppercase tracking-widest ring-1 ring-brand-primary/40">
+              <StarIcon className="w-3 h-3" />
+              {rarity}
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 text-white/85 text-[10px] font-black uppercase tracking-widest ring-1 ring-white/20">
+              <ShieldIcon className="w-3 h-3" />
+              Career Mode
+            </div>
+          )}
           <h2 className="mt-1 text-xl sm:text-2xl font-black text-white leading-tight truncate drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
             {player.name}
           </h2>
@@ -333,10 +343,23 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
         </div>
       )}
 
-      {/* LOCKER — 9 slots, badges first then locks. */}
+      {/* LOCKER — earned badges first, then locks. Skipped entirely
+          when XP is disabled AND the kid has zero badges (no need to
+          show a full row of locks with no way to unlock them). When
+          XP is disabled but there ARE earned badges, we keep the
+          locker as a keepsake and add a small "XP paused" chip so
+          the kid understands the state. */}
+      {(xpEnabled || badgeCount > 0) && (
       <div className="relative px-4 sm:px-5 pt-3 pb-4 sm:pb-5 border-t border-white/10">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-[10px] font-black uppercase tracking-widest text-white/70">Locker</div>
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
+          <div className="flex items-center gap-2">
+            <div className="text-[10px] font-black uppercase tracking-widest text-white/70">Locker</div>
+            {!xpEnabled && (
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/45 bg-white/5 ring-1 ring-white/10 px-1.5 py-0.5 rounded-full">
+                XP paused
+              </span>
+            )}
+          </div>
           <div className="text-[11px] font-semibold text-white/60 tabular-nums">
             {badgeCount} of {totalBadgeSlots}
           </div>
@@ -384,6 +407,7 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
           })}
         </div>
       </div>
+      )}
     </div>
   );
 };

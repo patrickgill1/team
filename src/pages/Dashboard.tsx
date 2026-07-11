@@ -1997,12 +1997,12 @@ const MyPlayerCard: React.FC<{
               className={`absolute -top-1 -left-1 z-10 inline-flex h-9 min-w-9 items-center justify-center gap-0.5 px-1.5 rounded-full text-[12px] font-black tabular-nums ring-2 ring-offset-2 ring-offset-surface-elevated ${streakBadgeTone}`}
             >
               <svg
-                className="w-3 h-3.5 shrink-0"
+                className="w-3.5 h-3.5 shrink-0"
                 viewBox="0 0 24 24"
                 fill="currentColor"
                 aria-hidden
               >
-                <path d="M13.5 2c-.9 2.9-2.5 5-4.1 7-1.8 2.3-3.4 4.6-3.4 7.5C6 20.6 9 23 12.5 23s6.5-2.4 6.5-6.5c0-3.4-2.2-6.1-3.5-8-1.4-2-1.9-4.4-2-6.5zm-1 15c1.7 0 3-1.3 3-3 0-1.6-.9-2.6-1.7-3.7-.7-.9-1.3-1.8-1.3-3 .1 1.4-.6 2.3-1.4 3.3-.7.9-1.6 1.9-1.6 3.4 0 1.7 1.3 3 3 3z" />
+                <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
               </svg>
               {streakDays}
             </span>

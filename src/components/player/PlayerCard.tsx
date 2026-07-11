@@ -157,16 +157,17 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 </span>
               )}
               {/* Practice streak badge — flame + number in one pill.
-                  Sits at bottom-left of the avatar (POTM star lives
-                  top-right, jersey chip lives bottom-right). Warm
-                  orange scale from low to blazing, no color-flip
-                  between low/high streaks and no unicode emoji — the
-                  low state used to be brand-primary crimson which
-                  read as a notification badge (audit 2026-07-12). */}
+                  Sits at TOP-left of the avatar so the streak badge
+                  orbit matches the Dashboard hero (which anchors
+                  top-left too). POTM star sits top-right; jersey
+                  chip sits bottom-right. Warm orange scale from low
+                  to blazing, same shape at every streak length.
+                  Uses the Heroicons flame path so the icon actually
+                  reads as fire, not a droplet. */}
               {((player as any).currentStreakDays ?? 0) > 0 && (
                 <span
                   title={`${(player as any).currentStreakDays}-day practice streak`}
-                  className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center gap-0.5 min-w-[26px] h-6 px-1.5 rounded-full text-[10px] font-black tabular-nums shadow-md ring-2 ring-surface-elevated text-white ${
+                  className={`absolute -top-1 -left-1 z-10 inline-flex items-center justify-center gap-0.5 min-w-[28px] h-7 px-1.5 rounded-full text-[11px] font-black tabular-nums shadow-md ring-2 ring-surface-elevated text-white ${
                     ((player as any).currentStreakDays ?? 0) >= 25
                       ? 'bg-gradient-to-br from-amber-300 to-orange-600'
                       : ((player as any).currentStreakDays ?? 0) >= 10
@@ -176,8 +177,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                           : 'bg-orange-500/85'
                   }`}
                 >
-                  <svg className="w-2.5 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M13.5 2c-.9 2.9-2.5 5-4.1 7-1.8 2.3-3.4 4.6-3.4 7.5C6 20.6 9 23 12.5 23s6.5-2.4 6.5-6.5c0-3.4-2.2-6.1-3.5-8-1.4-2-1.9-4.4-2-6.5zm-1 15c1.7 0 3-1.3 3-3 0-1.6-.9-2.6-1.7-3.7-.7-.9-1.3-1.8-1.3-3 .1 1.4-.6 2.3-1.4 3.3-.7.9-1.6 1.9-1.6 3.4 0 1.7 1.3 3 3 3z" />
+                  <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
                   </svg>
                   {(player as any).currentStreakDays}
                 </span>

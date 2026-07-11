@@ -258,33 +258,23 @@ const Drills: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-surface-base">
-      {/* Training-ground hero — cones + dribble drill at sunset. Sets
-          the emotional promise before the drill list ('this is where
-          your kid gets better') without pushing the primary action
-          off-screen: title + Add Drill still ride the bottom of the
-          hero band. */}
-      <section className="relative overflow-hidden border-b border-line-default/5">
-        <div className="aspect-[16/8] sm:aspect-[16/5] relative">
-          <img
-            src="/hero/training.jpg"
-            alt="Kids working through a dribbling drill at sunset"
-            className="absolute inset-0 w-full h-full object-cover"
-            loading="eager"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-surface-elevated via-surface-elevated/40 to-transparent pointer-events-none" aria-hidden />
-        </div>
-        <div className="absolute inset-x-0 bottom-0 px-4 sm:px-6 py-3">
-          <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
-            <h1 className="text-lg sm:text-xl font-black text-white leading-tight drop-shadow">Training Ground</h1>
-            <button
-              onClick={() => { setEditing(null); setCreateOpen(true); }}
-              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase whitespace-nowrap shadow-sm"
-            >
-              + Add Drill
-            </button>
+      {/* Header — the ambient hero photo was ambient wallpaper, not
+          bound to any card (violated the "photo with purpose" memory).
+          Ripped for a compact title + Add Drill row. */}
+      <header className="border-b border-line-default/10 px-4 sm:px-6 pt-5 pb-3">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary-soft mb-0.5">Training Ground</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-ink-primary leading-tight">Drills</h1>
           </div>
+          <button
+            onClick={() => { setEditing(null); setCreateOpen(true); }}
+            className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hov text-brand-primary-fg text-xs font-extrabold tracking-widest uppercase whitespace-nowrap"
+          >
+            + Add Drill
+          </button>
         </div>
-      </section>
+      </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-3">
         {/* Segmented control for the primary view toggle (My vs

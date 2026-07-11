@@ -7,6 +7,7 @@ import { Player } from '../types';
 import { formatDate, isCoachOfTeam } from '../utils/helpers';
 import { computeTeamAttendanceCounts } from '../utils/attendance';
 import { maybeGrantPerfectAttendance } from '../utils/badgeGrants';
+import CoachGrantXpModal from '../components/coach/CoachGrantXpModal';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import { VOCAB } from '../vocab';
@@ -47,6 +48,7 @@ const AttendanceTracker: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [attendanceData, setAttendanceData] = useState<{[playerId: string]: string}>({});
   const [saving, setSaving] = useState(false);
+  const [grantXpOpen, setGrantXpOpen] = useState(false);
 
   const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
@@ -289,6 +291,23 @@ const AttendanceTracker: React.FC = () => {
           </div>
         )}
 
+        {/* Coach Grant XP quick action. Sits above the stat tiles so
+            the coach can go "worth 10 XP" in one tap during practice
+            without navigating away from the roster surface they land
+            on. Gated on coach + xpConfig enabled — kids never see it. */}
+        {isUserCoach && (selectedTeam as any)?.xpConfig?.enabled === true && (
+          <button
+            onClick={() => setGrantXpOpen(true)}
+            className="w-full mb-4 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-brand-primary text-white font-bold text-sm shadow-md ring-1 ring-brand-primary/60 hover:brightness-110 active:scale-[0.99] transition"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 2l8.66 5v10L12 22 3.34 17V7L12 2z" />
+              <path d="M12 8v6M9 11h6" />
+            </svg>
+            Grant XP
+          </button>
+        )}
+
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <StatTile icon="calendar" tint="cyan" label="Total Events" value={stats.totalEvents} />
@@ -524,6 +543,15 @@ const AttendanceTracker: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {isUserCoach && selectedTeam && (selectedTeam as any)?.xpConfig?.enabled === true && (
+        <CoachGrantXpModal
+          open={grantXpOpen}
+          onClose={() => setGrantXpOpen(false)}
+          team={selectedTeam}
+          roster={players}
+        />
+      )}
     </div>
   );
 };

@@ -3187,6 +3187,40 @@ const RECOGNITION_PER_KID_PER_COACH_PER_WEEK = 2;
 const NOTE_MIN_LENGTH = 5;
 const NOTE_MAX_LENGTH = 500;
 
+// Coach-live raw XP grant constants. Separate quota lane from
+// coach_recognition: recognitions are warm whispered notes capped
+// at 2/kid/week; coach_live is the tap-during-practice gesture
+// bounded by a daily-XP ceiling so bulk grants ("winning team,
+// +10 each") still fit inside a healthy cadence. All caps are
+// per-player-per-calendar-day, America/Denver rolling.
+const COACH_LIVE_XP_PER_PLAYER_PER_DAY = 500;
+const COACH_LIVE_XP_MIN = 1;
+const COACH_LIVE_XP_MAX = 500;
+const COACH_LIVE_PLAYERS_MAX = 40;
+const COACH_LIVE_REASON_MIN = 1;
+const COACH_LIVE_REASON_MAX = 80;
+const COACH_LIVE_PRESETS_MAX = 20;
+
+/** Midnight America/Denver of the given instant, as ms. Same pattern
+ *  as startOfWeekDenverMs. Used to sum coach_live XP into the daily
+ *  rolling quota. */
+function startOfDayDenverMs(now = new Date()): number {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Denver',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23',
+  });
+  const parts = fmt.formatToParts(now);
+  const get = (t: string) => parts.find(p => p.type === t)?.value || '';
+  const intraDayMs = (
+    parseInt(get('hour'), 10) * 3600
+    + parseInt(get('minute'), 10) * 60
+    + parseInt(get('second'), 10)
+  ) * 1000;
+  return now.getTime() - intraDayMs;
+}
+
 /** Monday 00:00 America/Denver as a millisecond timestamp. Windows
  *  reset weekly so a coach's quota rolls over at the start of the
  *  next practice week (matches the streak-Sunday-skip cadence).
@@ -3432,6 +3466,248 @@ async function handleXpAwardRecognition(req: Request, env: Env, payload: any): P
 // so we don't have to add a dozen if-blocks to the main handler.
 // Returns null when the pathname isn't a guarded-write route.
 // ────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────
+// POST /xp/grant-coach — coach hands out live XP to one-or-many
+// players. Primary UX: tap "Grant XP" at practice, pick who, pick
+// how much, pick reason, ship. Distinct from /xp/award-recognition
+// which is a private whisper with a per-week cap; this is the
+// bulk-friendly, cap-by-XP-per-day gesture.
+// ────────────────────────────────────────────────────────────────
+async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  const rawIds = Array.isArray(payload?.playerIds) ? payload.playerIds : [];
+  const playerIds: string[] = Array.from(new Set(
+    rawIds.map((v: any) => String(v || '')).filter((v: string) => v.length > 0)
+  ));
+  const amountRaw = Number(payload?.amount);
+  const reason = String(payload?.reason || '').trim();
+  const savePreset = payload?.savePreset === true;
+
+  if (playerIds.length === 0) return json({ ok: false, error: 'players_required' }, 400);
+  if (playerIds.length > COACH_LIVE_PLAYERS_MAX) {
+    return json({ ok: false, error: 'too_many_players', message: `Max ${COACH_LIVE_PLAYERS_MAX} players per grant.` }, 400);
+  }
+  if (!Number.isFinite(amountRaw) || amountRaw < COACH_LIVE_XP_MIN || amountRaw > COACH_LIVE_XP_MAX) {
+    return json({ ok: false, error: 'amount_out_of_range', message: `Amount must be ${COACH_LIVE_XP_MIN}-${COACH_LIVE_XP_MAX} XP.` }, 400);
+  }
+  const amount = Math.round(amountRaw);
+  if (reason.length < COACH_LIVE_REASON_MIN) return json({ ok: false, error: 'reason_required' }, 400);
+  if (reason.length > COACH_LIVE_REASON_MAX) return json({ ok: false, error: 'reason_too_long' }, 400);
+
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  if (!teamDoc?.data) return json({ ok: false, error: 'team_not_found' }, 404);
+  const teamData: any = teamDoc.data;
+  if (teamData?.xpConfig?.enabled !== true) {
+    return json({ ok: false, error: 'xp_not_enabled' }, 403);
+  }
+  const clubId = teamData.clubId ? String(teamData.clubId) : '';
+
+  // Active season for stamping — non-fatal.
+  let seasonId = '';
+  try {
+    const seasonQ = await runQuery(pid, 'seasons', [
+      { field: 'teamId', op: 'EQUAL', value: teamId },
+      { field: 'isActive', op: 'EQUAL', value: true },
+    ], sa, 1);
+    if (seasonQ.length > 0) seasonId = seasonQ[0].id;
+  } catch (err) {
+    console.warn('[xp] grant-coach season lookup failed:', (err as Error).message);
+  }
+
+  // Caller display name for the audit + kid toast.
+  let awardedByName = 'Coach';
+  try {
+    const u = await getDocument(pid, `users/${claims.uid}`, sa);
+    const n = (u?.data as any)?.name;
+    if (typeof n === 'string' && n.trim()) awardedByName = n.trim();
+  } catch { /* non-fatal */ }
+
+  const now = new Date();
+  const dayStartMs = startOfDayDenverMs(now);
+
+  // Per-player writes in parallel so a 40-kid bulk grant still
+  // returns fast. Any single-player failure is captured on the
+  // result row rather than aborting the batch — the client can
+  // retry just those.
+  const results = await Promise.all(playerIds.map(async (playerId): Promise<{ playerId: string; ok: boolean; error?: string; xp?: number }> => {
+    try {
+      const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+      const player: any = playerDoc?.data;
+      if (!player) return { playerId, ok: false, error: 'player_not_found' };
+      const playerTeams: string[] = Array.isArray(player.teamIds)
+        ? player.teamIds
+        : (player.teamId ? [player.teamId] : []);
+      if (!playerTeams.includes(teamId)) return { playerId, ok: false, error: 'player_not_on_team' };
+      const playerName = String(player.name || 'Player');
+
+      // Daily XP cap check. Fail-closed on lookup error, per the
+      // recognition path's audit rationale.
+      let dailySum = 0;
+      try {
+        const events = await runQuery(pid, 'player_xp_events', [
+          { field: 'playerId', op: 'EQUAL', value: playerId },
+          { field: 'source', op: 'EQUAL', value: 'coach_live' },
+          { field: 'createdAt', op: 'GREATER_THAN_OR_EQUAL', value: new Date(dayStartMs) },
+        ], sa, 100);
+        for (const ev of events) {
+          const raw: any = (ev.data as any)?.createdAt;
+          let t = 0;
+          if (raw instanceof Date) t = raw.getTime();
+          else if (typeof raw?.toDate === 'function') { try { t = raw.toDate().getTime(); } catch { /* ignore */ } }
+          else if (typeof raw?.seconds === 'number') t = raw.seconds * 1000;
+          else if (typeof raw === 'number') t = raw;
+          if (t >= dayStartMs) {
+            const xpVal = Number((ev.data as any)?.xp || 0);
+            if (Number.isFinite(xpVal)) dailySum += xpVal;
+          }
+        }
+      } catch (err) {
+        console.warn('[xp] grant-coach cap lookup failed for', playerId, (err as Error).message);
+        return { playerId, ok: false, error: 'cap_check_failed' };
+      }
+      if (dailySum + amount > COACH_LIVE_XP_PER_PLAYER_PER_DAY) {
+        return { playerId, ok: false, error: 'daily_cap_reached' };
+      }
+
+      const eventFields: Record<string, any> = {
+        playerId,
+        playerName,
+        teamId,
+        xp: amount,
+        source: 'coach_live',
+        awardedBy: claims.uid,
+        awardedByRole: 'coach',
+        awardedByName,
+        note: reason,
+        createdAt: now,
+      };
+      if (seasonId) eventFields.seasonId = seasonId;
+      if (clubId) eventFields.clubId = clubId;
+
+      await createDocument(pid, 'player_xp_events', eventFields, sa);
+      await commitDocumentTransforms(pid, `players/${playerId}`, [
+        { fieldPath: 'xp', kind: 'increment', value: amount },
+        { fieldPath: 'xpCareer', kind: 'increment', value: amount },
+      ], null, sa);
+
+      return { playerId, ok: true, xp: amount };
+    } catch (err) {
+      console.error('[xp] grant-coach write failed for', playerId, (err as Error).message);
+      return { playerId, ok: false, error: 'write_failed' };
+    }
+  }));
+
+  const grantedCount = results.filter(r => r.ok).length;
+
+  // Optional preset save. Fires only if at least one grant landed —
+  // no reason to memorialize a phrase the coach never actually used.
+  if (savePreset && grantedCount > 0) {
+    const currentPresets: any[] = Array.isArray(teamData?.xpConfig?.coachRewards)
+      ? teamData.xpConfig.coachRewards
+      : [];
+    // Case-insensitive dedup — "Winning team" and "winning team" collapse.
+    const norm = (s: string) => s.trim().toLowerCase();
+    const dupe = currentPresets.some((p: any) => p && norm(String(p.label || '')) === norm(reason) && Number(p.amount) === amount);
+    if (!dupe) {
+      if (currentPresets.length >= COACH_LIVE_PRESETS_MAX) {
+        return json({
+          ok: true,
+          granted: grantedCount,
+          results,
+          presetError: 'presets_full',
+          message: `Grants sent. Presets are full (${COACH_LIVE_PRESETS_MAX} max) — free one up to save this.`,
+        });
+      }
+      try {
+        const preset = {
+          id: crypto.randomUUID(),
+          label: reason,
+          amount,
+          createdAt: now,
+          createdByUid: claims.uid,
+        };
+        await commitDocumentTransforms(pid, `teams/${teamId}`, [
+          { fieldPath: 'xpConfig.coachRewards', kind: 'arrayUnion', value: preset },
+        ], null, sa);
+      } catch (err) {
+        console.warn('[xp] preset save failed (non-fatal):', (err as Error).message);
+      }
+    }
+  }
+
+  return json({ ok: true, granted: grantedCount, results });
+}
+
+// ────────────────────────────────────────────────────────────────
+// POST /xp/reward-presets — add / delete saved coach-live presets.
+// ────────────────────────────────────────────────────────────────
+async function handleXpRewardPresets(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  const action = String(payload?.action || '');
+  if (action !== 'add' && action !== 'delete') {
+    return json({ ok: false, error: 'action_required' }, 400);
+  }
+
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  const teamData: any = teamDoc?.data;
+  if (!teamData) return json({ ok: false, error: 'team_not_found' }, 404);
+  if (teamData?.xpConfig?.enabled !== true) {
+    return json({ ok: false, error: 'xp_not_enabled' }, 403);
+  }
+
+  const current: any[] = Array.isArray(teamData?.xpConfig?.coachRewards)
+    ? teamData.xpConfig.coachRewards
+    : [];
+
+  if (action === 'add') {
+    const label = String(payload?.preset?.label || '').trim();
+    const amountRaw = Number(payload?.preset?.amount);
+    if (label.length < COACH_LIVE_REASON_MIN || label.length > COACH_LIVE_REASON_MAX) {
+      return json({ ok: false, error: 'label_invalid' }, 400);
+    }
+    if (!Number.isFinite(amountRaw) || amountRaw < COACH_LIVE_XP_MIN || amountRaw > COACH_LIVE_XP_MAX) {
+      return json({ ok: false, error: 'amount_invalid' }, 400);
+    }
+    const amount = Math.round(amountRaw);
+    if (current.length >= COACH_LIVE_PRESETS_MAX) {
+      return json({ ok: false, error: 'presets_full' }, 409);
+    }
+    const norm = (s: string) => s.trim().toLowerCase();
+    if (current.some((p: any) => p && norm(String(p.label || '')) === norm(label) && Number(p.amount) === amount)) {
+      return json({ ok: false, error: 'preset_duplicate' }, 409);
+    }
+    const preset = {
+      id: crypto.randomUUID(),
+      label,
+      amount,
+      createdAt: new Date(),
+      createdByUid: claims.uid,
+    };
+    await commitDocumentTransforms(pid, `teams/${teamId}`, [
+      { fieldPath: 'xpConfig.coachRewards', kind: 'arrayUnion', value: preset },
+    ], null, sa);
+    return json({ ok: true, preset });
+  }
+
+  // delete
+  const presetId = String(payload?.presetId || '');
+  if (!presetId) return json({ ok: false, error: 'preset_id_required' }, 400);
+  const remaining = current.filter((p: any) => !p || p.id !== presetId);
+  if (remaining.length === current.length) {
+    return json({ ok: false, error: 'preset_not_found' }, 404);
+  }
+  await patchDocument(pid, `teams/${teamId}`, { 'xpConfig.coachRewards': remaining }, sa);
+  return json({ ok: true, removedId: presetId });
+}
+
 export async function routeWriteGuard(
   pathname: string,
   req: Request,
@@ -3481,6 +3757,8 @@ export async function routeWriteGuard(
     case '/club/set-admin':        return handleClubSetAdmin(req, env, payload);
     case '/club/remove-admin':     return handleClubRemoveAdmin(req, env, payload);
     case '/xp/award-recognition':  return handleXpAwardRecognition(req, env, payload);
+    case '/xp/grant-coach':        return handleXpGrantCoach(req, env, payload);
+    case '/xp/reward-presets':     return handleXpRewardPresets(req, env, payload);
     case '/register/submit':       return handleRegisterSubmit(req, env, payload);
     default:                       return null;
   }

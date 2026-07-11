@@ -625,6 +625,12 @@ export interface Player {
   xp?: number;
   xpCareer?: number;
   badges?: Record<string, PlayerBadge>;
+  /** Most recent player_xp_events.createdAt the kid has actually
+   *  seen (via the KidDashboard toast). Client-written on toast
+   *  dismiss. Coach-live grants with createdAt <= this are treated
+   *  as already-revealed so a returning kid doesn't see a stack of
+   *  toasts for grants that landed while the app was closed. */
+  lastSeenXpAt?: Date;
 }
 
 /** One badge on a player. Keyed by slug (e.g. 'coach_pick',
@@ -639,6 +645,18 @@ export interface PlayerBadge {
   count?: number;
 }
 
+/** One saved coach-live preset. Rendered as a tap-to-fill chip in
+ *  the "Grant XP" modal so a coach can standardize the phrases they
+ *  reach for during a match ("winning team · +10"). Lives on
+ *  team.xpConfig.coachRewards[]; capped at 20 entries by the worker. */
+export interface CoachRewardPreset {
+  id: string;
+  label: string;
+  amount: number;
+  createdAt: Date;
+  createdByUid: string;
+}
+
 /** Audit-trail doc written to player_xp_events on every XP grant.
  *  Immutable, indexed by teamId + createdAt for coach review. Worker
  *  writes only; client never mutates. */
@@ -651,6 +669,7 @@ export interface PlayerXpEvent {
   xp: number;
   source:
     | 'coach_recognition'
+    | 'coach_live'
     | 'attendance'
     | 'potm'
     | 'goal' | 'assist' | 'save' | 'clean_sheet'
@@ -2033,6 +2052,10 @@ export interface Team {
   xpConfig?: {
     enabled: boolean;
     enabledAt?: Date;
+    /** Saved coach-live grant presets — labelled amounts the coach
+     *  reuses ("Winner of the drill · +10"). Rendered as tap-to-fill
+     *  chips in CoachGrantXpModal. Capped server-side at 20. */
+    coachRewards?: CoachRewardPreset[];
   };
   /** Coach control over the weekly email digest sent to parents.
    *  Coach picks day + which sections appear + optional custom

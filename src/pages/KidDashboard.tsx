@@ -8,6 +8,7 @@ import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import KidModePinModal from '../components/player/KidModePinModal';
 import KidChatRoom from '../components/kidChat/KidChatRoom';
 import KidHeroCard from '../components/kidChat/KidHeroCard';
+import KidXpToast from '../components/kidChat/KidXpToast';
 import { awardMicroXp } from '../utils/microXp';
 
 type RsvpStatus = 'going' | 'maybe' | 'no';
@@ -112,6 +113,12 @@ const KidDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-surface-base text-ink-primary">
+      {/* Coach live-grant XP reveal. Watches player_xp_events for
+          fresh coach_live grants and pops a stackable toast. See
+          KidXpToast.tsx — it manages its own lastSeenXpAt cursor so
+          returning after the app closed doesn't dogpile. */}
+      <KidXpToast playerId={activeKidPlayerId} />
+
       {/* Kid-mode header — welcome + escape hatch. Kid device stays in
           this view by default; PIN unlocks parent view for the parent
           when they need to schedule / configure. pt-safe pushes the

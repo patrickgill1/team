@@ -319,17 +319,26 @@ const EventDetail: React.FC = () => {
   }, [event?.rsvps, userPhotoMap]);
 
   // Fetch weather (next-event window only — Open-Meteo is ~16 days out).
+  // Prefer stamped locationCoords (from the address autocomplete) —
+  // getWeatherForEvent uses them directly with no geocode round-trip.
+  // Falls back to geocoding the location string. Prior shape only
+  // gated on location and passed no coords, so events with just
+  // "Home field" as a location string got no weather anywhere except
+  // Dashboard (which does pass coords).
   useEffect(() => {
-    if (!event?.location) return;
+    if (!event) return;
+    const coords = (event as any).locationCoords;
+    const hasCoords = coords && typeof coords.lat === 'number' && typeof coords.lon === 'number';
+    if (!event.location && !hasCoords) return;
     let cancelled = false;
     (async () => {
       try {
-        const w = await getWeatherForEvent(event.location, new Date(event.date));
+        const w = await getWeatherForEvent(event.location || '', new Date(event.date), coords);
         if (!cancelled) setWeather(w);
       } catch { /* silent */ }
     })();
     return () => { cancelled = true; };
-  }, [event?.id, event?.location, event?.date]);
+  }, [event?.id, event?.location, event?.date, (event as any)?.locationCoords]);
 
   const eventDate = event ? new Date(event.date) : null;
   const eventEnd = event?.endDate ? new Date(event.endDate) : undefined;

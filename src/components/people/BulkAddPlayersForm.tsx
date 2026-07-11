@@ -136,6 +136,15 @@ const BulkAddPlayersForm: React.FC<Props> = ({
               createdBy: userData.uid,
               ttlDays: 30,
               note: `Bulk roster invite for ${name}`,
+              // Adult wedge bug fix (audit 2026-07-11): prior shape
+              // never passed isAdultPlayer through the bulk-invite
+              // path. On consume, applyMembership saw
+              // invite.isAdultPlayer === false, skipped
+              // user.selfPlayerId stamp AND player.isAdultPlayer
+              // patch. Result: the Saturday-pickup wedge (invite 60
+              // guys, they show up as player-shaped) was silently
+              // half-broken. Route the audience through.
+              isAdultPlayer: isAdultTeam ? true : undefined,
             });
             const link = inviteUrl(inv.id);
             const { subject, html, text } = buildParentInviteEmail({

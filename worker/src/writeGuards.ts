@@ -2247,6 +2247,35 @@ async function handlePlayersCreate(req: Request, env: Env, payload: any): Promis
     null,
     sa,
   );
+  // Adult wedge bug fix (audit 2026-07-11): the linkSelfAsParent path
+  // was writing player.parentIds but NEVER touching the caller's user
+  // doc. Coach ended up on the roster in Firestore, but
+  // resolveSenderRole still returned 'coach' because user.selfPlayerId
+  // was empty. Adult-player-flavored UI (chat sender labeling,
+  // dashboard "you're on the roster" copy) never fired. Fix: also
+  // stamp user.selfPlayerId + user.teamIds arrayUnion + user.children
+  // arrayUnion in the same handler so the roster row is coherent from
+  // both sides.
+  if (linkSelfAsParent) {
+    const userTransforms: any[] = [
+      { fieldPath: 'children', kind: 'arrayUnion', value: playerId },
+      { fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId },
+    ];
+    const userPatch: Record<string, any> = {};
+    if (payload?.isAdultPlayer === true) userPatch.selfPlayerId = playerId;
+    await commitDocumentTransforms(
+      pid,
+      `users/${claims.uid}`,
+      userTransforms,
+      Object.keys(userPatch).length > 0 ? userPatch : null,
+      sa,
+    );
+    // Refresh claims so token.teamIds picks up the new team and the
+    // client's next LIST doesn't 403 on the just-created roster.
+    refreshClaimsForUid(claims.uid, pid, sa);
+    // Stage may flip active if this was the caller's only player link.
+    await stampStage(claims.uid, pid, sa);
+  }
   return json({ ok: true, playerId, linkedSelfAsParent: linkSelfAsParent });
 }
 
@@ -2471,12 +2500,32 @@ async function handlePlayersToggleSelfParent(req: Request, env: Env, payload: an
   // team in the switcher. On unclaim, leave user.teamIds alone —
   // they might still be a coach on it, and yanking it here would
   // hide the team from a coach who was just cleaning up a mis-link.
+  //
+  // Also stamp user.selfPlayerId when the target player is an adult
+  // (audit 2026-07-11: prior shape only touched parentIds so the
+  // downstream helpers.isAdultPlayer(user) check kept returning false
+  // for adults who self-claimed via this endpoint — the flag never
+  // propagated to the user side). Off-path clears selfPlayerId
+  // when the caller is unlinking their own adult self-player.
+  const userTransforms: any[] = [];
+  const userPatch: Record<string, any> = {};
   if (on && playerTeamIds.length > 0) {
+    userTransforms.push({ fieldPath: 'teamIds', kind: 'arrayUnion', value: playerTeamIds });
+  }
+  if (on && player.data.isAdultPlayer === true) {
+    userPatch.selfPlayerId = playerId;
+    userTransforms.push({ fieldPath: 'children', kind: 'arrayUnion', value: playerId });
+  } else if (!on && player.data.isAdultPlayer === true) {
+    // Firestore rules block clients from writing selfPlayerId, but
+    // this handler uses the service account so it can clear.
+    userPatch.selfPlayerId = null;
+  }
+  if (userTransforms.length > 0 || Object.keys(userPatch).length > 0) {
     await commitDocumentTransforms(
       pid,
       `users/${claims.uid}`,
-      [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: playerTeamIds }],
-      null,
+      userTransforms,
+      Object.keys(userPatch).length > 0 ? userPatch : null,
       sa,
     );
   }

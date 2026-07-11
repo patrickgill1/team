@@ -62,22 +62,45 @@ export function clearDedicatedKidPlayerId(): void {
 // Push notification suppression during kid mode. Kid mode is auth-
 // transparent (parent uid still), so any push targeting the parent
 // still fires on this device — a chat message the parent got popped
-// up on Hunter's device while he was in kid mode. Fix: pull this
-// device's FCM token out of user.fcmTokens on entry so the worker
-// fanout skips it, and restore on exit. Cached locally so restore
-// works even if the app cold-boots in the middle.
+// up on Hunter's device while he was in kid mode.
+//
+// v1 (yank from user.fcmTokens) wasn't enough: the worker's fanout
+// evaluates fcmTokens at send time, but stale tokens accumulated
+// over multiple app installs / reinstalls can still route to the
+// same device via APNs/FCM history. Even after arrayRemove of the
+// current token, if a stale entry is still there, iOS delivers the
+// push through that legacy route.
+//
+// v2 (this): invalidate the FCM token AT THE PLATFORM LEVEL via
+// FirebaseMessaging.deleteToken(). That kills every APNs/FCM route
+// to this device — Apple/Google reject any pending/stale token as
+// invalid. Belt-and-suspenders: also arrayRemove the known-current
+// token from user.fcmTokens so the doc stays consistent. On exit,
+// re-register a fresh token via getToken() and arrayUnion back.
+//
+// SUPPRESSED_TOKEN_KEY stores the token that WAS on the doc when
+// suppression fired, so the doc-side cleanup can proceed even
+// after a cold boot. On restore we always mint a fresh token
+// rather than reuse the cached one — the cached one is dead
+// anyway (deleteToken killed it) so we don't push it back.
 export async function suppressPushForKidMode(uid: string): Promise<void> {
   if (!uid) return;
   try {
-    const [{ getCurrentPushToken }, { doc, updateDoc, arrayRemove }, { db }] = await Promise.all([
+    const [{ getCurrentPushToken, deleteCurrentPushToken }, { doc, updateDoc, arrayRemove }, { db }] = await Promise.all([
       import('./nativeShell'),
       import('firebase/firestore'),
       import('./firebase'),
     ]);
     const token = await getCurrentPushToken();
-    if (!token) return;
-    localStorage.setItem(SUPPRESSED_TOKEN_KEY, token);
-    await updateDoc(doc(db, 'users', uid), { fcmTokens: arrayRemove(token) });
+    // Kill the token at the FCM level — stops delivery even through
+    // stale routes.
+    await deleteCurrentPushToken();
+    if (token) {
+      localStorage.setItem(SUPPRESSED_TOKEN_KEY, token);
+      // Doc-level cleanup so the worker fanout doesn't waste time
+      // targeting a dead token.
+      await updateDoc(doc(db, 'users', uid), { fcmTokens: arrayRemove(token) });
+    }
   } catch (err) {
     console.warn('[kid-mode] suppressPush failed', err);
   }
@@ -85,17 +108,39 @@ export async function suppressPushForKidMode(uid: string): Promise<void> {
 
 export async function restorePushAfterKidMode(uid: string): Promise<void> {
   if (!uid) return;
-  let token: string | null = null;
+  // The cached "suppressed" token is dead (deleteToken killed it).
+  // Mint a fresh one instead of trying to reuse it. Falls through to
+  // registerPushNotifications which does the full permission +
+  // getToken + save flow.
+  let cachedToken: string | null = null;
   try {
-    token = localStorage.getItem(SUPPRESSED_TOKEN_KEY);
+    cachedToken = localStorage.getItem(SUPPRESSED_TOKEN_KEY);
   } catch { /* ignore */ }
-  if (!token) return;
+
   try {
-    const [{ doc, updateDoc, arrayUnion }, { db }] = await Promise.all([
+    const [{ registerPushNotifications }, { doc, updateDoc, arrayUnion, arrayRemove }, { db }] = await Promise.all([
+      import('./nativeShell'),
       import('firebase/firestore'),
       import('./firebase'),
     ]);
-    await updateDoc(doc(db, 'users', uid), { fcmTokens: arrayUnion(token) });
+    // Belt-and-suspenders: if the stale cached token somehow
+    // reappeared on the doc (e.g. race with a mid-suppression
+    // registration), scrub it again. arrayRemove of a token that
+    // isn't there is a no-op.
+    if (cachedToken) {
+      try { await updateDoc(doc(db, 'users', uid), { fcmTokens: arrayRemove(cachedToken) }); } catch { /* ignore */ }
+    }
+    // Fresh FCM registration + save the new token onto the doc.
+    await registerPushNotifications(async (freshToken: string) => {
+      try {
+        await updateDoc(doc(db, 'users', uid), {
+          fcmTokens: arrayUnion(freshToken),
+          pushEnabledAt: new Date(),
+        });
+      } catch (err) {
+        console.warn('[kid-mode] restore fresh-token save failed', err);
+      }
+    });
     try { localStorage.removeItem(SUPPRESSED_TOKEN_KEY); } catch { /* ignore */ }
   } catch (err) {
     console.warn('[kid-mode] restorePush failed', err);

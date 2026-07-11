@@ -253,6 +253,25 @@ export async function getCurrentPushToken(): Promise<string | null> {
   }
 }
 
+/** Delete the FCM token AT THE PLATFORM LEVEL. This invalidates
+ *  every APNs/FCM route to this device — even stale tokens the
+ *  worker may still have queued in a user doc's fcmTokens array
+ *  stop delivering because Apple/Google reject them at the source.
+ *  Used by kid-mode suppression: yanking one string out of a
+ *  fcmTokens array isn't enough when the same device might have
+ *  registered multiple times over its lifetime.
+ *
+ *  Silent no-op on web / when the plugin isn't available. */
+export async function deleteCurrentPushToken(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+    await FirebaseMessaging.deleteToken();
+  } catch (err) {
+    console.warn('[push] deleteCurrentPushToken failed', err);
+  }
+}
+
 export async function registerPushNotifications(
   saveToken: (token: string) => void | Promise<void>,
 ): Promise<void> {

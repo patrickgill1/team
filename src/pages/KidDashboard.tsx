@@ -4,11 +4,11 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useViewMode } from '../contexts/ViewModeContext';
 import type { Player, Team, DevelopmentPlan } from '../types';
-import PlayerCard from '../components/player/PlayerCard';
 import PlayerXpCard from '../components/player/PlayerXpCard';
 import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import KidModePinModal from '../components/player/KidModePinModal';
 import KidChatRoom from '../components/kidChat/KidChatRoom';
+import KidHeroCard from '../components/kidChat/KidHeroCard';
 import { Link } from 'react-router-dom';
 
 type RsvpStatus = 'going' | 'maybe' | 'no';
@@ -132,11 +132,13 @@ const KidDashboard: React.FC = () => {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-5 space-y-5">
-        {/* Own player card — reuses the Squad tile via heroLayout so
-            the streak lands as a noticeable avatar-corner bubble and
-            the action row (with its dead "View profile" link that
-            went nowhere from kid mode) is hidden entirely. */}
-        <PlayerCard player={player} showActions={false} heroLayout={true} />
+        {/* Kid identity hero — dedicated portrait card. Not the
+            Squad tile (that layout crowded the streak bubble against
+            the small avatar and showed stale season stats that
+            weren't tracked well). Photo-first, momentum tiles
+            replace historical stats, and the Next up callout gives
+            the kid one thing to chase. */}
+        <KidHeroCard player={player} team={team} />
 
         {/* Own XP + badges. PlayerXpCard renders null if team.xpConfig
             isn't enabled, so cost is zero on non-XP teams. */}

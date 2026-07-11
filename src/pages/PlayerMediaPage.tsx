@@ -697,11 +697,10 @@ const PlayerMediaPage: React.FC = () => {
         });
       }
 
-      // Delete the Cloudflare Stream video too — prior shape left every
-      // deleted clip's Stream asset as a paid orphan indefinitely.
-      // Fire-and-forget so a Stream API failure doesn't strand the
-      // Firestore soft-delete; the daily media-orphan cleanup cron
-      // (deferred followup) will catch stragglers.
+      // Delete the underlying blobs too — prior shape left every
+      // deleted clip's Stream video AND R2 file as paid orphans
+      // indefinitely. Fire-and-forget so an API failure doesn't
+      // strand the Firestore soft-delete.
       const streamUid = m.streamUid;
       if (streamUid) {
         void (async () => {
@@ -712,6 +711,27 @@ const PlayerMediaPage: React.FC = () => {
           } catch (err) {
             console.warn('[media] Stream delete threw', err);
           }
+        })();
+      }
+      const r2Url = m.url || m.videoUrl || m.thumbnailUrl;
+      if (r2Url && typeof r2Url === 'string' && /^https?:\/\//i.test(r2Url)) {
+        void (async () => {
+          try {
+            const { deleteR2Object } = await import('../utils/r2Upload');
+            const res = await deleteR2Object(r2Url);
+            if (!res.ok) console.warn('[media] R2 delete failed', r2Url, res.error);
+          } catch (err) {
+            console.warn('[media] R2 delete threw', err);
+          }
+        })();
+      }
+      // Photos may have a separate thumbnail — clean that too.
+      if (m.thumbnailUrl && m.thumbnailUrl !== r2Url && typeof m.thumbnailUrl === 'string' && /^https?:\/\//i.test(m.thumbnailUrl)) {
+        void (async () => {
+          try {
+            const { deleteR2Object } = await import('../utils/r2Upload');
+            await deleteR2Object(m.thumbnailUrl);
+          } catch { /* non-fatal */ }
         })();
       }
 

@@ -429,7 +429,7 @@ const getUserData = useCallback(async (uid: string) => {
           id: d.id,
           createdAt: data.createdAt?.toDate?.() || new Date(),
         };
-      });
+      }).filter((p: any) => p.isActive !== false);
       callback(photos);
     }, (err) => {
       console.error('Event photos subscription failed:', err);

@@ -26,7 +26,7 @@ interface Props {
 const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) => {
   const { userData } = useAuth();
   const { selectedTeam } = useTeam();
-  const { addPhoto, subscribeToEventPhotos, deleteDocument } = useFirestore();
+  const { addPhoto, subscribeToEventPhotos, updateDocument } = useFirestore();
   const { uploadFile } = useStorage();
   const canUpload = canManageTeamMedia(userData, selectedTeam);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -81,9 +81,23 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
     if (!canDelete) return;
     if (!window.confirm('Remove this photo?')) return;
     try {
-      await deleteDocument('gallery', photo.id);
+      // Soft-delete + fire R2 cleanup so the blob doesn't sit paid-for
+      // in storage indefinitely. Prior shape hard-deleted the doc and
+      // left the R2 object orphaned.
+      await updateDocument('gallery', photo.id, {
+        isActive: false,
+        deletedAt: new Date(),
+        deletedBy: userData.uid,
+      });
+      if (photo.url && typeof photo.url === 'string' && /^https?:\/\//i.test(photo.url)) {
+        const { deleteR2Object } = await import('../../utils/r2Upload');
+        void deleteR2Object(photo.url).then((r) => {
+          if (!r.ok) console.warn('[event-photos] R2 delete failed', photo.url, r.error);
+        });
+      }
     } catch (err) {
       console.error('Delete photo failed:', err);
+      alert("Couldn't remove that photo. Try again.");
     }
   };
 

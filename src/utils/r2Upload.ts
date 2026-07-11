@@ -88,3 +88,35 @@ export async function uploadToR2(
 
   return { url: publicUrl, key };
 }
+
+/** Delete an R2 object by its public URL or key. Fires against
+ *  /api/r2-delete (Vercel serverless), which holds the R2 credentials.
+ *  Non-throwing helper — caller decides whether to await + surface.
+ *  Silent no-op on missing url/key. Idempotent (server treats absent
+ *  key as success). */
+export async function deleteR2Object(urlOrKey: string): Promise<{ ok: boolean; error?: string }> {
+  if (!urlOrKey) return { ok: true };
+  try {
+    const user = auth.currentUser;
+    if (!user) return { ok: false, error: 'not-signed-in' };
+    const token = await user.getIdToken();
+    const { getShareOrigin } = await import('./origin');
+    // Client sends either { url } (server derives key) or { key }
+    // (already known). Detecting via presence of scheme.
+    const body = /^https?:\/\//i.test(urlOrKey)
+      ? { url: urlOrKey }
+      : { key: urlOrKey };
+    const res = await fetch(`${getShareOrigin()}/api/r2-delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      return { ok: false, error: `r2-${res.status}: ${detail.slice(0, 200)}` };
+    }
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || String(err) };
+  }
+}

@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { useStorage } from '../../hooks/useStorage';
+import { deleteR2Object } from '../../utils/r2Upload';
 import { formatDateTime, canManageTeamMedia } from '../../utils/helpers';
 import PhotoUpload from './PhotoUpload';
 
@@ -21,7 +22,7 @@ const Gallery: React.FC<GalleryProps> = ({
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
   const canManageMedia = canManageTeamMedia(userData, selectedTeam);
-  const { getPhotosByTeam, deleteDocument } = useFirestore();
+  const { getPhotosByTeam, updateDocument } = useFirestore();
   const { deleteFile } = useStorage();
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,16 +92,26 @@ const Gallery: React.FC<GalleryProps> = ({
 
     setDeletingIds(prev => new Set(prev).add(photo.id));
     try {
-      // Delete from Firestore
-      await deleteDocument('gallery', photo.id);
-      
-      // Delete from Storage (optional - Firebase Storage has lifecycle rules)
+      // Soft-delete (memory: never hard-delete user-facing records; PITR is off).
+      await updateDocument('gallery', photo.id, {
+        isActive: false,
+        deletedAt: new Date(),
+        deletedBy: userData?.uid || null,
+      });
+
+      // Legacy Firebase Storage path (photo.url is https://firebasestorage...).
       try {
         await deleteFile(photo.url);
       } catch (storageError) {
-        console.warn('Could not delete file from storage:', storageError);
+        console.warn('Could not delete file from Firebase Storage:', storageError);
       }
-      
+      // Cloudflare R2 path (photo.url is on R2_PUBLIC_BASE_URL). The
+      // helper no-ops URLs that aren't on our bucket, so it's safe to
+      // call for every upload style.
+      void deleteR2Object(photo.url).then((r) => {
+        if (!r.ok) console.warn('[gallery] R2 delete failed', photo.url, r.error);
+      });
+
       setPhotos(prevPhotos => prevPhotos.filter(p => p.id !== photo.id));
       
       // Close modal if deleted photo was selected

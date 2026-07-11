@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { CalendarEvent, Player } from '../../types';
 
 export type DatePreset = 'all' | '7d' | '30d' | 'season';
@@ -200,7 +201,7 @@ const PhotoFilterBar: React.FC<Props> = ({ filters, onChange, players, events, t
           <input
             value={eventSearch}
             onChange={(e) => setEventSearch(e.target.value)}
-            placeholder="Search events..."
+            placeholder="Search games..."
             className="w-full bg-surface-base border border-line-default/10 rounded-lg px-3 py-1.5 text-sm text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:border-brand-primary/50 mb-2"
           />
           <div className="space-y-1">
@@ -209,28 +210,23 @@ const PhotoFilterBar: React.FC<Props> = ({ filters, onChange, players, events, t
               selected={!filters.eventId}
               onClick={() => { onChange({ ...filters, eventId: null }); setEventOpen(false); }}
             />
-            {(['game', 'practice', 'event'] as const).map((type) => {
-              const group = events.filter((e) => (e as any).type === type && (!eventSearch.trim() || e.title.toLowerCase().includes(eventSearch.trim().toLowerCase())));
-              if (group.length === 0) return null;
-              const heading = type === 'game' ? 'Games' : type === 'practice' ? 'Practices' : 'Events';
-              return (
-                <React.Fragment key={type}>
-                  <p className="pt-2 pb-1 text-[10px] font-black uppercase tracking-widest text-ink-primary/40">
-                    {heading} · {group.length}
-                  </p>
-                  {group.map((e) => (
-                    <EventOption
-                      key={e.id}
-                      selected={filters.eventId === e.id}
-                      onClick={() => { onChange({ ...filters, eventId: e.id }); setEventOpen(false); }}
-                      label={e.title}
-                      date={e.date}
-                      type={(e as any).type}
-                    />
-                  ))}
-                </React.Fragment>
-              );
-            })}
+            {events
+              .filter((e) => !eventSearch.trim() || e.title.toLowerCase().includes(eventSearch.trim().toLowerCase()))
+              .map((e) => (
+                <EventOption
+                  key={e.id}
+                  selected={filters.eventId === e.id}
+                  onClick={() => { onChange({ ...filters, eventId: e.id }); setEventOpen(false); }}
+                  label={e.title}
+                  date={e.date}
+                  type={(e as any).type}
+                />
+              ))}
+            {events.length === 0 && (
+              <p className="py-4 text-center text-xs text-ink-primary/50 italic">
+                No games in the last 6 months. Photos can still be uploaded — they just won't be linked to a specific game.
+              </p>
+            )}
           </div>
         </Popover>
       )}
@@ -284,31 +280,43 @@ const Caret: React.FC = () => (
 );
 
 // Bottom sheet-shaped popover so mobile taps get a proper full-width
-// picker and desktop gets a centered modal. Simpler and more reliable
-// than positioned popovers relative to the chip.
-const Popover: React.FC<{ onClose: () => void; title: string; children: React.ReactNode }> = ({ onClose, title, children }) => (
-  <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
-    onClick={onClose}
-  >
+// picker and desktop gets a centered modal.
+//
+// Portalled to document.body so it escapes the sticky filter bar's
+// containing block. The bar uses backdrop-blur, which creates a
+// containing block for `fixed` descendants (CSS spec quirk) and was
+// causing the Done button to render behind the app header — no way
+// out. Portal renders directly under body, back to true viewport
+// positioning.
+const Popover: React.FC<{ onClose: () => void; title: string; children: React.ReactNode }> = ({ onClose, title, children }) => {
+  const node = (
     <div
-      className="bg-surface-elevated w-full sm:max-w-md max-h-[70vh] flex flex-col rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden"
-      onClick={(e) => e.stopPropagation()}
+      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      onClick={onClose}
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-line-default/10">
-        <h3 className="text-sm font-black uppercase tracking-widest text-ink-primary/70">{title}</h3>
-        <button
-          onClick={onClose}
-          className="text-[11px] font-black uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary"
-        >
-          Done
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-3">
-        {children}
+      <div
+        className="bg-surface-elevated w-full sm:max-w-md max-h-[85vh] flex flex-col rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 z-10 bg-surface-elevated flex items-center justify-between px-4 py-3 border-b border-line-default/10">
+          <h3 className="text-sm font-black uppercase tracking-widest text-ink-primary/70">{title}</h3>
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 rounded-lg bg-brand-primary hover:bg-brand-primary-hov text-brand-primary-fg text-[11px] font-black uppercase tracking-widest"
+          >
+            Done
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3">
+          {children}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+  return typeof document !== 'undefined' ? createPortal(node, document.body) : node;
+};
 
 interface EventOptionProps {
   label: string;

@@ -218,22 +218,23 @@ const PlayerMediaPage: React.FC = () => {
         const allEvents = await getDocuments('events', []);
         const cutoffPast = Date.now() - 60 * 24 * 3600 * 1000;
         const cutoffFuture = Date.now() + 7 * 24 * 3600 * 1000;
-        // Photos tab: give it every team-scoped event (games + practices +
-        // one-offs) inside a 2-year window so parents can link a photo to
-        // any recent event AND browse into last season's games. Trimmed
-        // to id/title/date/type/opponent shape so the filter sheet can
-        // group and label them. Prior 1-year window + implicit ordering
-        // meant weekly-practice teams pushed all their games off a
-        // 40-item cap the sheet used to enforce.
-        const photosWindowMs = 730 * 24 * 3600 * 1000;
+        // Photos tab: give it every team-scoped GAME (+ non-recurring
+        // 'event' entries — tournaments, banquets, etc). Practices are
+        // omitted — coaches almost never link a photo to a specific
+        // Monday practice, and including them buries the games under a
+        // year of weekly noise (Patrick's report). Window trimmed to 6
+        // months so last-season's practices don't leak into this-season's
+        // list either.
+        const photosWindowMs = 180 * 24 * 3600 * 1000;
         const teamEvents = (allEvents as any[])
           .filter(e => e.teamId === selectedTeamId)
+          .filter(e => e.type === 'game' || e.type === 'event')
           .map(e => {
             const d: Date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
             const rawTitle = String(e.title || '').trim();
             const opponent = String(e.opponent || '').trim();
-            // For games without a title, synthesize "vs Riverside" so
-            // the sheet doesn't just render bare "Event".
+            // Games without a title read as "vs {opponent}" so the picker
+            // doesn't just show a bare "Event".
             const displayTitle = rawTitle
               || (e.type === 'game' && opponent ? `vs ${opponent}` : (opponent || 'Event'));
             return { id: e.id, title: displayTitle, date: d, type: e.type as any, opponent };

@@ -1638,6 +1638,7 @@ const PlayerProfile: React.FC = () => {
         player={player}
         teamId={selectedTeamId || (player as any).teamId || ''}
         onAwarded={() => { void loadProfile(); }}
+        audience={(selectedTeam as any)?.audienceType === 'adult' ? 'adult' : 'youth'}
       />
 
       <AddPlayer

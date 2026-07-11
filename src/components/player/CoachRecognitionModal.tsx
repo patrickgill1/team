@@ -19,6 +19,9 @@ interface Props {
   player: Player;
   teamId: string;
   onAwarded?: (result: { xp: number; totalXp: number; remainingThisWeek: number; badgeCount: number }) => void;
+  /** Team audience. When 'adult', swaps youth-flavored copy ("the
+   *  family", "per kid") for player-flavored copy. Absent = youth. */
+  audience?: 'youth' | 'adult';
 }
 
 const NOTE_MIN = 5;
@@ -29,7 +32,8 @@ const NOTE_PLACEHOLDERS = [
   'Say the thing you\'d say to their face.',
 ];
 
-const CoachRecognitionModal: React.FC<Props> = ({ open, onClose, player, teamId, onAwarded }) => {
+const CoachRecognitionModal: React.FC<Props> = ({ open, onClose, player, teamId, onAwarded, audience = 'youth' }) => {
+  const isAdult = audience === 'adult';
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +86,9 @@ const CoachRecognitionModal: React.FC<Props> = ({ open, onClose, player, teamId,
       onClose={() => { if (!busy) { setNote(''); setError(null); onClose(); } }}
       kicker="Coach recognition"
       title={`Recognize ${firstName}`}
-      subtitle="Private note to the family. Awards XP and a Coach's Pick badge."
+      subtitle={isAdult
+        ? 'Private note straight to the player. Awards XP and a Coach\'s Pick badge.'
+        : 'Private note to the family. Awards XP and a Coach\'s Pick badge.'}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
@@ -107,7 +113,7 @@ const CoachRecognitionModal: React.FC<Props> = ({ open, onClose, player, teamId,
               ? `${NOTE_MIN - trimmed.length} more character${NOTE_MIN - trimmed.length === 1 ? '' : 's'} to unlock`
               : `${trimmed.length} / ${NOTE_MAX}`}
           </span>
-          <span>Max 2 per kid per week</span>
+          <span>{isAdult ? 'Max 2 per player per week' : 'Max 2 per kid per week'}</span>
         </div>
         {error && (
           <div className="rounded-xl bg-amber-500/15 ring-1 ring-amber-400/30 px-3 py-2 text-[12px] text-amber-100 leading-snug">

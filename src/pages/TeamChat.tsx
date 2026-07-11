@@ -766,10 +766,13 @@ const TeamChat: React.FC = () => {
         // idempotent under concurrent writers — they overwrite each
         // other with the same data, never produce dupes.
         const teamName = selectedTeam?.name || 'Team';
+        const isAdultTeam = (selectedTeam as any)?.audienceType === 'adult';
         await fsSetDoc(officialRef, {
           id: officialId,
           title: `${teamName} Chat`,
-          description: 'Team-wide conversation for parents and coaches.',
+          description: isAdultTeam
+            ? 'Team-wide conversation for players and coaches.'
+            : 'Team-wide conversation for parents and coaches.',
           teamId: selectedTeamId,
           scope: 'team',
           isOfficialTeamChat: true,

@@ -238,15 +238,19 @@ export async function autoPostPotmVotingOpenToWall(
   votingId: string,
   gameTitle: string,
   actor: Actor,
+  opts?: { audience?: 'youth' | 'adult' },
 ): Promise<void> {
   if (!teamId || !votingId) return;
+  const isAdult = opts?.audience === 'adult';
   const lines = [
     '## Vote for Player of the Match',
     `**${gameTitle}**`,
     '',
     `[Cast your vote →](/vote/${votingId})`,
     '',
-    '_Results reveal when voting closes. Vote for anyone but your own kid._',
+    isAdult
+      ? '_Results reveal when voting closes. Vote for anyone but yourself._'
+      : '_Results reveal when voting closes. Vote for anyone but your own kid._',
   ];
   await postToWall(teamId, actor, lines.join('\n'), { postedFrom: 'potm' });
 }

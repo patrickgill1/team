@@ -275,6 +275,7 @@ const PlayerOfMatch: React.FC = () => {
               newId,
               (voting as any).gameTitle || 'Match',
               { uid: userData.uid, name: userData.name || 'Coach', role: userData.role || 'coach' },
+              { audience: (selectedTeam as any)?.audienceType === 'adult' ? 'adult' : 'youth' },
             );
           } catch (e) {
             console.warn('POTM auto-post to wall failed', e);
@@ -302,9 +303,14 @@ const PlayerOfMatch: React.FC = () => {
     const player = players.find(p => p.id === selectedPlayer);
     if (!player) return;
 
-    // Prevent parents from voting for their own children
+    // Prevent parents from voting for their own children. For adult
+    // teams the same guard reads as "can't vote for yourself" since
+    // adult self-players sit in their own parentIds.
     if (!isUserCoach && player.parentIds?.includes(userData.uid)) {
-      alert("You cannot vote for your own child. Please select another player.");
+      const isAdultTeam = (selectedTeam as any)?.audienceType === 'adult';
+      alert(isAdultTeam
+        ? "You can't vote for yourself. Pick another player."
+        : "You cannot vote for your own child. Please select another player.");
       return;
     }
 

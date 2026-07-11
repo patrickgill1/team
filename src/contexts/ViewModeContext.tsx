@@ -39,6 +39,12 @@ interface ViewModeContextValue {
   setViewMode: (m: ViewMode) => void;
   availableModes: ViewMode[];
   isMultiRole: boolean;  // true when the user has both parent + coach affordances
+  /** True when the user IS their own player — i.e. adult self-players
+   *  (audit 2026-07-11). Sourced from user.selfPlayerId. Copy + gates
+   *  that would otherwise treat the user as a family-member-of-player
+   *  can flip to player-flavored surfaces without needing a whole new
+   *  ViewMode enum. */
+  isPlayerContext: boolean;
 }
 
 const ViewModeContext = createContext<ViewModeContextValue | null>(null);
@@ -135,11 +141,14 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch { /* ignore */ }
   };
 
+  const isPlayerContext = !!(userData as any)?.selfPlayerId;
+
   const value: ViewModeContextValue = {
     viewMode,
     setViewMode,
     availableModes,
     isMultiRole: availableModes.length > 1,
+    isPlayerContext,
   };
 
   return <ViewModeContext.Provider value={value}>{children}</ViewModeContext.Provider>;
@@ -150,7 +159,7 @@ export function useViewMode(): ViewModeContextValue {
   if (!ctx) {
     // Permissive fallback — never crash a render if the provider
     // is missing. Treat as single-mode parent.
-    return { viewMode: 'parent', setViewMode: () => {}, availableModes: ['parent'], isMultiRole: false };
+    return { viewMode: 'parent', setViewMode: () => {}, availableModes: ['parent'], isMultiRole: false, isPlayerContext: false };
   }
   return ctx;
 }

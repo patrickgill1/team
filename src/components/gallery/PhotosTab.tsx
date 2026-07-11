@@ -107,6 +107,10 @@ const PhotosTab: React.FC<Props> = ({ players, events }) => {
       if (filters.untaggedOnly) {
         if ((p.taggedPlayerIds || []).length > 0) return false;
       }
+      if (filters.topicTags && filters.topicTags.length > 0) {
+        const photoTags = (p.tags || []).map((t) => t.toLowerCase());
+        if (!filters.topicTags.some((t) => photoTags.includes(t.toLowerCase()))) return false;
+      }
       if (windowMs !== null) {
         const t = p.createdAt instanceof Date ? p.createdAt.getTime() : new Date(p.createdAt as any).getTime();
         if (Number.isNaN(t) || now - t > windowMs) return false;

@@ -11,6 +11,8 @@ export interface PhotoFilters {
   untaggedOnly: boolean;
   sort: SortMode;
   search: string;
+  /** Topic tag filter — e.g. only photos tagged 'game' or 'celebration'. */
+  topicTags: string[];
 }
 
 export const DEFAULT_FILTERS: PhotoFilters = {
@@ -20,7 +22,10 @@ export const DEFAULT_FILTERS: PhotoFilters = {
   untaggedOnly: false,
   sort: 'newest',
   search: '',
+  topicTags: [],
 };
+
+const TOPIC_TAG_OPTIONS = ['game', 'practice', 'team', 'celebration', 'tournament', 'training', 'awards'];
 
 interface Props {
   filters: PhotoFilters;
@@ -45,7 +50,8 @@ const PhotoFilterBar: React.FC<Props> = ({ filters, onChange, players, events, t
     filters.playerIds.length +
     (filters.eventId ? 1 : 0) +
     (filters.datePreset !== 'all' ? 1 : 0) +
-    (filters.untaggedOnly ? 1 : 0);
+    (filters.untaggedOnly ? 1 : 0) +
+    (filters.topicTags?.length || 0);
 
   const filteredPlayers = players.filter((p) => {
     const q = playerSearch.trim().toLowerCase();
@@ -121,6 +127,7 @@ const PhotoFilterBar: React.FC<Props> = ({ filters, onChange, players, events, t
                   activePlayerNames && `${filters.playerIds.length} player${filters.playerIds.length > 1 ? 's' : ''}`,
                   activeEventTitle,
                   filters.untaggedOnly && 'untagged',
+                  filters.topicTags?.length && filters.topicTags.join(', '),
                 ].filter(Boolean).join(' · ')}
               </span>
             </>
@@ -287,7 +294,41 @@ const FilterSheet: React.FC<SheetProps> = ({
             </div>
           </section>
 
-          {/* Event */}
+          {/* Topic tags — matches the tags picked at upload time */}
+          <section>
+            <p className="text-[10px] font-black uppercase tracking-widest text-ink-primary/50 mb-2">
+              Topic{filters.topicTags?.length ? ` · ${filters.topicTags.length} selected` : ''}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {TOPIC_TAG_OPTIONS.map((t) => {
+                const selected = (filters.topicTags || []).includes(t);
+                return (
+                  <button
+                    key={t}
+                    onClick={() => onChange({
+                      ...filters,
+                      topicTags: selected
+                        ? (filters.topicTags || []).filter((x) => x !== t)
+                        : [...(filters.topicTags || []), t],
+                    })}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition capitalize ${
+                      selected
+                        ? 'bg-brand-primary text-brand-primary-fg border-brand-primary'
+                        : 'bg-surface-base text-ink-primary/85 border-line-default/15 hover:border-brand-primary/40'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Event — grouped by type so games don't get buried under
+              a long list of weekly practices. Selected state uses solid
+              brand-primary so contrast reads. No inner scroll — the
+              parent sheet body already scrolls, and clipping the event
+              list was hiding entries. */}
           {filteredEvents.length > 0 && (
             <section>
               <p className="text-[10px] font-black uppercase tracking-widest text-ink-primary/50 mb-2">
@@ -300,28 +341,45 @@ const FilterSheet: React.FC<SheetProps> = ({
                 placeholder="Search events..."
                 className="w-full bg-surface-base border border-line-default/10 rounded-lg px-3 py-2 text-sm text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:border-brand-primary/50 mb-2"
               />
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                <button
+              <div className="space-y-1">
+                <EventOption
+                  label="All events"
+                  selected={!filters.eventId}
                   onClick={() => onChange({ ...filters, eventId: null })}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
-                    !filters.eventId ? 'bg-brand-primary/15 text-brand-primary-soft' : 'hover:bg-line-default/[0.06] text-ink-primary/80'
-                  }`}
-                >
-                  All events
-                </button>
-                {filteredEvents.slice(0, 40).map((e) => (
-                  <button
+                />
+                {(['game', 'practice', 'event'] as const).map((type) => {
+                  const group = filteredEvents.filter((e) => (e as any).type === type);
+                  if (group.length === 0) return null;
+                  const label = type === 'game' ? 'Games' : type === 'practice' ? 'Practices' : 'Events';
+                  return (
+                    <React.Fragment key={type}>
+                      <p className="pt-2 pb-1 text-[10px] font-black uppercase tracking-widest text-ink-primary/40">
+                        {label} · {group.length}
+                      </p>
+                      {group.map((e) => (
+                        <EventOption
+                          key={e.id}
+                          selected={filters.eventId === e.id}
+                          onClick={() => onChange({ ...filters, eventId: e.id })}
+                          label={e.title}
+                          date={e.date}
+                          type={(e as any).type}
+                        />
+                      ))}
+                    </React.Fragment>
+                  );
+                })}
+                {/* Any events whose type isn't game/practice/event fall
+                    into an unlabeled catch-all so we don't drop them. */}
+                {filteredEvents.filter((e) => !['game', 'practice', 'event'].includes((e as any).type)).map((e) => (
+                  <EventOption
                     key={e.id}
+                    selected={filters.eventId === e.id}
                     onClick={() => onChange({ ...filters, eventId: e.id })}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm truncate transition ${
-                      filters.eventId === e.id ? 'bg-brand-primary/15 text-brand-primary-soft' : 'hover:bg-line-default/[0.06] text-ink-primary/85'
-                    }`}
-                  >
-                    <span className="font-semibold">{e.title}</span>
-                    <span className="ml-2 text-[10px] uppercase tracking-widest text-ink-primary/50">
-                      {new Date(e.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                    </span>
-                  </button>
+                    label={e.title}
+                    date={e.date}
+                    type={(e as any).type}
+                  />
                 ))}
               </div>
             </section>
@@ -346,6 +404,47 @@ const FilterSheet: React.FC<SheetProps> = ({
         </div>
       </div>
     </div>
+  );
+};
+
+interface EventOptionProps {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+  date?: Date;
+  type?: string;
+}
+
+const EventOption: React.FC<EventOptionProps> = ({ label, selected, onClick, date, type }) => {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg text-sm transition ${
+        selected
+          ? 'bg-brand-primary text-brand-primary-fg'
+          : 'hover:bg-line-default/[0.06] text-ink-primary/85'
+      }`}
+    >
+      {type && (
+        <span className={`shrink-0 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${
+          selected
+            ? 'bg-white/20 text-brand-primary-fg'
+            : type === 'game'
+            ? 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30'
+            : type === 'practice'
+            ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30'
+            : 'bg-line-default/10 text-ink-primary/60 ring-1 ring-line-default/15'
+        }`}>
+          {type === 'game' ? 'G' : type === 'practice' ? 'P' : 'E'}
+        </span>
+      )}
+      <span className="font-semibold truncate flex-1">{label}</span>
+      {date && (
+        <span className={`shrink-0 text-[10px] uppercase tracking-widest ${selected ? 'text-brand-primary-fg/80' : 'text-ink-primary/50'}`}>
+          {new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+        </span>
+      )}
+    </button>
   );
 };
 

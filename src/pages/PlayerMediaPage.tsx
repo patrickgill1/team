@@ -219,15 +219,24 @@ const PlayerMediaPage: React.FC = () => {
         const cutoffPast = Date.now() - 60 * 24 * 3600 * 1000;
         const cutoffFuture = Date.now() + 7 * 24 * 3600 * 1000;
         // Photos tab: give it every team-scoped event (games + practices +
-        // one-offs) inside a 12-month window so parents can link a photo to
-        // any recent event. Trimmed to id/title/date shape to keep memory
-        // small.
-        const photosWindowMs = 365 * 24 * 3600 * 1000;
+        // one-offs) inside a 2-year window so parents can link a photo to
+        // any recent event AND browse into last season's games. Trimmed
+        // to id/title/date/type/opponent shape so the filter sheet can
+        // group and label them. Prior 1-year window + implicit ordering
+        // meant weekly-practice teams pushed all their games off a
+        // 40-item cap the sheet used to enforce.
+        const photosWindowMs = 730 * 24 * 3600 * 1000;
         const teamEvents = (allEvents as any[])
           .filter(e => e.teamId === selectedTeamId)
           .map(e => {
             const d: Date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
-            return { id: e.id, title: String(e.title || e.opponent || 'Event'), date: d, type: e.type };
+            const rawTitle = String(e.title || '').trim();
+            const opponent = String(e.opponent || '').trim();
+            // For games without a title, synthesize "vs Riverside" so
+            // the sheet doesn't just render bare "Event".
+            const displayTitle = rawTitle
+              || (e.type === 'game' && opponent ? `vs ${opponent}` : (opponent || 'Event'));
+            return { id: e.id, title: displayTitle, date: d, type: e.type as any, opponent };
           })
           .filter(e => e.date instanceof Date && !isNaN(e.date.getTime()) && Math.abs(Date.now() - e.date.getTime()) <= photosWindowMs)
           .sort((a, b) => b.date.getTime() - a.date.getTime());

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, query, where, documentId } from 'firebase/firestore';
+import { collection, doc, getDocs, onSnapshot, query, where, documentId } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { createPlayerInvite } from '../../utils/invites';
 import { isTeamStaff } from '../../utils/helpers';
@@ -54,7 +54,21 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
   const viewerIsStaff = isTeamStaff(viewerRole);
   const circleEmpty = parentIds.length === 0;
   const canInvite = viewerIsInCircle || (viewerIsStaff && circleEmpty);
-  const kidModeEnabled = (player as any).kidMode?.enabled === true;
+  // Subscribe to the player doc so kidMode.enabled updates live after
+  // the worker write — otherwise the setup modal succeeds but the tile
+  // stays on "Give X their own view" because the prop is a snapshot
+  // from PlayerProfile's initial load.
+  const [liveKidMode, setLiveKidMode] = useState<any>((player as any).kidMode);
+  useEffect(() => {
+    if (!player.id) return;
+    const unsub = onSnapshot(doc(db, 'players', player.id), (snap) => {
+      if (!snap.exists()) return;
+      const data: any = snap.data();
+      setLiveKidMode(data?.kidMode);
+    }, err => console.warn('[kid-mode] player subscribe failed', err));
+    return () => unsub();
+  }, [player.id]);
+  const kidModeEnabled = liveKidMode?.enabled === true;
   const canManageKidMode = viewerIsInCircle;
   const firstName = (player.name || '').split(' ')[0] || 'player';
 
@@ -191,9 +205,9 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
             {!kidModeEnabled ? (
               <button
                 onClick={() => setShowKidSetup(true)}
-                className="w-full inline-flex items-center gap-2 px-3 py-2 rounded-full bg-amber-400/15 ring-1 ring-amber-300/30 text-amber-800 hover:bg-amber-400/25 text-xs font-bold transition"
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-full bg-line-default/[0.06] ring-1 ring-brand-primary-soft/30 text-ink-primary hover:bg-brand-primary-soft/15 text-xs font-bold transition"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                <svg className="w-3.5 h-3.5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
                 Give {firstName} their own view

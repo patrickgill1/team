@@ -54,6 +54,7 @@ const EventForm: React.FC<EventFormProps> = ({
     recurrenceUntil: '' as string,
     arriveOffsetMinutes: 0,
     rsvpCap: '',
+    feeDollars: '',
     developmentFocus: '',
     endTime: '' as string, // HH:mm, optional
     // Default ON for new events (you usually want to tell people about
@@ -124,6 +125,8 @@ const EventForm: React.FC<EventFormProps> = ({
         arriveOffsetMinutes: (editingEvent as any).arriveOffsetMinutes || 0,
         rsvpCap: typeof (editingEvent as any).rsvpCap === 'number' && (editingEvent as any).rsvpCap > 0
           ? String((editingEvent as any).rsvpCap) : '',
+        feeDollars: typeof (editingEvent as any).feeCents === 'number' && (editingEvent as any).feeCents > 0
+          ? ((editingEvent as any).feeCents / 100).toFixed(2) : '',
         developmentFocus: (editingEvent as any).developmentFocus || '',
         endTime: (() => {
           const e = (editingEvent as any).endDate;
@@ -158,6 +161,7 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrenceUntil: '',
         arriveOffsetMinutes: 0,
     rsvpCap: '',
+    feeDollars: '',
         developmentFocus: '',
         endTime: '',
         notifyTeam: true,
@@ -525,6 +529,13 @@ const EventForm: React.FC<EventFormProps> = ({
           const n = Number(raw);
           return Number.isFinite(n) && n > 0 ? Math.min(1000, Math.floor(n)) : null;
         })(),
+        feeCents: (() => {
+          const raw = String(formData.feeDollars || '').trim();
+          if (!raw) return null;
+          const dollars = Number(raw);
+          if (!Number.isFinite(dollars) || dollars <= 0) return null;
+          return Math.round(dollars * 100);
+        })(),
         developmentFocus: formData.developmentFocus.trim() || null,
         // Signal to the onEventCreate Cloud Function whether to fan
         // out push notifications. Set ONLY on create — edits do not
@@ -644,6 +655,7 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrenceUntil: '',
         arriveOffsetMinutes: 0,
     rsvpCap: '',
+    feeDollars: '',
         developmentFocus: '',
         endTime: '',
         notifyTeam: true,
@@ -1225,6 +1237,32 @@ const EventForm: React.FC<EventFormProps> = ({
             {String(formData.rsvpCap || '').trim() && (
               <p className="text-[11px] text-ink-primary/60 mt-1 leading-snug">
                 First {formData.rsvpCap} to tap Going are confirmed. Everyone else joins a waitlist and gets promoted automatically if someone drops out.
+              </p>
+            )}
+          </div>
+
+          {/* Drop-in fee — for pickup / field-rental use case. Needs the
+              club's Stripe Connect to be set up; hidden fee prompt shows
+              on EventDetail when set. */}
+          <div>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
+              Drop-in fee (optional)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-primary/50 text-sm font-bold">$</span>
+              <input
+                type="number"
+                min={0}
+                step="0.50"
+                value={formData.feeDollars}
+                onChange={(e) => setFormData({ ...formData, feeDollars: e.target.value })}
+                placeholder="e.g. 10.00"
+                className="w-full pl-7 pr-3 py-2 bg-surface-base text-ink-primary border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              />
+            </div>
+            {String(formData.feeDollars || '').trim() && (
+              <p className="text-[11px] text-ink-primary/60 mt-1 leading-snug">
+                Players pay this amount at RSVP time via Stripe Checkout. Requires your club's Stripe Connect to be active.
               </p>
             )}
           </div>

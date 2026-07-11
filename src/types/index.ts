@@ -1731,6 +1731,15 @@ export interface CalendarEvent {
    *  to the rsvps map with status='going'. Empty / absent = no
    *  waitlist activity. Worker owns writes. */
   waitlist?: Array<{ uid: string; name: string; role?: string; addedAt: Date }>;
+  /** Drop-in fee per attendee, in cents. Adult-pickup use case:
+   *  weekly $10 for field rental. When set, EventDetail shows a
+   *  "Pay drop-in fee" button that opens Stripe Checkout against
+   *  the club's connected Stripe account. Absent / 0 = no fee. */
+  feeCents?: number;
+  /** Uids that have paid the drop-in fee for this event. Populated
+   *  by the Stripe webhook on successful payment. Coach can also
+   *  manually mark someone paid (comp'd). */
+  paidUids?: string[];
 }
 
 export interface GalleryPhoto {

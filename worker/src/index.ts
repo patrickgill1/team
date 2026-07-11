@@ -348,6 +348,20 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       return new Response(res.body, { status: res.status, headers });
     }
 
+    // POST /stripe/event-dropin-checkout — one-shot drop-in fee for
+    // a single event (adult-pickup use case). Charges event.feeCents
+    // against the club's connected Stripe account.
+    if (url.pathname === '/stripe/event-dropin-checkout' && req.method === 'POST') {
+      await requireUser(req, env);
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const { handleEventDropInCheckout } = await import('./stripe');
+      const res = await handleEventDropInCheckout(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
     if (req.method !== 'POST') {
       return json({ ok: false, error: 'method-not-allowed' }, 405, cors);
     }

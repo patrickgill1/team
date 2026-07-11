@@ -695,6 +695,95 @@ export async function handleVideoCheckout(payload: any, env: StripeEnv): Promise
   }
 }
 
+// ────────────────────────────────────────────────────────────────
+// Event drop-in fee checkout. Adult-pickup use case: coach sets
+// event.feeCents on a weekly Saturday event; players tap "Pay drop-in"
+// on EventDetail; worker creates a one-shot Stripe Checkout session
+// against the club's connected Stripe account. Success URL bounces
+// back to the event page.
+//
+// Body: { eventId, uid, successUrl?, cancelUrl?, customerEmail? }
+// ────────────────────────────────────────────────────────────────
+export async function handleEventDropInCheckout(payload: any, env: StripeEnv): Promise<Response> {
+  const eventId = String(payload?.eventId || '').trim();
+  const uid = String(payload?.uid || '').trim();
+  if (!eventId) return json({ ok: false, error: 'missing-eventId' }, 400);
+  if (!uid) return json({ ok: false, error: 'missing-uid' }, 400);
+
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
+
+  const ev = await getDocument(projectId, `events/${eventId}`, sa);
+  if (!ev?.data) return json({ ok: false, error: 'event-not-found' }, 404);
+  const feeCents = Number(ev.data.feeCents || 0);
+  if (feeCents <= 0) return json({ ok: false, error: 'no-fee-set' }, 400);
+  const teamId = String(ev.data.teamId || '');
+  if (!teamId) return json({ ok: false, error: 'event-missing-team' }, 400);
+
+  const team = await getDocument(projectId, `teams/${teamId}`, sa);
+  if (!team?.data) return json({ ok: false, error: 'team-not-found' }, 404);
+  const clubId = String(team.data.clubId || '');
+  if (!clubId) return json({ ok: false, error: 'team-missing-club', hint: 'Team must belong to a club with Stripe Connect set up.' }, 400);
+
+  const club = await getDocument(projectId, `clubs/${clubId}`, sa);
+  if (!club?.data) return json({ ok: false, error: 'club-not-found' }, 404);
+  const stripeAccountId = club.data.stripeAccountId;
+  if (!stripeAccountId || !club.data.stripeChargesEnabled) {
+    return json({ ok: false, error: 'club-not-stripe-ready', hint: 'Club admin must connect Stripe before drop-in fees can be collected.' }, 409);
+  }
+
+  const eventTitle = String(ev.data.title || 'Drop-in');
+  const successUrl = String(payload?.successUrl || `${env.APP_ORIGIN}/event/${encodeURIComponent(eventId)}?paid=1`);
+  const cancelUrl = String(payload?.cancelUrl || `${env.APP_ORIGIN}/event/${encodeURIComponent(eventId)}?paid=0`);
+  const customerEmail = payload?.customerEmail ? String(payload.customerEmail) : undefined;
+
+  // Platform fee (same fallback pattern as registration checkout).
+  let platformFeeBps = (typeof club.data.platformFeeBps === 'number')
+    ? club.data.platformFeeBps
+    : null;
+  if (platformFeeBps === null) {
+    try {
+      const defaults = await getDocument(projectId, 'platform_settings/defaults', sa).catch(() => null);
+      const defaultBps = Number(defaults?.data?.platformFeeBps || 0);
+      platformFeeBps = defaultBps > 0 ? defaultBps : 0;
+    } catch {
+      platformFeeBps = 0;
+    }
+  }
+  const applicationFeeAmount = platformFeeBps > 0
+    ? Math.round((feeCents * platformFeeBps) / 10000)
+    : 0;
+
+  const sessionParams: Record<string, any> = {
+    mode: 'payment',
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    'line_items[0][price_data][currency]': 'usd',
+    'line_items[0][price_data][product_data][name]': `Drop-in · ${eventTitle}`,
+    'line_items[0][price_data][unit_amount]': feeCents,
+    'line_items[0][quantity]': 1,
+    'metadata[kind]': 'event_dropin',
+    'metadata[eventId]': eventId,
+    'metadata[uid]': uid,
+    'metadata[clubId]': clubId,
+    'metadata[teamId]': teamId,
+  };
+  if (customerEmail) sessionParams['customer_email'] = customerEmail;
+  if (applicationFeeAmount > 0) {
+    sessionParams['payment_intent_data[application_fee_amount]'] = applicationFeeAmount;
+    sessionParams['metadata[platformFeeCents]'] = applicationFeeAmount;
+  }
+
+  try {
+    const session = await stripeRequest(env, '/checkout/sessions', sessionParams, { stripeAccount: stripeAccountId });
+    return json({ ok: true, url: session.url, sessionId: session.id });
+  } catch (err: any) {
+    console.error('event-dropin-checkout error', err);
+    return json({ ok: false, error: 'stripe_error', detail: String(err?.message || err).slice(0, 300) }, 502);
+  }
+}
+
 // Map a Stripe priceId to one of the video-tier strings, or null
 // if it's not an allowlisted video price.
 function videoTierForPriceId(priceId: string, env: StripeEnv): 'addon' | 'pro' | null {

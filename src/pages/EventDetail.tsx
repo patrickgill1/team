@@ -1204,6 +1204,61 @@ const EventDetail: React.FC = () => {
           (adult only). Share button removed 2026-06-24 when the
           public RSVP page was killed (everyone's expected to be on
           the app now). */}
+      {/* Drop-in fee — visible to anyone going who hasn't paid yet.
+          Opens Stripe Checkout on the club's connected account. */}
+      {(() => {
+        const feeCents = Number((event as any).feeCents || 0);
+        if (feeCents <= 0) return null;
+        if (myRsvp?.status !== 'going') return null;
+        const paidUids: string[] = Array.isArray((event as any).paidUids) ? (event as any).paidUids : [];
+        const iPaid = !!userData?.uid && paidUids.includes(userData.uid);
+        if (iPaid) return (
+          <section className="bg-emerald-500/10 ring-1 ring-emerald-500/30 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 px-4 py-3 flex items-center gap-2 text-emerald-200">
+            <Icon name="check" className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-black uppercase tracking-widest">Drop-in fee paid</span>
+            <span className="text-[11px] text-emerald-200/70 ml-auto">${(feeCents / 100).toFixed(2)}</span>
+          </section>
+        );
+        return (
+          <section className="bg-amber-500/10 ring-1 ring-amber-500/30 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 px-4 py-3">
+            <div className="flex items-center justify-between mb-2 gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-widest text-amber-300">Drop-in fee</p>
+                <p className="text-[11px] text-amber-200/75 truncate">Pay to lock in your spot for this event.</p>
+              </div>
+              <span className="shrink-0 text-lg font-black text-amber-100">${(feeCents / 100).toFixed(2)}</span>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  const { workerFetch } = await import('../utils/workerFetch');
+                  const res = await workerFetch('/stripe/event-dropin-checkout', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      eventId: event.id,
+                      uid: userData?.uid,
+                      customerEmail: userData?.email,
+                    }),
+                  });
+                  const data: any = await res.json().catch(() => ({}));
+                  if (!res.ok || !data?.ok) {
+                    alert(data?.hint || data?.error || "Couldn't start checkout. Try again.");
+                    return;
+                  }
+                  window.location.href = data.url;
+                } catch (err) {
+                  console.error('event dropin checkout failed', err);
+                  alert("Couldn't start checkout. Check your connection and try again.");
+                }
+              }}
+              className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-amber-950 text-sm font-black uppercase tracking-widest transition"
+            >
+              Pay ${(feeCents / 100).toFixed(2)} drop-in
+            </button>
+          </section>
+        );
+      })()}
+
       {/* Pickup result — coach picks the winning side after the event.
           Appears only on adult teams with a teamSplit set and once the
           event date has passed. Distinct from external opponent

@@ -724,12 +724,15 @@ service cloud.firestore {
       allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
     }
 
-    // Team gallery photos — same pattern as player_media.
+    // Team gallery photos — same pattern as player_media, EXCEPT
+    // create no longer requires canCoachWrite(). The new Photos tab
+    // (2026-07-10) is an open team surface — parents upload photos of
+    // their kid, coaches upload from games. Same "on the team" gate
+    // stays; the trial-wall gate is dropped for photo uploads only.
     match /gallery/{photoId} {
       allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow create: if isAuthed()
-        && onTeam(request.resource.data.teamId)
-        && canCoachWrite();
+        && onTeam(request.resource.data.teamId);
       allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
     }
 

@@ -21,6 +21,7 @@ import { getShareOrigin } from '../utils/origin';
 import StreamPlayer, { loadStreamSdk, StreamSdkPlayer } from '../components/common/StreamPlayer';
 import EmbedMediaModal from '../components/player/EmbedMediaModal';
 import FullGames from './FullGames';
+import PhotosTab from '../components/gallery/PhotosTab';
 import { collection, query as fsQuery, where as fsWhere, getDocs as fsGetDocs } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 
@@ -59,7 +60,7 @@ const PlayerMediaPage: React.FC = () => {
   const [editingGoalScorerId, setEditingGoalScorerId] = useState<string>('');
   const [editingAssistByIds, setEditingAssistByIds] = useState<string[]>([]);
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
-  const [activeTab, setActiveTab] = useState<'highlights' | 'fullgames'>('highlights');
+  const [activeTab, setActiveTab] = useState<'highlights' | 'fullgames' | 'photos'>('highlights');
   const [searchQuery, setSearchQuery] = useState('');
   // Media-type split — All / Videos only / Photos only.
   const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'video' | 'photo'>('all');
@@ -90,6 +91,10 @@ const PlayerMediaPage: React.FC = () => {
   const [uploadGameId, setUploadGameId] = useState<string>('');
   const [editingGameId, setEditingGameId] = useState<string>('');
   const [recentGames, setRecentGames] = useState<{ id: string; label: string }[]>([]);
+  // All team events (games + practices + events) for the Photos tab's
+  // "link to event" dropdown + filter. Populated from the same events
+  // fetch below so we don't double-query.
+  const [allTeamEvents, setAllTeamEvents] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const clipsSectionRef = useRef<HTMLElement | null>(null);
 
@@ -213,6 +218,20 @@ const PlayerMediaPage: React.FC = () => {
         const allEvents = await getDocuments('events', []);
         const cutoffPast = Date.now() - 60 * 24 * 3600 * 1000;
         const cutoffFuture = Date.now() + 7 * 24 * 3600 * 1000;
+        // Photos tab: give it every team-scoped event (games + practices +
+        // one-offs) inside a 12-month window so parents can link a photo to
+        // any recent event. Trimmed to id/title/date shape to keep memory
+        // small.
+        const photosWindowMs = 365 * 24 * 3600 * 1000;
+        const teamEvents = (allEvents as any[])
+          .filter(e => e.teamId === selectedTeamId)
+          .map(e => {
+            const d: Date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
+            return { id: e.id, title: String(e.title || e.opponent || 'Event'), date: d, type: e.type };
+          })
+          .filter(e => e.date instanceof Date && !isNaN(e.date.getTime()) && Math.abs(Date.now() - e.date.getTime()) <= photosWindowMs)
+          .sort((a, b) => b.date.getTime() - a.date.getTime());
+        setAllTeamEvents(teamEvents);
         const games = (allEvents as any[])
           .filter(e => e.teamId === selectedTeamId && e.type === 'game')
           .map(e => {
@@ -1434,6 +1453,15 @@ const PlayerMediaPage: React.FC = () => {
               Full Games
               {activeTab === 'fullgames' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-brand-primary-soft rounded-full" />}
             </button>
+            <button
+              onClick={() => setActiveTab('photos')}
+              className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
+                activeTab === 'photos' ? 'text-brand-primary-soft' : 'text-ink-primary/50 hover:text-ink-primary'
+              }`}
+            >
+              Photos
+              {activeTab === 'photos' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-brand-primary-soft rounded-full" />}
+            </button>
             {canManageMedia && (selectedTeam?.videoTier || 'free') === 'free' && (
               <button
                 onClick={() => navigate('/upgrade/video')}
@@ -1488,6 +1516,13 @@ const PlayerMediaPage: React.FC = () => {
         {activeTab === 'fullgames' ? (
           <div className="bg-surface-elevated rounded-2xl overflow-hidden">
             <FullGames />
+          </div>
+        ) : activeTab === 'photos' ? (
+          <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+            <PhotosTab
+              players={players}
+              events={allTeamEvents}
+            />
           </div>
         ) : (
           <>

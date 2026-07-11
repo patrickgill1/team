@@ -1713,17 +1713,46 @@ export interface CalendarEvent {
 export interface GalleryPhoto {
   id: string;
   url: string;
+  /** Optional lower-res thumbnail. When present the masonry grid uses
+   *  this instead of the full-res `url`, saving bandwidth on the
+   *  scroll surface. Currently unused (no server-side thumbnail
+   *  pipeline); reserved so the Photos tab can lean on it later
+   *  without a schema migration. */
+  thumbnailUrl?: string;
   title?: string;
   description?: string;
   caption?: string;
   uploadedBy: string;
   uploadedByName: string;
   teamId: string;
+  /** Topic tags — freeform strings picked by the uploader ('game',
+   *  'practice', 'celebration', 'training', etc). Filterable in the
+   *  Photos tab. */
   tags?: string[];
+  /** Players face-tagged in the photo. Coach or uploader adds these
+   *  in the lightbox; the filter bar's player-multi surface reads
+   *  this array. Doesn't drive stats — purely a "who's in the frame"
+   *  discovery signal. */
+  taggedPlayerIds?: string[];
   eventId?: string;
   fileSize: number;
   fileName: string;
   contentType: string;
+  /** Heart reactions — array of uid strings. Empty / absent = no
+   *  reactions. Ordered by tap time, most recent last. */
+  reactions?: string[];
+  /** Denorm'd count so grid tiles can render "12 ♥" without shipping
+   *  the whole voter list. Updated alongside reactions on each toggle. */
+  reactionCount?: number;
+  /** Uids that have opened this photo in the lightbox. Used for the
+   *  view counter + to detect "seen by" state. */
+  viewedBy?: string[];
+  viewCount?: number;
+  /** Soft-delete pattern. Absent / true = live, false = hidden from
+   *  grids. Set by delete flow (memory: never hard-delete). */
+  isActive?: boolean;
+  deletedAt?: Date;
+  deletedBy?: string | null;
   createdAt: Date;
   updatedAt?: Date;
 }

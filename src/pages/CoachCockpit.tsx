@@ -7,9 +7,10 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
-import type { CalendarEvent } from '../types';
+import type { CalendarEvent, Player } from '../types';
 import { REQUIRED_COACH_CERT_KINDS } from '../types';
 import CoachRecentMediaCard from '../components/coach/CoachRecentMediaCard';
+import CoachGrantXpModal from '../components/coach/CoachGrantXpModal';
 
 /**
  * Coach cockpit — one-page landing for coaches. Mirror of /club for
@@ -50,6 +51,9 @@ const CoachCockpit: React.FC = () => {
   const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
+  const [grantXpOpen, setGrantXpOpen] = useState(false);
+  const [roster, setRoster] = useState<Player[]>([]);
+  const [credentialsExpanded, setCredentialsExpanded] = useState(false);
 
   useEffect(() => {
     if (loaded) { setShowProgress(false); return; }
@@ -90,6 +94,27 @@ const CoachCockpit: React.FC = () => {
     })();
     return () => { cancelled = true; };
   }, [selectedTeamId]);
+
+  // Roster load — deferred until the Grant XP modal is opened so we
+  // don't cost a per-mount read on every cockpit visit.
+  useEffect(() => {
+    if (!grantXpOpen || !selectedTeamId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const q = query(
+          collection(db, 'players'),
+          where('teamIds', 'array-contains', selectedTeamId),
+        );
+        const snap = await getDocs(q);
+        if (cancelled) return;
+        setRoster(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })).filter((p: any) => p.isActive !== false) as Player[]);
+      } catch (err) {
+        console.warn('[coach-cockpit] roster load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [grantXpOpen, selectedTeamId]);
 
   const certStatus = useMemo(() => {
     const list = (userData as any)?.coachCertifications || [];
@@ -344,6 +369,17 @@ const CoachCockpit: React.FC = () => {
                 <path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2z" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
               </svg>}
             />
+            {(selectedTeam as any)?.xpConfig?.enabled === true && (
+              <CoachActionTile
+                title="Grant XP"
+                hint="Hand out live XP mid-practice."
+                accent="brand"
+                onClick={() => setGrantXpOpen(true)}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <path d="M12 2l8.66 5v10L12 22 3.34 17V7L12 2z" /><path d="M12 8v6M9 11h6" />
+                </svg>}
+              />
+            )}
           </div>
 
           {/* Recent media uploaded by the team — surfaces parents'
@@ -352,50 +388,78 @@ const CoachCockpit: React.FC = () => {
               media in window. */}
           <CoachRecentMediaCard />
 
-          {/* Coach cert checklist — your own status. Tap a row to
-              self-attest. Manual entries get superseded by ussf-
-              source rows once the Sports Affinity webhook lands. */}
-          <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 p-4 mt-3">
-            <div className="mb-2">
-              <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Your coaching credentials</p>
-              <p className="text-sm font-bold text-ink-primary mt-0.5">
-                {certDoneCount === certTotal
-                  ? <span className="text-emerald-300">All four on file</span>
-                  : <><span className="text-ink-primary/85">{certDoneCount} / {certTotal}</span><span className="text-ink-primary/50 font-normal">  ·  on file</span></>}
-              </p>
-            </div>
-            <ul className="space-y-1 mt-3">
-              {certStatus.map((c) => {
-                const busy = certBusyKind === c.kind;
-                return (
-                  <li key={c.kind}>
-                    <button
-                      type="button"
-                      onClick={() => toggleCert(c.kind)}
-                      disabled={busy}
-                      className={`w-full flex items-center gap-2 text-[13px] py-1.5 px-1.5 rounded-lg hover:bg-line-default/[0.05] transition-colors disabled:opacity-60 ${
-                        busy ? 'cursor-wait' : 'cursor-pointer'
-                      }`}
-                    >
-                      <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ring-1 transition-colors ${
-                        c.done ? 'bg-emerald-500/15 ring-emerald-400/40 text-emerald-300' : 'bg-bone/5 ring-line-default/20 text-ink-primary/40'
-                      }`}>
-                        {c.done ? (
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                        ) : null}
-                      </span>
-                      <span className={c.done ? 'text-ink-primary/85' : 'text-ink-primary/55'}>{c.label}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-            <p className="text-[11px] text-ink-primary/45 mt-3 italic">
-              Tap a row to confirm you hold that credential. Once the Sports Affinity integration lands, these will auto-confirm from your learning.ussoccer.com record.
-            </p>
+          {/* Coach cert checklist — collapsed by default so it doesn't
+              hog the cockpit. Full checklist really belongs in club
+              settings; keeping it here as a personal reminder tile
+              with a summary + expand only when the coach needs it.
+              (Patrick 2026-07-11: "should minimize or something".) */}
+          <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 mt-3 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setCredentialsExpanded(v => !v)}
+              className="w-full px-4 py-3 flex items-center justify-between gap-3 hover:bg-line-default/[0.04] transition"
+              aria-expanded={credentialsExpanded}
+            >
+              <div className="min-w-0 text-left">
+                <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Credentials</p>
+                <p className="text-[13px] font-bold text-ink-primary mt-0.5">
+                  {certDoneCount === certTotal
+                    ? <span className="text-emerald-300">All {certTotal} on file</span>
+                    : <><span className="text-ink-primary/85">{certDoneCount} of {certTotal}</span><span className="text-ink-primary/50 font-normal">  ·  on file</span></>}
+                </p>
+              </div>
+              <svg
+                className={`w-4 h-4 text-ink-primary/50 shrink-0 transition-transform ${credentialsExpanded ? 'rotate-180' : ''}`}
+                fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {credentialsExpanded && (
+              <div className="px-4 pb-4 border-t border-line-default/10">
+                <ul className="space-y-1 mt-3">
+                  {certStatus.map((c) => {
+                    const busy = certBusyKind === c.kind;
+                    return (
+                      <li key={c.kind}>
+                        <button
+                          type="button"
+                          onClick={() => toggleCert(c.kind)}
+                          disabled={busy}
+                          className={`w-full flex items-center gap-2 text-[13px] py-1.5 px-1.5 rounded-lg hover:bg-line-default/[0.05] transition-colors disabled:opacity-60 ${
+                            busy ? 'cursor-wait' : 'cursor-pointer'
+                          }`}
+                        >
+                          <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ring-1 transition-colors ${
+                            c.done ? 'bg-emerald-500/15 ring-emerald-400/40 text-emerald-300' : 'bg-bone/5 ring-line-default/20 text-ink-primary/40'
+                          }`}>
+                            {c.done ? (
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                            ) : null}
+                          </span>
+                          <span className={c.done ? 'text-ink-primary/85' : 'text-ink-primary/55'}>{c.label}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="text-[11px] text-ink-primary/45 mt-3 italic">
+                  Tap a row to confirm you hold that credential. Once the Sports Affinity integration lands, these will auto-confirm from your learning.ussoccer.com record.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {selectedTeam && (selectedTeam as any)?.xpConfig?.enabled === true && (
+        <CoachGrantXpModal
+          open={grantXpOpen}
+          onClose={() => setGrantXpOpen(false)}
+          team={selectedTeam}
+          roster={roster}
+        />
+      )}
     </div>
   );
 };
@@ -414,6 +478,32 @@ const CoachTile: React.FC<{
     <p className="text-[13px] font-black text-ink-primary leading-tight mt-1">{title}</p>
     <p className="text-[11px] text-ink-primary/55 leading-snug">{hint}</p>
   </Link>
+);
+
+// Button variant of CoachTile — for tiles that open a modal / sheet
+// instead of navigating. Optional accent lifts the tile visually to
+// signal "this one does something bigger than a link."
+const CoachActionTile: React.FC<{
+  title: string;
+  hint: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  accent?: 'brand' | 'neutral';
+}> = ({ title, hint, icon, onClick, accent = 'neutral' }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={
+      'rounded-xl transition p-4 flex flex-col gap-1 min-h-[92px] text-left ring-1 ' +
+      (accent === 'brand'
+        ? 'bg-brand-primary/12 ring-brand-primary/35 hover:ring-brand-primary/60'
+        : 'bg-surface-elevated ring-line-default/10 hover:ring-brand-primary/30')
+    }
+  >
+    <span className={accent === 'brand' ? 'text-brand-primary' : 'text-brand-primary-soft'}>{icon}</span>
+    <p className="text-[13px] font-black text-ink-primary leading-tight mt-1">{title}</p>
+    <p className="text-[11px] text-ink-primary/55 leading-snug">{hint}</p>
+  </button>
 );
 
 export default CoachCockpit;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, doc, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useViewMode } from '../contexts/ViewModeContext';
@@ -10,6 +10,8 @@ import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import KidModePinModal from '../components/player/KidModePinModal';
 import KidChatRoom from '../components/kidChat/KidChatRoom';
 import { Link } from 'react-router-dom';
+
+type RsvpStatus = 'going' | 'maybe' | 'no';
 
 // KidDashboard — the stripped-down view a player sees when in kid
 // profile mode. No chat, no parent circle, no settings admin, no
@@ -158,46 +160,55 @@ const KidDashboard: React.FC = () => {
           />
         )}
 
-        {/* Upcoming events — read-only in Phase 1. RSVP-as-self is
-            Phase 3. Deep-link to the event still opens the parent
-            surface, so keep the card compact rather than encourage a
-            tap. */}
+        {/* Upcoming events with RSVP-as-self. Kid taps Going/Maybe/No
+            on their own row. Auth is still parent uid (kid mode is
+            UI-only) but the write stamps actingAsSelf: true so any
+            downstream display can render "Hunter is going" instead
+            of "Patrick RSVP'd for Hunter". */}
         <section className="rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/55">What's coming up</p>
-            {events.length > 0 && (
-              <Link to="/schedule" className="text-[11px] font-semibold text-brand-primary-soft hover:underline">
-                See all
-              </Link>
-            )}
           </div>
           {events.length === 0 ? (
             <p className="text-sm text-ink-primary/50">Nothing on the schedule yet.</p>
           ) : (
-            <ul className="space-y-2">
-              {events.map((e: any) => (
-                <li key={e.id} className="flex items-center justify-between gap-3 rounded-xl bg-surface-base/50 ring-1 ring-line-default/10 px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold truncate">{e.title || (e.type === 'game' ? 'Game' : e.type === 'practice' ? 'Practice' : 'Event')}</p>
-                    <p className="text-[11px] text-ink-primary/55">
-                      {new Date(e._ms).toLocaleString(undefined, {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </div>
-                  <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full ring-1 ${
-                    e.type === 'game' ? 'text-rose-500 ring-rose-400/40 bg-rose-400/10'
-                      : e.type === 'practice' ? 'text-emerald-500 ring-emerald-400/40 bg-emerald-400/10'
-                      : 'text-ink-primary/60 ring-line-default/20 bg-line-default/10'
-                  }`}>
-                    {e.type || 'event'}
-                  </span>
-                </li>
-              ))}
+            <ul className="space-y-3">
+              {events.map((e: any) => {
+                const currentStatus: RsvpStatus | undefined = e.playerRsvps?.[activeKidPlayerId]?.status;
+                return (
+                  <li key={e.id} className="rounded-xl bg-surface-base/50 ring-1 ring-line-default/10 px-3 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold truncate">{e.title || (e.type === 'game' ? 'Game' : e.type === 'practice' ? 'Practice' : 'Event')}</p>
+                        <p className="text-[11px] text-ink-primary/55">
+                          {new Date(e._ms).toLocaleString(undefined, {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                      <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full ring-1 shrink-0 ${
+                        e.type === 'game' ? 'text-rose-500 ring-rose-400/40 bg-rose-400/10'
+                          : e.type === 'practice' ? 'text-emerald-500 ring-emerald-400/40 bg-emerald-400/10'
+                          : 'text-ink-primary/60 ring-line-default/20 bg-line-default/10'
+                      }`}>
+                        {e.type || 'event'}
+                      </span>
+                    </div>
+                    <KidRsvpButtons
+                      eventId={e.id}
+                      playerId={activeKidPlayerId}
+                      playerName={firstName}
+                      playerPhotoUrl={player.profilePhotoUrl || null}
+                      parentUid={(userData as any)?.uid}
+                      currentStatus={currentStatus}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
@@ -228,6 +239,71 @@ const KidDashboard: React.FC = () => {
         onClose={() => setPinOpen(false)}
         mode="exit"
       />
+    </div>
+  );
+};
+
+// Compact 3-way RSVP row (Going / Maybe / No) attributed as the
+// kid, not the parent. Write goes to event.playerRsvps[playerId]
+// with actingAsSelf: true so downstream display code can format as
+// "Hunter is going" instead of the parent's default byUid label.
+const KidRsvpButtons: React.FC<{
+  eventId: string;
+  playerId: string;
+  playerName: string;
+  playerPhotoUrl?: string | null;
+  parentUid?: string;
+  currentStatus?: RsvpStatus;
+}> = ({ eventId, playerId, playerName, playerPhotoUrl, parentUid, currentStatus }) => {
+  const [busy, setBusy] = useState<RsvpStatus | null>(null);
+
+  const setStatus = async (status: RsvpStatus) => {
+    if (!parentUid || busy) return;
+    setBusy(status);
+    try {
+      await updateDoc(doc(db, 'events', eventId), {
+        [`playerRsvps.${playerId}`]: {
+          status,
+          playerName,
+          playerPhotoUrl: playerPhotoUrl || null,
+          byUid: parentUid,
+          byName: playerName,
+          actingAsSelf: true,
+          respondedAt: new Date(),
+        },
+      });
+    } catch (err) {
+      console.error('[kid-rsvp] failed', err);
+      alert('Could not save your RSVP. Try again.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const opts: Array<{ status: RsvpStatus; label: string; tone: string; activeTone: string }> = [
+    { status: 'going', label: "I'm going", tone: 'bg-emerald-500/10 ring-emerald-400/30 text-emerald-500', activeTone: 'bg-emerald-500 text-white ring-emerald-500' },
+    { status: 'maybe', label: 'Maybe',    tone: 'bg-amber-500/10 ring-amber-400/30 text-amber-500',      activeTone: 'bg-amber-500 text-white ring-amber-500' },
+    { status: 'no',    label: "Can't",    tone: 'bg-rose-500/10 ring-rose-400/30 text-rose-500',         activeTone: 'bg-rose-500 text-white ring-rose-500' },
+  ];
+
+  return (
+    <div className="mt-2 flex items-center gap-1.5">
+      {opts.map(o => {
+        const isActive = currentStatus === o.status;
+        const isBusy = busy === o.status;
+        return (
+          <button
+            key={o.status}
+            onClick={() => setStatus(o.status)}
+            disabled={!!busy}
+            className={`flex-1 inline-flex items-center justify-center px-2 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider ring-1 transition disabled:opacity-60 ${
+              isActive ? o.activeTone : o.tone
+            }`}
+          >
+            {isBusy ? '...' : o.label}
+          </button>
+        );
+      })}
     </div>
   );
 };

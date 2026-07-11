@@ -2443,6 +2443,87 @@ async function handlePlayersCreate(req: Request, env: Env, payload: any): Promis
 }
 
 // ────────────────────────────────────────────────────────────────
+// /players/set-kid-mode — parent (or coach) toggles kid profile
+// mode on a player. Kid mode is UI-only: no separate Firebase Auth
+// user, no rules changes; the parent's uid stays the actor. This
+// endpoint just persists the enabled flag + PIN hash on the player
+// doc so all devices see the same config.
+//
+// Rules block the client from writing player.kidMode directly, so
+// this endpoint is the one write path.
+//
+// Auth (enable, disable, set-pin): caller must be in player.parentIds
+// OR a coach on any of player.teamIds.
+//
+// Body: { playerId, action: 'enable' | 'disable' | 'set-pin', pinHash? }
+//   - enable + pinHash → flip enabled=true, store hash
+//   - disable → flip enabled=false, clear hash (parent forgot PIN =
+//     nuclear reset, since they own the player)
+//   - set-pin + pinHash → rotate hash without touching enabled
+// ────────────────────────────────────────────────────────────────
+async function handlePlayersSetKidMode(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  const playerId = String(payload?.playerId || '');
+  const action = String(payload?.action || '');
+  const pinHash = typeof payload?.pinHash === 'string' ? payload.pinHash : '';
+  if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+  if (!['enable', 'disable', 'set-pin'].includes(action)) {
+    return json({ ok: false, error: 'invalid_action' }, 400);
+  }
+  if ((action === 'enable' || action === 'set-pin') && !/^[0-9a-f]{64}$/.test(pinHash)) {
+    return json({ ok: false, error: 'invalid_pin_hash' }, 400);
+  }
+
+  const player = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+  if (!player?.data) return json({ ok: false, error: 'player_not_found' }, 404);
+
+  const parentIds: string[] = Array.isArray(player.data.parentIds) ? player.data.parentIds : [];
+  const playerTeamIds: string[] = Array.isArray(player.data.teamIds) && player.data.teamIds.length > 0
+    ? player.data.teamIds
+    : (player.data.teamId ? [player.data.teamId] : []);
+  const isParent = parentIds.includes(claims.uid);
+  let isCoach = false;
+  if (!isParent && playerTeamIds.length > 0) {
+    for (const teamId of playerTeamIds) {
+      const team = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+      const coachIds: string[] = Array.isArray(team?.data?.coachIds) ? team.data.coachIds : [];
+      if (coachIds.includes(claims.uid)) { isCoach = true; break; }
+    }
+  }
+  if (!isParent && !isCoach) {
+    return json({ ok: false, error: 'not_authorized' }, 403);
+  }
+
+  const now = new Date();
+  const patch: Record<string, any> = { updatedAt: now };
+  if (action === 'enable') {
+    patch.kidMode = {
+      enabled: true,
+      pinHash,
+      enabledAt: now,
+      enabledByUid: claims.uid,
+    };
+  } else if (action === 'disable') {
+    // Nuclear reset — parent forgot PIN or wants kid mode off. Clear
+    // both flag + hash so re-enable starts from scratch.
+    patch.kidMode = { enabled: false, pinHash: null, enabledAt: null, enabledByUid: null };
+  } else {
+    // set-pin — rotate hash without touching the enabled flag. Merge
+    // by reading current kidMode + only touching pinHash.
+    const current = player.data.kidMode || {};
+    patch.kidMode = {
+      enabled: current.enabled === true,
+      pinHash,
+      enabledAt: current.enabledAt || now,
+      enabledByUid: current.enabledByUid || claims.uid,
+    };
+  }
+  await patchDocument(pid, `players/${playerId}`, patch, sa);
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
 // /players/set-active — soft-delete / restore a player.
 // Body: { teamId, playerId, isActive }
 // ────────────────────────────────────────────────────────────────
@@ -3395,6 +3476,7 @@ export async function routeWriteGuard(
     case '/players/link-parent':   return handlePlayersLinkParent(req, env, payload);
     case '/players/stamp-funnel':  return handlePlayersStampFunnel(req, env, payload);
     case '/players/toggle-self-parent': return handlePlayersToggleSelfParent(req, env, payload);
+    case '/players/set-kid-mode':  return handlePlayersSetKidMode(req, env, payload);
     case '/players/set-teams':     return handlePlayersSetTeams(req, env, payload);
     case '/club/set-admin':        return handleClubSetAdmin(req, env, payload);
     case '/club/remove-admin':     return handleClubRemoveAdmin(req, env, payload);

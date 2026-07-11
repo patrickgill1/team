@@ -5,6 +5,10 @@ import { createPlayerInvite } from '../../utils/invites';
 import { isTeamStaff } from '../../utils/helpers';
 import InviteShareModal from '../common/InviteShareModal';
 import type { Invite, Player } from '../../types';
+import KidModeSetupModal from './KidModeSetupModal';
+import KidModePinModal from './KidModePinModal';
+import { setDedicatedKidPlayerId, getDedicatedKidPlayerId, clearDedicatedKidPlayerId } from '../../utils/kidMode';
+import { workerFetch } from '../../utils/workerFetch';
 
 // Player Circle card for the player profile Overview tab. Shows
 // the current circle (parents / guardians) with real names + a
@@ -39,12 +43,20 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
   const [loading, setLoading] = useState(true);
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [activeInvite, setActiveInvite] = useState<Invite | null>(null);
+  const [showKidSetup, setShowKidSetup] = useState(false);
+  const [showKidPin, setShowKidPin] = useState(false);
+  const [dedicatedHere, setDedicatedHere] = useState<string | null>(() => getDedicatedKidPlayerId());
+  const [confirmingDedicated, setConfirmingDedicated] = useState(false);
+  const [busyDisable, setBusyDisable] = useState(false);
 
   const parentIds: string[] = Array.isArray(player.parentIds) ? player.parentIds : [];
   const viewerIsInCircle = parentIds.includes(viewerUid);
   const viewerIsStaff = isTeamStaff(viewerRole);
   const circleEmpty = parentIds.length === 0;
   const canInvite = viewerIsInCircle || (viewerIsStaff && circleEmpty);
+  const kidModeEnabled = (player as any).kidMode?.enabled === true;
+  const canManageKidMode = viewerIsInCircle;
+  const firstName = (player.name || '').split(' ')[0] || 'player';
 
   useEffect(() => {
     let cancelled = false;
@@ -169,6 +181,98 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
             </p>
           </div>
         )}
+
+        {/* Kid profile mode tiles. Only surfaced to parents already
+            in the circle (viewerIsInCircle). Kid mode is a UI-only
+            constraint — no separate Firebase Auth user, no rules
+            changes; parent's uid stays the actor at the auth layer. */}
+        {canManageKidMode && (
+          <div className="mt-3 pt-3 border-t border-line-default/10 space-y-2">
+            {!kidModeEnabled ? (
+              <button
+                onClick={() => setShowKidSetup(true)}
+                className="w-full inline-flex items-center gap-2 px-3 py-2 rounded-full bg-amber-400/15 ring-1 ring-amber-300/30 text-amber-800 hover:bg-amber-400/25 text-xs font-bold transition"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Give {firstName} their own view
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => setShowKidPin(true)}
+                  className="w-full inline-flex items-center gap-2 px-3 py-2 rounded-full bg-brand-primary text-white text-xs font-bold shadow hover:opacity-90 transition"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 12h15" />
+                  </svg>
+                  Enter {firstName}'s view
+                </button>
+                {dedicatedHere === player.id ? (
+                  <button
+                    onClick={() => { clearDedicatedKidPlayerId(); setDedicatedHere(null); }}
+                    className="w-full inline-flex items-center gap-2 px-3 py-2 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/75 text-[11px] font-semibold hover:bg-line-default/15 transition"
+                  >
+                    ✓ This is {firstName}'s device (tap to unmark)
+                  </button>
+                ) : confirmingDedicated ? (
+                  <div className="rounded-xl bg-line-default/5 ring-1 ring-line-default/15 p-3 space-y-2">
+                    <p className="text-[11px] text-ink-primary/70 leading-snug">
+                      Make this device open in {firstName}'s view by default? PIN unlocks parent view.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setConfirmingDedicated(false)}
+                        className="flex-1 px-3 py-1.5 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-[11px] font-semibold text-ink-primary/70"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => { setDedicatedKidPlayerId(player.id); setDedicatedHere(player.id); setConfirmingDedicated(false); }}
+                        className="flex-1 px-3 py-1.5 rounded-full bg-brand-primary text-white text-[11px] font-bold"
+                      >
+                        Yes, make it {firstName}'s
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmingDedicated(true)}
+                    className="w-full inline-flex items-center gap-2 px-3 py-2 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/75 text-[11px] font-semibold hover:bg-line-default/15 transition"
+                  >
+                    Make this {firstName}'s device
+                  </button>
+                )}
+                <button
+                  onClick={async () => {
+                    if (busyDisable) return;
+                    if (!window.confirm(`Turn off ${firstName}'s view? You can enable it again anytime.`)) return;
+                    setBusyDisable(true);
+                    try {
+                      const res = await workerFetch('/players/set-kid-mode', {
+                        method: 'POST',
+                        body: JSON.stringify({ playerId: player.id, action: 'disable' }),
+                      });
+                      const data: any = await res.json().catch(() => ({}));
+                      if (!res.ok || !data?.ok) throw new Error(data?.error || `disable-${res.status}`);
+                      if (dedicatedHere === player.id) { clearDedicatedKidPlayerId(); setDedicatedHere(null); }
+                    } catch (err) {
+                      console.error('disable kid mode failed', err);
+                      alert('Could not turn off kid view. Try again.');
+                    } finally {
+                      setBusyDisable(false);
+                    }
+                  }}
+                  disabled={busyDisable}
+                  className="w-full text-[11px] font-semibold text-ink-primary/50 hover:text-ink-primary/70 transition disabled:opacity-50"
+                >
+                  {busyDisable ? 'Turning off…' : `Turn off ${firstName}'s view`}
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <InviteShareModal
@@ -176,6 +280,22 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
         open={!!activeInvite}
         onClose={() => setActiveInvite(null)}
         playerName={player.name}
+      />
+
+      <KidModeSetupModal
+        playerId={player.id}
+        playerName={firstName}
+        open={showKidSetup}
+        onClose={() => setShowKidSetup(false)}
+        onEnabled={() => { /* onSnapshot listeners will refresh player.kidMode */ }}
+      />
+
+      <KidModePinModal
+        open={showKidPin}
+        onClose={() => setShowKidPin(false)}
+        mode="enter"
+        playerId={player.id}
+        playerName={firstName}
       />
     </>
   );

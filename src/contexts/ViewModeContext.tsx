@@ -1,9 +1,10 @@
 // @ts-nocheck
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { isCoach, isClubAdmin as isClubAdminFn } from '../utils/helpers';
+import { getDedicatedKidPlayerId, verifyPin } from '../utils/kidMode';
 
 /**
  * ViewModeContext — Patrick 2026-06-21: 'my dashboard is coach, my
@@ -45,6 +46,19 @@ interface ViewModeContextValue {
    *  can flip to player-flavored surfaces without needing a whole new
    *  ViewMode enum. */
   isPlayerContext: boolean;
+  /** Kid profile mode — set to a playerId when active. Not persisted
+   *  in state; enter/exit go through enterKidMode/exitKidMode which
+   *  verify the PIN. On a dedicated kid device, cold boot resolves
+   *  this from localStorage (getDedicatedKidPlayerId) so the kid
+   *  never sees parent view without a PIN prompt. */
+  activeKidPlayerId: string | null;
+  /** Try to enter kid mode for a player. Returns true on success. */
+  enterKidMode: (playerId: string, pin: string) => Promise<boolean>;
+  /** Try to exit kid mode. Requires the same PIN so a sibling can't
+   *  escape. Returns true on success. On a dedicated kid device this
+   *  drops back to parent view for the current session only — cold
+   *  boot re-enters kid mode from the dedicated flag. */
+  exitKidMode: (pin: string) => Promise<boolean>;
 }
 
 const ViewModeContext = createContext<ViewModeContextValue | null>(null);
@@ -143,12 +157,63 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const isPlayerContext = !!(userData as any)?.selfPlayerId;
 
+  // Kid profile mode. Cold boot on a dedicated kid device auto-enters
+  // the kid view (getDedicatedKidPlayerId reads localStorage). On a
+  // household device it stays null until enterKidMode() is called.
+  const [activeKidPlayerId, setActiveKidPlayerId] = useState<string | null>(() => {
+    return getDedicatedKidPlayerId();
+  });
+
+  // Verify PIN against the player doc's stored hash. Reads through the
+  // client SDK; rules already allow authed users to GET a player doc
+  // via callerCanReadPlayer branches so no worker round-trip needed.
+  const enterKidMode = async (playerId: string, pin: string): Promise<boolean> => {
+    try {
+      const snap = await getDoc(doc(db, 'players', playerId));
+      if (!snap.exists()) return false;
+      const data: any = snap.data();
+      const km = data?.kidMode || {};
+      if (km.enabled !== true) return false;
+      const ok = await verifyPin(playerId, pin, km.pinHash);
+      if (!ok) return false;
+      setActiveKidPlayerId(playerId);
+      return true;
+    } catch (err) {
+      console.warn('[view-mode] enterKidMode failed', err);
+      return false;
+    }
+  };
+
+  const exitKidMode = async (pin: string): Promise<boolean> => {
+    if (!activeKidPlayerId) return true;
+    try {
+      const snap = await getDoc(doc(db, 'players', activeKidPlayerId));
+      if (!snap.exists()) {
+        // Player gone — fail-safe to parent view.
+        setActiveKidPlayerId(null);
+        return true;
+      }
+      const data: any = snap.data();
+      const km = data?.kidMode || {};
+      const ok = await verifyPin(activeKidPlayerId, pin, km.pinHash);
+      if (!ok) return false;
+      setActiveKidPlayerId(null);
+      return true;
+    } catch (err) {
+      console.warn('[view-mode] exitKidMode failed', err);
+      return false;
+    }
+  };
+
   const value: ViewModeContextValue = {
     viewMode,
     setViewMode,
     availableModes,
     isMultiRole: availableModes.length > 1,
     isPlayerContext,
+    activeKidPlayerId,
+    enterKidMode,
+    exitKidMode,
   };
 
   return <ViewModeContext.Provider value={value}>{children}</ViewModeContext.Provider>;
@@ -158,8 +223,17 @@ export function useViewMode(): ViewModeContextValue {
   const ctx = useContext(ViewModeContext);
   if (!ctx) {
     // Permissive fallback — never crash a render if the provider
-    // is missing. Treat as single-mode parent.
-    return { viewMode: 'parent', setViewMode: () => {}, availableModes: ['parent'], isMultiRole: false, isPlayerContext: false };
+    // is missing. Treat as single-mode parent, no kid mode.
+    return {
+      viewMode: 'parent',
+      setViewMode: () => {},
+      availableModes: ['parent'],
+      isMultiRole: false,
+      isPlayerContext: false,
+      activeKidPlayerId: null,
+      enterKidMode: async () => false,
+      exitKidMode: async () => true,
+    };
   }
   return ctx;
 }

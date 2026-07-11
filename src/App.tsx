@@ -7,7 +7,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { db } from './utils/firebase';
 import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
-import { ViewModeProvider } from './contexts/ViewModeContext';
+import { ViewModeProvider, useViewMode } from './contexts/ViewModeContext';
 import { ThemeProvider, useTheme, isThemePickerVisible } from './contexts/ThemeContext';
 import { bootstrapWidgetToken } from './utils/widgetBridge';
 import { updateDoc } from 'firebase/firestore';
@@ -41,6 +41,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 // Lazy load all other pages
 const InviteJoin = React.lazy(() => import('./pages/InviteJoin'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const KidDashboard = React.lazy(() => import('./pages/KidDashboard'));
 const Players = React.lazy(() => import('./pages/Players'));
 const Stats = React.lazy(() => import('./pages/Stats'));
 const Calendar = React.lazy(() => import('./pages/CalendarPage'));
@@ -179,6 +180,20 @@ const PageSpinner = () => (
 // cycle. See onboarding-stage design §3.
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { userData, logout } = useAuth();
+  const { activeKidPlayerId } = useViewMode();
+
+  // Kid profile mode short-circuits the entire nav/sidebar/theme
+  // scaffolding. When active, the app renders KidDashboard directly
+  // without ProtectedRoute / OnboardingGate / route matching. Auth
+  // is still the parent's uid (kid mode is UI-only) so ProtectedRoute
+  // upstream has already resolved.
+  if (activeKidPlayerId) {
+    return (
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-ink-primary/50">Loading…</div>}>
+        <KidDashboard />
+      </React.Suspense>
+    );
+  }
 
   // Synchronous derive. See onboarding-stage design §3 for the exact
   // fallback rules (required change #4 from user-impact review baked

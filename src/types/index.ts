@@ -507,6 +507,25 @@ export interface Player {
    *  own parent in the data) so nothing else has to branch on this
    *  flag — display only. */
   isAdultPlayer?: boolean;
+  /** Kid profile mode — flips the app into a stripped-down view
+   *  scoped to this player. Does NOT create a Firebase Auth user;
+   *  the parent's uid stays the actor. PIN gates entry AND exit so
+   *  a sibling / classmate can't peek at the kid's data or escape
+   *  back to parent view. Worker-only writes (rules deny client).
+   *  See src/utils/kidMode.ts + src/contexts/ViewModeContext.tsx. */
+  kidMode?: {
+    enabled: boolean;
+    /** SHA-256(playerId + ':' + pin) hex. Client-side verify. The
+     *  "safety" here is sibling-privacy, not adversarial: bypassing
+     *  the hash just lands you in the kid's own view, which the
+     *  parent uid already has access to at the auth layer. */
+    pinHash?: string;
+    enabledAt?: Date;
+    enabledByUid?: string;
+    /** Cosmetic overrides for future skinning (badge frames, card
+     *  themes, flame colors). Architecture-only in v1 — no store yet. */
+    cosmetics?: { cardTheme?: string; flameColor?: string; badgeFrame?: string };
+  };
   profilePhotoUrl?: string | null;
   /** Public-sharing config for the player. When enabled, the
    *  /p/<playerId> route serves a sanitized card (no PII) to

@@ -353,13 +353,17 @@ service cloud.firestore {
                 // parent-driven action, not a club-admin one. Parent
                 // branch already covers it.
                 'publicShare',
+                // kidMode carries the PIN hash — worker-only writes
+                // (via /players/set-kid-mode). Club admins can't stamp
+                // it either.
+                'kidMode',
               ])
         )
         || (
           resource.data.parentIds is list
           && request.auth.uid in resource.data.parentIds
           && !request.resource.data.diff(resource.data).affectedKeys()
-              .hasAny(['parentIds', 'parentEmails', 'teamId', 'teamIds', 'isActive'])
+              .hasAny(['parentIds', 'parentEmails', 'teamId', 'teamIds', 'isActive', 'kidMode'])
         )
       );
       allow delete: if isAuthed() && (

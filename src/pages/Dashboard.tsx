@@ -1991,22 +1991,6 @@ const MyPlayerCard: React.FC<{
               {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
             </div>
           )}
-          {streakDays > 0 && (
-            <span
-              title={`${streakDays}-day practice streak`}
-              className={`absolute -top-1 -left-1 z-10 inline-flex h-9 min-w-9 items-center justify-center gap-0.5 px-1.5 rounded-full text-[12px] font-black tabular-nums ring-2 ring-offset-2 ring-offset-surface-elevated ${streakBadgeTone}`}
-            >
-              <svg
-                className="w-3.5 h-3.5 shrink-0"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden
-              >
-                <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
-              </svg>
-              {streakDays}
-            </span>
-          )}
           {p.profilePhotoUrl && player.jerseyNumber != null && (
             <span className={`absolute -bottom-1 -right-1 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-black tracking-tight ring-2 ring-offset-2 ring-offset-surface-elevated shadow-lg ${jerseyBadgeTone}`}>
               #{player.jerseyNumber}
@@ -2036,6 +2020,21 @@ const MyPlayerCard: React.FC<{
               <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
               {position}
             </span>
+            {/* Streak pill lives inline with the position pill — used
+                to clip the avatar's top-left corner, which covered
+                the profile photo. Same warm-orange scale as before;
+                just anchored in the identity column now. */}
+            {streakDays > 0 && (
+              <span
+                title={`${streakDays}-day practice streak`}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black tabular-nums shadow-sm ring-1 ring-white/10 ${streakBadgeTone}`}
+              >
+                <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
+                </svg>
+                <span>{streakDays} day streak</span>
+              </span>
+            )}
           </div>
           {/* Stat row hides itself when every stat is zero —
               advertising 0/0/0 was worse than empty state because

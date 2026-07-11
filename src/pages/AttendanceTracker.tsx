@@ -5,6 +5,8 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Player } from '../types';
 import { formatDate, isCoachOfTeam } from '../utils/helpers';
+import { computeTeamAttendanceCounts } from '../utils/attendance';
+import { maybeGrantPerfectAttendance } from '../utils/badgeGrants';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import { VOCAB } from '../vocab';
@@ -180,6 +182,32 @@ const AttendanceTracker: React.FC = () => {
         };
       }
       await updateDocument('events', selectedEvent, { playerRsvps: next });
+
+      // Post-save badge sweep: recompute attendance counts across the
+      // team's recent completed events and grant perfect_attendance
+      // where a kid just crossed to 100% over the guardrail window.
+      // Only checks kids marked 'going' in this save (nothing to
+      // grant for the ones who missed). Non-fatal on failure —
+      // attendance write is the primary path.
+      try {
+        const goingIds = Object.entries(next)
+          .filter(([_, v]: any) => v?.status === 'going')
+          .map(([pid]) => pid);
+        if (goingIds.length > 0 && selectedTeamId) {
+          const counts = await computeTeamAttendanceCounts(goingIds, [selectedTeamId], { lookback: 12 });
+          await Promise.all(goingIds.map((pid) => {
+            const c = counts[pid];
+            if (!c) return Promise.resolve();
+            const player = players.find(p => p.id === pid) as any;
+            return maybeGrantPerfectAttendance(pid, c.attended, c.total, {
+              existingBadges: player?.badges,
+            });
+          }));
+        }
+      } catch (err) {
+        console.warn('[attendance] perfect_attendance sweep failed', err);
+      }
+
       alert('RSVPs saved.');
     } catch (error) {
       console.error('Error saving RSVPs:', error);

@@ -129,6 +129,48 @@ export function computeStreakBadgePatch(
   return patch;
 }
 
+/** Grant perfect_attendance when a player has attended every
+ *  completed team event so far this season. Called from event write
+ *  paths where attendance is updated (AttendanceTracker save, kid
+ *  RSVP set-to-going flows).
+ *
+ *  Guardrails:
+ *   - Requires MIN_EVENTS completed events attended so a kid with 1
+ *     event doesn't degenerate to "perfect."
+ *   - Only fires the FIRST time the crossing hits 100% — idempotent
+ *     via the existing badge check.
+ *   - Skipped when the existing badge is already present.
+ *
+ *  Caller passes {attended, total} counts computed over the same
+ *  event window (completed team events, past 6-12 months typical).
+ *  We check attended === total && total >= MIN_EVENTS. */
+const PERFECT_ATTENDANCE_MIN_EVENTS = 5;
+export async function maybeGrantPerfectAttendance(
+  playerId: string,
+  attended: number,
+  total: number,
+  ctx: { existingBadges?: Record<string, any>; context?: string; seasonId?: string } = {},
+): Promise<void> {
+  if (!playerId) return;
+  const existing = ctx.existingBadges || {};
+  if (existing.perfect_attendance) return;
+  if (total < PERFECT_ATTENDANCE_MIN_EVENTS) return;
+  if (attended !== total) return;
+  const xp = badgeXp('perfect_attendance');
+  try {
+    await updateDoc(doc(db, 'players', playerId), {
+      'badges.perfect_attendance': makeBadge(
+        ctx.context || `Perfect attendance across ${total} events`,
+        ctx.seasonId,
+      ),
+      xp: increment(xp),
+      xpCareer: increment(xp),
+    });
+  } catch (err) {
+    console.warn('[badges] grant perfect_attendance failed', playerId, err);
+  }
+}
+
 /** Grant first_potm when a player wins their first Player of the
  *  Match. Idempotent — returns undefined if the badge already exists.
  *  Caller merges the returned patch into the winner's updateDoc. */

@@ -921,18 +921,10 @@ const PlayerDevelopment: React.FC = () => {
     return map;
   }, [plans]);
 
-  const topStreak = React.useMemo(() => {
-    let best: { playerId: string; name: string; streak: number } | null = null;
-    for (const pid in playerStreaks) {
-      const s = playerStreaks[pid];
-      if (s <= 0) continue;
-      if (!best || s > best.streak) {
-        const player = players.find(p => p.id === pid);
-        best = { playerId: pid, name: player?.name || 'Player', streak: s };
-      }
-    }
-    return best;
-  }, [playerStreaks, players]);
+  // topStreak is computed once visiblePlans exists (declared below).
+  // Delayed so parent view can't leak another family's kid name into
+  // the "Top streak" DevTile — previously iterated the full team's
+  // playerStreaks map (audit 2026-07-11).
 
   // Linked players for the current user (parent → kids OR coach-with-
   // kids). Drives whether the Coach/Parent toggle shows up at all.
@@ -963,6 +955,24 @@ const PlayerDevelopment: React.FC = () => {
   const activePlans = visiblePlans.filter(p => p.status === 'active');
   const completedPlans = visiblePlans.filter(p => p.status === 'completed');
   const archivedPlans = visiblePlans.filter(p => p.status === 'archived');
+
+  // Top streak DevTile — scope to visible plans so parent view sees
+  // only their own kids in the "Top streak" panel. Coach view still
+  // sees everyone because visiblePlans === plans for coach.
+  const topStreak = React.useMemo(() => {
+    const visiblePlayerIds = new Set(visiblePlans.map(p => p.playerId));
+    let best: { playerId: string; name: string; streak: number } | null = null;
+    for (const pid in playerStreaks) {
+      if (!visiblePlayerIds.has(pid)) continue;
+      const s = playerStreaks[pid];
+      if (s <= 0) continue;
+      if (!best || s > best.streak) {
+        const player = players.find(p => p.id === pid);
+        best = { playerId: pid, name: player?.name || 'Player', streak: s };
+      }
+    }
+    return best;
+  }, [playerStreaks, players, visiblePlans]);
 
   // Parent view (whether the user is actually a parent or a coach who
   // toggled to it) sees only their own children in the player filter.

@@ -79,8 +79,13 @@ export interface SplitResult {
  * highest goes to side B; the one after that to side B again; etc.
  * This spreads the top of the roster more evenly than pure round-robin.
  */
+// Max sides supported by the split flow. 6 covers a 60-adult
+// pickup at 10/side. Above that the split UX collapses (small tiles)
+// so we cap for polish rather than for algorithmic reasons.
+export const MAX_SIDES = 6;
+
 export function splitTeams(roster: Player[], opts: SplitOptions = {}): SplitResult {
-  const numSides = Math.max(2, Math.min(4, opts.numSides ?? 2));
+  const numSides = Math.max(2, Math.min(MAX_SIDES, opts.numSides ?? 2));
   const seed = opts.seed ?? 0;
   const method: 'snake' | 'random' = opts.method ?? 'snake';
 

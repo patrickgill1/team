@@ -37,7 +37,7 @@ const SplitTeamsModal: React.FC<Props> = ({ event, onClose, onSave }) => {
   const { userData } = useAuth();
   const [roster, setRoster] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
-  const [numSides, setNumSides] = useState<2 | 3>(2);
+  const [numSides, setNumSides] = useState<2 | 3 | 4 | 5 | 6>(2);
   const [seed, setSeed] = useState(0);
   const [method, setMethod] = useState<'snake' | 'random'>('snake');
 
@@ -147,19 +147,20 @@ const SplitTeamsModal: React.FC<Props> = ({ event, onClose, onSave }) => {
 
         {/* Controls */}
         <div className="flex-shrink-0 px-4 sm:px-5 py-3 border-b border-line-default/5 flex items-center gap-2 flex-wrap">
-          <div className="inline-flex items-center bg-surface-base ring-1 ring-line-default/10 rounded-full p-0.5">
-            {([2, 3] as const).map(n => (
+          <div className="inline-flex items-center bg-surface-base ring-1 ring-line-default/10 rounded-full p-0.5 flex-wrap">
+            {([2, 3, 4, 5, 6] as const).map(n => (
               <button
                 key={n}
                 type="button"
                 onClick={() => setNumSides(n)}
-                className={`px-3 py-1.5 text-[11px] font-black tracking-wider uppercase rounded-full transition ${
-                  numSides === n ? 'bg-brand-primary text-white' : 'text-ink-primary/60 hover:text-ink-primary'
+                className={`px-2.5 py-1.5 text-[11px] font-black tracking-wider uppercase rounded-full transition ${
+                  numSides === n ? 'bg-brand-primary text-brand-primary-fg' : 'text-ink-primary/60 hover:text-ink-primary'
                 }`}
               >
-                {n} teams
+                {n}
               </button>
             ))}
+            <span className="ml-1 pr-1.5 text-[10px] font-black uppercase tracking-widest text-ink-primary/40">teams</span>
           </div>
           <div className="inline-flex items-center bg-surface-base ring-1 ring-line-default/10 rounded-full p-0.5">
             {(['snake', 'random'] as const).map(m => (
@@ -193,7 +194,12 @@ const SplitTeamsModal: React.FC<Props> = ({ event, onClose, onSave }) => {
               Need at least {numSides * 2} players to split into {numSides} sides. You have {eligibleRoster.length}.
             </p>
           ) : (
-            <div className={`grid gap-3 ${numSides === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3'}`}>
+            <div className={`grid gap-3 ${
+              numSides === 2 ? 'grid-cols-1 sm:grid-cols-2'
+              : numSides === 3 ? 'grid-cols-1 sm:grid-cols-3'
+              : numSides === 4 ? 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-4'
+              : 'grid-cols-2 sm:grid-cols-3'
+            }`}>
               {split.sides.map(side => {
                 const avg = averageScore(side.playerIds, eligibleRoster);
                 return (

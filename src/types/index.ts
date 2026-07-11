@@ -1691,6 +1691,19 @@ export interface CalendarEvent {
     generatedAt: any;
     generatedBy: string;
   };
+  /** Post-game result for pickup / internal split games. Coach picks
+   *  the winning side after the event via the "Record result" panel
+   *  that appears on EventDetail after the event's date. Distinct
+   *  from `result` (external opponent) because pickup games are
+   *  internal-A-vs-B and season stats don't roll up. */
+  pickupResult?: {
+    winningSide: string;   // label from teamSplit.sides
+    tie?: boolean;
+    mvpPlayerId?: string;  // optional coach-picked MVP
+    mvpPlayerName?: string;
+    recordedAt: any;
+    recordedBy: string;
+  };
   /** Post-game POTM auto-create. When the event date passes and this
    *  is not false, the worker's daily sweep creates a match_voting +
    *  posts the "Vote for Player of the Match" CTA to the team wall.

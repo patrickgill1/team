@@ -1204,6 +1204,24 @@ const EventDetail: React.FC = () => {
           (adult only). Share button removed 2026-06-24 when the
           public RSVP page was killed (everyone's expected to be on
           the app now). */}
+      {/* Pickup result — coach picks the winning side after the event.
+          Appears only on adult teams with a teamSplit set and once the
+          event date has passed. Distinct from external opponent
+          scoring — pickup results don't roll into season stats. */}
+      {isUserCoach && isAdultTeam && (event as any).teamSplit && !event.isCancelled && eventDate && eventDate.getTime() < now.getTime() && (
+        <PickupResultPanel
+          event={event}
+          userData={userData}
+          onSave={async (patch) => {
+            await updateDocument('events', event.id, { pickupResult: patch });
+            setEvent({ ...event, pickupResult: patch } as any);
+          }}
+          onClear={async () => {
+            await updateDocument('events', event.id, { pickupResult: null });
+            setEvent({ ...event, pickupResult: undefined } as any);
+          }}
+        />
+      )}
       {isUserCoach && (
       <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4 grid grid-cols-1 gap-2">
         {isAdultTeam && (
@@ -2008,6 +2026,180 @@ const PackingListSection: React.FC<{
           })}
         </ul>
       )}
+    </section>
+  );
+};
+
+// ── Pickup result panel — the "who won" flow ────────────────────
+// Shown to the coach on an adult team's event that has a teamSplit
+// AND has ended (event.date < now). Coach picks the winning side
+// (or ties), optionally names an MVP from the rostered players, and
+// saves. Persists on event.pickupResult; distinct from external
+// opponent scoring since pickup games don't roll to season stats.
+interface PickupResultPanelProps {
+  event: CalendarEvent;
+  userData: any;
+  onSave: (patch: any) => Promise<void>;
+  onClear: () => Promise<void>;
+}
+
+const PickupResultPanel: React.FC<PickupResultPanelProps> = ({ event, userData, onSave, onClear }) => {
+  const split = (event as any).teamSplit;
+  const existing = (event as any).pickupResult;
+  const sides: Array<{ label: string; playerIds: string[] }> = Array.isArray(split?.sides) ? split.sides : [];
+  const [selectedSide, setSelectedSide] = React.useState<string | null>(existing?.winningSide || null);
+  const [isTie, setIsTie] = React.useState<boolean>(!!existing?.tie);
+  const [mvpId, setMvpId] = React.useState<string>(existing?.mvpPlayerId || '');
+  const [busy, setBusy] = React.useState(false);
+  const [editing, setEditing] = React.useState<boolean>(!existing);
+
+  const allPlayers = React.useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const s of sides) for (const pid of (s.playerIds || [])) {
+      if (!seen.has(pid)) { seen.add(pid); out.push(pid); }
+    }
+    return out;
+  }, [sides]);
+
+  if (sides.length === 0) return null;
+
+  const handleSave = async () => {
+    if (!selectedSide && !isTie) return;
+    setBusy(true);
+    try {
+      const mvpName = mvpId
+        ? (allPlayers.find(() => true), '') // resolved by caller for now — we just persist id
+        : '';
+      const patch: any = {
+        winningSide: isTie ? '' : selectedSide,
+        tie: isTie,
+        recordedAt: new Date(),
+        recordedBy: userData?.uid || 'unknown',
+      };
+      if (mvpId) patch.mvpPlayerId = mvpId;
+      if (mvpName) patch.mvpPlayerName = mvpName;
+      await onSave(patch);
+      setEditing(false);
+    } catch (err) {
+      console.error('save pickup result failed', err);
+      alert("Couldn't save the result. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleClear = async () => {
+    if (!window.confirm('Clear the recorded result?')) return;
+    setBusy(true);
+    try {
+      await onClear();
+      setSelectedSide(null);
+      setIsTie(false);
+      setMvpId('');
+      setEditing(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Read-only view when a result is already recorded and we're not
+  // editing.
+  if (!editing && existing) {
+    return (
+      <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+        <p className="text-[10px] font-black uppercase tracking-widest text-ink-primary/50 mb-2">Result</p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            {existing.tie ? (
+              <p className="text-lg font-black text-ink-primary">Tie</p>
+            ) : (
+              <p className="text-lg font-black text-ink-primary truncate">
+                <span className="text-brand-primary-soft">{existing.winningSide}</span> won
+              </p>
+            )}
+            {existing.mvpPlayerId && (
+              <p className="text-[12px] text-ink-primary/60 mt-0.5 truncate">
+                MVP · {existing.mvpPlayerName || existing.mvpPlayerId}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setEditing(true)}
+              className="px-3 py-1.5 rounded-lg bg-surface-base ring-1 ring-line-default/10 text-[11px] font-black uppercase tracking-widest text-ink-primary/75"
+            >
+              Edit
+            </button>
+            <button
+              onClick={handleClear}
+              disabled={busy}
+              className="px-3 py-1.5 rounded-lg bg-rose-500/15 ring-1 ring-rose-500/30 text-[11px] font-black uppercase tracking-widest text-rose-300"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+      <p className="text-[10px] font-black uppercase tracking-widest text-ink-primary/50 mb-3">Record result</p>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        {sides.map((s) => (
+          <button
+            key={s.label}
+            onClick={() => { setSelectedSide(s.label); setIsTie(false); }}
+            className={`py-2.5 rounded-lg text-sm font-black uppercase tracking-widest transition ${
+              !isTie && selectedSide === s.label
+                ? 'bg-brand-primary text-brand-primary-fg'
+                : 'bg-surface-base ring-1 ring-line-default/10 text-ink-primary/80 hover:ring-brand-primary/40'
+            }`}
+          >
+            {s.label} won
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={() => { setIsTie(true); setSelectedSide(null); }}
+        className={`w-full py-2 rounded-lg text-xs font-black uppercase tracking-widest transition mb-3 ${
+          isTie ? 'bg-brand-primary text-brand-primary-fg' : 'bg-surface-base ring-1 ring-line-default/10 text-ink-primary/60 hover:ring-brand-primary/40'
+        }`}
+      >
+        Tie
+      </button>
+
+      <label className="block text-[10px] font-black uppercase tracking-widest text-ink-primary/50 mb-1.5">MVP (optional)</label>
+      <select
+        value={mvpId}
+        onChange={(e) => setMvpId(e.target.value)}
+        className="w-full bg-surface-base border border-line-default/10 rounded-lg px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-brand-primary/50 mb-3"
+      >
+        <option value="">No MVP</option>
+        {allPlayers.map((pid) => (
+          <option key={pid} value={pid}>{pid}</option>
+        ))}
+      </select>
+
+      <div className="flex items-center gap-2">
+        {existing && (
+          <button
+            onClick={() => setEditing(false)}
+            className="px-3 py-2 rounded-lg bg-surface-base ring-1 ring-line-default/10 text-xs font-bold text-ink-primary/70"
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          onClick={handleSave}
+          disabled={busy || (!selectedSide && !isTie)}
+          className="flex-1 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hov text-brand-primary-fg text-xs font-black uppercase tracking-widest disabled:opacity-40 transition"
+        >
+          {busy ? 'Saving…' : 'Save result'}
+        </button>
+      </div>
     </section>
   );
 };

@@ -205,13 +205,13 @@ const CoachGrantXpModal: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
       <div
-        className="w-full sm:max-w-lg h-[92vh] sm:h-auto sm:max-h-[85vh] bg-surface-elevated ring-1 ring-line-default/15 shadow-2xl flex flex-col rounded-t-2xl sm:rounded-2xl overflow-hidden"
+        className="w-full sm:max-w-lg h-[92vh] sm:h-auto sm:max-h-[85vh] bg-surface-elevated text-ink-primary ring-1 ring-line-default/15 shadow-2xl flex flex-col rounded-t-2xl sm:rounded-2xl overflow-hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <header className="px-4 py-3 border-b border-line-default/10 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-widest font-black text-brand-primary-soft">Grant XP</p>
-            <h3 className="text-base font-black tracking-tight">Hand it out</h3>
+            <h3 className="text-base font-black tracking-tight text-ink-primary">Hand it out</h3>
             <p className="text-[11px] text-ink-primary/55 mt-0.5">Live grants. Pick who, how much, and why.</p>
           </div>
           <button

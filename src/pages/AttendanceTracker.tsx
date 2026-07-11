@@ -311,7 +311,7 @@ const AttendanceTracker: React.FC = () => {
                     <select
                       value={selectedEvent}
                       onChange={(e) => setSelectedEvent(e.target.value)}
-                      className="min-w-0 max-w-full w-full sm:w-auto px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
+                      className="min-w-0 max-w-full w-full sm:w-auto px-3 py-2 bg-surface-input text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
                       style={{ fontSize: '16px' }}
                     >
                       <option value="">Select an event...</option>

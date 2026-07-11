@@ -180,6 +180,55 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [(userData as any)?.uid]);
 
+  // Dedicated-device auto-lock. On Hunter's phone (dedicatedKidPlayerId
+  // set in localStorage), if the parent unlocks parent mode with the
+  // PIN and then the app goes to background OR loses focus, we snap
+  // back to kid mode. That way Hunter grabbing the phone off the
+  // counter never sees parent view even if Patrick walked away in
+  // the middle of a task.
+  //
+  // Native path: Capacitor App plugin's appStateChange event fires on
+  // iOS/Android background. Web fallback: document.visibilitychange
+  // (also fires inside Capacitor's WebView on the same lifecycle so
+  // we get double-coverage without harm).
+  //
+  // Cold-boot from Capgo update is already covered by the useState
+  // initializer above (reads dedicatedKidPlayerId synchronously on
+  // mount, so first render is already kid mode).
+  useEffect(() => {
+    const dedicated = getDedicatedKidPlayerId();
+    if (!dedicated) return;
+    const snapBack = () => {
+      // If parent mode is currently active, drop it. If kid mode is
+      // already active this is a no-op (state doesn't change).
+      setActiveKidPlayerId(dedicated);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') snapBack();
+    };
+    const onBlur = () => snapBack();
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('blur', onBlur);
+    // Native Capacitor App plugin — background/pause events.
+    let removeAppListener: (() => void) | null = null;
+    (async () => {
+      try {
+        const cap = await import('@capacitor/core');
+        if (!cap.Capacitor?.isNativePlatform?.()) return;
+        const { App } = await import('@capacitor/app');
+        const handle = await App.addListener('appStateChange', (state: any) => {
+          if (!state?.isActive) snapBack();
+        });
+        removeAppListener = () => { handle.remove?.(); };
+      } catch { /* plugin missing or web fallback covers it */ }
+    })();
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('blur', onBlur);
+      if (removeAppListener) removeAppListener();
+    };
+  }, []);
+
   // Verify PIN against the player doc's stored hash. Reads through the
   // client SDK; rules already allow authed users to GET a player doc
   // via callerCanReadPlayer branches so no worker round-trip needed.

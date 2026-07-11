@@ -11,6 +11,7 @@ import { createPlayerInvite } from '../../utils/invites';
 import { computeDobAge } from '../../utils/dobDate';
 import InviteShareModal from '../common/InviteShareModal';
 import { reactivatePlayerForCurrentSeason } from '../../utils/seasons';
+import { badgeImageSrc, badgeSrcSet, badgeLabel } from '../../utils/badgeMeta';
 
 interface PlayerCardProps {
   player: Player;
@@ -20,6 +21,107 @@ interface PlayerCardProps {
   /** Currently-selected team. Stats and clips are already pre-scoped
    *  in the parent; this is just for analytics / future use. */
   selectedTeamId?: string;
+  /** 0-100 attendance percent from the batched team-events fetch in
+   *  PlayerList. Null when not yet computed or no past events. */
+  attendancePct?: number | null;
+}
+
+// Badge shield chip for the Squad card header — icon-only, no label
+// text, so a row of 3-4 reads as "trophy shelf" rather than pill soup.
+// Uses the same PNG art as PlayerXpCard, sized down and given a subtle
+// glow ring per rarity tier.
+const BadgeShield: React.FC<{ slug: string }> = ({ slug }) => {
+  const size = 32;
+  const rare = slug === 'first_potm' || slug === 'streak_25' || slug === 'streak_50' || slug === 'perfect_attendance';
+  const legendary = slug === 'streak_50' || slug === 'perfect_attendance';
+  const ring = legendary
+    ? 'shadow-[0_0_0_1px_rgba(251,191,36,0.55),0_2px_10px_rgba(251,191,36,0.35)]'
+    : rare
+      ? 'shadow-[0_0_0_1px_rgba(251,146,60,0.5),0_2px_8px_rgba(251,146,60,0.25)]'
+      : 'shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_2px_6px_rgba(0,0,0,0.35)]';
+  return (
+    <span
+      title={badgeLabel(slug)}
+      className={`inline-flex items-center justify-center rounded-full bg-surface-base ${ring}`}
+      style={{ width: size, height: size }}
+    >
+      <img
+        src={badgeImageSrc(slug, size)}
+        srcSet={badgeSrcSet(slug, size)}
+        alt=""
+        width={size}
+        height={size}
+        loading="lazy"
+        decoding="async"
+        className="block"
+        style={{ width: size, height: size, objectFit: 'contain' }}
+      />
+    </span>
+  );
+};
+
+// Streak pill — the flame indicator lives in the card body now (under
+// the identity line) instead of clipping onto the avatar. Warm orange
+// gradient scales at 5/10/25 thresholds so the visual "temperature"
+// stays consistent with the Dashboard hero.
+const StreakPill: React.FC<{ days: number }> = ({ days }) => {
+  const tone =
+    days >= 25 ? 'bg-gradient-to-r from-amber-300 via-orange-500 to-orange-600' :
+    days >= 10 ? 'bg-gradient-to-r from-orange-400 to-orange-600' :
+    days >= 5 ? 'bg-orange-500' :
+    'bg-orange-500/85';
+  return (
+    <span
+      title={`${days}-day practice streak`}
+      className={`inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-full text-[11px] font-black tracking-wide text-white shadow-md ring-1 ring-white/10 ${tone}`}
+    >
+      <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+        <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
+      </svg>
+      <span className="tabular-nums">{days}</span>
+      <span className="opacity-90">day streak</span>
+    </span>
+  );
+};
+
+// Pick which badges to feature in the header shelf. Rarity first (POTM,
+// long streaks, attendance) so a small player collection still leads
+// with their best hardware. Coach-recognition rides along after so the
+// shelf never looks empty for a kid the coach has been recognizing.
+const BADGE_PRIORITY: string[] = [
+  'perfect_attendance',
+  'streak_50',
+  'first_potm',
+  'streak_25',
+  'first_goal',
+  'first_assist',
+  'first_save',
+  'first_clean_sheet',
+  'streak_10',
+  'streak_5',
+  'coach_pick',
+];
+
+function selectTopBadges(badges: Record<string, any> | undefined | null, limit = 4): string[] {
+  if (!badges) return [];
+  const owned = Object.keys(badges).filter(slug => badges[slug]);
+  if (owned.length === 0) return [];
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const slug of BADGE_PRIORITY) {
+    if (owned.includes(slug) && !seen.has(slug)) {
+      ordered.push(slug);
+      seen.add(slug);
+    }
+  }
+  // Any slug not in the priority list (future-added) — tack on end.
+  for (const slug of owned) {
+    if (!seen.has(slug)) {
+      ordered.push(slug);
+      seen.add(slug);
+    }
+  }
+  return ordered.slice(0, limit);
 }
 
 const positionDot = (pos?: string): string => {
@@ -55,7 +157,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   player,
   onEdit,
   onDelete,
-  showActions = true
+  showActions = true,
+  attendancePct = null,
 }) => {
   const { userData } = useAuth();
   const { updateDocument } = useFirestore();
@@ -138,15 +241,37 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
         <div className="absolute -top-12 -right-12 w-32 h-32 bg-brand-primary/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative flex-1 flex flex-col">
-          {/* Position pill always mounts so avatars line up across the
-              grid (audit 2026-07-12). When the player has no position
-              assigned we render an "Unassigned" chip in muted tone
-              instead of collapsing the slot — coaches can then click
-              through to assign. */}
-          <div className="inline-flex self-start items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 text-[10px] font-bold uppercase tracking-wider mb-4 backdrop-blur">
-            <span className={`w-2 h-2 rounded-full ${player.position ? positionDot(player.position) : 'bg-line-default/40'}`} />
-            {player.position || 'Unassigned'}
-          </div>
+          {/* Header row — position pill on the LEFT, badge trophy shelf
+              on the RIGHT. Wraps gracefully on narrow phone widths so
+              the shelf drops to a new row instead of squeezing. Streak
+              flame that used to clip the avatar's top-left corner now
+              lives in the body slot below the identity line. */}
+          {(() => {
+            const badgeSlugs = selectTopBadges((player as any).badges, 4);
+            const totalBadges = (player as any).badges ? Object.keys((player as any).badges).filter((s: string) => (player as any).badges[s]).length : 0;
+            const overflow = Math.max(0, totalBadges - badgeSlugs.length);
+            return (
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="inline-flex self-start items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 text-[10px] font-bold uppercase tracking-wider backdrop-blur">
+                  <span className={`w-2 h-2 rounded-full ${player.position ? positionDot(player.position) : 'bg-line-default/40'}`} />
+                  {player.position || 'Unassigned'}
+                </div>
+                {badgeSlugs.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {badgeSlugs.map(slug => <BadgeShield key={slug} slug={slug} />)}
+                    {overflow > 0 && (
+                      <span
+                        title={`${overflow} more badge${overflow === 1 ? '' : 's'}`}
+                        className="inline-flex items-center justify-center h-6 min-w-6 px-1.5 rounded-full text-[10px] font-black text-ink-primary/70 bg-line-default/15 ring-1 ring-line-default/20"
+                      >
+                        +{overflow}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Photo + Name row */}
           <div className="flex items-center gap-4 mb-5">
@@ -154,33 +279,6 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               {(player as any).isCurrentPotm && (
                 <span aria-hidden className="absolute -top-1.5 -right-1.5 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-400 text-amber-950 shadow-lg ring-2 ring-white">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z"/></svg>
-                </span>
-              )}
-              {/* Practice streak badge — flame + number in one pill.
-                  Sits at TOP-left of the avatar so the streak badge
-                  orbit matches the Dashboard hero (which anchors
-                  top-left too). POTM star sits top-right; jersey
-                  chip sits bottom-right. Warm orange scale from low
-                  to blazing, same shape at every streak length.
-                  Uses the Heroicons flame path so the icon actually
-                  reads as fire, not a droplet. */}
-              {((player as any).currentStreakDays ?? 0) > 0 && (
-                <span
-                  title={`${(player as any).currentStreakDays}-day practice streak`}
-                  className={`absolute -top-1 -left-1 z-10 inline-flex items-center justify-center gap-0.5 min-w-[28px] h-7 px-1.5 rounded-full text-[11px] font-black tabular-nums shadow-md ring-2 ring-surface-elevated text-white ${
-                    ((player as any).currentStreakDays ?? 0) >= 25
-                      ? 'bg-gradient-to-br from-amber-300 to-orange-600'
-                      : ((player as any).currentStreakDays ?? 0) >= 10
-                        ? 'bg-gradient-to-br from-orange-400 to-orange-600'
-                        : ((player as any).currentStreakDays ?? 0) >= 5
-                          ? 'bg-orange-500'
-                          : 'bg-orange-500/85'
-                  }`}
-                >
-                  <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
-                  </svg>
-                  {(player as any).currentStreakDays}
                 </span>
               )}
               {player.profilePhotoUrl ? (
@@ -240,6 +338,38 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   <p className="text-ink-primary/60 text-sm font-medium mt-0.5">{parts.join(' · ')}</p>
                 );
               })()}
+
+              {/* Vitals line — favorite player, personal juggle best,
+                  attendance %. Same dot-separated shape as the identity
+                  line so it reads as continuation, not a new section.
+                  Muted a step further so identity stays the anchor.
+                  Renders nothing when nothing is set — small rosters
+                  don't look sparse. */}
+              {(() => {
+                const vitals: string[] = [];
+                if ((player as any).favoritePlayer) vitals.push(`♥ ${(player as any).favoritePlayer}`);
+                const jb = (player as any).juggles?.best;
+                if (typeof jb === 'number' && jb > 0) vitals.push(`${jb} juggle${jb === 1 ? '' : 's'}`);
+                if (attendancePct != null) vitals.push(`${attendancePct}% attend`);
+                if (vitals.length === 0) return null;
+                return (
+                  <p className="text-ink-primary/45 text-[11px] font-medium mt-1 truncate" title={vitals.join(' · ')}>
+                    {vitals.join(' · ')}
+                  </p>
+                );
+              })()}
+
+              {/* Practice streak pill — sits in the identity column,
+                  under the vitals line. Was clipping the avatar's top-
+                  left corner previously; anchored here it doesn't
+                  cover the profile photo and keeps the flame visible
+                  at a scannable size instead of a corner chip. Only
+                  renders when the player has a live streak. */}
+              {((player as any).currentStreakDays ?? 0) > 0 && (
+                <div className="mt-1.5">
+                  <StreakPill days={(player as any).currentStreakDays} />
+                </div>
+              )}
             </div>
           </div>
 

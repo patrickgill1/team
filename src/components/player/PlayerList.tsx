@@ -8,6 +8,7 @@ import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestor
 import { db } from '../../utils/firebase';
 import PlayerCard from './PlayerCard';
 import AddPlayer from './AddPlayer';
+import { computeTeamAttendancePercents } from '../../utils/attendance';
 
 interface PlayerListProps {
   searchTerm?: string;
@@ -27,6 +28,10 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
   const [isLoading, setIsLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false);
   const [inactivePlayers, setInactivePlayers] = useState<Player[]>([]);
+  // Attendance % per player, batched from a single team-events fetch
+  // so N cards don't do N identical queries. Recomputed when the roster
+  // changes; null until first compute lands (card just skips the chip).
+  const [attendanceByPlayerId, setAttendanceByPlayerId] = useState<Record<string, number | null>>({});
 
   const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
@@ -102,6 +107,22 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
 
     return () => unsub();
   }, [selectedTeamId]);
+
+  // Batched attendance % for the whole Squad grid — pulls team events
+  // once (up to 30-team `in` chunk) and derives per-player % from the
+  // shared list. Fires whenever the active roster identity changes.
+  useEffect(() => {
+    if (!selectedTeamId || players.length === 0) {
+      setAttendanceByPlayerId({});
+      return;
+    }
+    let cancelled = false;
+    const ids = players.map(p => p.id);
+    computeTeamAttendancePercents(ids, [selectedTeamId], { lookback: 10 })
+      .then(map => { if (!cancelled) setAttendanceByPlayerId(map); })
+      .catch(() => { /* non-fatal; card just hides the chip */ });
+    return () => { cancelled = true; };
+  }, [selectedTeamId, players]);
 
   // Optionally subscribe to inactive players when the toggle is on.
   useEffect(() => {
@@ -350,6 +371,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 onDelete={handlePlayerDeleted}
                 showActions={true}
                 selectedTeamId={selectedTeamId}
+                attendancePct={attendanceByPlayerId[player.id] ?? null}
               />
             );
           })}

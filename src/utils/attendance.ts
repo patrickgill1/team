@@ -1,6 +1,62 @@
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from './firebase';
 
+// Batched variant: pulls team events ONCE and computes attendance for
+// every player in the roster from that shared list. Callers with N
+// players save N-1 identical events fetches vs. calling
+// computePlayerAttendance in a loop. Used by PlayerList to hydrate the
+// Squad grid's attendance strip.
+export async function computeTeamAttendancePercents(
+  playerIds: string[],
+  teamIds: string[],
+  opts: { lookback?: number; eventTypes?: Array<'game' | 'practice' | 'event'> } = {}
+): Promise<Record<string, number | null>> {
+  const lookback = opts.lookback ?? 10;
+  const allowed = new Set(opts.eventTypes ?? ['practice', 'game']);
+  const empty: Record<string, number | null> = {};
+  for (const id of playerIds) empty[id] = null;
+  if (playerIds.length === 0 || teamIds.length === 0) return empty;
+
+  try {
+    const allEvents: any[] = [];
+    for (let i = 0; i < teamIds.length; i += 30) {
+      const chunk = teamIds.slice(i, i + 30);
+      const snap = await getDocs(query(
+        collection(db, 'events'),
+        where('teamId', 'in', chunk),
+      ));
+      snap.forEach(d => allEvents.push({ id: d.id, ...(d.data() as any) }));
+    }
+
+    const now = Date.now();
+    const past = allEvents
+      .filter(e => allowed.has(e.type))
+      .filter(e => !e.isCancelled)
+      .map(e => ({
+        ...e,
+        dateMs: (e.date?.toDate?.() ?? new Date(e.date || 0)).getTime?.() || 0,
+      }))
+      .filter(e => e.dateMs > 0 && e.dateMs <= now)
+      .sort((a, b) => b.dateMs - a.dateMs)
+      .slice(0, lookback);
+
+    if (past.length === 0) return empty;
+
+    const out: Record<string, number | null> = {};
+    for (const pid of playerIds) {
+      let attended = 0;
+      for (const e of past) {
+        if (e.playerRsvps?.[pid]?.status === 'going') attended++;
+      }
+      out[pid] = Math.round((attended / past.length) * 100);
+    }
+    return out;
+  } catch (err) {
+    console.warn('computeTeamAttendancePercents failed', err);
+    return empty;
+  }
+}
+
 // Compute a player's practice attendance percentage over the most
 // recent N completed events on their team(s). Reads playerRsvps off
 // the event docs — the per-kid RSVPs that parents tap on the event

@@ -130,9 +130,11 @@ const KidDashboard: React.FC = () => {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-5 space-y-5">
-        {/* Own player card — reuses the Squad tile so streak, POTM,
-            jersey, badge shelf all land the same. */}
-        <PlayerCard player={player} showActions={false} />
+        {/* Own player card — reuses the Squad tile via heroLayout so
+            the streak lands as a noticeable avatar-corner bubble and
+            the action row (with its dead "View profile" link that
+            went nowhere from kid mode) is hidden entirely. */}
+        <PlayerCard player={player} showActions={false} heroLayout={true} />
 
         {/* Own XP + badges. PlayerXpCard renders null if team.xpConfig
             isn't enabled, so cost is zero on non-XP teams. */}

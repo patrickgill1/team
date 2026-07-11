@@ -24,6 +24,11 @@ interface PlayerCardProps {
   /** 0-100 attendance percent from the batched team-events fetch in
    *  PlayerList. Null when not yet computed or no past events. */
   attendancePct?: number | null;
+  /** Hero layout for solo surfaces (kid dashboard). Streak renders
+   *  as a bold avatar-corner bubble (more noticeable) instead of a
+   *  body pill. Also hides the action row entirely so no dead
+   *  "View profile" link on a page where navigation is locked. */
+  heroLayout?: boolean;
 }
 
 // Badge shield chip for the Squad card header — icon-only, no label
@@ -159,6 +164,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   onDelete,
   showActions = true,
   attendancePct = null,
+  heroLayout = false,
 }) => {
   const { userData } = useAuth();
   const { updateDocument } = useFirestore();
@@ -281,6 +287,30 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z"/></svg>
                 </span>
               )}
+              {/* Hero-layout streak bubble — noticeable orbit at the
+                  avatar's top-left. Only when heroLayout is on (kid
+                  dashboard). Roster tiles keep the body pill so the
+                  Squad grid doesn't turn into different-shape orbs
+                  again. */}
+              {heroLayout && ((player as any).currentStreakDays ?? 0) > 0 && (
+                <span
+                  title={`${(player as any).currentStreakDays}-day practice streak`}
+                  className={`absolute -top-1 -left-1 z-10 inline-flex h-9 min-w-9 items-center justify-center gap-0.5 px-1.5 rounded-full text-[12px] font-black tabular-nums ring-2 ring-offset-2 ring-offset-surface-elevated text-white shadow-lg ${
+                    ((player as any).currentStreakDays ?? 0) >= 25
+                      ? 'bg-gradient-to-br from-amber-300 to-orange-600'
+                      : ((player as any).currentStreakDays ?? 0) >= 10
+                        ? 'bg-gradient-to-br from-orange-400 to-orange-600'
+                        : ((player as any).currentStreakDays ?? 0) >= 5
+                          ? 'bg-orange-500'
+                          : 'bg-orange-500/85'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
+                  </svg>
+                  {(player as any).currentStreakDays}
+                </span>
+              )}
               {player.profilePhotoUrl ? (
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ring-2 shadow-lg ${
                   (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/50' : 'ring-line-default/25'
@@ -364,8 +394,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   left corner previously; anchored here it doesn't
                   cover the profile photo and keeps the flame visible
                   at a scannable size instead of a corner chip. Only
-                  renders when the player has a live streak. */}
-              {((player as any).currentStreakDays ?? 0) > 0 && (
+                  renders when the player has a live streak. Skipped
+                  in heroLayout — the avatar bubble is the primary
+                  signal there. */}
+              {!heroLayout && ((player as any).currentStreakDays ?? 0) > 0 && (
                 <div className="mt-1.5">
                   <StreakPill days={(player as any).currentStreakDays} />
                 </div>
@@ -411,7 +443,11 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               in a row align at the footer regardless of whether the
               Add-to-circle / Start-circle chip renders. Edit + archive
               live here as small icon buttons on the RIGHT so they
-              don't crowd the position pill at the top of the card. */}
+              don't crowd the position pill at the top of the card.
+              Hidden entirely in heroLayout — on kid dashboard the
+              "View Profile" link went nowhere because kid mode
+              short-circuits routing back to KidDashboard. */}
+          {!heroLayout && (
           <div className="mt-auto pt-4 flex flex-wrap gap-2 items-center">
             <Link
               to={`/player/${player.id}`}
@@ -471,6 +507,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               </div>
             )}
           </div>
+          )}
 
           {/* Coach-only footer info */}
           {isUserCoach && (player.medicalInfo || (player.emergencyContacts && player.emergencyContacts.length > 0)) && (

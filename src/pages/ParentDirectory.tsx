@@ -6,6 +6,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { User, Player, FamilyRelationship, RELATIONSHIP_LABELS } from '../types';
 import { isCoachOfTeam, isHeadCoach, isOwner } from '../utils/helpers';
+import { computeDobAge } from '../utils/dobDate';
 import { enablePushForUser, getNotifPermission } from '../utils/push';
 
 interface ParentDirectoryProps {}
@@ -513,7 +514,13 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                       <p className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/60 mb-2">Their Players</p>
                       <div className="space-y-2">
                         {entry.players.map((player: any) => {
-                          const playerAge = player.dateOfBirth ? new Date().getFullYear() - new Date(player.dateOfBirth).getFullYear() : null;
+                          // Prior shape did `new Date(player.dateOfBirth).getFullYear()`
+                          // on a raw Firestore Timestamp, which yields NaN,
+                          // and `{playerAge && ...}` React-renders NaN as
+                          // the literal text "NaN" (audit 2026-07-12).
+                          // computeDobAge() handles Timestamp coercion +
+                          // returns null on missing/invalid DOB.
+                          const playerAge = computeDobAge(player.dateOfBirth);
                           return (
                             <div key={player.id} className="rounded-2xl bg-line-default/10 ring-1 ring-line-default/15 backdrop-blur p-3 flex items-center gap-3">
                               {player.profilePhotoUrl ? (
@@ -532,9 +539,9 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                                 <p className="font-bold text-ink-primary text-sm truncate">{player.name}</p>
                                 <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-ink-primary/70">
                                   {player.position && <span>{player.position}</span>}
-                                  {playerAge && <span>· Age {playerAge}</span>}
-                                  {player.stats?.goals > 0 && <span className="text-emerald-300">· {player.stats.goals}G</span>}
-                                  {player.stats?.assists > 0 && <span className="text-brand-primary-soft">· {player.stats.assists}A</span>}
+                                  {playerAge != null && <span>· Age {playerAge}</span>}
+                                  {player.stats?.goals > 0 && <span className="text-emerald-300">· {player.stats.goals} goals</span>}
+                                  {player.stats?.assists > 0 && <span className="text-brand-primary-soft">· {player.stats.assists} assists</span>}
                                 </div>
                               </div>
                             </div>

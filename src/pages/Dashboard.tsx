@@ -1904,13 +1904,19 @@ const MyPlayerCard: React.FC<{
     : `bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base ring-1 ${brandAccent.ring}`;
   const accentText = isPotm ? 'text-amber-50' : 'text-ink-primary/70';
   const subText = isPotm ? 'text-amber-100/80' : 'text-ink-primary/55';
-  const streakBadgeTone = streakDays >= 10
-    ? 'bg-gradient-to-br from-amber-300 via-orange-500 to-rose-600 text-white ring-amber-200/80 shadow-amber-400/40'
-    : streakDays >= 5
-      ? 'bg-gradient-to-br from-orange-400 via-rose-500 to-brand-primary text-white ring-orange-200/70 shadow-orange-400/35'
-      : isPotm
-        ? 'bg-amber-50 text-amber-950 ring-amber-200/80 shadow-amber-900/20'
-        : 'bg-emerald-500 text-white ring-emerald-200/70 shadow-emerald-400/25';
+  // Streak badge tones — single visual grammar: warm orange/amber
+  // scale from low to blazing, no cyan-terminating rainbow (audit
+  // 2026-07-12). Flame SVG sits INSIDE the pill, not floating at a
+  // diagonal — no "sticker on a sticker" anchoring.
+  const streakBadgeTone = streakDays >= 25
+    ? 'bg-gradient-to-br from-amber-300 to-orange-600 text-white ring-amber-200/70'
+    : streakDays >= 10
+      ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white ring-orange-200/60'
+      : streakDays >= 5
+        ? 'bg-orange-500 text-white ring-orange-300/60'
+        : isPotm
+          ? 'bg-amber-50 text-amber-950 ring-amber-200/80'
+          : 'bg-orange-500/85 text-white ring-orange-300/50';
   const jerseyBadgeTone = isPotm
     ? 'bg-amber-50 text-amber-950 ring-amber-200/80 shadow-amber-900/20'
     : 'bg-white text-charcoal-950 ring-brand-primary-soft/45 shadow-brand-primary/20';
@@ -1988,13 +1994,16 @@ const MyPlayerCard: React.FC<{
           {streakDays > 0 && (
             <span
               title={`${streakDays}-day practice streak`}
-              className={`absolute -top-1 -left-1 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-black tabular-nums ring-2 ring-offset-2 ring-offset-surface-elevated shadow-lg ${streakBadgeTone}`}
+              className={`absolute -top-1 -left-1 z-10 inline-flex h-9 min-w-9 items-center justify-center gap-0.5 px-1.5 rounded-full text-[12px] font-black tabular-nums ring-2 ring-offset-2 ring-offset-surface-elevated ${streakBadgeTone}`}
             >
-              {streakDays >= 5 && (
-                <span className="absolute -top-2 -right-1 text-[13px] leading-none drop-shadow" aria-hidden>
-                  🔥
-                </span>
-              )}
+              <svg
+                className="w-3 h-3.5 shrink-0"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden
+              >
+                <path d="M13.5 2c-.9 2.9-2.5 5-4.1 7-1.8 2.3-3.4 4.6-3.4 7.5C6 20.6 9 23 12.5 23s6.5-2.4 6.5-6.5c0-3.4-2.2-6.1-3.5-8-1.4-2-1.9-4.4-2-6.5zm-1 15c1.7 0 3-1.3 3-3 0-1.6-.9-2.6-1.7-3.7-.7-.9-1.3-1.8-1.3-3 .1 1.4-.6 2.3-1.4 3.3-.7.9-1.6 1.9-1.6 3.4 0 1.7 1.3 3 3 3z" />
+              </svg>
               {streakDays}
             </span>
           )}

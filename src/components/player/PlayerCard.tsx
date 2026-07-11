@@ -138,15 +138,15 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
         <div className="absolute -top-12 -right-12 w-32 h-32 bg-brand-primary/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative flex-1 flex flex-col">
-          {/* Position pill sits alone at the top now — edit/archive
-              actions moved to the bottom action row so they can't
-              crowd the pill or the surrounding chrome. */}
-          {player.position && (
-            <div className="inline-flex self-start items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 text-[10px] font-bold uppercase tracking-wider mb-4 backdrop-blur">
-              <span className={`w-2 h-2 rounded-full ${positionDot(player.position)}`} />
-              {player.position}
-            </div>
-          )}
+          {/* Position pill always mounts so avatars line up across the
+              grid (audit 2026-07-12). When the player has no position
+              assigned we render an "Unassigned" chip in muted tone
+              instead of collapsing the slot — coaches can then click
+              through to assign. */}
+          <div className="inline-flex self-start items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 text-[10px] font-bold uppercase tracking-wider mb-4 backdrop-blur">
+            <span className={`w-2 h-2 rounded-full ${player.position ? positionDot(player.position) : 'bg-line-default/40'}`} />
+            {player.position || 'Unassigned'}
+          </div>
 
           {/* Photo + Name row */}
           <div className="flex items-center gap-4 mb-5">
@@ -156,21 +156,30 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z"/></svg>
                 </span>
               )}
-              {/* Practice streak badge — discrete number bubble, only
-                  renders when streak > 0. Sits at the bottom-left of
-                  the avatar so it doesn't collide with the POTM star
-                  at top-right or the jersey-number chip at bottom-right.
-                  Goes fire-themed at 3+ days. */}
+              {/* Practice streak badge — flame + number in one pill.
+                  Sits at bottom-left of the avatar (POTM star lives
+                  top-right, jersey chip lives bottom-right). Warm
+                  orange scale from low to blazing, no color-flip
+                  between low/high streaks and no unicode emoji — the
+                  low state used to be brand-primary crimson which
+                  read as a notification badge (audit 2026-07-12). */}
               {((player as any).currentStreakDays ?? 0) > 0 && (
                 <span
                   title={`${(player as any).currentStreakDays}-day practice streak`}
-                  className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-[10px] font-black tabular-nums shadow-lg ring-2 ring-surface-elevated ${
-                    ((player as any).currentStreakDays ?? 0) >= 3
-                      ? 'bg-gradient-to-br from-rose-500 to-orange-500 text-white'
-                      : 'bg-brand-primary text-white'
+                  className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center gap-0.5 min-w-[26px] h-6 px-1.5 rounded-full text-[10px] font-black tabular-nums shadow-md ring-2 ring-surface-elevated text-white ${
+                    ((player as any).currentStreakDays ?? 0) >= 25
+                      ? 'bg-gradient-to-br from-amber-300 to-orange-600'
+                      : ((player as any).currentStreakDays ?? 0) >= 10
+                        ? 'bg-gradient-to-br from-orange-400 to-orange-600'
+                        : ((player as any).currentStreakDays ?? 0) >= 5
+                          ? 'bg-orange-500'
+                          : 'bg-orange-500/85'
                   }`}
                 >
-                  {((player as any).currentStreakDays ?? 0) >= 3 ? '🔥' : ''}{(player as any).currentStreakDays}
+                  <svg className="w-2.5 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M13.5 2c-.9 2.9-2.5 5-4.1 7-1.8 2.3-3.4 4.6-3.4 7.5C6 20.6 9 23 12.5 23s6.5-2.4 6.5-6.5c0-3.4-2.2-6.1-3.5-8-1.4-2-1.9-4.4-2-6.5zm-1 15c1.7 0 3-1.3 3-3 0-1.6-.9-2.6-1.7-3.7-.7-.9-1.3-1.8-1.3-3 .1 1.4-.6 2.3-1.4 3.3-.7.9-1.6 1.9-1.6 3.4 0 1.7 1.3 3 3 3z" />
+                  </svg>
+                  {(player as any).currentStreakDays}
                 </span>
               )}
               {player.profilePhotoUrl ? (
@@ -188,11 +197,17 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/50' : 'ring-line-default/25'
                 }`}>
                   <span className="text-2xl font-black text-ink-primary/65">
-                    {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
+                    {player.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
               )}
-              {player.profilePhotoUrl && player.jerseyNumber != null && (
+              {/* Jersey chip — bottom-right of the avatar, always
+                  present when the number is set. Removed the prior
+                  "only when there's a photo" guard so the number lives
+                  in one canonical slot for every card (audit 2026-07-12
+                  found Harrison's #15 rendered inside the initials
+                  avatar AND as body text — same number in three places). */}
+              {player.jerseyNumber != null && (
                 <span className="absolute -bottom-1 -right-1 bg-surface-base text-ink-primary rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-surface-elevated">
                   #{player.jerseyNumber}
                 </span>
@@ -205,22 +220,25 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                     'Ryd…' / 'Hect…'. Looked broken on iPad-width cards. */}
                 <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight break-words line-clamp-2">{player.name}</h3>
               </Link>
-              <p className="text-ink-primary/60 text-sm font-medium mt-0.5">
-                {player.jerseyNumber != null && !player.profilePhotoUrl ? `Jersey #${player.jerseyNumber}` : ''}
-                {player.jerseyNumber != null && !player.profilePhotoUrl && age ? ' · ' : ''}
-                {age ? `Age ${age}` : (player.jerseyNumber != null && !player.profilePhotoUrl ? '' : 'Player')}
-              </p>
-              {/* Adult roster chip row — only when this player carries
-                  the adult fields. Reads compactly under the name. */}
-              {((player as any).preferredFoot || (player as any).secondaryPosition || (player as any).heightCm) && (
-                <p className="text-ink-primary/50 text-[11px] font-bold uppercase tracking-widest mt-0.5">
-                  {[
-                    (player as any).preferredFoot ? `${(player as any).preferredFoot} foot` : null,
-                    (player as any).secondaryPosition && (player as any).secondaryPosition !== player.position ? (player as any).secondaryPosition : null,
-                    (player as any).heightCm ? `${(player as any).heightCm} cm` : null,
-                  ].filter(Boolean).join(' · ')}
-                </p>
-              )}
+              {/* Single identity line — same order across every card:
+                  Age → preferred foot → secondary position → height.
+                  Jersey number lives in the avatar chip, not repeated
+                  here. Renders nothing when every field is absent
+                  (better than the prior "Player" stub for photo-having,
+                  DOB-missing kids). */}
+              {(() => {
+                const parts: string[] = [];
+                if (age != null) parts.push(`Age ${age}`);
+                if ((player as any).preferredFoot) parts.push(`${(player as any).preferredFoot} foot`);
+                if ((player as any).secondaryPosition && (player as any).secondaryPosition !== player.position) {
+                  parts.push((player as any).secondaryPosition);
+                }
+                if ((player as any).heightCm) parts.push(`${(player as any).heightCm} cm`);
+                if (parts.length === 0) return null;
+                return (
+                  <p className="text-ink-primary/60 text-sm font-medium mt-0.5">{parts.join(' · ')}</p>
+                );
+              })()}
             </div>
           </div>
 

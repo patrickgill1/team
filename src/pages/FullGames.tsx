@@ -8,6 +8,7 @@ import { FullGame } from '../types';
 import { canManageTeamMedia, formatDate } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamThumbnailUrl } from '../utils/streamUpload';
+import { canUploadFullGameFile } from '../utils/videoQuota';
 import { checkUploadQuota, probeVideoDuration, incrementTeamVideoUsage, type QuotaCheck } from '../utils/videoQuota';
 import VideoQuotaModal from '../components/common/VideoQuotaModal';
 import StreamPlayer from '../components/common/StreamPlayer';
@@ -61,8 +62,12 @@ const FullGames: React.FC = () => {
   const [formNotes, setFormNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Source toggle: upload a file to our site, or paste a YouTube link
-  const [formSource, setFormSource] = useState<'upload' | 'youtube'>('upload');
+  // Source toggle: upload a file to our site, or paste a YouTube link.
+  // Free / addon tier defaults to youtube — the upload option is
+  // gated behind the pro tier (Full Game Film, $29.99/mo). See
+  // canUploadFullGameFile / videoQuota.ts for the rationale
+  // (Cloudflare Stream cost per team on a 90-min game).
+  const [formSource, setFormSource] = useState<'upload' | 'youtube'>('youtube');
   const [formFile, setFormFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   // For edit mode, keep track of existing R2 video so user knows it's already there
@@ -72,6 +77,7 @@ const FullGames: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canManageMedia = canManageTeamMedia(userData, selectedTeam);
+  const canUploadFiles = canUploadFullGameFile(selectedTeam);
 
   const loadGames = async () => {
     if (!selectedTeamId) {
@@ -107,7 +113,9 @@ const FullGames: React.FC = () => {
     setFormResult('');
     setFormNotes('');
     setEditingId(null);
-    setFormSource('upload');
+    // Reset defaults to the tier's default source. Pro teams pick
+    // upload naturally; free/addon default to youtube.
+    setFormSource(canUploadFiles ? 'upload' : 'youtube');
     setFormFile(null);
     setUploadProgress(0);
     setExistingVideoUrl(undefined);
@@ -177,7 +185,15 @@ const FullGames: React.FC = () => {
       (payload as any).videoSize = null;
       (payload as any).videoContentType = null;
     } else {
-      // Upload mode
+      // Upload mode. Belt-and-suspenders tier gate — the UI already
+      // shunts free/addon coaches to the upgrade page when they tap
+      // Upload, but a tampered client (or a downgraded team editing
+      // an old R2 game) hitting Save with formFile set would slip
+      // past the UI. Refuse here too.
+      if (!canUploadFiles && formFile) {
+        alert('Uploading video files requires the Full Game Film tier ($29.99/mo). Paste a YouTube link instead, or upgrade under Team Settings.');
+        return;
+      }
       if (!formFile && !existingVideoUrl) {
         alert('Please choose a video file to upload.');
         return;
@@ -589,14 +605,33 @@ const FullGames: React.FC = () => {
                   <div className="grid grid-cols-2 gap-2 mb-3 p-1 bg-line-default/[0.08] rounded-lg">
                     <button
                       type="button"
-                      onClick={() => setFormSource('upload')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      onClick={() => {
+                        if (canUploadFiles) {
+                          setFormSource('upload');
+                        } else {
+                          // Free / addon can't upload files — take them
+                          // to the upgrade page. Full Game Film ($29.99)
+                          // is the tier that unlocks R2 file upload
+                          // (Cloudflare Stream storage is too pricey to
+                          // give away at $0-10/mo).
+                          navigate('/upgrade/video');
+                        }
+                      }}
+                      className={`relative px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         formSource === 'upload'
                           ? 'bg-surface-elevated text-brand-primary-soft shadow-sm'
-                          : 'text-ink-primary/65 hover:text-ink-primary'
+                          : canUploadFiles
+                          ? 'text-ink-primary/65 hover:text-ink-primary'
+                          : 'text-ink-primary/40'
                       }`}
+                      title={canUploadFiles ? 'Upload file to GoalKickr' : 'Upgrade to Full Game Film to upload files'}
                     >
                       Upload to GoalKickr
+                      {!canUploadFiles && (
+                        <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40">
+                          Pro
+                        </span>
+                      )}
                     </button>
                     <button
                       type="button"
@@ -610,6 +645,12 @@ const FullGames: React.FC = () => {
                       🔗 YouTube link
                     </button>
                   </div>
+
+                  {!canUploadFiles && (
+                    <div className="mb-3 rounded-lg bg-amber-500/10 ring-1 ring-amber-500/30 px-3 py-2 text-xs text-amber-200/85 leading-snug">
+                      Paste a YouTube link on the current tier. To upload full game files directly to GoalKickr, unlock <button type="button" onClick={() => navigate('/upgrade/video')} className="underline font-bold hover:text-amber-100">Full Game Film</button> ($29.99/mo).
+                    </div>
+                  )}
 
                   {formSource === 'upload' ? (
                     <div>

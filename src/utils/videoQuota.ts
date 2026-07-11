@@ -42,6 +42,18 @@ export function getTierFor(team: Pick<Team, 'videoTier'> | null | undefined): Vi
   return 'free';
 }
 
+/** Full-game file uploads are only unlocked on the `pro` tier — the
+ *  economics don't work at free or $10/mo when a 90-min game is
+ *  hundreds of MB to a few GB of Cloudflare Stream storage per team.
+ *  Free + addon teams get the YouTube-link path only.
+ *
+ *  Existing full games uploaded before this gate landed keep playing
+ *  fine (nothing here nukes the R2 doc); the gate only fires on new
+ *  uploads / replacements. */
+export function canUploadFullGameFile(team: Pick<Team, 'videoTier'> | null | undefined): boolean {
+  return getTierFor(team) === 'pro';
+}
+
 export interface QuotaCheck {
   allowed: boolean;
   reason?: 'count' | 'duration' | 'storage';

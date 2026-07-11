@@ -404,8 +404,8 @@ const SimpleAuth: React.FC = () => {
           body="Practice streaks, development plans, a drill library that plays inline. Not just a schedule. A path."
         />
         <TeaserSlide
-          src="/hero/celebration.jpg"
-          alt="Team celebrating"
+          src="/hero/adult.jpg"
+          alt="Adult team on the pitch"
           kicker="For adult teams too"
           title="Weekend pickups. Adult leagues. Weekly squads."
           body="Snake-draft team split, drop-in fees, RSVP with cap + waitlist. Same tool, none of the parent overhead."

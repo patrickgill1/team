@@ -8,6 +8,7 @@ import PlayerCard from '../components/player/PlayerCard';
 import PlayerXpCard from '../components/player/PlayerXpCard';
 import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import KidModePinModal from '../components/player/KidModePinModal';
+import KidChatRoom from '../components/kidChat/KidChatRoom';
 import { Link } from 'react-router-dom';
 
 // KidDashboard — the stripped-down view a player sees when in kid
@@ -199,11 +200,24 @@ const KidDashboard: React.FC = () => {
           )}
         </section>
 
-        {/* Chat placeholder — Phase 2. Named up top so kids see the
-            promise even before the feature ships. */}
-        <section className="rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-4">
-          <p className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/55">Team chat</p>
-          <p className="text-sm text-ink-primary/60 mt-1">Coming soon. You'll be able to chat with your teammates here.</p>
+        {/* Team kid chat — same team's kids room. Composer visible;
+            rules gate the write on parent-of-actingAsPlayer AND kid
+            mode enabled on the player. Parents shadow-read from
+            Player Circle; coaches can moderate via any authed team-
+            member view. */}
+        <section className="rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <span className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/55">Team chat</span>
+            <span className="text-[10px] text-ink-primary/35">Your parents can see this</span>
+          </div>
+          <div className="h-[420px]">
+            <KidChatRoom
+              actingAsPlayer={player}
+              team={team}
+              canPost={true}
+              variant="full"
+            />
+          </div>
         </section>
       </main>
 

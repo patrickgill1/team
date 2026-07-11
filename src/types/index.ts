@@ -1904,6 +1904,41 @@ export interface StandingsDoc {
   updatedAt: Date;
 }
 
+// Kid profile chat — kids-only team room. Auth is still the
+// parent's uid (kid mode is UI-only); every message carries
+// actingAsPlayerId identifying the KID whose bubble to show. See
+// firestore.rules kid_chat_* + KidChatRoom component.
+export interface KidChatThread {
+  id: string;
+  teamId: string;
+  audience: 'kids';
+  createdAt: Date;
+  createdByUid: string;
+  lastMessageAt?: Date;
+  lastMessagePreview?: string;
+}
+
+export interface KidChatMessage {
+  id: string;
+  threadId: string;
+  teamId: string;
+  actingAsPlayerId: string;
+  /** Kid's first name for the bubble label. Stored on the doc
+   *  because the parent user doc name doesn't match the kid's
+   *  display and we don't want a per-message player fetch. */
+  actingAsName: string;
+  actingAsPhotoUrl?: string | null;
+  senderUid: string;
+  text: string;
+  createdAt: Date;
+  /** Coach-side moderation surface: any deleted message is soft-
+   *  removed (isDeleted flip), not hard-deleted, so shadow readers
+   *  see "[removed]" instead of a message vanishing silently. */
+  isDeleted?: boolean;
+  deletedAt?: Date;
+  deletedByUid?: string;
+}
+
 export interface Team {
   id: string;
   name: string;

@@ -679,6 +679,50 @@ service cloud.firestore {
       );
     }
 
+    // ────────────────────────────────────────────────────────────
+    // Kid profile chat — kids-only team room. Auth layer stays the
+    // parent's uid (kid mode is UI-only), but every message carries
+    // actingAsPlayerId identifying the KID the message came from.
+    //
+    // READ: any authed team member — coaches shadow-read for
+    //   moderation, parents shadow-read for safety, kid gets their
+    //   own room. Scoped by teamId in the caller's user.teamIds.
+    // CREATE: caller must be a parent of the acting-as player AND
+    //   the player must be on this team. Parents (or a kid in kid
+    //   mode, which auths as parent uid) can post; coaches cannot
+    //   post — this is the kids' room, not a broadcast channel.
+    // DELETE: sender OR coach on this team (moderation).
+    // UPDATE: locked (no edits, no reactions in v1 — deliberate).
+    // ────────────────────────────────────────────────────────────
+    match /kid_chat_threads/{threadId} {
+      allow read: if isAuthed()
+        && resource.data.teamId in userDoc().teamIds;
+      allow create: if isAuthed()
+        && request.resource.data.teamId in userDoc().teamIds
+        && request.resource.data.audience == 'kids';
+      allow update, delete: if false;
+    }
+
+    match /kid_chat_messages/{messageId} {
+      allow read: if isAuthed()
+        && resource.data.teamId in userDoc().teamIds;
+      allow create: if isAuthed()
+        && request.resource.data.senderUid == request.auth.uid
+        && request.resource.data.teamId in userDoc().teamIds
+        && request.resource.data.actingAsPlayerId is string
+        && request.auth.uid in get(/databases/$(database)/documents/players/$(request.resource.data.actingAsPlayerId)).data.parentIds;
+      // Soft-delete only: sender or team coach flip isDeleted +
+      // audit stamps. All other updates locked so no back-door
+      // edits after send.
+      allow update: if isAuthed()
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['isDeleted', 'deletedAt', 'deletedByUid'])
+        && (resource.data.senderUid == request.auth.uid
+            || isTeamCoach(resource.data.teamId)
+            || isPlatformAdmin());
+      allow delete: if false;
+    }
+
     // Per-message push delivery log. Worker-only writes.
     match /push_attempts/{messageId} {
       allow read: if request.auth != null

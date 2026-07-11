@@ -7,6 +7,7 @@ import InviteShareModal from '../common/InviteShareModal';
 import type { Invite, Player } from '../../types';
 import KidModeSetupModal from './KidModeSetupModal';
 import KidModePinModal from './KidModePinModal';
+import KidChatShadowModal from '../kidChat/KidChatShadowModal';
 import { setDedicatedKidPlayerId, getDedicatedKidPlayerId, clearDedicatedKidPlayerId } from '../../utils/kidMode';
 import { workerFetch } from '../../utils/workerFetch';
 
@@ -45,6 +46,7 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
   const [activeInvite, setActiveInvite] = useState<Invite | null>(null);
   const [showKidSetup, setShowKidSetup] = useState(false);
   const [showKidPin, setShowKidPin] = useState(false);
+  const [showKidShadow, setShowKidShadow] = useState(false);
   const [dedicatedHere, setDedicatedHere] = useState<string | null>(() => getDedicatedKidPlayerId());
   const [confirmingDedicated, setConfirmingDedicated] = useState(false);
   const [busyDisable, setBusyDisable] = useState(false);
@@ -223,6 +225,15 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
                   </svg>
                   Enter {firstName}'s view
                 </button>
+                <button
+                  onClick={() => setShowKidShadow(true)}
+                  className="w-full inline-flex items-center gap-2 px-3 py-2 rounded-full bg-line-default/[0.06] ring-1 ring-line-default/25 text-ink-primary text-xs font-bold hover:bg-line-default/10 transition"
+                >
+                  <svg className="w-3.5 h-3.5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.8L3 20l1.3-3.4C3.5 15.4 3 13.7 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  See {firstName}'s chats
+                </button>
                 {dedicatedHere === player.id ? (
                   <button
                     onClick={() => { clearDedicatedKidPlayerId(); setDedicatedHere(null); }}
@@ -310,6 +321,12 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
         mode="enter"
         playerId={player.id}
         playerName={firstName}
+      />
+
+      <KidChatShadowModal
+        open={showKidShadow}
+        onClose={() => setShowKidShadow(false)}
+        player={player}
       />
     </>
   );

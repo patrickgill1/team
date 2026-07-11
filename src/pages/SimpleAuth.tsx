@@ -403,6 +403,13 @@ const SimpleAuth: React.FC = () => {
           title="Every day the kid gets a little better."
           body="Practice streaks, development plans, a drill library that plays inline. Not just a schedule. A path."
         />
+        <TeaserSlide
+          src="/hero/celebration.jpg"
+          alt="Team celebrating"
+          kicker="For adult teams too"
+          title="Weekend pickups. Adult leagues. Weekly squads."
+          body="Snake-draft team split, drop-in fees, RSVP with cap + waitlist. Same tool, none of the parent overhead."
+        />
 
         {/* SLIDE 5: BOTTOM CTA */}
         <section className="relative h-screen w-full snap-start snap-always overflow-hidden bg-charcoal-950 flex flex-col items-center justify-center px-6"

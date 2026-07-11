@@ -184,15 +184,15 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-full flex flex-col"
+        className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-md max-h-full flex flex-col ring-1 ring-line-default/10"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-brand-primary-soft to-white">
+        <div className="px-5 py-4 border-b border-line-default/10 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">New season</h3>
-            <p className="text-xs text-gray-500">For AYSO: Fall (Aug–Nov) and Spring (Mar–May).</p>
+            <h3 className="text-lg font-black text-ink-primary">New season</h3>
+            <p className="text-xs text-ink-primary/60">Any date range works. Common: Fall (Aug–Nov), Spring (Mar–May).</p>
           </div>
-          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" aria-label="Close">
+          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-line-default/[0.08] text-ink-primary/60" aria-label="Close">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -201,51 +201,51 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
 
         <div className="p-5 space-y-4 overflow-y-auto">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Season name</label>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-ink-primary/60 mb-1.5">Season name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Fall 2026"
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
+              className="w-full bg-surface-base border border-line-default/10 text-ink-primary rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-primary/50 text-base"
               style={{ fontSize: '16px' }}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Starts</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-ink-primary/60 mb-1.5">Starts</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
+                className="w-full bg-surface-base border border-line-default/10 text-ink-primary rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-primary/50 text-base [color-scheme:dark]"
                 style={{ fontSize: '16px' }}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ends</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-ink-primary/60 mb-1.5">Ends</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
+                className="w-full bg-surface-base border border-line-default/10 text-ink-primary rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-primary/50 text-base [color-scheme:dark]"
                 style={{ fontSize: '16px' }}
               />
             </div>
           </div>
 
           {userIsClubAdmin && clubTeams.length > 1 && (
-            <label className="flex items-start gap-2 text-sm text-gray-700 select-none cursor-pointer bg-violet-50 ring-1 ring-violet-200 rounded-xl p-3">
+            <label className="flex items-start gap-2 text-sm text-ink-primary select-none cursor-pointer bg-brand-primary/10 ring-1 ring-brand-primary/25 rounded-xl p-3">
               <input
                 type="checkbox"
                 checked={applyToAll}
                 onChange={(e) => setApplyToAll(e.target.checked)}
-                className="mt-0.5 w-4 h-4 accent-violet-600"
+                className="mt-0.5 w-4 h-4 accent-brand-primary"
               />
               <span>
-                <span className="font-semibold text-violet-900">Apply to all {clubTeams.length} teams in the club</span>
-                <span className="block text-xs text-violet-700 mt-0.5">
+                <span className="font-black text-ink-primary">Apply to all {clubTeams.length} teams in the club</span>
+                <span className="block text-xs text-ink-primary/65 mt-0.5">
                   {applyToAll
                     ? `Creates "${name || 'season'}" as a season doc on every active team in the club.`
                     : 'Creates this season only on the currently selected team.'}
@@ -254,7 +254,7 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
             </label>
           )}
 
-          <label className="flex items-start gap-2 text-sm text-gray-700 select-none cursor-pointer">
+          <label className="flex items-start gap-2 text-sm text-ink-primary/85 select-none cursor-pointer">
             <input
               type="checkbox"
               checked={makeActive}
@@ -264,29 +264,29 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
             <span>
               Make this the active season{applyToAll && userIsClubAdmin ? ' (for every team)' : ''}
               {existingActive && makeActive && !applyToAll && (
-                <span className="block text-xs text-amber-700 mt-0.5">
-                  ⚠️ Will archive <b>{existingActive.name}</b> (stats and history preserved).
+                <span className="block text-xs text-amber-300 mt-0.5">
+                  Will archive <b>{existingActive.name}</b> (stats and history preserved).
                 </span>
               )}
               {applyToAll && makeActive && userIsClubAdmin && (
-                <span className="block text-xs text-amber-700 mt-0.5">
-                  ⚠️ Any existing active seasons on those teams will be archived first.
+                <span className="block text-xs text-amber-300 mt-0.5">
+                  Any existing active seasons on those teams will be archived first.
                 </span>
               )}
             </span>
           </label>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-rose-300">{error}</p>}
         </div>
 
-        <div className="border-t border-gray-100 p-4 flex items-center justify-end gap-2 bg-gray-50">
-          <button onClick={handleClose} disabled={submitting} className="px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 disabled:opacity-50">
+        <div className="border-t border-line-default/10 p-4 flex items-center justify-end gap-2 bg-surface-base/50">
+          <button onClick={handleClose} disabled={submitting} className="px-4 py-2 text-sm font-bold text-ink-primary/70 hover:text-ink-primary disabled:opacity-50">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={submitting || !name.trim() || !startDate || !endDate}
-            className="bg-gradient-to-br from-brand-primary to-brand-primary hover:from-brand-primary hover:to-brand-primary disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition active:scale-95"
+            className="bg-brand-primary hover:bg-brand-primary-hov disabled:opacity-40 text-brand-primary-fg font-black rounded-xl px-5 py-2 text-sm transition"
           >
             {submitting ? 'Saving…' : 'Create season'}
           </button>

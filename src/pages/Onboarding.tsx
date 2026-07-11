@@ -719,25 +719,27 @@ const Onboarding: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-white/70 mb-1.5">Age group</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {AGE_GROUPS.map(a => (
-                    <button
-                      key={a}
-                      type="button"
-                      onClick={() => setTeamAgeGroup(a)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition ${
-                        teamAgeGroup === a
-                          ? 'bg-brand-primary text-white'
-                          : 'bg-white/5 text-white/60 ring-1 ring-white/10'
-                      }`}
-                    >
-                      {a}
-                    </button>
-                  ))}
+              {!isAdultTeam && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-white/70 mb-1.5">Age group</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {AGE_GROUPS.filter(a => a !== 'Adult').map(a => (
+                      <button
+                        key={a}
+                        type="button"
+                        onClick={() => setTeamAgeGroup(a)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition ${
+                          teamAgeGroup === a
+                            ? 'bg-brand-primary text-white'
+                            : 'bg-white/5 text-white/60 ring-1 ring-white/10'
+                        }`}
+                      >
+                        {a}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <button
@@ -1236,13 +1238,19 @@ const Onboarding: React.FC = () => {
               </p>
             </div>
             <div className="rounded-2xl bg-white/[0.04] ring-1 ring-white/10 p-5 space-y-3">
-              {[
+              {(isAdultTeam ? [
+                { title: 'Player of the Match crowns', body: 'When you get one.' },
+                { title: 'Matches starting soon', body: '1 hour before kickoff.' },
+                { title: 'Training reminders', body: 'On the days the group meets.' },
+                { title: 'Team announcements', body: 'When a post lands on the Wall.' },
+                { title: 'RSVP asks', body: 'Only when we actually need one.' },
+              ] : [
                 { title: 'Player of the Match crowns', body: 'When your kid gets one.' },
                 { title: 'Games starting soon', body: '1 hour before kickoff.' },
                 { title: 'Practice reminders', body: 'On the days you’ve set.' },
                 { title: 'Coach announcements', body: 'When a post lands on the Wall.' },
                 { title: 'RSVP asks', body: 'Only when we actually need one.' },
-              ].map((row) => (
+              ]).map((row) => (
                 <div key={row.title} className="flex items-start gap-3">
                   <div className="h-2 w-2 rounded-full bg-brand-primary-soft mt-2 flex-shrink-0" />
                   <div className="flex-1">

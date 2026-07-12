@@ -17,7 +17,7 @@
 import React from 'react';
 import { Player, Team } from '../../types';
 import { computeXpLevel } from '../../utils/xpLevel';
-import { badgeImageSrc, badgeSrcSet, badgeLabel } from '../../utils/badgeMeta';
+import { badgeImageSrc, badgeSrcSet, badgeLabel, filterVisibleBadgeSlots } from '../../utils/badgeMeta';
 
 interface Props {
   player: Player;
@@ -142,7 +142,21 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
   // kid feel like they're at zero.
   const paused = !xpEnabled;
   const level = computeXpLevel(xp);
-  const totalSlots = BADGE_SLOTS.length;
+
+  // Position-relevant collection. Union of "eligible for this player's
+  // position(s)" + "already earned" so a keeper's grid drops
+  // first_goal and a striker's drops first_save — no dead locks kids
+  // can't realistically fill. A rare cross-position earn still shows.
+  const positions: string[] = [
+    ...((player as any).positions || []),
+    ...((player as any).position ? [(player as any).position] : []),
+  ];
+  const visibleSlots = filterVisibleBadgeSlots(BADGE_SLOTS, positions, badges);
+  const totalSlots = visibleSlots.length;
+  // Position-scoped owned count so the "N of M" ratio stays fair —
+  // a keeper's first_goal (if earned via a rare set-piece) counts
+  // because filterVisibleBadgeSlots includes earned badges regardless.
+  const visibleOwnedCount = visibleSlots.reduce((acc, slug) => acc + (badges[slug] ? 1 : 0), 0);
   const coachPickCount = typeof badges?.coach_pick?.count === 'number' ? badges.coach_pick.count : 0;
 
   const rarity = paused ? 'rookie' : rarityForLevel(level.level);
@@ -312,7 +326,7 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
                     Collection
                   </p>
                   <p className="mt-0.5 text-lg font-black text-ink-primary leading-none tabular-nums">
-                    {ownedCount}
+                    {visibleOwnedCount}
                     <span className="text-ink-primary/40 text-sm font-bold"> / {totalSlots}</span>
                   </p>
                 </div>
@@ -326,7 +340,7 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
                 corner chip since it's the only repeatable slug. */}
             <div className="relative px-4 sm:px-5 pb-4">
               <div className="grid grid-cols-6 sm:grid-cols-11 gap-1.5 sm:gap-2">
-                {BADGE_SLOTS.map((slug) => {
+                {visibleSlots.map((slug) => {
                   const owned = Object.prototype.hasOwnProperty.call(badges, slug);
                   const meta = badges[slug];
                   const label = badgeLabel(slug);

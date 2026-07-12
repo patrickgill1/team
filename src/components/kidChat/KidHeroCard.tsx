@@ -21,7 +21,7 @@ import React, { useState } from 'react';
 import type { Player, Team } from '../../types';
 import { computeXpLevel } from '../../utils/xpLevel';
 import { computeDobAge } from '../../utils/dobDate';
-import { badgeImageSrc, badgeSrcSet, badgeLabel } from '../../utils/badgeMeta';
+import { badgeImageSrc, badgeSrcSet, badgeLabel, filterVisibleBadgeSlots } from '../../utils/badgeMeta';
 
 // Same slot order as PlayerXpCard so "N / 11" stays consistent across
 // surfaces. Update both if either list changes.
@@ -212,8 +212,19 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
 
   const age = player.dateOfBirth ? computeDobAge(player.dateOfBirth as any) : null;
   const level = xpEnabled ? computeXpLevel(xp) : null;
-  const badgeCount = BADGE_SLOTS.reduce((acc, slot) => acc + (badges[slot] ? 1 : 0), 0);
-  const totalBadgeSlots = BADGE_SLOTS.length;
+
+  // Position-relevant badge slots. Union of "eligible for the kid's
+  // position" + "already earned" so a rare cross-position earn (a
+  // striker who bagged a save on a deflection) still shows in the
+  // locker. Keepers stop staring at first_goal forever; strikers
+  // stop staring at first_save forever. Denominator becomes fair.
+  const kidPositions: string[] = [
+    ...((player as any).positions || []),
+    ...((player as any).position ? [(player as any).position] : []),
+  ];
+  const relevantSlots = filterVisibleBadgeSlots(BADGE_SLOTS, kidPositions, badges);
+  const badgeCount = relevantSlots.reduce((acc, slot) => acc + (badges[slot] ? 1 : 0), 0);
+  const totalBadgeSlots = relevantSlots.length;
   const initials = getInitials(player.name);
   const rarity = rarityFor(level ? level.level : null);
   const streakTone = streakBadgeTone(streak);
@@ -222,7 +233,8 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
   const oneLevelToNext = !!(upcomingTier && level && upcomingTier.unlockLevel - level.level === 1);
 
   // Locker composition — earned first, then locks or overflow.
-  const earnedSlots = BADGE_SLOTS.filter((s) => badges[s]);
+  // Uses relevantSlots so a striker never sees first_save as a lock.
+  const earnedSlots = relevantSlots.filter((s) => badges[s]);
   const overflow = Math.max(0, earnedSlots.length - LOCKER_SLOTS);
   const lockerCells: Array<{ kind: 'earned'; slug: string } | { kind: 'lock' } | { kind: 'overflow'; count: number }> = [];
   const showEarned = overflow > 0 ? earnedSlots.slice(0, LOCKER_SLOTS - 1) : earnedSlots.slice(0, LOCKER_SLOTS);

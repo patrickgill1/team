@@ -47,6 +47,64 @@ export function badgeXp(slug: string): number {
   return (BADGE_META as any)[slug]?.xp || 0;
 }
 
+// Per-badge position eligibility. When null, the badge is universal
+// (any position can earn it). When an array, only the listed
+// positions have a realistic path to it.
+//
+// Reasoning per slug:
+//  - first_save: keeper-only. A striker doesn't touch keeper stats.
+//  - first_clean_sheet: backline achievement. Keepers + defenders share
+//    the moment; midfielders and forwards don't get credit today.
+//  - Everything else universal — anyone can score, anyone can win POTM,
+//    anyone can log practice, anyone can be recognized.
+//
+// Enforcement is display-only. If a striker somehow gets stamped a
+// save (deflection off the line, coach override), the badge lands
+// on their doc and shows in their locker regardless — see
+// filterVisibleBadgeSlots which unions eligible + earned.
+export const BADGE_POSITION_ELIGIBILITY: Record<string, string[] | null> = {
+  first_goal: null,
+  first_assist: null,
+  first_save: ['Goalkeeper'],
+  first_clean_sheet: ['Goalkeeper', 'Defender'],
+  first_potm: null,
+  perfect_attendance: null,
+  streak_5: null,
+  streak_10: null,
+  streak_25: null,
+  streak_50: null,
+  coach_pick: null,
+};
+
+/** True when the badge slug is realistically earnable given a
+ *  player's position(s). Universal badges always return true. If the
+ *  player has no position set, return true (generous default — better
+ *  to show aspirational slots than to hide everything). */
+export function isBadgeEligibleForPositions(slug: string, positions: string[]): boolean {
+  const eligible = BADGE_POSITION_ELIGIBILITY[slug];
+  if (eligible == null) return true;
+  if (!positions || positions.length === 0) return true;
+  return positions.some(p => eligible.includes(p));
+}
+
+/** Filter a slot list to the slugs a player should SEE in their
+ *  locker. Union of (eligible-for-position) + (already-earned) so a
+ *  rare cross-position earn (striker who bagged a save on a
+ *  deflection) still shows up celebrated instead of being hidden.
+ *
+ *  positions: pass all positions the player rosters at (Player.position
+ *  singular + Player.positions[] combined; caller normalizes). */
+export function filterVisibleBadgeSlots(
+  slots: readonly string[],
+  positions: string[],
+  earnedBadges: Record<string, unknown> | null | undefined,
+): string[] {
+  const earned = earnedBadges || {};
+  return slots.filter(slug =>
+    isBadgeEligibleForPositions(slug, positions) || Boolean(earned[slug])
+  );
+}
+
 // Available PNG sizes on disk under /public/badges/. Not every size is
 // used everywhere — chip renders lean on the small ones, celebration
 // surfaces (hero, modal, wall) can pull the larger.

@@ -248,7 +248,10 @@ async function buildSnapshot(
     coachedTeams.forEach(t => t && teamSet.add(t));
   }
   const tIds: string[] = Array.from(teamSet);
-  console.log(`[widget] uid=${uid} mode=${useDiscoveryFallback ? 'discovery' : 'player-scoped'} linkedPlayers=${linked.length} playerTeams=${playerTeamSet.size} coached=${coachedTeams.length} userTeamIds=${(user?.teamIds||[]).length} teams=${JSON.stringify(tIds)}`);
+  // Prior version emitted a per-request happy-path trace here that
+  // fired on every home-screen widget refresh (multiple/hour/device)
+  // and drowned Tail. Removed; error branches below still fire for
+  // real failures, which is what we actually need to see.
   let nextEvent: any = null;
   let nextMs = Number.POSITIVE_INFINITY;
   let lastGame: any = null;
@@ -279,7 +282,6 @@ async function buildSnapshot(
         sa,
         100,
       );
-      console.log(`[widget] upcoming team=${tid} count=${rows.length}`);
     } catch (e) {
       console.error('[widget] upcoming query failed for team', tid, (e as Error).message);
       continue;
@@ -310,7 +312,6 @@ async function buildSnapshot(
         sa,
         100,
       );
-      console.log(`[widget] past team=${tid} count=${rows.length}`);
     } catch (e) {
       console.error('[widget] past query failed for team', tid, (e as Error).message);
       continue;

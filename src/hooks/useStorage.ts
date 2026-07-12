@@ -8,6 +8,7 @@ import {
   UploadTaskSnapshot
 } from 'firebase/storage';
 import { storage } from '../utils/firebase';
+import { debug } from '../utils/debug';
 import { v4 as uuidv4 } from 'uuid';
 
 interface UploadProgress {
@@ -88,8 +89,8 @@ export const useStorage = () => {
       const cleanPath = path.replace(/^\//, '').replace(/\/$/, '');
       const fullPath = `${cleanPath}/${fileName}`;
       
-      console.log('Uploading file to path:', fullPath);
-      
+      debug('Uploading file to path:', fullPath);
+
       const storageRef = ref(storage, fullPath);
       const uploadTask = uploadBytesResumable(storageRef, file, {
         contentType: file.type,
@@ -108,7 +109,7 @@ export const useStorage = () => {
             if (onProgress) {
               onProgress(progress);
             }
-            console.log(`Upload is ${progress.progress}% done`);
+            debug(`Upload is ${progress.progress}% done`);
           },
           (error) => {
             const errorMessage = handleError(error);
@@ -117,7 +118,7 @@ export const useStorage = () => {
           async () => {
             try {
               const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              console.log('File uploaded successfully. Download URL:', downloadURL);
+              debug('File uploaded successfully. Download URL:', downloadURL);
               setLoading(false);
               setUploadProgress(null);
               setError(null);
@@ -150,15 +151,15 @@ export const useStorage = () => {
       const cleanPath = path.replace(/^\//, '').replace(/\/$/, '');
       const fullPath = `${cleanPath}/${fileName}`;
       
-      console.log('Uploading file to path:', fullPath);
-      
+      debug('Uploading file to path:', fullPath);
+
       const storageRef = ref(storage, fullPath);
       const snapshot = await uploadBytes(storageRef, file, {
         contentType: file.type,
       });
       const downloadURL = await getDownloadURL(snapshot.ref);
-      
-      console.log('File uploaded successfully. Download URL:', downloadURL);
+
+      debug('File uploaded successfully. Download URL:', downloadURL);
       setLoading(false);
       setError(null);
       return downloadURL;
@@ -191,10 +192,10 @@ export const useStorage = () => {
         filePath = url;
       }
 
-      console.log('Deleting file at path:', filePath);
+      debug('Deleting file at path:', filePath);
       const fileRef = ref(storage, filePath);
       await deleteObject(fileRef);
-      console.log('File deleted successfully');
+      debug('File deleted successfully');
       setLoading(false);
       setError(null);
     } catch (err) {

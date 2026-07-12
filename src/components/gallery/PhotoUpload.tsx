@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { useStorage } from '../../hooks/useStorage';
+import { debug } from '../../utils/debug';
 
 interface PhotoUploadProps {
   onPhotosUploaded: (photos: GalleryPhoto[]) => void;
@@ -103,7 +104,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
           `teams/${selectedTeamId}/photos/`,
           (progress) => {
             // Optional: Update progress for individual files
-            console.log(`File ${i + 1} progress:`, progress.progress);
+            debug(`File ${i + 1} progress:`, progress.progress);
           }
         );
         

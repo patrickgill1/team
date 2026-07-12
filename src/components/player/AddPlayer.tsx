@@ -8,6 +8,7 @@ import { useFirestore } from '../../hooks/useFirestore';
 import { getShareOrigin } from '../../utils/origin';
 import { parseDobInput, formatDobInput } from '../../utils/dobDate';
 import { useTeamAudience } from '../../hooks/useTeamAudience';
+import { debug } from '../../utils/debug';
 
 interface AddPlayerProps {
   isOpen: boolean;
@@ -179,8 +180,8 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
   // Upload function with proper error handling
   const uploadPlayerPhoto = async (file: File): Promise<string> => {
     try {
-      console.log('Starting photo upload...');
-      console.log('File details:', {
+      debug('Starting photo upload...');
+      debug('File details:', {
         name: file.name,
         size: file.size,
         type: file.type
@@ -208,7 +209,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
       // Use a simple path
       const storagePath = `player-photos/${fileName}`;
       
-      console.log('Upload details:', {
+      debug('Upload details:', {
         fileName,
         storagePath,
         fileSize: file.size,
@@ -217,7 +218,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
       
       // Create storage reference
       const storageRef = ref(storage, storagePath);
-      console.log('Storage ref created for path:', storagePath);
+      debug('Storage ref created for path:', storagePath);
       
       // Add metadata
       const metadata = {
@@ -229,11 +230,11 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         }
       };
       
-      console.log('Starting upload with metadata:', metadata);
+      debug('Starting upload with metadata:', metadata);
       
       // Upload the file
       const snapshot = await uploadBytes(storageRef, file, metadata);
-      console.log('Upload completed. Snapshot details:', {
+      debug('Upload completed. Snapshot details:', {
         bytesTransferred: snapshot.metadata.size,
         fullPath: snapshot.metadata.fullPath,
         name: snapshot.metadata.name
@@ -241,7 +242,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
       
       // Get the download URL
       const downloadURL = await getDownloadURL(snapshot.ref);
-      console.log('Download URL obtained:', downloadURL);
+      debug('Download URL obtained:', downloadURL);
       
       return downloadURL;
     } catch (error: any) {
@@ -432,9 +433,9 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
       if (profilePhoto) {
         try {
           setUploadLoading(true);
-          console.log('Starting photo upload process...');
+          debug('Starting photo upload process...');
           profilePhotoUrl = await uploadPlayerPhoto(profilePhoto);
-          console.log('Profile photo uploaded successfully:', profilePhotoUrl);
+          debug('Profile photo uploaded successfully:', profilePhotoUrl);
           setUploadLoading(false);
         } catch (uploadErr: any) {
           console.error('Error uploading profile photo:', uploadErr);
@@ -521,7 +522,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         inviteCode: editingPlayer?.inviteCode || generateInviteCode()
       };
 
-      console.log('Attempting to save player:', basePlayerData);
+      debug('Attempting to save player:', basePlayerData);
 
       // Persist the base player doc first. Then, if the coach flipped
       // the "This player is my kid" toggle, fire /players/toggle-self-
@@ -530,16 +531,16 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
       let savedPlayerId: string;
       let savedPlayer: Player;
       if (editingPlayer) {
-        console.log('Updating existing player with ID:', editingPlayer.id);
+        debug('Updating existing player with ID:', editingPlayer.id);
         await updatePlayer(editingPlayer.id, basePlayerData as any);
         savedPlayerId = editingPlayer.id;
         savedPlayer = { ...editingPlayer, ...basePlayerData } as Player;
-        console.log('Player updated successfully:', savedPlayer);
+        debug('Player updated successfully:', savedPlayer);
       } else {
-        console.log('Adding new player...');
+        debug('Adding new player...');
         savedPlayerId = await addPlayer(basePlayerData as any);
         savedPlayer = { ...basePlayerData, id: savedPlayerId, createdAt: new Date() } as Player;
-        console.log('New player created with ID:', savedPlayerId);
+        debug('New player created with ID:', savedPlayerId);
       }
 
       // "This is my kid" toggle. Fire whenever the desired state
@@ -573,7 +574,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         }
         const alreadyParent = currentParentIds.includes(userData.uid);
         const shouldBeParent = isMyKid;
-        console.log('[isMyKid] toggle check', {
+        debug('[isMyKid] toggle check', {
           alreadyParent, shouldBeParent, initialIsMyKid, isMyKid,
           userUid: userData.uid, playerId: savedPlayerId,
         });
@@ -597,7 +598,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                   : `Saved the player, but couldn't unlink you as parent (${err}).`
               );
             } else {
-              console.log('[isMyKid] toggle-self-parent ok');
+              debug('[isMyKid] toggle-self-parent ok');
               const nextParentIds = new Set<string>(currentParentIds);
               if (shouldBeParent) nextParentIds.add(userData.uid);
               else nextParentIds.delete(userData.uid);

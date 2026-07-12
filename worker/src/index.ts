@@ -944,33 +944,58 @@ async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionC
     //   "0 16 * * *"   — daily registration drips (10am MDT)
     //   "*/5 * * * *"  — campaign tick (in-app Mailchimp replacement)
     const cron = event.cron || '';
+
+    // Gate happy-path cron logs on actual work-done, matching the
+    // pattern used by runPotmAutoCreate/runDueCampaigns/runEventReminders
+    // below. Prior version logged on every daily tick regardless of
+    // whether any user's configured day matched today, which produced
+    // dozens of empty-{} lines/day in Tail. Defensive: any recognized
+    // counter or errors array triggers the log; unknown shape → log
+    // (fail-loud beats silent regression on a new counter name).
+    const cronHadWork = (r: any): boolean => {
+      if (!r || typeof r !== 'object') return false;
+      const counters = ['sent', 'sentEvents', 'processed', 'created', 'flipped', 'total'];
+      for (const k of counters) {
+        if (typeof r[k] === 'number' && r[k] > 0) return true;
+      }
+      if (Array.isArray(r.errors) && r.errors.length > 0) return true;
+      // Unknown shape — err toward logging so a new counter name
+      // doesn't silently hide real work.
+      const knownKeys = new Set([...counters, 'errors', 'ok', 'skipped']);
+      for (const k of Object.keys(r)) if (!knownKeys.has(k)) return true;
+      return false;
+    };
+    const logIfWork = (tag: string) => (r: any) => {
+      if (cronHadWork(r)) console.log(tag, JSON.stringify(r));
+    };
+
     if (cron === '0 22 * * SUN') {
       // Retained: admin roundup runs once a week on Sunday. The
       // parent-facing digest moved to the daily tick below so coaches
       // can pick the day themselves.
       ctx.waitUntil(
-        runAdminWeeklyRoundup(env).then(r => console.log('[cron] admin roundup', JSON.stringify(r)))
+        runAdminWeeklyRoundup(env).then(logIfWork('[cron] admin roundup'))
       );
     } else if (cron === '0 16 * * *') {
       ctx.waitUntil(
-        runRegistrationDrips(env).then(r => console.log('[cron] registration drips', JSON.stringify(r)))
+        runRegistrationDrips(env).then(logIfWork('[cron] registration drips'))
       );
       // Daily 10am MDT tick reads each team's config and fires the
       // parent digests only when the configured day matches today.
       // Team Wall summary + parent email digest both live here so
       // coaches control both from Team settings.
       ctx.waitUntil(
-        runWeeklyTeamWallDigest(env).then(r => console.log('[cron] team-wall daily tick', JSON.stringify(r)))
+        runWeeklyTeamWallDigest(env).then(logIfWork('[cron] team-wall daily tick'))
       );
       ctx.waitUntil(
-        runWeeklyDigest(env).then(r => console.log('[cron] email digest daily tick', JSON.stringify(r)))
+        runWeeklyDigest(env).then(logIfWork('[cron] email digest daily tick'))
       );
       // Defense-in-depth: flip subscriptionActive=false on auto-trial
       // users whose subscriptionExpiresAt is in the past. Rules already
       // block their writes, but useSubscription() on the client trusts
       // the flag and won't surface the paywall until the flag flips.
       ctx.waitUntil(
-        runTrialExpirySweep(env).then(r => console.log('[cron] trial expiry sweep', JSON.stringify(r)))
+        runTrialExpirySweep(env).then(logIfWork('[cron] trial expiry sweep'))
       );
       // Post-game POTM auto-create. Scans events past their date but
       // within 48h, type=game, opt-outs honored, no existing voting,
@@ -1001,8 +1026,10 @@ async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionC
         })
       );
     } else {
-      ctx.waitUntil(
-        runWeeklyDigest(env).then(r => console.log('[cron] (unknown) digest', JSON.stringify(r)))
-      );
+      // Unknown cron schedule — surface loudly so a stray wrangler.toml
+      // entry can't silently re-fire the weekly digest off-cycle. Prior
+      // version ran runWeeklyDigest here as a fallback, which was
+      // exactly wrong (off-cycle sends + no error signal).
+      console.error('[cron] unknown schedule; no handler ran', event.cron);
     }
 }

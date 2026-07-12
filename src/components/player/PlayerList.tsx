@@ -9,6 +9,7 @@ import { db } from '../../utils/firebase';
 import PlayerCard from './PlayerCard';
 import AddPlayer from './AddPlayer';
 import { computeTeamAttendancePercents } from '../../utils/attendance';
+import { debug } from '../../utils/debug';
 
 interface PlayerListProps {
   searchTerm?: string;
@@ -181,11 +182,11 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
   }, [players, searchTerm, positionFilter, sortBy, sortOrder]);
 
   const handlePlayerAdded = (newPlayer: Player) => {
-    console.log('handlePlayerAdded called with:', newPlayer);
+    debug('handlePlayerAdded called with:', newPlayer);
     
     if (editingPlayer) {
       // Update existing player
-      console.log('Updating existing player in local state');
+      debug('Updating existing player in local state');
       setPlayers(prevPlayers =>
         prevPlayers.map(player =>
           player.id === newPlayer.id ? newPlayer : player
@@ -194,12 +195,12 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
       setEditingPlayer(null);
     } else {
       // Add new player
-      console.log('Adding new player to local state');
+      debug('Adding new player to local state');
       setPlayers(prevPlayers => {
         // Check if player already exists (in case real-time update already added it)
         const exists = prevPlayers.some(p => p.id === newPlayer.id);
         if (exists) {
-          console.log('Player already exists in state, updating instead');
+          debug('Player already exists in state, updating instead');
           return prevPlayers.map(p => p.id === newPlayer.id ? newPlayer : p);
         }
         return [...prevPlayers, newPlayer];
@@ -211,7 +212,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
   };
 
   const handlePlayerDeleted = (playerId: string) => {
-    console.log('Player deleted:', playerId);
+    debug('Player deleted:', playerId);
     setPlayers(prevPlayers => prevPlayers.filter(player => player.id !== playerId));
   };
 

@@ -10,6 +10,7 @@ import { Capacitor } from '@capacitor/core';
 // splash for the full 10s safety ceiling. Static import = no chunk,
 // no fetch, no failure mode. Bundle cost is ~2KB.
 import { SplashScreen } from '@capacitor/splash-screen';
+import { debug } from './debug';
 
 export async function initNativeShell(): Promise<void> {
   // Stamp the platform onto <body> for CSS-side branching even on
@@ -298,7 +299,7 @@ export async function registerPushNotifications(
     // Foreground notifications — iOS already shows banners via the
     // presentationOptions in capacitor.config.ts; hook here for in-app UI.
     await FirebaseMessaging.addListener('notificationReceived', (n) => {
-      console.debug('Push received in foreground', n);
+      debug('Push received in foreground', n);
     });
 
     // User tapped a notification. Route to the right place if payload

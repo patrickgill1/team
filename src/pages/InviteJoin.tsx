@@ -176,11 +176,34 @@ const InviteJoin: React.FC = () => {
     setSubmitting(true);
     setError(null);
     try {
-      const provider = new GoogleAuthProvider();
-      provider.addScope('email');
-      provider.addScope('profile');
-      const result = await signInWithPopup(auth, provider);
-      const u = result.user;
+      // Three-way sign-in branch matching AuthContext.signInWithGoogle:
+      //   - native (Capacitor): FirebaseAuthentication plugin, then
+      //     sign into the web SDK with the returned credential. Popup
+      //     on capacitor://localhost otherwise trips COOP warnings AND
+      //     fails silently when a parent opens this invite deep link
+      //     from inside the installed app.
+      //   - desktop / mobile web: signInWithPopup is fine (COOP only
+      //     fires on the capacitor origin, and the invite flow needs
+      //     the returned user object to consume the invite atomically
+      //     — signInWithRedirect would navigate the whole tab away).
+      const { Capacitor } = await import('@capacitor/core');
+      let u: FbUser;
+      if (Capacitor.isNativePlatform()) {
+        const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+        const nativeResult = await FirebaseAuthentication.signInWithGoogle();
+        const idToken = nativeResult.credential?.idToken;
+        if (!idToken) throw new Error('native Google sign-in returned no idToken');
+        const credential = GoogleAuthProvider.credential(idToken);
+        const { signInWithCredential } = await import('firebase/auth');
+        const cred = await signInWithCredential(auth, credential);
+        u = cred.user;
+      } else {
+        const provider = new GoogleAuthProvider();
+        provider.addScope('email');
+        provider.addScope('profile');
+        const result = await signInWithPopup(auth, provider);
+        u = result.user;
+      }
       await ensureUserDocFor(
         u.uid,
         u.email || '',

@@ -10,6 +10,7 @@ import { osmEmbedUrl, geocodeForward, geocodeResolve, hasMapbox, hasNotifyProxy,
 import { normalizeKit } from '../../utils/kitColors';
 import { autoPostGameToWall } from '../../utils/autoPostToWall';
 import { sendPushToTeam } from '../../utils/notify';
+import { debug } from '../../utils/debug';
 
 /** Compact location for the Recent + Favorites quick-pick rows. */
 interface PickableLocation {
@@ -402,7 +403,7 @@ const EventForm: React.FC<EventFormProps> = ({
       };
 
       const attendanceEventId = await addDocument('attendance_events', attendanceEvent);
-      console.log('Created attendance event:', attendanceEventId);
+      debug('Created attendance event:', attendanceEventId);
       return attendanceEventId;
     } catch (error) {
       console.error('Error creating attendance event:', error);
@@ -472,7 +473,7 @@ const EventForm: React.FC<EventFormProps> = ({
       try {
         const oppId = await addDocument('volunteer_opportunities', opp);
         createdOpps.push(oppId);
-        console.log('Created volunteer opportunity:', oppId);
+        debug('Created volunteer opportunity:', oppId);
       } catch (error) {
         console.error('Error creating volunteer opportunity:', error);
       }
@@ -546,11 +547,11 @@ const EventForm: React.FC<EventFormProps> = ({
         createdAt: new Date()
       };
 
-      console.log('Saving event data:', eventData);
+      debug('Saving event data:', eventData);
 
       let calendarEvent;
       if (editingEvent) {
-        console.log('Updating event:', editingEvent.id);
+        debug('Updating event:', editingEvent.id);
         await updateDocument('events', editingEvent.id, eventData);
         calendarEvent = {
           ...editingEvent,
@@ -633,7 +634,7 @@ const EventForm: React.FC<EventFormProps> = ({
             }
           }
         }
-        console.log(`Created ${dates.length} event(s), first id ${firstId}`);
+        debug(`Created ${dates.length} event(s), first id ${firstId}`);
       }
 
       onEventUpdated(calendarEvent);

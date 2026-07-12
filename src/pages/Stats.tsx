@@ -12,6 +12,7 @@ import StatsDisplay from '../components/stats/StatsDisplay';
 import TeamRecordsSection from '../components/stats/TeamRecordsSection';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { getPlayerStats, getPlayerLifetimeStats } from '../utils/seasons';
+import { debug } from '../utils/debug';
 
 type SortKey = 'goals' | 'assists' | 'saves' | 'gamesPlayed';
 
@@ -43,7 +44,7 @@ const Stats: React.FC = () => {
       try {
         setIsLoading(true);
         setLoadError(null);
-        console.log('Loading players for stats page...');
+        debug('Loading players for stats page...');
         
         const teamPlayers = await getPlayersByTeam(selectedTeamId);
         const statsMap = await getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any));
@@ -58,7 +59,7 @@ const Stats: React.FC = () => {
           };
         }) as Player[];
         
-        console.log('Players loaded for stats:', playersWithDates);
+        debug('Players loaded for stats:', playersWithDates);
         setPlayers(playersWithDates);
         // Background-fetch media count for the "Clips" tile — silent
         // failure if the user can't read it, the tile just shows 0.

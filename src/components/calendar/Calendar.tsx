@@ -20,6 +20,7 @@ import EventPhotos from './EventPhotos';
 import AppIcon from '../common/AppIcon';
 import { collection, query as fsQuery, where as fsWhere, getDocs as fsGetDocs } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
+import { debug } from '../../utils/debug';
 
 const formatIcsDate = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -277,10 +278,10 @@ const Calendar: React.FC<CalendarProps> = ({
       if (!selectedTeamId) return;
       
       try {
-        console.log('Loading events for team:', selectedTeamId);
+        debug('Loading events for team:', selectedTeamId);
         // Use the correct collection name - should match what EventForm uses
         const allEvents = await getDocuments('events', []);
-        console.log('All events loaded:', allEvents);
+        debug('All events loaded:', allEvents);
         
         // Filter events for this team and convert dates
         const teamEvents = allEvents
@@ -291,7 +292,7 @@ const Calendar: React.FC<CalendarProps> = ({
             createdAt: event.createdAt?.toDate ? event.createdAt.toDate() : new Date(event.createdAt || Date.now())
           })) as CalendarEvent[];
         
-        console.log('Team events processed:', teamEvents);
+        debug('Team events processed:', teamEvents);
         setEvents(teamEvents);
       } catch (error) {
         console.error('Error loading events:', error);
@@ -315,7 +316,7 @@ const Calendar: React.FC<CalendarProps> = ({
   }, [focusEventId, loading, viewMode, events.length]);
 
   const handleEventUpdated = (updatedEvent: CalendarEvent) => {
-    console.log('Event updated:', updatedEvent);
+    debug('Event updated:', updatedEvent);
     
     if (editingEvent) {
       // Update existing event

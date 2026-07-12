@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { formatDateTime, isCoachOfTeam } from '../../utils/helpers';
+import { debug } from '../../utils/debug';
 import StatsTrends from './StatsTrends';
 
 interface StatsDisplayProps {
@@ -42,7 +43,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
 
       try {
         setLoading(true);
-        console.log('Loading stats for player:', selectedPlayer);
+        debug('Loading stats for player:', selectedPlayer);
         const stats = await getStatsByPlayer(selectedPlayer);
         const statsWithDates = stats.map((stat: any) => ({
           ...stat,
@@ -52,13 +53,13 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
         // Sort by date (newest first)
         statsWithDates.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         setPlayerStats(statsWithDates);
-        console.log('Player stats loaded:', statsWithDates);
+        debug('Player stats loaded:', statsWithDates);
       } catch (error: any) {
         console.error('Error loading player stats:', error);
         
         // If it's an index error, just set empty array and continue
         if (error.message?.includes('index') || error.code === 'failed-precondition') {
-          console.log('Index not ready for stats query, showing empty stats');
+          debug('Index not ready for stats query, showing empty stats');
           setPlayerStats([]);
         } else {
           // For other errors, still set empty array to prevent crashes

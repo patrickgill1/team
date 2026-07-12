@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
+import { debug } from '../utils/debug';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
@@ -908,8 +909,11 @@ const Wall: React.FC = () => {
       // BOTH "no emails found" AND "send failed", which lied to
       // Patrick when the worker config was missing.
       const emails = await getTeamEmails(postTeamId, userData.uid);
-      console.log('[wall] email-to-team recipient resolution', {
-        teamId: postTeamId, count: emails.length, sample: emails.slice(0, 3),
+      // Recipient sample intentionally omitted — logging parent emails
+      // to the prod console is a PII leak to anyone who happens to
+      // have DevTools open on the coach's device.
+      debug('[wall] email-to-team recipient resolution', {
+        teamId: postTeamId, count: emails.length,
       });
       if (emails.length === 0) {
         alert('No team emails found. Check that parents are signed up + have an email on file.');

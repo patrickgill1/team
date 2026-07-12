@@ -66,20 +66,28 @@ export function initSentry() {
   //                                  (captured by global handler)
   //   window.__sentryMessage()      → sends a captureMessage event
   //                                  (no console noise, no user
-  //                                  impact)
+  //                                  impact); returns the event id
+  //                                  so the DevTools console prints
+  //                                  a UUID confirming the roundtrip
+  //                                  instead of `undefined`
+  //
+  // Only wired when Sentry is actually enabled (production build) —
+  // in dev the SDK no-ops which made a call return undefined and
+  // misread as "helper missing" during the 3.9.235 audit.
   //
   // Call from Chrome DevTools on the deployed web app or Safari
-  // Web Inspector on a physical device. Kept in the bundle
-  // permanently — the surface area is tiny and doubles as a
-  // "prove Sentry is wired" tool during future migrations.
-  try {
-    (window as any).__sentryTest = () => {
-      throw new Error(`Sentry verification test — ${RELEASE}`);
-    };
-    (window as any).__sentryMessage = () => {
-      Sentry.captureMessage(`Sentry verification message — ${RELEASE}`, 'info');
-    };
-  } catch { /* window unavailable in some SSR paths */ }
+  // Web Inspector on a physical device.
+  if (isProd) {
+    try {
+      (window as any).__sentryTest = () => {
+        throw new Error(`Sentry verification test — ${RELEASE}`);
+      };
+      (window as any).__sentryMessage = () => {
+        const id = Sentry.captureMessage(`Sentry verification message — ${RELEASE}`, 'info');
+        return id;
+      };
+    } catch { /* window unavailable in some SSR paths */ }
+  }
 }
 
 /** Attach the current user to every subsequent error report. Call

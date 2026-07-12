@@ -782,6 +782,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let cancelled = false;
     (async () => {
       try {
+        // Skip on Capacitor native: redirect sign-in never runs there
+        // (native uses the FirebaseAuthentication plugin path instead),
+        // and calling getRedirectResult on capacitor://localhost trips
+        // Firebase's internal window.opener/postMessage plumbing which
+        // emits the Cross-Origin-Opener-Policy warning to the console
+        // on every cold start. Zero-cost fix for a warning that
+        // otherwise reads as "the app is broken" to any user who peeks
+        // at DevTools.
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) return;
+
         const result = await getRedirectResult(auth);
         if (cancelled || !result?.user) return;
         const user = result.user;

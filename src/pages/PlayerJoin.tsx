@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { 
+import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
   onAuthStateChanged,
   User
 } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
+import { useAuth } from '../contexts/AuthContext';
 import { Player } from '../types';
 
 const TEAM_ID = "team_1752188125868";
@@ -17,6 +16,7 @@ const TEAM_ID = "team_1752188125868";
 const PlayerJoin: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { signInWithGoogle } = useAuth();
   const playerId = searchParams.get('player');
   const inviteCode = searchParams.get('code');
 
@@ -131,24 +131,14 @@ const PlayerJoin: React.FC = () => {
     setAuthError(null);
     setAuthSubmitting(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-
-      // Ensure user doc exists — via worker bootstrap so role +
-      // approval fields go through the guarded path.
-      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
-      if (!userDoc.exists()) {
-        const { workerFetch } = await import('../utils/workerFetch');
-        await workerFetch('/users/bootstrap', {
-          method: 'POST',
-          body: JSON.stringify({
-            role: 'parent',
-            name: result.user.displayName || result.user.email?.split('@')[0] || 'Parent',
-            email: (result.user.email || '').toLowerCase(),
-            authProvider: 'google',
-          }),
-        });
-      }
+      // Delegate to AuthContext.signInWithGoogle — it handles all
+      // three environments correctly (native plugin / mobile-web
+      // redirect / desktop popup) and calls /users/bootstrap with
+      // the right role. Prior implementation called signInWithPopup
+      // directly, which broke inside the Capacitor app (COOP + a
+      // failed sign-in) whenever a parent opened the invite deep
+      // link from inside the installed app.
+      await signInWithGoogle(TEAM_ID, 'parent');
     } catch (err: any) {
       setAuthError(err.message || 'Google sign-in failed. Please try again.');
     } finally {
@@ -282,7 +272,7 @@ const PlayerJoin: React.FC = () => {
                 onClick={() => navigate('/dashboard')}
                 className="w-full bg-surface-tint hover:bg-surface-raised text-white font-bold py-3 rounded-xl transition-colors"
               >
-                Go to Team Dashboard →
+                Go to Team HQ →
               </button>
             </div>
           )}

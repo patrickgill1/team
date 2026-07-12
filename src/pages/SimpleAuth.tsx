@@ -4,6 +4,7 @@ import { fetchSignInMethodsForEmail, getAuth } from 'firebase/auth';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
 import { friendlyAuthError } from '../utils/authErrors';
+import { debug } from '../utils/debug';
 
 const SimpleAuth: React.FC = () => {
   const { signIn, signUp, signInWithGoogle, signInWithApple, currentUser, userData, loading, error } = useAuth();
@@ -151,13 +152,13 @@ const SimpleAuth: React.FC = () => {
     
     // Prevent submission if form is invalid
     if (!validateForm()) {
-      console.log('Form validation failed, not submitting');
+      debug('Form validation failed, not submitting');
       return;
     }
 
     // Don't submit if already submitting
     if (isSubmitting) {
-      console.log('Already submitting, ignoring');
+      debug('Already submitting, ignoring');
       return;
     }
 
@@ -166,9 +167,9 @@ const SimpleAuth: React.FC = () => {
     
     try {
       if (mode === 'login') {
-        console.log('Attempting login with:', formData.email);
+        debug('Attempting login');
         await signIn(formData.email, formData.password);
-        console.log('Login successful - waiting for auth state change');
+        debug('Login successful - waiting for auth state change');
       } else {
         // Lockdown gate — EVERY signup must have either:
         //   (a) an invite code (passed via ?invite= or typed in), OR
@@ -241,7 +242,7 @@ const SimpleAuth: React.FC = () => {
           // the ~200ms window before auto-link's user-doc patch.
           ...(willAutoLink ? { preApproveOnAutoLink: true } : {}),
         } as any);
-        console.log('Signup successful - waiting for auth state change');
+        debug('Signup successful - waiting for auth state change');
       }
     } catch (error: any) {
       console.error('Auth error:', error);
@@ -264,7 +265,7 @@ const SimpleAuth: React.FC = () => {
     }
 
     if (isSubmitting) {
-      console.log('Already submitting, ignoring Google sign-in');
+      debug('Already submitting, ignoring Google sign-in');
       return;
     }
 
@@ -272,7 +273,7 @@ const SimpleAuth: React.FC = () => {
     setErrors({});
     
     try {
-      console.log('Attempting Google sign-in');
+      debug('Attempting Google sign-in');
       // Pass the explicit role choice from the landing screen so
       // the worker doesn't have to guess. joinFlow === true means
       // "Join a team with a code" (parent path); joinFlow === false
@@ -281,7 +282,7 @@ const SimpleAuth: React.FC = () => {
       // worker no longer flips it based on email match.
       const explicitRole: 'coach' | 'parent' = joinFlow ? 'parent' : 'coach';
       await signInWithGoogle(formData.inviteCode || undefined, explicitRole);
-      console.log('Google sign-in successful - waiting for auth state change');
+      debug('Google sign-in successful - waiting for auth state change');
     } catch (error: any) {
       console.error('Google sign-in error:', error);
       setErrors({ submit: friendlyAuthError(error, 'google') });

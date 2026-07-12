@@ -87,11 +87,11 @@ const Equipment: React.FC = () => {
         <div className="max-w-4xl mx-auto">
           <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-brand-primary-soft hover:text-ink-primary mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-            Dashboard
+            Team HQ
           </Link>
           <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Equipment</h1>
           <p className="text-sm text-ink-primary/40 mt-0.5">
-            {selectedTeam?.name ? `${selectedTeam.name} — ` : ''}who has what gear, who hasn't returned.
+            {selectedTeam?.name ? `${selectedTeam.name}: ` : ''}who has what gear, who hasn't returned.
           </p>
         </div>
       </section>

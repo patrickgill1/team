@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { doc, onSnapshot, collection, getDocs, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../utils/firebase';
+import { debug } from '../utils/debug';
 import { Player } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -256,7 +257,7 @@ const PublicVote: React.FC = () => {
           return;
         }
         const data = snap.data();
-        console.log('[PublicVote] voting data:', JSON.stringify({ eligiblePlayerIds: data.eligiblePlayerIds, id: snap.id }));
+        debug('[PublicVote] voting data:', { eligiblePlayerIds: data.eligiblePlayerIds, id: snap.id });
         const updated: MatchVoting = {
           id: snap.id,
           gameTitle: data.gameTitle,
@@ -407,7 +408,7 @@ const PublicVote: React.FC = () => {
     }
     return true;
   });
-  console.log('[PublicVote] filter:', JSON.stringify({
+  debug('[PublicVote] filter:', {
     totalPlayers: players.length,
     votable: votablePlayers.length,
     eligible: voting?.eligiblePlayerIds?.length,
@@ -415,7 +416,7 @@ const PublicVote: React.FC = () => {
     allPlayerNames: players.map(p => p.name + '=' + p.id),
     votableNames: votablePlayers.map(p => p.name),
     filteredOut: players.filter(p => p.id !== myChildId && voting?.eligiblePlayerIds?.length && !voting.eligiblePlayerIds.includes(p.id)).map(p => p.name + '=' + p.id),
-  }));
+  });
   const results = getVoteResults();
   const totalVotes = voting?.votes.length || 0;
 

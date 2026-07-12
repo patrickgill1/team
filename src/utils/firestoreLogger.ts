@@ -8,6 +8,7 @@
 // instead of buried as 'permission-denied' for the 80th time.
 
 import { FirebaseError } from 'firebase/app';
+import { debugWarn } from './debug';
 
 export interface FirestoreErrorInfo {
   code: string;
@@ -33,11 +34,16 @@ export function logFirestoreError(
 
   // One structured console line per failure. The leading tag makes it
   // searchable across DevTools / Sentry / wherever logs end up.
+  //
+  // permission-denied and unauthenticated both fire routinely during
+  // auth transitions (sign-out mid-flight, token rotation) — they
+  // do NOT represent broken state. Route them through debugWarn so
+  // the prod console stays clean; unexpected codes still go loud.
   const tag = `[firestore:${operation}]`;
   if (isPermissionDenied) {
-    console.error(`${tag} DENIED ${path}`, { code, message, ...extra });
+    debugWarn(`${tag} DENIED ${path}`, { code, message, ...extra });
   } else if (isUnauthenticated) {
-    console.warn(`${tag} UNAUTH ${path}`, { code, message, ...extra });
+    debugWarn(`${tag} UNAUTH ${path}`, { code, message, ...extra });
   } else {
     console.error(`${tag} ${path}`, { code, message, ...extra });
   }

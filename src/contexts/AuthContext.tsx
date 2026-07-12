@@ -17,6 +17,7 @@ import {
 import { auth, db } from '../utils/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { useFirestore } from '../hooks/useFirestore';
+import { debug, debugWarn } from '../utils/debug';
 
 // FIXED TEAM ID - existing team; new users get assigned here by default
 const DEFAULT_TEAM_ID = "team_1752188125868";
@@ -102,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, newUserData: Omit<UserData, 'uid'>) => {
     try {
       setError(null);
-      console.log('Creating Firebase Auth user...');
+      debug('Creating Firebase Auth user...');
       const result = await createUserWithEmailAndPassword(auth, email, password);
 
       // Send the branded verification email via our worker. This
@@ -118,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ email }),
-          }).catch((e) => console.warn('[auth] branded verification send failed, falling back to Firebase default', e))
+          }).catch((e) => debugWarn('[auth] branded verification send failed, falling back to Firebase default', e))
             .then((r) => {
               if (!r || !r.ok) {
                 // Fall back to Firebase's default sender if the worker
@@ -133,10 +134,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           sendEmailVerification(result.user).catch(() => {});
         }
       } catch (e) {
-        console.warn('[auth] verification send threw', e);
+        debugWarn('[auth] verification send threw', e);
       }
 
-      console.log('Auth user created; posting to /users/bootstrap...');
+      debug('Auth user created; posting to /users/bootstrap...');
 
       // Bootstrap the user doc + email-match auto-link on the worker
       // side. Server owns all the sensitive writes (role, teamIds,
@@ -172,7 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const code = bootstrapData?.error || `bootstrap-${bootstrapRes.status}`;
           throw new Error(code);
         }
-        console.log('Firestore user document created via worker; linkedCount=', bootstrapData.linkedCount);
+        debug('Firestore user document created via worker; linkedCount=', bootstrapData.linkedCount);
       } catch (bootstrapErr) {
         // Roll back the Firebase Auth account if the worker rejected
         // us — otherwise the user retries and hits "email already in
@@ -193,7 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithGoogle = async (inviteTeamId?: string, wantRole?: 'coach' | 'parent'): Promise<void> => {
     try {
-      console.log('Starting Google sign-in...', inviteTeamId ? `with invite team: ${inviteTeamId}` : '');
+      debug('Starting Google sign-in...', inviteTeamId ? `with invite team: ${inviteTeamId}` : '');
       setLoading(true);
       setError(null);
 
@@ -248,7 +249,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user = result.user;
       }
       
-      console.log('Google sign-in successful:', user.uid, user.email);
+      debug('Google sign-in successful:', user.uid, user.email);
       
       // Check if user document exists in Firestore
       let userData = await getUserData(user.uid);
@@ -296,13 +297,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw bootstrapErr;
         }
 
-        console.log('New Google user created via worker');
+        debug('New Google user created via worker');
       } else {
-        console.log('Existing Google user found:', userData);
+        debug('Existing Google user found:', userData);
         
         // Fix existing users with temp team IDs
         if (userData.teamId?.startsWith('temp_')) {
-          console.log('User has temp team ID, updating to correct team:', DEFAULT_TEAM_ID);
+          debug('User has temp team ID, updating to correct team:', DEFAULT_TEAM_ID);
           try {
             await updateDocument('users', user.uid, {
               teamId: DEFAULT_TEAM_ID,
@@ -365,7 +366,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             authProvider: freshData.authProvider || 'google'
           };
           setUserData(freshUserData);
-          console.log('Google sign-in: userData set directly:', freshUserData.name);
+          debug('Google sign-in: userData set directly:', freshUserData.name);
         }
       } catch (refreshError) {
         console.error('Error refreshing userData after Google sign-in:', refreshError);
@@ -536,7 +537,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (token) {
             await updateDoc(doc(db, 'users', outgoingUid), {
               fcmTokens: arrayRemove(token),
-            }).catch((e) => console.warn('[logout] fcmTokens cleanup failed', e));
+            }).catch((e) => debugWarn('[logout] fcmTokens cleanup failed', e));
             // Also invalidate the token on the native side so the
             // device generates a fresh one for the next user. Avoids
             // a rare race where Firebase reuses the same token.
@@ -547,7 +548,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } catch (e) {
-        console.warn('[logout] push cleanup failed', e);
+        debugWarn('[logout] push cleanup failed', e);
       }
 
       // Now safe to sign out — listeners see clean state.
@@ -622,7 +623,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 1) Firestore user doc first — if Auth delete fails, at least we tried
       //    to clear the profile data.
       await deleteDoc(doc(db, 'users', user.uid)).catch(err => {
-        console.warn('Failed to delete /users doc, continuing with Auth delete:', err);
+        debugWarn('Failed to delete /users doc, continuing with Auth delete:', err);
       });
 
       // 2) Firebase Auth account.
@@ -704,10 +705,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           await updateDoc(doc(db, 'users', userId), { fcmTokens: arrayUnion(token) });
         } catch (err) {
-          console.warn('Failed to save fcmToken:', err);
+          debugWarn('Failed to save fcmToken:', err);
         }
       });
-    }).catch(err => console.warn('nativeShell import failed', err));
+    }).catch(err => debugWarn('nativeShell import failed', err));
 
     // Custom JWT claims refresh. Worker /users/refresh-claims stamps
     // request.auth.token.clubIds and request.auth.token.teamIds from
@@ -725,14 +726,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           body: JSON.stringify({}),
         });
         if (!res.ok) {
-          console.warn('[claims] refresh non-2xx', res.status);
+          debugWarn('[claims] refresh non-2xx', res.status);
           return;
         }
         // Web SDK: force a fresh ID token so the new claim shows up.
         try {
           await auth.currentUser?.getIdToken(true);
         } catch (err) {
-          console.warn('[claims] web getIdToken(true) failed', err);
+          debugWarn('[claims] web getIdToken(true) failed', err);
         }
         // Native SDK parity: Capacitor plugin has its own token cache
         // used by tryBridgeNativeSession.
@@ -743,10 +744,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await FirebaseAuthentication.getIdToken({ forceRefresh: true });
           }
         } catch (err) {
-          console.warn('[claims] native getIdToken(true) failed', err);
+          debugWarn('[claims] native getIdToken(true) failed', err);
         }
       } catch (err) {
-        console.warn('[claims] refresh threw', err);
+        debugWarn('[claims] refresh threw', err);
       }
     })();
 
@@ -828,7 +829,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (err) {
         // No-op when there's nothing to handle. Firebase throws here
         // if the page wasn't reached via a redirect.
-        console.warn('getRedirectResult skipped', err);
+        debugWarn('getRedirectResult skipped', err);
       }
     })();
     return () => { cancelled = true; };
@@ -882,7 +883,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!idToken) return false;
       const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL || '';
       if (!NOTIFY_URL) {
-        console.warn('[auth] keychain bridge: notify worker not configured');
+        debugWarn('[auth] keychain bridge: notify worker not configured');
         return false;
       }
       // /auth/exchange-id-token self-authenticates via the ID token
@@ -896,15 +897,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       const data: any = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok || !data?.customToken) {
-        console.warn('[auth] keychain bridge: exchange failed', res.status, data?.error);
+        debugWarn('[auth] keychain bridge: exchange failed', res.status, data?.error);
         return false;
       }
       const { signInWithCustomToken } = await import('firebase/auth');
       await signInWithCustomToken(auth, data.customToken);
-      console.log('[auth] keychain bridge: signed in via native session', data.uid);
+      debug('[auth] keychain bridge: signed in via native session', data.uid);
       return true;
     } catch (err) {
-      console.warn('[auth] keychain bridge failed', err);
+      debugWarn('[auth] keychain bridge failed', err);
       return false;
     }
   };
@@ -918,7 +919,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const safetyTimer = setTimeout(() => {
       setLoading((prev) => {
         if (prev) {
-          console.warn('Auth loading safety timeout – forcing loading off');
+          debugWarn('Auth loading safety timeout – forcing loading off');
         }
         return false;
       });
@@ -939,7 +940,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try { sessionStorage.removeItem('firefc.authRecoveryAttempted'); } catch {}
 
         try {
-          console.log('Fetching user data for:', user.uid);
+          debug('Fetching user data for:', user.uid);
           
           // Race Firestore against a 6-second timeout so we never hang
           const data = await withTimeout(getUserData(user.uid), 6000) as any;
@@ -948,7 +949,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const userDataObj = buildUserData(data, user);
             setUserData(userDataObj);
             setLoading(false); // ← unblock the UI immediately
-            console.log('User data loaded:', userDataObj);
+            debug('User data loaded:', userDataObj);
 
             // Attach the current user to Sentry so every subsequent
             // error report knows who hit it. Filter by uid or email
@@ -977,8 +978,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 method: 'POST',
                 body: JSON.stringify({}),
               }).then(r => r.json().then(j => ({ status: r.status, body: j }))).then((res: any) => {
-                console.log('[heal] status', res.status, 'foundTeams', res.body?.foundTeams, 'legacyTeamId', res.body?.legacyTeamId, 'added', JSON.stringify(res.body?.added), 'teamIds', JSON.stringify(res.body?.teamIds), 'role', res.body?.role, 'clubIds', JSON.stringify(res.body?.clubIds));
-              }).catch(err => console.warn('[heal] failed', err));
+                debug('[heal] status', res.status, 'foundTeams', res.body?.foundTeams, 'legacyTeamId', res.body?.legacyTeamId, 'added', JSON.stringify(res.body?.added), 'teamIds', JSON.stringify(res.body?.teamIds), 'role', res.body?.role, 'clubIds', JSON.stringify(res.body?.clubIds));
+              }).catch(err => debugWarn('[heal] failed', err));
             } catch { /* non-fatal */ }
 
             // Live subscribe to the user doc so changes the user makes
@@ -991,13 +992,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (!snap.exists()) return;
                 const fresh = buildUserData(snap.data(), user);
                 setUserData(fresh);
-              }, (err) => console.warn('user-doc snapshot failed', err));
+              }, (err) => {
+                // permission-denied fires as the auth token transitions
+                // (sign-out, token rotation). Not user-facing, don't
+                // scare the prod console.
+                const code = (err as any)?.code;
+                if (code === 'permission-denied' || code === 'unauthenticated') {
+                  debugWarn('user-doc snapshot denied (expected during auth transition)', err);
+                } else {
+                  console.warn('user-doc snapshot failed', err);
+                }
+              });
               // Cleanup happens implicitly when the user signs out
               // (onAuthStateChanged fires again with null) — store the
               // unsubscribe on a ref so we can call it then.
               (userDocUnsubRef.current as any) = liveUnsub;
             } catch (err) {
-              console.warn('user-doc live subscribe init failed', err);
+              debugWarn('user-doc live subscribe init failed', err);
             }
 
             // Fire-and-forget background tasks
@@ -1016,7 +1027,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // (currentUser, !userData, !loading) and bounces the user to
             // /auth during the retry window. That's what was logging
             // people out after a Capgo OTA swap.
-            console.log('userData not present on first read, will retry:', user.uid);
+            debug('userData not present on first read, will retry:', user.uid);
             let attempts = 0;
             const MAX_ATTEMPTS = 3;
             const tryAgain = async () => {
@@ -1068,7 +1079,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // showing the spinner instead of bouncing to /auth) and
           // retry up to 3 times with backoff. Only sign out on a
           // definitive auth error.
-          console.warn('user data fetch failed, will retry:', error);
+          debugWarn('user data fetch failed, will retry:', error);
           let attempts = 0;
           const MAX_ATTEMPTS = 3;
           const tryAgain = async () => {
@@ -1150,21 +1161,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // We already reloaded once in this session and Firebase
             // STILL can't recover. The session is well and truly bad —
             // accept the sign-out and let the user re-authenticate.
-            console.log('Auth recovery already attempted this session, accepting sign-out');
+            debug('Auth recovery already attempted this session, accepting sign-out');
             try { localStorage.removeItem(LAST_UID_KEY); } catch {}
             try { sessionStorage.removeItem(RECOVERY_KEY); } catch {}
             setUserData(null);
             setLoading(false);
             return;
           }
-          console.log('Auth null but lastKnownUid present — watching for recovery');
+          debug('Auth null but lastKnownUid present — watching for recovery');
           let checks = 0;
           const interval = window.setInterval(() => {
             checks++;
             if (auth.currentUser) {
               // Firebase recovered on its own. Next onAuthStateChanged
               // emission will hit the success path; just stop watching.
-              console.log('Auth recovered naturally');
+              debug('Auth recovered naturally');
               window.clearInterval(interval);
               return;
             }
@@ -1173,13 +1184,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               // force-close + reopen flow that Patrick verified works.
               window.clearInterval(interval);
               try { sessionStorage.setItem(RECOVERY_KEY, '1'); } catch {}
-              console.log('Auth still null after 3s — forcing reload to recover');
+              debug('Auth still null after 3s — forcing reload to recover');
               window.location.reload();
             }
           }, 1000);
           return;
         }
-        console.log('No authenticated user');
+        debug('No authenticated user');
         setUserData(null);
         setLoading(false);
       }
@@ -1197,7 +1208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const fresh = await getUserData(currentUser.uid) as any;
       if (fresh) setUserData(buildUserData(fresh, currentUser));
     } catch (err) {
-      console.warn('refreshUserData failed:', err);
+      debugWarn('refreshUserData failed:', err);
     }
   };
 
@@ -1215,11 +1226,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteAccount,
     refreshUserData,
   };
-
-  // Debug logging
-  console.log('AuthContext providing functions:', Object.keys(value));
-  console.log('signInWithGoogle function type:', typeof value.signInWithGoogle);
-  console.log('Default team ID:', DEFAULT_TEAM_ID);
 
   return (
     <AuthContext.Provider value={value}>

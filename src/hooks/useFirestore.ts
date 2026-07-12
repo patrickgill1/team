@@ -20,12 +20,20 @@ import {
 import { db } from '../utils/firebase';
 import { Player, GameStat, CalendarEvent, GalleryPhoto, User, ChatThread, ChatMessage, DevelopmentPlan, PlayerMedia, CoachInvite, Team } from '../types';
 import { cleanFirestoreData } from '../utils/helpers';
+import { debug, debugWarn } from '../utils/debug';
 
 export const useFirestore = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleError = (err: any) => {
-    console.error('Firestore error:', err);
+    // Silence expected permission-denied errors — those fire during
+    // sign-out / auth-token rotation and are not user-actionable.
+    const code = err?.code;
+    if (code === 'permission-denied' || code === 'unauthenticated') {
+      debugWarn('Firestore error (auth transition):', err);
+    } else {
+      console.error('Firestore error:', err);
+    }
     setError(err.message || 'An error occurred');
   };
 
@@ -119,13 +127,13 @@ const getUserData = useCallback(async (uid: string) => {
   try {
     setError(null);
     
-    console.log('Attempting to fetch user data for UID:', uid);
-    
+    debug('Attempting to fetch user data for UID:', uid);
+
     const userDoc = await getDoc(doc(db, 'users', uid));
-    
+
     if (userDoc.exists()) {
       const data = userDoc.data();
-      console.log('Raw user data from Firestore:', data);
+      debug('Raw user data from Firestore:', data);
       
       // Return the full document data with proper structure
       const userData = {
@@ -163,22 +171,23 @@ const getUserData = useCallback(async (uid: string) => {
       }
       
       
-      console.log('Successfully processed user data:', userData);
+      debug('Successfully processed user data:', userData);
       return userData;
     } else {
-      console.log('User document does not exist for UID:', uid);
+      debug('User document does not exist for UID:', uid);
       return null;
     }
   } catch (err: any) {
-    console.error('Error in getUserData:', err);
-    console.error('Error code:', err.code);
-    console.error('Error message:', err.message);
-    
-    if (err.code === 'permission-denied') {
-      console.log('Permission denied. Check your Firestore security rules.');
-      console.log('Make sure authenticated users can read /users/{userId} where userId matches their UID');
+    // permission-denied fires during expected auth transitions
+    // (sign-out mid-flight, token rotation). Rethrow but don't scare
+    // the prod console — the caller decides whether to sign out.
+    const code = err?.code;
+    if (code === 'permission-denied' || code === 'unauthenticated') {
+      debugWarn('getUserData denied (auth transition):', err.message);
+    } else {
+      console.error('Error in getUserData:', err);
     }
-    
+
     setError(err.message || 'Failed to fetch user data');
     throw err;
   }
@@ -432,7 +441,12 @@ const getUserData = useCallback(async (uid: string) => {
       }).filter((p: any) => p.isActive !== false);
       callback(photos);
     }, (err) => {
-      console.error('Event photos subscription failed:', err);
+      const code = (err as any)?.code;
+      if (code === 'permission-denied' || code === 'unauthenticated') {
+        debugWarn('Event photos subscription denied (auth transition):', err);
+      } else {
+        console.error('Event photos subscription failed:', err);
+      }
     });
   }, []);
 
@@ -642,7 +656,12 @@ const getUserData = useCallback(async (uid: string) => {
       });
       callback(threads);
     }, (error) => {
-      console.error('Error in threads subscription:', error);
+      const code = (error as any)?.code;
+      if (code === 'permission-denied' || code === 'unauthenticated') {
+        debugWarn('Threads subscription denied (auth transition):', error);
+      } else {
+        console.error('Error in threads subscription:', error);
+      }
     });
   }, []);
 
@@ -697,7 +716,12 @@ const getUserData = useCallback(async (uid: string) => {
       });
       callback(threads);
     }, (error) => {
-      console.error('Error in club threads subscription:', error);
+      const code = (error as any)?.code;
+      if (code === 'permission-denied' || code === 'unauthenticated') {
+        debugWarn('Club threads subscription denied (auth transition):', error);
+      } else {
+        console.error('Error in club threads subscription:', error);
+      }
     });
   }, []);
 
@@ -744,7 +768,7 @@ const getUserData = useCallback(async (uid: string) => {
       if (existing) return existing.id as string;
       // Lookup succeeded and found no match — safe to create below.
     } catch (e) {
-      console.warn('[chat] DM lookup failed; refusing to create duplicate. Retry after reload.', e);
+      debugWarn('[chat] DM lookup failed; refusing to create duplicate. Retry after reload.', e);
       throw new Error('DM_LOOKUP_FAILED');
     }
 
@@ -1102,7 +1126,12 @@ export const useFirestoreSubscription = (collectionName: string, constraints: Qu
         setError(null);
       },
       (err) => {
-        console.error('Subscription error:', err);
+        const code = (err as any)?.code;
+        if (code === 'permission-denied' || code === 'unauthenticated') {
+          debugWarn('Subscription denied (auth transition):', err);
+        } else {
+          console.error('Subscription error:', err);
+        }
         setError(err.message);
         setLoading(false);
       }

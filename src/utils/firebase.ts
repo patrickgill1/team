@@ -5,12 +5,20 @@ import {
   indexedDBLocalPersistence,
   type Auth,
 } from 'firebase/auth';
-import { getFirestore, initializeFirestore, memoryLocalCache, type Firestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, memoryLocalCache, setLogLevel, type Firestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { Capacitor } from '@capacitor/core';
+import { debug, debugWarn } from './debug';
 
-// Debug: Log environment variables to check they're loading correctly
-console.log('Firebase Config Debug:', {
+// Silence the Firestore SDK's info/warn stream in prod. Transient
+// WebChannel/transport 400s during network flaps otherwise spam the
+// console with red-ish warnings that read as "the app is broken" to
+// non-devs. We still get real errors surfaced via Sentry.
+if (process.env.NODE_ENV === 'production') {
+  try { setLogLevel('error'); } catch { /* SDK may not expose in older builds */ }
+}
+
+debug('Firebase Config Debug:', {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY ? '***loaded***' : 'missing',
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
@@ -50,7 +58,7 @@ if (isNative) {
   } catch (err) {
     // initializeAuth throws if Auth is already initialized for this app —
     // fall back to getAuth in that case (e.g. HMR / re-imports).
-    console.warn('initializeAuth fallback to getAuth:', err);
+    debugWarn('initializeAuth fallback to getAuth:', err);
     authInstance = getAuth(app);
   }
 } else {
@@ -97,14 +105,13 @@ const firestoreSettings = {
 try {
   dbInstance = initializeFirestore(app, firestoreSettings as any);
 } catch (err) {
-  console.warn('initializeFirestore fallback to getFirestore:', err);
+  debugWarn('initializeFirestore fallback to getFirestore:', err);
   dbInstance = getFirestore(app);
 }
 export const db = dbInstance;
 
 export const storage = getStorage(app);
 
-// Debug: Log storage bucket info
-console.log('Firebase Storage initialized with bucket:', firebaseConfig.storageBucket, '| native:', isNative);
+debug('Firebase Storage initialized with bucket:', firebaseConfig.storageBucket, '| native:', isNative);
 
 export default app;

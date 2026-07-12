@@ -1,6 +1,6 @@
 {
   "name": "soccer-team-app",
-  "version": "3.9.231",
+  "version": "3.9.232",
   "private": true,
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
@@ -55,8 +55,8 @@
     "postinstall": "patch-package",
     "start": "react-scripts start",
     "prebuild": "node ./scripts/ensure-clean-tree.js",
-    "build": "REACT_APP_VERSION=$npm_package_version DISABLE_ESLINT_PLUGIN=true react-scripts build && npm run sentry:sourcemaps",
-    "sentry:sourcemaps": "if [ -z \"$SENTRY_AUTH_TOKEN\" ]; then echo 'Skipping Sentry sourcemap upload (SENTRY_AUTH_TOKEN not set)'; else npx --yes @sentry/cli@latest sourcemaps inject ./build && npx --yes @sentry/cli@latest sourcemaps upload --release=\"$npm_package_version\" ./build; fi",
+    "build": "REACT_APP_VERSION=$npm_package_version DISABLE_ESLINT_PLUGIN=true react-scripts build && (npm run sentry:sourcemaps || echo 'Sentry sourcemap step failed (non-fatal, build continues)')",
+    "sentry:sourcemaps": "if [ -z \"$SENTRY_AUTH_TOKEN\" ] || [ -z \"$SENTRY_ORG\" ] || [ -z \"$SENTRY_PROJECT\" ]; then echo 'Skipping Sentry sourcemap upload (SENTRY_AUTH_TOKEN, SENTRY_ORG, or SENTRY_PROJECT not set)'; else npx --yes @sentry/cli@latest sourcemaps inject ./build && npx --yes @sentry/cli@latest sourcemaps upload --release=\"$npm_package_version\" ./build; fi",
     "build:dirty": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",

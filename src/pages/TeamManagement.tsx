@@ -13,6 +13,7 @@ import EndSeasonModal from '../components/team/EndSeasonModal';
 import NewSeasonModal from '../components/team/NewSeasonModal';
 import ManageSeasonsModal from '../components/team/ManageSeasonsModal';
 import MediaAccessModal from '../components/team/MediaAccessModal';
+import BackfillConfirmModal from '../components/coach/BackfillConfirmModal';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 
 const TeamManagement: React.FC = () => {
@@ -27,6 +28,12 @@ const TeamManagement: React.FC = () => {
   // State removed v3.2.63.
   const [showSharePlayerModal, setShowSharePlayerModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  // Retro-XP backfill: opens the coach-facing preview + confirm
+  // modal. Wired to the XP card body when xpConfig is enabled but
+  // xpConfig.backfilledAt is absent (team turned XP on before the
+  // backfill feature shipped, or without running the sweep).
+  const [showBackfillModal, setShowBackfillModal] = useState(false);
+  const [backfillTeamId, setBackfillTeamId] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [coachInvites, setCoachInvites] = useState<CoachInvite[]>([]);
@@ -1033,6 +1040,30 @@ const TeamManagement: React.FC = () => {
                         )}
                       </span>
                     </label>
+                    {/* Retro-credit affordance — only shown when the
+                        team has XP enabled but the backfill sweep has
+                        NOT been run (either XP was turned on before
+                        the feature shipped, or the coach chose to
+                        skip retro credit and later reconsidered).
+                        Hides itself once xpConfig.backfilledAt is
+                        stamped by the worker. */}
+                    {teamXpEnabled
+                      && (editingTeam as any)?.xpConfig?.enabled === true
+                      && !(editingTeam as any)?.xpConfig?.backfilledAt
+                      && (
+                      <div className="mt-3 pt-3 border-t border-line-default/10 flex items-center justify-between gap-3">
+                        <span className="text-[12px] text-ink-primary/70 leading-snug">
+                          Grant retro credit for pre-XP achievements.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setBackfillTeamId(editingTeam!.id); setShowBackfillModal(true); }}
+                          className="text-[12px] font-black text-cyan-500 hover:text-cyan-400 transition"
+                        >
+                          Preview
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
                     <label className="flex items-start gap-3 cursor-pointer">
@@ -1218,6 +1249,21 @@ const TeamManagement: React.FC = () => {
           onClose={() => setMediaAccessOpen(false)}
           teamId={selectedTeamId}
         />
+
+        {backfillTeamId && (
+          <BackfillConfirmModal
+            teamId={backfillTeamId}
+            isOpen={showBackfillModal}
+            triggerSource="post_enable"
+            onClose={() => setShowBackfillModal(false)}
+            onCommitted={() => {
+              // Refresh the team list so the "Preview" link hides
+              // (its visibility depends on xpConfig.backfilledAt
+              // which the worker just stamped).
+              void refreshTeams();
+            }}
+          />
+        )}
 
         {/* Invite Coach Modal removed v3.2.63 — dead since the
             unified generateShareInvite() flow replaced it. */}

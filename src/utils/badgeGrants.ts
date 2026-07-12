@@ -25,12 +25,16 @@ import { BadgeSlug, badgeXp } from './badgeMeta';
 // Behavior with the gate ON:
 //  - New player joins a team where xpConfig is off: nothing accrues.
 //    xp stays 0, badges stays empty.
-//  - Coach later enables xpConfig: grants fire from ship-forward. A
-//    player with 12 goals already scored will NOT get first_goal
-//    retroactively — the 0→N crossing already happened while grants
-//    were silenced. Their first goal AFTER enable will grant nothing
-//    either (prev >= 1). If we ever want retroactive credit, do it
-//    as a one-shot worker sweep on enable, not from the client.
+//  - Coach later enables xpConfig: forward grants fire from ship-
+//    forward. A player with 12 goals already scored will NOT get
+//    first_goal from THIS file — the 0→N crossing already happened
+//    while grants were silenced. Retroactive credit is handled by
+//    the one-shot worker sweep at POST /xp/backfill-commit (see
+//    worker/src/xpBackfill.ts), not from the client. That sweep
+//    reads career-total denorms + match_votings + dev-plan history
+//    and mints deterministic-id player_xp_events so a re-run is a
+//    Firestore 409 no-op. Client helpers here stay ship-forward
+//    only — the retro path is server-only by design.
 //  - Multi-team player: grants gate on the team where the ACTION
 //    fired. Action on Team A (xp off) → skip. Action on Team B (xp
 //    on) → grant. player.xp accumulates across all xp-on teams.

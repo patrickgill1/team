@@ -688,6 +688,61 @@ export interface PlayerXpEvent {
   /** Required for coach_recognition; optional for auto-sourced. */
   note?: string;
   createdAt: Date;
+  /** Set true on events written by /xp/backfill-commit so the client
+   *  can render "Retro credit" chrome instead of a live-earn toast. */
+  backfilled?: boolean;
+  /** Actual historical date of the achievement (first-game date,
+   *  first-POTM closedAt, streak-crossing day). Falls back to
+   *  createdAt when the historical date is unknown. */
+  occurredAt?: Date;
+}
+
+/** One line in the retro-XP backfill preview — what a specific
+ *  player would earn if the coach confirms. Returned by
+ *  /xp/backfill-preview; also re-computed server-side at commit time
+ *  and compared against the coach's expectedTotalXp so the coach can
+ *  never confirm a plan they didn't see. */
+export interface BackfillPreviewLine {
+  playerId: string;
+  playerName: string;
+  playerPhotoUrl?: string | null;
+  xpDelta: number;
+  badges: Array<{
+    /** Badge slug from BADGE_META (first_goal, streak_10, etc). */
+    slug: string;
+    /** Fixed XP amount from BADGE_META.xp. */
+    xp: number;
+    /** XP source slug used on the emitted player_xp_events doc. */
+    source: PlayerXpEvent['source'];
+    /** Stable reference for deterministic doc-id construction.
+     *  Examples: gameId for first_goal, votingDocId for first_potm,
+     *  String(threshold) for streak_N, seasonId for perfect_attendance. */
+    sourceRef: string;
+    /** ms epoch of the actual historical achievement. */
+    earnedAtMs: number;
+    /** Human-readable label ("First goal", "10-day streak"). */
+    label: string;
+  }>;
+}
+
+/** Full response shape from POST /xp/backfill-preview. */
+export interface BackfillPreviewResponse {
+  teamId: string;
+  computedAtMs: number;
+  lines: BackfillPreviewLine[];
+  totals: { xp: number; badges: number; players: number };
+  /** True once xpConfig.backfilledAt is set — the commit endpoint
+   *  will 409 on this state. Modal renders a "Already applied" card
+   *  instead of the preview list. */
+  alreadyBackfilled: boolean;
+}
+
+/** Post-commit summary echoed back to the client. Mirrors what gets
+ *  stamped onto team.xpConfig.backfillSummary. */
+export interface BackfillCommitSummary {
+  xpGranted: number;
+  badgesGranted: number;
+  playerCount: number;
 }
 
 /** One stage of the recruitment funnel. Persists when it was completed
@@ -2076,6 +2131,25 @@ export interface Team {
      *  reuses ("Winner of the drill · +10"). Rendered as tap-to-fill
      *  chips in CoachGrantXpModal. Capped server-side at 20. */
     coachRewards?: CoachRewardPreset[];
+    /** Retro-XP backfill audit. Set once by /xp/backfill-commit on
+     *  success. Serves as: (a) fast-fail idempotency gate so a second
+     *  modal click 409s, (b) visibility gate so the "Preview retro
+     *  credit" affordance disappears from Team Settings. Also set
+     *  (equal to enabledAt) if the coach opts to enable XP WITHOUT
+     *  running the sweep — that path fires no retro grants but still
+     *  needs to hide the nudge. */
+    backfilledAt?: Date;
+    /** Durable summary of the backfill run. Populated only by the
+     *  worker on successful commit; absent if the coach chose the
+     *  "enable without retro credit" path. */
+    backfillSummary?: {
+      xpGranted: number;
+      badgesGranted: number;
+      playerCount: number;
+      ranAt: Date;
+      ranByUid: string;
+      ranByName: string;
+    };
   };
   /** Coach control over the weekly email digest sent to parents.
    *  Coach picks day + which sections appear + optional custom

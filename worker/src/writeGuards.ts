@@ -41,7 +41,9 @@ import {
   commitDocumentTransforms,
   FirestoreDoc,
   PreconditionFailedError,
+  AlreadyExistsError,
 } from './firestore';
+import { computeBackfillPlan, backfillEventId, type BackfillPlan, type ComputedBadge } from './xpBackfill';
 import { setCustomClaims } from './identityToolkit';
 import { createLeague, createFixture, reportFixtureScore, recomputeStandings } from './leagues';
 
@@ -3769,6 +3771,213 @@ async function handleXpRewardPresets(req: Request, env: Env, payload: any): Prom
   }
   await patchDocument(pid, `teams/${teamId}`, { 'xpConfig.coachRewards': remaining }, sa);
   return json({ ok: true, removedId: presetId });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// POST /xp/backfill-preview + POST /xp/backfill-commit
+//
+// Two-phase retroactive XP sweep. When a coach enables xpConfig for
+// the first time (or when a coach on an already-enabled team wants
+// to grant credit for pre-XP history), preview shows exactly what
+// will be awarded, then commit writes it atomically.
+//
+// Idempotency:
+//   - team.xpConfig.backfilledAt is the fast-fail gate on the second
+//     modal click (returns 409 already_backfilled)
+//   - every event's Firestore doc id is deterministic
+//     (backfill-{playerId}-{source}-{sourceRef}) so re-hitting commit
+//     after a partial-success crash treats duplicate audits as an
+//     idempotent skip (via AlreadyExistsError) rather than
+//     double-crediting XP
+//
+// Copy discipline: reason strings on emitted events read as "Retro
+// credit: First goal" etc. No em dashes, no emojis (feedback rules).
+// ═══════════════════════════════════════════════════════════════
+
+async function handleXpBackfillPreview(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  if (!teamId) return json({ ok: false, error: 'teamId_required' }, 400);
+  await requireCoachOfTeam(req, env, teamId);
+  await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  try {
+    const plan = await computeBackfillPlan({ teamId, projectId: pid, sa });
+    return json({
+      ok: true,
+      teamId: plan.teamId,
+      computedAtMs: plan.computedAtMs,
+      lines: plan.lines,
+      totals: plan.totals,
+      alreadyBackfilled: plan.alreadyBackfilled,
+    });
+  } catch (err) {
+    console.error('[xp/backfill-preview] compute failed', (err as Error).message);
+    return json({ ok: false, error: 'preview_failed' }, 500);
+  }
+}
+
+/** Emit one event + paired player-doc transform for one badge.
+ *  Returns 'granted' on success, 'skipped' when the deterministic
+ *  event already exists (idempotency win). Any other error throws
+ *  and the caller decides whether to unwind. */
+async function applyBackfillBadge(
+  pid: string,
+  sa: ServiceAccount,
+  teamId: string,
+  playerId: string,
+  playerName: string,
+  badge: ComputedBadge,
+  claims: { uid: string; name?: string | null },
+): Promise<'granted' | 'skipped'> {
+  const eventId = backfillEventId(playerId, badge.source as any, badge.sourceRef);
+  const eventFields = {
+    teamId,
+    playerId,
+    playerName,
+    source: badge.source,
+    sourceRef: badge.sourceRef,
+    xp: badge.xp,
+    reason: `Retro credit: ${badge.label}`,
+    occurredAt: new Date(badge.earnedAtMs),
+    backfilled: true,
+    awardedBy: claims.uid,
+    awardedByRole: 'coach',
+    awardedByName: claims.name || 'Coach',
+    createdAt: new Date(),
+  };
+  try {
+    await createDocument(pid, 'player_xp_events', eventFields, sa, eventId);
+  } catch (err) {
+    if (err instanceof AlreadyExistsError) {
+      // Idempotent no-op — this exact event was written on a
+      // previous run. Don't re-apply XP or re-stamp the badge; a
+      // previous attempt already handled both.
+      return 'skipped';
+    }
+    throw err;
+  }
+  // Increment xp + xpCareer + stamp the badge in ONE atomic commit
+  // so a partial success is impossible. Badge earnedAt uses the
+  // historical date (per Patrick's Q2 decision) so the locker reads
+  // "Sept 2025" instead of today.
+  await commitDocumentTransforms(
+    pid,
+    `players/${playerId}`,
+    [
+      { fieldPath: 'xp', kind: 'increment', value: badge.xp },
+      { fieldPath: 'xpCareer', kind: 'increment', value: badge.xp },
+    ],
+    {
+      [`badges.${badge.slug}`]: {
+        earnedAt: new Date(badge.earnedAtMs),
+        source: 'backfill',
+      },
+    },
+    sa,
+  );
+  return 'granted';
+}
+
+async function handleXpBackfillCommit(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  if (!teamId) return json({ ok: false, error: 'teamId_required' }, 400);
+  await requireCoachOfTeam(req, env, teamId);
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  // Fresh plan — coach's client-supplied expectedTotalXp must match
+  // the freshly-computed totals so they can never commit a plan
+  // they didn't see.
+  let plan: BackfillPlan;
+  try {
+    plan = await computeBackfillPlan({ teamId, projectId: pid, sa });
+  } catch (err) {
+    console.error('[xp/backfill-commit] compute failed', (err as Error).message);
+    return json({ ok: false, error: 'preview_failed' }, 500);
+  }
+
+  if (plan.alreadyBackfilled) {
+    return json({ ok: false, error: 'already_backfilled' }, 409);
+  }
+
+  const expected = Number(payload?.expectedTotalXp);
+  if (!Number.isFinite(expected) || expected !== plan.totals.xp) {
+    return json({
+      ok: false,
+      error: 'preview_stale',
+      currentTotals: plan.totals,
+    }, 409);
+  }
+
+  // If the coach explicitly opted OUT of retroactive credit (e.g.
+  // via the "Turn on without retro credit" link), payload.skipGrants
+  // === true skips the write loop and only flips the enable +
+  // backfilledAt markers so future modal clicks are a no-op.
+  const skipGrants = payload?.skipGrants === true;
+
+  // First-time enable branch: if xpConfig.enabled is not yet true,
+  // flip it now BEFORE the grants land so downstream reads see the
+  // enabled state consistently.
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa);
+  const currentlyEnabled = teamDoc?.data?.xpConfig?.enabled === true;
+  if (!currentlyEnabled) {
+    await patchDocument(pid, `teams/${teamId}`, {
+      'xpConfig.enabled': true,
+      'xpConfig.enabledAt': new Date(),
+    }, sa);
+  }
+
+  let grantedCount = 0;
+  let grantedXp = 0;
+  const errors: Array<{ playerId: string; slug: string; message: string }> = [];
+
+  if (!skipGrants) {
+    for (const line of plan.lines) {
+      for (const badge of line.badges) {
+        try {
+          const outcome = await applyBackfillBadge(pid, sa, teamId, line.playerId, line.playerName, badge, {
+            uid: claims.uid,
+            name: (claims as any).name || 'Coach',
+          });
+          if (outcome === 'granted') {
+            grantedCount += 1;
+            grantedXp += badge.xp;
+          }
+          // 'skipped' → prior run already handled this event, no
+          // action needed. Counts toward "already applied" totals
+          // but we don't double-count against grantedXp.
+        } catch (err) {
+          const msg = (err as Error).message || 'unknown';
+          console.error('[xp/backfill-commit] grant failed', line.playerId, badge.slug, msg);
+          errors.push({ playerId: line.playerId, slug: badge.slug, message: msg });
+        }
+      }
+    }
+  }
+
+  // Stamp the durable marker + summary. Even if some grants errored,
+  // the ones that succeeded are permanent; on retry the deterministic
+  // ids will 409-skip and only the un-emitted events run.
+  const summary = {
+    xpGranted: grantedXp,
+    badgesGranted: grantedCount,
+    playerCount: plan.lines.length,
+    ranAt: new Date(),
+    ranByUid: claims.uid,
+    ranByName: (claims as any).name || 'Coach',
+  };
+  await patchDocument(pid, `teams/${teamId}`, {
+    'xpConfig.backfilledAt': new Date(),
+    'xpConfig.backfillSummary': summary,
+  }, sa);
+
+  return json({
+    ok: true,
+    summary,
+    errors: errors.length > 0 ? errors : undefined,
+    skipped: skipGrants,
+  });
 }
 
 export async function routeWriteGuard(

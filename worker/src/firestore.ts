@@ -57,6 +57,19 @@ export interface FirestoreDoc {
   updateTime?: string;
 }
 
+// Distinct error thrown when createDocument tries to write a doc at
+// a deterministic path that already exists. Used by the retro-XP
+// backfill loop as its idempotency signal: a re-run of the confirm
+// modal hits the same deterministic doc id, Firestore rejects with
+// ALREADY_EXISTS, the loop treats it as "already granted on a prior
+// run" and skips the paired transform + badge patch.
+export class AlreadyExistsError extends Error {
+  constructor(public path: string) {
+    super(`document already exists: ${path}`);
+    this.name = 'AlreadyExistsError';
+  }
+}
+
 // Distinct error so shims can catch precondition losses (concurrent
 // write raced us) and translate to a clean 409, without swallowing
 // real 5xx errors.
@@ -240,7 +253,17 @@ export async function createDocument(projectId: string, collection: string, fiel
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(`firestore create ${collection} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  if (!r.ok) {
+    const text = await r.text();
+    // Firestore returns 409 with a body that mentions "already exists"
+    // when a deterministic documentId collides with an existing doc.
+    // Surface as a typed error so the backfill loop can skip cleanly
+    // without swallowing real 5xx failures.
+    if (r.status === 409 || /already exists|ALREADY_EXISTS/i.test(text)) {
+      throw new AlreadyExistsError(`${collection}/${docId || '(auto)'}`);
+    }
+    throw new Error(`firestore create ${collection} ${r.status}: ${text.slice(0, 200)}`);
+  }
   const j: any = await r.json();
   return String(j.name).split('/').pop() || '';
 }

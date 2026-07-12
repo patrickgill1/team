@@ -74,12 +74,26 @@ export async function awardMicroXp(
 
   let grant = amount;
   let sameDay = false;
+  // Snapshot player doc data for the level-up whisper. When capped
+  // we already read the player doc; when uncapped we do NOT add a
+  // second read (level-up trigger becomes a no-op — the streak /
+  // badge write paths handle level crossings on their own reads).
+  let priorXp = 0;
+  let teamId: string | null = null;
+  let playerName: string | undefined;
+  let parentIds: string[] | undefined;
+  let priorXpKnown = false;
 
   if (cap != null) {
     try {
       const snap = await getDoc(doc(db, 'players', playerId));
       if (snap.exists()) {
         const data: any = snap.data();
+        priorXp = Number(data?.xp) || 0;
+        priorXpKnown = true;
+        teamId = typeof data?.teamId === 'string' ? data.teamId : null;
+        playerName = typeof data?.name === 'string' ? data.name : undefined;
+        parentIds = Array.isArray(data?.parentIds) ? data.parentIds : undefined;
         const bucket = data?.xpDailyCount;
         if (bucket && bucket.yyyymmdd === today) {
           sameDay = true;
@@ -103,21 +117,27 @@ export async function awardMicroXp(
   };
   if (cap != null) {
     if (sameDay) {
-      // Same-day: dot-path increment so concurrent taps compose
-      // through the Firestore server-side counter.
       patch[`xpDailyCount.counts.${key}`] = increment(grant);
     } else {
-      // Fresh day (or first tap ever): replace the whole bucket so
-      // any prior day's counters get wiped. Rapid simultaneous
-      // first-of-day taps could clobber each other and lose a couple
-      // XP — the daily cap is a spam guard, not an accounting system,
-      // so a rare 2-XP race isn't worth a transaction.
       patch.xpDailyCount = { yyyymmdd: today, counts: { [key]: grant } };
     }
   }
 
   try {
     await updateDoc(doc(db, 'players', playerId), patch);
+    // Level-up parent whisper — only for capped actions where we
+    // already have priorXp + teamId from the pre-write read. Uncapped
+    // paths (RSVP, I did it) piggyback on other level-up triggers
+    // (streak crossings, badge grants) so we don't pay an extra read.
+    if (priorXpKnown && teamId && grant > 0) {
+      try {
+        const { checkLevelUpAndWhisper } = await import('./levelUp');
+        void checkLevelUpAndWhisper(playerId, priorXp, priorXp + grant, teamId, {
+          xpEnabled: true,
+          playerData: { name: playerName, parentIds },
+        });
+      } catch { /* dynamic import failure; whisper is a nice-to-have */ }
+    }
   } catch (err) {
     console.warn('[microXp] write failed', playerId, amount, err);
   }

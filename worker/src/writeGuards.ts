@@ -32,7 +32,7 @@ import {
   requireSelf,
   AuthError,
 } from './auth';
-import { parseServiceAccount, ServiceAccount } from './fcm';
+import { parseServiceAccount, ServiceAccount, getAccessToken } from './fcm';
 import {
   getDocument,
   patchDocument,
@@ -3201,24 +3201,67 @@ const COACH_LIVE_REASON_MIN = 1;
 const COACH_LIVE_REASON_MAX = 80;
 const COACH_LIVE_PRESETS_MAX = 20;
 
-/** Midnight America/Denver of the given instant, as ms. Same pattern
- *  as startOfWeekDenverMs. Used to sum coach_live XP into the daily
- *  rolling quota. */
+/** Midnight America/Denver of the given instant, as ms.
+ *
+ * Audit 2026-07-11: prior impl subtracted "Denver intra-day seconds"
+ * from now.getTime(). Off by ±1h across a DST boundary. Fix: resolve
+ * the concrete Denver UTC offset that applies at that calendar day
+ * via a noon probe (unambiguous re: DST transitions) and reconstruct
+ * Denver midnight as an absolute UTC millisecond. */
 function startOfDayDenverMs(now = new Date()): number {
-  const fmt = new Intl.DateTimeFormat('en-US', {
+  const dateKey = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Denver',
     year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(now); // en-CA → 'YYYY-MM-DD'
+  const [y, m, d] = dateKey.split('-').map(n => parseInt(n, 10));
+  const probeUtc = Date.UTC(y, m - 1, d, 12, 0, 0);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Denver', hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hourCycle: 'h23',
-  });
-  const parts = fmt.formatToParts(now);
-  const get = (t: string) => parts.find(p => p.type === t)?.value || '';
-  const intraDayMs = (
-    parseInt(get('hour'), 10) * 3600
-    + parseInt(get('minute'), 10) * 60
-    + parseInt(get('second'), 10)
-  ) * 1000;
-  return now.getTime() - intraDayMs;
+  }).formatToParts(new Date(probeUtc));
+  const g = (t: string) => parseInt(parts.find(p => p.type === t)?.value || '0', 10);
+  const denverAsIfUtc = Date.UTC(
+    g('year'), g('month') - 1, g('day'),
+    g('hour'), g('minute'), g('second'),
+  );
+  const offsetMs = denverAsIfUtc - probeUtc;
+  return Date.UTC(y, m - 1, d, 0, 0, 0) - offsetMs;
+}
+
+/** Denver calendar-day key used as the rolling-counter sub-field on
+ *  players/{id}.xpDailyGrantCount. Format 'dYYYYMMDD' so Firestore
+ *  field-path syntax doesn't need escaping in transform paths. */
+function dailyKeyDenver(now = new Date()): string {
+  const dateKey = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Denver',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(now);
+  return 'd' + dateKey.replace(/-/g, '');
+}
+
+/** Best-effort delete of a player_xp_events audit doc to undo an
+ *  orphan when the follow-up player transform failed. Worker's
+ *  commitDocumentTransforms is single-doc so we can't wrap both
+ *  writes in one commit. Rare double failure logs for offline
+ *  reconciliation. */
+async function deleteAuditEventBestEffort(
+  eventId: string,
+  pid: string,
+  sa: ServiceAccount,
+): Promise<void> {
+  if (!eventId) return;
+  try {
+    const token = await getAccessToken(sa, 'https://www.googleapis.com/auth/datastore');
+    const url = `https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/player_xp_events/${encodeURIComponent(eventId)}`;
+    const r = await fetch(url, {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) console.warn('[xp] audit undo delete failed', eventId, r.status);
+  } catch (err) {
+    console.warn('[xp] audit undo delete threw', eventId, (err as Error).message);
+  }
 }
 
 /** Monday 00:00 America/Denver as a millisecond timestamp. Windows
@@ -3527,74 +3570,94 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
   } catch { /* non-fatal */ }
 
   const now = new Date();
-  const dayStartMs = startOfDayDenverMs(now);
+  const dayKey = dailyKeyDenver(now);
+  const counterPath = `xpDailyGrantCount.${dayKey}`;
 
-  // Per-player writes in parallel so a 40-kid bulk grant still
-  // returns fast. Any single-player failure is captured on the
-  // result row rather than aborting the batch — the client can
-  // retry just those.
+  // Audit 2026-07-11 hardening pass. Two audit-noted followups closed:
+  //
+  //   #1 CROSS-REQUEST CAP RACE. Prior shape read player_xp_events for
+  //   the current day and summed. Two concurrent requests both saw
+  //   dailySum=0 and both wrote — total > 500 XP. Fix: shift ceiling
+  //   onto the PLAYER doc as a rolling counter sub-field
+  //   xpDailyGrantCount.{dayKey}. Read player.updateTime, check
+  //   counter, then commit an updateTime-preconditioned transform
+  //   that increments counter + xp + xpCareer atomically. Concurrent
+  //   modification invalidates the precondition and Firestore
+  //   returns FAILED_PRECONDITION; we retry up to MAX_RETRIES.
+  //
+  //   #2 TWO-WRITE ATOMICITY. Worker's commitDocumentTransforms is
+  //   single-doc. Compromise: write audit first, attempt player
+  //   commit, on any player-fail call deleteAuditEventBestEffort()
+  //   to undo the orphan audit. Rare double failure is logged.
+  const MAX_RETRIES = 3;
+
   const results = await Promise.all(playerIds.map(async (playerId): Promise<{ playerId: string; ok: boolean; error?: string; xp?: number }> => {
     try {
-      const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
-      const player: any = playerDoc?.data;
-      if (!player) return { playerId, ok: false, error: 'player_not_found' };
-      const playerTeams: string[] = Array.isArray(player.teamIds)
-        ? player.teamIds
-        : (player.teamId ? [player.teamId] : []);
-      if (!playerTeams.includes(teamId)) return { playerId, ok: false, error: 'player_not_on_team' };
-      const playerName = String(player.name || 'Player');
+      let attempt = 0;
+      let lastError: string = 'write_failed';
+      while (attempt < MAX_RETRIES) {
+        attempt++;
+        const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+        const player: any = playerDoc?.data;
+        if (!player) return { playerId, ok: false, error: 'player_not_found' };
+        const playerTeams: string[] = Array.isArray(player.teamIds)
+          ? player.teamIds
+          : (player.teamId ? [player.teamId] : []);
+        if (!playerTeams.includes(teamId)) return { playerId, ok: false, error: 'player_not_on_team' };
+        const playerName = String(player.name || 'Player');
 
-      // Daily XP cap check. Fail-closed on lookup error, per the
-      // recognition path's audit rationale.
-      let dailySum = 0;
-      try {
-        const events = await runQuery(pid, 'player_xp_events', [
-          { field: 'playerId', op: 'EQUAL', value: playerId },
-          { field: 'source', op: 'EQUAL', value: 'coach_live' },
-          { field: 'createdAt', op: 'GREATER_THAN_OR_EQUAL', value: new Date(dayStartMs) },
-        ], sa, 100);
-        for (const ev of events) {
-          const raw: any = (ev.data as any)?.createdAt;
-          let t = 0;
-          if (raw instanceof Date) t = raw.getTime();
-          else if (typeof raw?.toDate === 'function') { try { t = raw.toDate().getTime(); } catch { /* ignore */ } }
-          else if (typeof raw?.seconds === 'number') t = raw.seconds * 1000;
-          else if (typeof raw === 'number') t = raw;
-          if (t >= dayStartMs) {
-            const xpVal = Number((ev.data as any)?.xp || 0);
-            if (Number.isFinite(xpVal)) dailySum += xpVal;
-          }
+        const counterMap: any = (player.xpDailyGrantCount && typeof player.xpDailyGrantCount === 'object')
+          ? player.xpDailyGrantCount
+          : {};
+        const rawDaily = Number(counterMap[dayKey]);
+        const dailySum = Number.isFinite(rawDaily) && rawDaily >= 0 ? rawDaily : 0;
+        if (dailySum + amount > COACH_LIVE_XP_PER_PLAYER_PER_DAY) {
+          return { playerId, ok: false, error: 'daily_cap_reached' };
         }
-      } catch (err) {
-        console.warn('[xp] grant-coach cap lookup failed for', playerId, (err as Error).message);
-        return { playerId, ok: false, error: 'cap_check_failed' };
+
+        const eventFields: Record<string, any> = {
+          playerId,
+          playerName,
+          teamId,
+          xp: amount,
+          source: 'coach_live',
+          awardedBy: claims.uid,
+          awardedByRole: 'coach',
+          awardedByName,
+          note: reason,
+          createdAt: now,
+        };
+        if (seasonId) eventFields.seasonId = seasonId;
+        if (clubId) eventFields.clubId = clubId;
+
+        const eventId = await createDocument(pid, 'player_xp_events', eventFields, sa);
+
+        try {
+          await commitDocumentTransforms(
+            pid,
+            `players/${playerId}`,
+            [
+              { fieldPath: 'xp', kind: 'increment', value: amount },
+              { fieldPath: 'xpCareer', kind: 'increment', value: amount },
+              { fieldPath: counterPath, kind: 'increment', value: amount },
+            ],
+            null,
+            sa,
+            playerDoc?.updateTime ? { updateTime: playerDoc.updateTime } : undefined,
+          );
+          return { playerId, ok: true, xp: amount };
+        } catch (commitErr) {
+          await deleteAuditEventBestEffort(eventId, pid, sa);
+          if (commitErr instanceof PreconditionFailedError) {
+            lastError = 'precondition_retry';
+            continue;
+          }
+          console.error('[xp] grant-coach player commit failed', playerId, (commitErr as Error).message);
+          lastError = 'write_failed';
+          break;
+        }
       }
-      if (dailySum + amount > COACH_LIVE_XP_PER_PLAYER_PER_DAY) {
-        return { playerId, ok: false, error: 'daily_cap_reached' };
-      }
-
-      const eventFields: Record<string, any> = {
-        playerId,
-        playerName,
-        teamId,
-        xp: amount,
-        source: 'coach_live',
-        awardedBy: claims.uid,
-        awardedByRole: 'coach',
-        awardedByName,
-        note: reason,
-        createdAt: now,
-      };
-      if (seasonId) eventFields.seasonId = seasonId;
-      if (clubId) eventFields.clubId = clubId;
-
-      await createDocument(pid, 'player_xp_events', eventFields, sa);
-      await commitDocumentTransforms(pid, `players/${playerId}`, [
-        { fieldPath: 'xp', kind: 'increment', value: amount },
-        { fieldPath: 'xpCareer', kind: 'increment', value: amount },
-      ], null, sa);
-
-      return { playerId, ok: true, xp: amount };
+      return { playerId, ok: false, error: lastError === 'precondition_retry' ? 'retry_exhausted' : lastError };
     } catch (err) {
       console.error('[xp] grant-coach write failed for', playerId, (err as Error).message);
       return { playerId, ok: false, error: 'write_failed' };

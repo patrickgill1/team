@@ -12,6 +12,7 @@ import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import ProfileHero from '../components/player/ProfileHero';
 import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
 import PlayerXpCard from '../components/player/PlayerXpCard';
+import PlayerXpHistoryFeed from '../components/player/PlayerXpHistoryFeed';
 import CoachRecognitionModal from '../components/player/CoachRecognitionModal';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
 import PlayerCircleCard from '../components/player/PlayerCircleCard';
@@ -554,6 +555,13 @@ const PlayerProfile: React.FC = () => {
         }
         onRecognize={() => setShowRecognition(true)}
       />
+
+      {/* Recent XP audit trail — Duolingo-style scroll of the concrete
+          grants that fed the trading-card number above. Guarded on
+          team.xpConfig so profiles on non-XP teams stay clean. */}
+      {(selectedTeam as any)?.xpConfig?.enabled === true && (
+        <PlayerXpHistoryFeed playerId={player.id} />
+      )}
 
       {/* Recruitment funnel moved to PersonAdmin (admin CRM only).
           Patrick 2026-06-25: 'I don't know if the recruitment timeline

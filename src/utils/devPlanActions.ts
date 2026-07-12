@@ -154,6 +154,8 @@ export async function recomputeAndPersistPlayerStreak(
     let restDayOfWeek: number | null | undefined = 0;
     let existingBadges: Record<string, any> | undefined;
     let xpEnabled = false;
+    let priorXp = 0;
+    let parentIds: string[] | undefined;
     try {
       const snap = await getDoc(doc(db, 'players', playerId));
       if (snap.exists()) {
@@ -162,6 +164,8 @@ export async function recomputeAndPersistPlayerStreak(
         playerName = data.name;
         teamId = data.teamId;
         existingBadges = data.badges;
+        priorXp = Number(data.xp) || 0;
+        parentIds = Array.isArray(data.parentIds) ? data.parentIds : undefined;
       }
     } catch (err) {
       console.warn('streak prior read failed', err);
@@ -201,11 +205,37 @@ export async function recomputeAndPersistPlayerStreak(
     // touched slugs and merges into a single combined increment.
     const { composeMicroXpIntoPatch } = await import('./microXp');
     await composeMicroXpIntoPatch(badgePatch, 5, xpEnabled);
+    // Compute the XP that lands on this tick BEFORE the write so we
+    // can trigger checkLevelUpAndWhisper against priorXp + granted.
+    // badgePatch.xp is a Firestore increment sentinel, not a plain
+    // number; we recompute from the touched slugs + the micro-XP add.
+    let xpGrantedThisTick = 0;
+    if (xpEnabled) {
+      try {
+        const { badgeXp } = await import('./badgeMeta');
+        for (const key of Object.keys(badgePatch)) {
+          if (key.startsWith('badges.')) {
+            const slug = key.slice('badges.'.length);
+            xpGrantedThisTick += badgeXp(slug) || 0;
+          }
+        }
+        xpGrantedThisTick += 5; // matches composeMicroXpIntoPatch(., 5, .)
+      } catch { /* ignore */ }
+    }
     await updateDoc(doc(db, 'players', playerId), {
       currentStreakDays: streak,
       currentStreakUpdatedAt: new Date(),
       ...badgePatch,
     });
+    if (xpEnabled && teamId && xpGrantedThisTick > 0) {
+      try {
+        const { checkLevelUpAndWhisper } = await import('./levelUp');
+        void checkLevelUpAndWhisper(playerId, priorXp, priorXp + xpGrantedThisTick, teamId, {
+          xpEnabled: true,
+          playerData: { name: playerName, parentIds },
+        });
+      } catch { /* whisper is nice-to-have */ }
+    }
 
     if (actor && playerName && teamId) {
       try {

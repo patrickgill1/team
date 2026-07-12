@@ -1,0 +1,236 @@
+// PlayerXpHistoryFeed — Duolingo-style recent XP scroll for the
+// player profile. Reads player_xp_events (worker-written, immutable)
+// and renders "+N XP [source] [reason] [when]" rows so kids + parents
+// see a concrete accounting of every grant instead of a mystery
+// number ticking up on the card above.
+//
+// Query: playerId==id, orderBy createdAt desc, limit 20. Progressive
+// disclosure — collapsed to 5 rows when there are more than 8, with a
+// "See all N" toggle up to a 20-row cap. Handles Firestore Timestamp
+// / Date / seconds-map / ISO-string coercion for createdAt.
+
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  collection,
+  limit as fsLimit,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from 'firebase/firestore';
+import { db } from '../../utils/firebase';
+import { PlayerXpEvent } from '../../types';
+
+interface Props {
+  playerId: string;
+}
+
+// Copy locked by product spec — do not paraphrase without a fresh
+// review. Kids read these labels literally.
+const SOURCE_LABEL: Record<PlayerXpEvent['source'], string> = {
+  coach_recognition: 'Coach recognition',
+  coach_live: 'Coach grant',
+  attendance: 'Attendance',
+  potm: 'Player of the match',
+  goal: 'First goal',
+  assist: 'First assist',
+  save: 'First save',
+  clean_sheet: 'Clean sheet',
+  dev_plan_log: 'Practice logged',
+  streak_milestone: 'Streak milestone',
+  team_win: 'Team win',
+  play_time: 'Playing time',
+  backfill: 'XP backfill',
+};
+
+// Color mapping per source family. Coach = brand crimson, first-stats
+// = amber, streak = warm orange, attendance = emerald, dev-plan =
+// brand-primary-soft (cyan-pink). Everything else falls back to a
+// neutral ink dot so the row stays legible without introducing a new
+// palette color.
+function dotClassForSource(source: PlayerXpEvent['source']): string {
+  switch (source) {
+    case 'coach_recognition':
+    case 'coach_live':
+      return 'bg-brand-primary';
+    case 'goal':
+    case 'assist':
+    case 'save':
+    case 'clean_sheet':
+    case 'potm':
+      return 'bg-amber-500';
+    case 'streak_milestone':
+      return 'bg-orange-500';
+    case 'attendance':
+      return 'bg-emerald-500';
+    case 'dev_plan_log':
+      return 'bg-brand-primary-soft';
+    default:
+      return 'bg-ink-secondary/40';
+  }
+}
+
+// Coerce whatever createdAt shape Firestore gave us into ms. Client
+// reads may see a raw Timestamp, a re-hydrated Date, a {seconds,
+// nanoseconds} plain object (if a serialization boundary flattened
+// it), an ISO string, or a raw ms number. Return 0 for unknown so
+// sorts + relative-time stay stable.
+function toMillis(raw: any): number {
+  if (!raw) return 0;
+  if (raw instanceof Date) return raw.getTime();
+  if (typeof raw?.toDate === 'function') {
+    try { return raw.toDate().getTime(); } catch { return 0; }
+  }
+  if (typeof raw?.seconds === 'number') return raw.seconds * 1000;
+  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'string') {
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+  }
+  return 0;
+}
+
+function relativeTime(ms: number): string {
+  if (!ms) return '';
+  const diff = Date.now() - ms;
+  if (diff < 45 * 1000) return 'just now';
+  const min = Math.round(diff / 60000);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  const wk = Math.round(day / 7);
+  if (wk < 5) return `${wk}w ago`;
+  const mo = Math.round(day / 30);
+  if (mo < 12) return `${mo}mo ago`;
+  const yr = Math.round(day / 365);
+  return `${yr}y ago`;
+}
+
+interface FeedRow {
+  id: string;
+  xp: number;
+  source: PlayerXpEvent['source'];
+  reason: string;
+  createdAtMs: number;
+}
+
+const HARD_CAP = 20;
+const COLLAPSED_ROWS = 5;
+const COLLAPSE_THRESHOLD = 8;
+
+const PlayerXpHistoryFeed: React.FC<Props> = ({ playerId }) => {
+  const [rows, setRows] = useState<FeedRow[] | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!playerId) return;
+    const q = query(
+      collection(db, 'player_xp_events'),
+      where('playerId', '==', playerId),
+      orderBy('createdAt', 'desc'),
+      fsLimit(HARD_CAP),
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const next: FeedRow[] = snap.docs.map((d) => {
+        const data: any = d.data();
+        return {
+          id: d.id,
+          xp: Number(data.xp) || 0,
+          source: (data.source as PlayerXpEvent['source']) || 'backfill',
+          reason: String(data.note || '').trim(),
+          createdAtMs: toMillis(data.createdAt),
+        };
+      });
+      setRows(next);
+    }, (err) => {
+      console.warn('player xp history feed listener failed', err);
+      setRows([]);
+    });
+    return () => unsub();
+  }, [playerId]);
+
+  const totalCount = rows?.length ?? 0;
+  const shouldCollapse = totalCount > COLLAPSE_THRESHOLD;
+  const visibleRows = useMemo(() => {
+    if (!rows) return [];
+    if (!shouldCollapse || expanded) return rows;
+    return rows.slice(0, COLLAPSED_ROWS);
+  }, [rows, shouldCollapse, expanded]);
+
+  // Loading vs empty vs populated. During the initial load we render
+  // nothing (per atomic-render pattern — no skeleton flicker). Once
+  // the snapshot resolves with zero rows we show the empty state.
+  if (rows === null) return null;
+
+  return (
+    <section className="px-4 sm:px-6 pt-3">
+      <div className="max-w-3xl mx-auto">
+        <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/25 overflow-hidden">
+          <div className="px-4 sm:px-5 pt-3 pb-2 flex items-center justify-between">
+            <h3 className="text-[11px] font-black uppercase tracking-[0.22em] text-ink-primary/60">
+              Recent XP
+            </h3>
+            {totalCount > 0 && (
+              <span className="text-[11px] font-semibold text-ink-secondary tabular-nums">
+                {totalCount === HARD_CAP ? '20+' : totalCount}
+              </span>
+            )}
+          </div>
+
+          {totalCount === 0 ? (
+            <p className="px-4 sm:px-5 pb-4 text-[13px] text-ink-secondary">
+              No XP earned yet.
+            </p>
+          ) : (
+            <>
+              <ul className="divide-y divide-line-default/15">
+                {visibleRows.map((row) => (
+                  <li
+                    key={row.id}
+                    className="px-4 sm:px-5 py-2.5 flex items-center gap-3"
+                  >
+                    <span
+                      className={`shrink-0 w-2 h-2 rounded-full ${dotClassForSource(row.source)}`}
+                      aria-hidden
+                    />
+                    <div className="min-w-0 flex-1 flex items-baseline gap-2">
+                      <span className="shrink-0 text-[13px] font-black text-ink-primary tabular-nums">
+                        +{row.xp} XP
+                      </span>
+                      <span className="shrink-0 text-[12px] font-semibold text-ink-primary/80">
+                        {SOURCE_LABEL[row.source] || 'XP grant'}
+                      </span>
+                      {row.reason && (
+                        <span className="truncate text-[12px] italic text-ink-secondary">
+                          {row.reason}
+                        </span>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-[11px] text-ink-secondary tabular-nums">
+                      {relativeTime(row.createdAtMs)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              {shouldCollapse && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded((v) => !v)}
+                  className="w-full px-4 sm:px-5 py-2.5 text-[12px] font-bold uppercase tracking-wider text-brand-primary hover:bg-surface-input/50 active:bg-surface-input transition border-t border-line-default/15"
+                >
+                  {expanded ? 'Show less' : `See all ${totalCount}`}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default PlayerXpHistoryFeed;
+

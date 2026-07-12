@@ -11,6 +11,7 @@ import EmailVerifyBanner from '../components/common/EmailVerifyBanner';
 import { RichContent } from './Wall';
 import NextEventPoster from '../components/common/NextEventPoster';
 import FamilyFeed from '../components/dashboard/FamilyFeed';
+import WeeklySpotlightCard, { type SpotlightPotm, type SpotlightPick } from '../components/dashboard/WeeklySpotlightCard';
 import InThePoolHero from '../components/dashboard/InThePoolHero';
 import NotificationsBanner from '../components/common/NotificationsBanner';
 import SubscribeBanner from '../components/dashboard/SubscribeBanner';
@@ -605,9 +606,16 @@ const Dashboard: React.FC = () => {
   // winners[], the dashboard hero card goes GOLD. Patrick: "this is
   // also the profile i want to turn gold when the player gets player
   // of the match for the week".
+  //
+  // Same effect also populates `spotlightPotm` — the payload the
+  // WeeklySpotlightCard renders. We widen the cutoff to 14 days for
+  // the Spotlight (matches the neighboring "New for you" window and
+  // avoids a hollow-card week after a bye), while the gold-hero
+  // toggle keeps its stricter 7-day window.
   const [isPotmThisWeek, setIsPotmThisWeek] = useState(false);
+  const [spotlightPotm, setSpotlightPotm] = useState<SpotlightPotm | null>(null);
   useEffect(() => {
-    if (!myPlayer) { setIsPotmThisWeek(false); return; }
+    if (!selectedTeamId) { setIsPotmThisWeek(false); setSpotlightPotm(null); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -615,27 +623,93 @@ const Dashboard: React.FC = () => {
         const { db } = await import('../utils/firebase');
         const snap = await getDocs(query(
           fsColl(db, 'match_votings'),
-          where('teamId', '==', myPlayer.teamId),
+          where('teamId', '==', selectedTeamId),
           orderBy('closedAt', 'desc'),
           limit(3),
         ));
         if (cancelled) return;
-        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        const won = snap.docs.some(d => {
+        const now = Date.now();
+        const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+        const twoWeeksAgo = now - 14 * 24 * 60 * 60 * 1000;
+
+        // Gold-hero toggle: still 7-day window, still keyed on my
+        // player (coach viewer never gets the gold treatment).
+        const won = myPlayer ? snap.docs.some(d => {
           const v = d.data() as any;
           const closed = v.closedAt?.toDate ? v.closedAt.toDate().getTime() : 0;
           if (!closed || closed < weekAgo) return false;
           const winners: any[] = Array.isArray(v.winners) ? v.winners : [];
           const winner = v.winner;
           return winners.some(w => w.playerId === myPlayer.id) || winner?.playerId === myPlayer.id;
-        });
+        }) : false;
         setIsPotmThisWeek(won);
+
+        // Spotlight: newest closed voting within 14 days. Prefer
+        // winners[0] over the legacy singular winner; render null if
+        // neither is set.
+        let spotlight: SpotlightPotm | null = null;
+        for (const d of snap.docs) {
+          const v = d.data() as any;
+          const closed = v.closedAt?.toDate ? v.closedAt.toDate().getTime() : 0;
+          if (!closed || closed < twoWeeksAgo) continue;
+          const winners: any[] = Array.isArray(v.winners) ? v.winners : [];
+          const w = winners[0] || v.winner;
+          if (!w?.playerId) continue;
+          // Prefer the fresh player doc's photo if we have it (roster
+          // is already loaded), fall back to the winner payload's
+          // stamped photoUrl if present.
+          const p = players.find(pl => pl.id === w.playerId);
+          spotlight = {
+            playerId: w.playerId,
+            playerName: w.playerName || p?.name || 'Player',
+            playerPhotoUrl: (p as any)?.profilePhotoUrl || w.playerPhotoUrl || null,
+            gameTitle: v.gameTitle || undefined,
+            isCoWin: winners.length > 1,
+            closedAt: new Date(closed),
+          };
+          break;
+        }
+        setSpotlightPotm(spotlight);
       } catch (err) {
         console.warn('potm check failed', err);
       }
     })();
     return () => { cancelled = true; };
-  }, [myPlayer?.id, myPlayer?.teamId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // players is intentionally included so the photo binds correctly
+    // once the roster resolves — the query itself doesn't depend on
+    // it, but the render payload does.
+  }, [selectedTeamId, myPlayer?.id, players]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Spotlight: most recent coach's-pick across the roster within
+  // 14 days. Pure in-memory scan against the already-loaded
+  // `players` state — no extra Firestore reads. The raw coach note
+  // is intentionally NOT surfaced here (Phase-1 recognitions are
+  // private whispers; the note stays on the honoree family's
+  // Whispers tab). The card renders a generic "Coach recognized X's
+  // effort" celebration line instead.
+  const [spotlightPick, setSpotlightPick] = useState<SpotlightPick | null>(null);
+  useEffect(() => {
+    if (!Array.isArray(players) || players.length === 0) { setSpotlightPick(null); return; }
+    const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    let best: SpotlightPick | null = null;
+    let bestMs = 0;
+    for (const p of players) {
+      const cp: any = (p as any).badges?.coach_pick;
+      if (!cp?.earnedAt) continue;
+      const ms = cp.earnedAt?.toDate ? cp.earnedAt.toDate().getTime()
+        : (cp.earnedAt instanceof Date ? cp.earnedAt.getTime() : new Date(cp.earnedAt).getTime());
+      if (!Number.isFinite(ms) || ms < twoWeeksAgo) continue;
+      if (ms <= bestMs) continue;
+      bestMs = ms;
+      best = {
+        playerId: p.id,
+        playerName: p.name || 'Player',
+        playerPhotoUrl: (p as any).profilePhotoUrl || null,
+        earnedAt: new Date(ms),
+      };
+    }
+    setSpotlightPick(best);
+  }, [players]);
 
   // Most recent clip featuring my player (parents) or just the latest clip (coaches).
   const featuredClip = useMemo(() => {
@@ -1272,6 +1346,15 @@ const Dashboard: React.FC = () => {
             not the headline. Returns null internally for solo-team
             users so single-team dashboards are unaffected. */}
         <FamilyFeed />
+
+        {/* Weekly Spotlight — two-row amber Awards card surfacing the
+            team's most-recent POTM (row 1) + most-recent coach's-pick
+            (row 2). Silent empty: returns null when neither slot is
+            set inside the 14-day window, so byes and quiet weeks
+            don't pin a hollow card to the dashboard. Sits ABOVE the
+            "New for you" strip so it acts as the headline and "New
+            for you" is the follow-through list. */}
+        <WeeklySpotlightCard potm={spotlightPotm} pick={spotlightPick} />
 
         {/* 6-tile quick-action launcher removed in v3.2.50 — three
             of the six (Events, Media, Chat) duplicate the bottom tab

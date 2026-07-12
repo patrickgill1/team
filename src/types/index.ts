@@ -631,6 +631,10 @@ export interface Player {
    *  as already-revealed so a returning kid doesn't see a stack of
    *  toasts for grants that landed while the app was closed. */
   lastSeenXpAt?: Date;
+  /** Most recent badge.earnedAt the kid has seen via KidBadgeReveal.
+   *  Bumps on reveal-modal dismiss so returning kids don't dogpile on
+   *  every historical badge — one reveal per earn, ship-forward only. */
+  lastSeenBadgeAt?: Date;
 }
 
 /** One badge on a player. Keyed by slug (e.g. 'coach_pick',

@@ -9,6 +9,7 @@ import KidModePinModal from '../components/player/KidModePinModal';
 import KidChatRoom from '../components/kidChat/KidChatRoom';
 import KidHeroCard from '../components/kidChat/KidHeroCard';
 import KidXpToast from '../components/kidChat/KidXpToast';
+import KidBadgeReveal from '../components/kidChat/KidBadgeReveal';
 import { awardMicroXp } from '../utils/microXp';
 
 type RsvpStatus = 'going' | 'maybe' | 'no';
@@ -118,6 +119,12 @@ const KidDashboard: React.FC = () => {
           KidXpToast.tsx — it manages its own lastSeenXpAt cursor so
           returning after the app closed doesn't dogpile. */}
       <KidXpToast playerId={activeKidPlayerId} />
+
+      {/* Badge earn reveal. Big centered modal with badge art +
+          confetti + count-up XP when a new badge crosses. Uses
+          player.lastSeenBadgeAt cursor bumped on dismiss so one
+          reveal per earn ship-forward only. */}
+      <KidBadgeReveal player={player} />
 
       {/* Kid-mode header — welcome + escape hatch. Kid device stays in
           this view by default; PIN unlocks parent view for the parent

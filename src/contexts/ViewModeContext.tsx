@@ -4,7 +4,15 @@ import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { isCoach, isClubAdmin as isClubAdminFn } from '../utils/helpers';
-import { getDedicatedKidPlayerId, verifyPin, suppressPushForKidMode, restorePushAfterKidMode } from '../utils/kidMode';
+import {
+  getDedicatedKidPlayerId,
+  verifyPin,
+  suppressPushForKidMode,
+  restorePushAfterKidMode,
+  getActiveKidSession,
+  setActiveKidSession,
+  clearActiveKidSession,
+} from '../utils/kidMode';
 
 /**
  * ViewModeContext — Patrick 2026-06-21: 'my dashboard is coach, my
@@ -157,12 +165,47 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const isPlayerContext = !!(userData as any)?.selfPlayerId;
 
-  // Kid profile mode. Cold boot on a dedicated kid device auto-enters
-  // the kid view (getDedicatedKidPlayerId reads localStorage). On a
-  // household device it stays null until enterKidMode() is called.
+  // Kid profile mode initializer — reads TWO synchronous signals so
+  // the very first render after a cold boot / hard refresh is
+  // already kid view when it should be. No parent-view flash.
+  //
+  // Precedence:
+  //   1. Dedicated-device flag (device-scoped, uid-independent).
+  //      Set from a "Make this Hunter's phone" tile. Wins over any
+  //      household session.
+  //   2. Active household session (uid-scoped, persisted through
+  //      refresh). Hydrated here without knowing the uid yet; a
+  //      post-auth useEffect below verifies the uid matches and
+  //      wipes the session if a different user signed in.
+  //
+  // Before this patch, the household case set React state only, so
+  // any refresh (pull-to-refresh, iOS foreground restart, Capgo cold
+  // boot) dumped the kid back into parent view with no PIN gate.
+  // Patrick caught this 2026-07-12.
   const [activeKidPlayerId, setActiveKidPlayerId] = useState<string | null>(() => {
-    return getDedicatedKidPlayerId();
+    const dedicated = getDedicatedKidPlayerId();
+    if (dedicated) return dedicated;
+    const session = getActiveKidSession();
+    return session?.playerId || null;
   });
+
+  // Verify the persisted kid session against the resolved auth uid.
+  // Runs when the uid becomes available. If the session was written
+  // by a DIFFERENT user (household device where two parents share
+  // the same browser), we can't hold the new signer hostage in the
+  // previous user's kid view — they don't know the PIN. Wipe the
+  // session and revert to whatever the dedicated flag says (which
+  // is fine: dedicated is device-wide by design).
+  useEffect(() => {
+    const uid = (userData as any)?.uid;
+    if (!uid) return;
+    const session = getActiveKidSession();
+    if (!session) return;
+    if (session.uid !== uid) {
+      clearActiveKidSession();
+      setActiveKidPlayerId(getDedicatedKidPlayerId());
+    }
+  }, [(userData as any)?.uid]);
 
   // Cold-boot push suppression on a dedicated kid device. If we land
   // straight into kid mode (activeKidPlayerId set from localStorage
@@ -242,10 +285,17 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const ok = await verifyPin(playerId, pin, km.pinHash);
       if (!ok) return false;
       setActiveKidPlayerId(playerId);
+      const uid = (userData as any)?.uid;
+      // Persist the household session so a refresh (pull-to-refresh,
+      // iOS foreground restart, Capgo cold boot) keeps the kid in
+      // kid view instead of dumping them to parent without a PIN
+      // gate. uid is captured so we can invalidate on a different
+      // user sign-in later. No-op on a dedicated device (that flag
+      // wins over the session anyway).
+      if (uid) setActiveKidSession(uid, playerId);
       // Pull this device's FCM token off the parent user doc so
       // parent-scoped pushes stop reaching this device while kid is
       // using it. Restored on exit.
-      const uid = (userData as any)?.uid;
       if (uid) suppressPushForKidMode(uid);
       return true;
     } catch (err) {
@@ -263,6 +313,7 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // restore push in case suppression happened before.
         const uid = (userData as any)?.uid;
         if (uid) restorePushAfterKidMode(uid);
+        clearActiveKidSession();
         setActiveKidPlayerId(null);
         return true;
       }
@@ -271,6 +322,10 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const ok = await verifyPin(activeKidPlayerId, pin, km.pinHash);
       if (!ok) return false;
       setActiveKidPlayerId(null);
+      // Clear the persisted household session so a subsequent refresh
+      // stays in parent view. Dedicated-device flag (if set) still
+      // wins on next cold boot — that's the point of "dedicated".
+      clearActiveKidSession();
       // Restore the FCM token so parent starts receiving push again.
       const uid = (userData as any)?.uid;
       if (uid) restorePushAfterKidMode(uid);

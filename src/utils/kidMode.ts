@@ -8,6 +8,16 @@
 
 const DEDICATED_KEY = 'gk.kidMode.dedicatedPlayerId';
 const SUPPRESSED_TOKEN_KEY = 'gk.kidMode.suppressedFcmToken';
+// Persisted "active kid session" for household devices — survives a
+// hard refresh so a kid mid-session isn't dumped back to parent view
+// by an accidental reload (pull-to-refresh, iOS background/foreground
+// restart, Capgo cold boot, etc). Distinct from DEDICATED_KEY: this
+// is a per-user session flag, cleared on explicit exit or when a
+// different user signs in on the same device. Stored with the parent
+// uid so we can detect the "different user just signed in" case and
+// bail out to parent view instead of holding them hostage in a
+// previous user's kid dashboard.
+const ACTIVE_SESSION_KEY = 'gk.kidMode.activeSession';
 
 function toHex(bytes: Uint8Array): string {
   let out = '';
@@ -56,6 +66,49 @@ export function setDedicatedKidPlayerId(playerId: string): void {
 export function clearDedicatedKidPlayerId(): void {
   try {
     localStorage.removeItem(DEDICATED_KEY);
+  } catch { /* ignore */ }
+}
+
+// Active-kid-session persistence for household devices. Read
+// synchronously from the ViewModeContext useState initializer so the
+// first render on refresh is already kid view (no parent-view flash).
+export interface ActiveKidSession {
+  uid: string;
+  playerId: string;
+  /** ms epoch, informational only — used to detect very-stale
+   *  sessions in case we ever add a max-age policy. Not enforced
+   *  today; kid sessions persist until explicit PIN exit. */
+  ts: number;
+}
+
+export function getActiveKidSession(): ActiveKidSession | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.uid !== 'string' || typeof parsed?.playerId !== 'string') return null;
+    return {
+      uid: parsed.uid,
+      playerId: parsed.playerId,
+      ts: typeof parsed.ts === 'number' ? parsed.ts : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function setActiveKidSession(uid: string, playerId: string): void {
+  try {
+    localStorage.setItem(
+      ACTIVE_SESSION_KEY,
+      JSON.stringify({ uid, playerId, ts: Date.now() }),
+    );
+  } catch { /* ignore */ }
+}
+
+export function clearActiveKidSession(): void {
+  try {
+    localStorage.removeItem(ACTIVE_SESSION_KEY);
   } catch { /* ignore */ }
 }
 

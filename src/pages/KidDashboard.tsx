@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { arrayRemove, arrayUnion, collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useViewMode } from '../contexts/ViewModeContext';
 import type { Player, Team, DevelopmentPlan } from '../types';
+import { debugWarn } from '../utils/debug';
 import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import KidModePinModal from '../components/player/KidModePinModal';
 import KidChatRoom from '../components/kidChat/KidChatRoom';
@@ -37,6 +39,12 @@ const KidDashboard: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [pinOpen, setPinOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  // Live copy of the kid_chat thread doc for this team. Used by the
+  // bell toggle in the chat modal header — reflects the "Notify me
+  // for all messages" state without a per-tap round-trip.
+  const [chatThreadDoc, setChatThreadDoc] = useState<{ notifyAllUids?: string[] } | null>(null);
+  const [chatNotifySaving, setChatNotifySaving] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Load the kid's player doc.
   useEffect(() => {
@@ -76,6 +84,40 @@ const KidDashboard: React.FC = () => {
     return () => unsub();
   }, [activeKidPlayerId]);
 
+  // Subscribe to this team's kid_chat thread doc so the header bell
+  // reflects the current notifyAllUids state. One-thread-per-team
+  // model: doc id is `team_<teamId>`. Absent thread = no one has
+  // sent a message yet, still safe to render the toggle (thread is
+  // provisioned on first send).
+  useEffect(() => {
+    const teamId = player?.teamId;
+    if (!teamId) { setChatThreadDoc(null); return; }
+    const unsub = onSnapshot(doc(db, 'kid_chat_threads', `team_${teamId}`), (snap) => {
+      if (!snap.exists()) { setChatThreadDoc(null); return; }
+      const d: any = snap.data();
+      setChatThreadDoc({ notifyAllUids: Array.isArray(d.notifyAllUids) ? d.notifyAllUids : [] });
+    }, (err) => {
+      const code = (err as any)?.code;
+      if (code === 'permission-denied' || code === 'unauthenticated') {
+        debugWarn('[kid-dash] chat thread subscribe denied (auth transition)', err);
+      } else {
+        debugWarn('[kid-dash] chat thread subscribe failed', err);
+      }
+    });
+    return () => unsub();
+  }, [player?.teamId]);
+
+  // Deep-link support: a push tap URL contains `?chat=1` so users
+  // land inside the modal, not the collapsed dashboard. Also strips
+  // the param after opening so a back-navigation doesn't re-trigger.
+  useEffect(() => {
+    if (searchParams.get('chat') !== '1') return;
+    setChatOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('chat');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   // Load the next few events for the kid's team.
   useEffect(() => {
     const teamId = player?.teamId;
@@ -102,6 +144,36 @@ const KidDashboard: React.FC = () => {
   }, [player?.teamId]);
 
   const firstName = (player?.name || '').split(' ')[0] || 'Player';
+
+  // Bell toggle state — derived from the live thread doc. Absent doc
+  // (thread not created yet) treats the user as opted-out (matches
+  // the mentions-only default).
+  const isNotifyAll = useMemo(() => {
+    const uid = (userData as any)?.uid;
+    if (!uid) return false;
+    return Array.isArray(chatThreadDoc?.notifyAllUids)
+      && chatThreadDoc!.notifyAllUids!.includes(uid);
+  }, [chatThreadDoc, userData]);
+
+  const toggleNotifyAll = async () => {
+    const uid = (userData as any)?.uid;
+    const teamId = player?.teamId;
+    if (!uid || !teamId || chatNotifySaving) return;
+    setChatNotifySaving(true);
+    try {
+      const ref = doc(db, 'kid_chat_threads', `team_${teamId}`);
+      // Rules gate this to a self-scoped arrayUnion/arrayRemove; a
+      // caller can only add/remove their own uid.
+      await updateDoc(ref, {
+        notifyAllUids: isNotifyAll ? arrayRemove(uid) : arrayUnion(uid),
+      });
+    } catch (err) {
+      debugWarn('[kid-dash] notifyAll toggle failed', err);
+      alert("Couldn't update notifications. Try again.");
+    } finally {
+      setChatNotifySaving(false);
+    }
+  };
 
   if (!activeKidPlayerId) return null;
   if (!player) {
@@ -300,16 +372,49 @@ const KidDashboard: React.FC = () => {
                 <p className="text-[10px] uppercase tracking-widest font-bold text-brand-primary-soft">Team chat</p>
                 <p className="text-sm font-black leading-none mt-0.5">Say hi</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setChatOpen(false)}
-                aria-label="Close chat"
-                className="p-2 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 hover:text-ink-primary transition"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="w-4 h-4" aria-hidden>
-                  <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Notify-me-for-all toggle. Default is mentions-only
+                    (bell-slash icon, no highlight). When on, we render
+                    the filled bell with the same amber tint TeamChat
+                    uses for its own per-thread notification state so
+                    users recognize the affordance. */}
+                <button
+                  type="button"
+                  onClick={toggleNotifyAll}
+                  aria-pressed={isNotifyAll}
+                  aria-label={isNotifyAll ? 'Notifying for every message. Tap to only notify for mentions.' : 'Only notifying for mentions. Tap to notify for every message.'}
+                  disabled={chatNotifySaving || !player?.teamId}
+                  className={
+                    'p-2 rounded-full ring-1 transition '
+                    + (isNotifyAll
+                      ? 'bg-amber-500/20 ring-amber-500/40 text-amber-500'
+                      : 'bg-line-default/10 ring-line-default/20 text-ink-primary/60 hover:text-ink-primary')
+                    + (chatNotifySaving ? ' opacity-50' : '')
+                  }
+                >
+                  {isNotifyAll ? (
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4" aria-hidden>
+                      <path d="M12 2a2 2 0 0 0-2 2v.6A7 7 0 0 0 5 11v3.6l-1.7 1.7A1 1 0 0 0 4 18h16a1 1 0 0 0 .7-1.7L19 14.6V11a7 7 0 0 0-5-6.4V4a2 2 0 0 0-2-2Zm-2 18a2 2 0 1 0 4 0h-4Z" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4" aria-hidden>
+                      <path d="M3 3l18 18" />
+                      <path d="M17 14.6V11a5 5 0 0 0-9.5-2.2M5 11v3.6L3.3 16.3A1 1 0 0 0 4 18h13" />
+                      <path d="M10 20a2 2 0 0 0 4 0" />
+                    </svg>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChatOpen(false)}
+                  aria-label="Close chat"
+                  className="p-2 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 hover:text-ink-primary transition"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="w-4 h-4" aria-hidden>
+                    <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="flex-1 min-h-0">
               <KidChatRoom

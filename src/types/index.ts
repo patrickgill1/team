@@ -1939,6 +1939,12 @@ export interface KidChatThread {
   createdByUid: string;
   lastMessageAt?: Date;
   lastMessagePreview?: string;
+  /** Parent uids opted into "notify me for every message" on this
+   *  thread. Kid-chat push default is mentions-only, so this is the
+   *  escape hatch for a coach or engaged parent who wants full
+   *  visibility. Firestore rules allow each caller to add/remove
+   *  ONLY their own uid; no bulk-rewrite. */
+  notifyAllUids?: string[];
 }
 
 export interface KidChatMessage {
@@ -1954,6 +1960,16 @@ export interface KidChatMessage {
   senderUid: string;
   text: string;
   createdAt: Date;
+  /** Mention targets, stored as PARENT uids (that is where push
+   *  routes; kid mode auths as parent). Client resolves via the
+   *  kidChatMembers helper which expands kid picker choices to
+   *  their parent uid set. Empty/absent = no explicit mentions. */
+  mentions?: string[];
+  /** Reserved: v1 does NOT support @everyone in kid chat (kids
+   *  don't need @channel and it avoids a team-wide user query on
+   *  every message). Field carried through for schema parity with
+   *  chat_messages in case a future release enables it. */
+  mentionsEveryone?: boolean;
   /** Coach-side moderation surface: any deleted message is soft-
    *  removed (isDeleted flip), not hard-deleted, so shadow readers
    *  see "[removed]" instead of a message vanishing silently. */

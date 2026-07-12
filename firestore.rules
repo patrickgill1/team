@@ -700,7 +700,24 @@ service cloud.firestore {
       allow create: if isAuthed()
         && request.resource.data.teamId in userDoc().teamIds
         && request.resource.data.audience == 'kids';
-      allow update, delete: if false;
+      // Self-scoped opt-in: kid-chat pushes default to mentions-only.
+      // Any team member can add or remove ONLY their own uid from the
+      // thread's notifyAllUids array to flip themselves to "notify me
+      // for every message". No other field may change here; no other
+      // user's uid may be touched. Symmetric add/remove guard means a
+      // caller can toggle themselves in and out but never bulk-rewrite
+      // the array to include or exclude someone else.
+      allow update: if isAuthed()
+        && resource.data.teamId in userDoc().teamIds
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['notifyAllUids'])
+        && request.resource.data.get('notifyAllUids', []).toSet()
+            .difference(resource.data.get('notifyAllUids', []).toSet())
+            .hasOnly([request.auth.uid])
+        && resource.data.get('notifyAllUids', []).toSet()
+            .difference(request.resource.data.get('notifyAllUids', []).toSet())
+            .hasOnly([request.auth.uid]);
+      allow delete: if false;
     }
 
     match /kid_chat_messages/{messageId} {

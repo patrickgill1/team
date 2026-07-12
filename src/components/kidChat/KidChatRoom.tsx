@@ -18,6 +18,11 @@ import { useAuth } from '../../hooks/useAuth';
 import type { KidChatMessage, Player, Team } from '../../types';
 import { isCoachOfTeam } from '../../utils/helpers';
 import { awardMicroXp } from '../../utils/microXp';
+import { extractMentions } from '../../utils/extractMentions';
+import { sendPushToUsers } from '../../utils/notify';
+import { getShareOrigin } from '../../utils/origin';
+import { useKidChatMembers } from './kidChatMembers';
+import { debug, debugWarn } from '../../utils/debug';
 
 interface Props {
   /** The kid whose bubble the message will be attributed to. When
@@ -48,8 +53,14 @@ interface Props {
 // on the acting-as player's parentIds AND kidMode is enabled on
 // that player.
 //
-// No push notifications in v1 — pushes would route to parent uid
-// which is confusing when the message is FROM the kid. Phase 3.
+// Push routing (2026-07-12, v1 mentions-only):
+//   Kid chat pushes default to mentions-only. Recipients =
+//   (mentioned parent uids) ∪ (thread.notifyAllUids) minus sender.
+//   Push copy attributes to actingAsName (kid) not the parent uid so
+//   a parent doesn't see "Patrick in Fire FC chat" when the message
+//   was actually from their kid Hunter. @everyone / @channel / @all
+//   are parsed but NOT expanded in v1 — kids don't need @channel and
+//   the alternative is a team-wide user query on every message.
 const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant = 'full' }) => {
   const { userData } = useAuth();
   const [messages, setMessages] = useState<KidChatMessage[]>([]);
@@ -57,12 +68,29 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
   // Cached "thread already exists" flag so send() doesn't setDoc on
   // every message. Firestore rules forbid updates on kid_chat_threads
-  // (create-only), and setDoc(..., {merge:true}) on an existing doc
-  // becomes an UPDATE — that permission-denied error was silently
-  // failing every subsequent send after the first (audit 2026-07-12).
+  // (create-only for non-notifyAllUids fields), and setDoc(..., {merge:true})
+  // on an existing doc becomes an UPDATE — that permission-denied
+  // error was silently failing every subsequent send after the first
+  // (audit 2026-07-12).
   const [threadReady, setThreadReady] = useState(false);
+  // Live copy of the thread doc so send() can read notifyAllUids
+  // without a per-send round-trip. Subscribed once per thread; the
+  // bell toggle in KidDashboard writes back to the same doc and this
+  // callback picks it up.
+  const [threadDoc, setThreadDoc] = useState<{ notifyAllUids?: string[] } | null>(null);
+
+  // Mention-picker state — ported from MessageComposer's plain-textarea
+  // pattern (rest of the app is plain-text-on-the-wire, no TipTap
+  // mention node). Roster comes from kidChatMembers helper: kids by
+  // firstName + coaches; expandToPushTargets turns kid picks into
+  // their parent uids at send time.
+  const kidMembers = useKidChatMembers(team?.id || null, team);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionRange, setMentionRange] = useState<{ start: number; end: number } | null>(null);
+  const [pickerHighlight, setPickerHighlight] = useState(0);
 
   const teamId = team?.id || '';
   const threadDocId = teamId ? `team_${teamId}` : '';
@@ -103,6 +131,29 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
     })();
     return () => { cancelled = true; };
   }, [teamId, threadDocId, canPost, (userData as any)?.uid]);
+
+  // Live subscription on the thread doc. Purpose: read notifyAllUids
+  // synchronously at send() time to compute the push recipient set
+  // as (mentions ∪ notifyAllUids), and to keep the KidDashboard bell
+  // toggle in sync with any changes another device makes. Errors
+  // during auth transitions route to debugWarn — the send path
+  // gracefully handles null threadDoc.
+  useEffect(() => {
+    if (!threadDocId) return;
+    const unsub = onSnapshot(doc(db, 'kid_chat_threads', threadDocId), (snap) => {
+      if (!snap.exists()) { setThreadDoc(null); return; }
+      const d: any = snap.data();
+      setThreadDoc({ notifyAllUids: Array.isArray(d.notifyAllUids) ? d.notifyAllUids : [] });
+    }, (err) => {
+      const code = (err as any)?.code;
+      if (code === 'permission-denied' || code === 'unauthenticated') {
+        debugWarn('[kid-chat] thread subscribe denied (auth transition)', err);
+      } else {
+        debugWarn('[kid-chat] thread subscribe failed', err);
+      }
+    });
+    return () => unsub();
+  }, [threadDocId]);
 
   // Subscribe to messages for this team's kid chat thread. We use a
   // deterministic thread id (team_<teamId>) so the "one thread per
@@ -146,6 +197,51 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
     }
   }, [messages.length]);
 
+  // Mention picker — port of MessageComposer's caret+regex approach.
+  // Kept plaintext (no TipTap) so the wire format stays "@FirstName"
+  // and the doc reads the same as adult chat. Picker filters against
+  // kids' first names + coach display names.
+  const updateMentionState = (val: string, caret: number) => {
+    const before = val.slice(0, caret);
+    const match = before.match(/(^|\s)@([A-Za-z][A-Za-z0-9 _'-]{0,28})$/);
+    if (match) {
+      const start = caret - match[2].length - 1; // include the @
+      setMentionQuery(match[2].toLowerCase());
+      setMentionRange({ start, end: caret });
+      setPickerHighlight(0);
+    } else {
+      setMentionQuery(null);
+      setMentionRange(null);
+    }
+  };
+
+  const filteredPickerMembers = useMemo(() => {
+    if (mentionQuery === null) return [];
+    const q = mentionQuery.trim();
+    return kidMembers.pickerMembers
+      .filter(m => m.name && m.name.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [mentionQuery, kidMembers.pickerMembers]);
+
+  const insertMention = (m: { uid: string; name: string }) => {
+    if (!mentionRange) return;
+    const before = text.slice(0, mentionRange.start);
+    const after = text.slice(mentionRange.end);
+    const insert = `@${m.name} `;
+    const next = before + insert + after;
+    setText(next);
+    setMentionQuery(null);
+    setMentionRange(null);
+    requestAnimationFrame(() => {
+      const el = taRef.current;
+      if (el) {
+        const caret = before.length + insert.length;
+        el.focus();
+        el.setSelectionRange(caret, caret);
+      }
+    });
+  };
+
   const send = async () => {
     const body = text.trim();
     if (!body || sending) return;
@@ -155,17 +251,68 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
       // Thread doc is provisioned by the mount effect above. Nothing
       // to write here except the message itself.
       const firstName = (actingAsPlayer.name || 'Player').split(' ')[0];
-      await addDoc(collection(db, 'kid_chat_messages'), {
+
+      // Parse @-mentions client-side against the kids+coaches roster.
+      // `resolvedUids` is a mix of playerIds (kids) and real coach
+      // uids. `pushTargets` expands kid playerIds to their parents.
+      const { uids: resolvedUids, everyone } = extractMentions(body, kidMembers.pickerMembers);
+      const senderUid: string = (userData as any).uid;
+      const pushTargets = kidMembers
+        .expandToPushTargets(resolvedUids)
+        .filter(u => u && u !== senderUid);
+
+      // Write mentions[] onto the doc even when empty is missing:
+      // downstream schemas (KidChatMessage type) treat undefined and
+      // [] identically. Omitting the key keeps the doc lean when
+      // there are no @'s.
+      const messagePayload: any = {
         threadId: threadDocId,
         teamId,
         actingAsPlayerId: actingAsPlayer.id,
         actingAsName: firstName,
         actingAsPhotoUrl: actingAsPlayer.profilePhotoUrl || null,
-        senderUid: (userData as any).uid,
+        senderUid,
         text: body,
         createdAt: serverTimestamp(),
         isDeleted: false,
-      });
+      };
+      if (pushTargets.length > 0) messagePayload.mentions = pushTargets;
+      if (everyone) messagePayload.mentionsEveryone = true;
+
+      await addDoc(collection(db, 'kid_chat_messages'), messagePayload);
+
+      // Push fanout: mentions ∪ thread.notifyAllUids, minus sender.
+      // v1 explicitly does NOT expand @everyone — kids don't need
+      // @channel and a team-wide user query per message is heavier
+      // than the feature earns. If a coach or engaged parent wants
+      // full visibility, they flip the bell in the modal header
+      // (writes to notifyAllUids).
+      try {
+        const notifyAll = threadDoc?.notifyAllUids || [];
+        const recipientSet = new Set<string>([...pushTargets, ...notifyAll]);
+        recipientSet.delete(senderUid);
+        const recipients = Array.from(recipientSet);
+        if (recipients.length > 0) {
+          const teamName = team?.name || 'Team HQ';
+          const title = `${firstName} in ${teamName}`;
+          const preview = body.length > 140 ? body.slice(0, 140) + '...' : body;
+          const url = `${getShareOrigin()}/kid-dashboard?playerId=${encodeURIComponent(actingAsPlayer.id)}&chat=1`;
+          // Fire-and-forget: same pattern as TeamChat. If the network
+          // drops between addDoc and this call the message still
+          // persists; the push just won't fire (acceptable for chat).
+          void sendPushToUsers(recipients, { title, body: preview, url }, {
+            pushPrefKey: 'chat',
+            fromUid: senderUid,
+          }).catch(err => debugWarn('[kid-chat] push fanout failed', err));
+        } else {
+          debug('[kid-chat] no push recipients (no mentions + no notifyAll)');
+        }
+      } catch (err) {
+        // Push fanout error must never fail the send — the message
+        // already landed in Firestore.
+        debugWarn('[kid-chat] push fanout threw', err);
+      }
+
       // Micro-XP: +2 per message, daily cap 20 (10 messages). Fires
       // fire-and-forget so the player-doc round-trip doesn't block
       // the composer clearing. awardMicroXp is fail-closed on
@@ -176,6 +323,8 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
         actionKey: 'chat_message',
       });
       setText('');
+      setMentionQuery(null);
+      setMentionRange(null);
       // Force scroll-to-bottom after own send even if user had
       // scrolled up — treat the send as intent to see the new msg.
       requestAnimationFrame(() => {
@@ -260,11 +409,62 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
       {/* Composer — only in kid mode. Rules also gate write on
           parent-of-actingAsPlayer + kidMode enabled. */}
       {canPost && actingAsPlayer && (
-        <div className="border-t border-line-default/15 bg-surface-elevated/80 backdrop-blur px-2 py-2 flex items-end gap-2">
+        <div className="border-t border-line-default/15 bg-surface-elevated/80 backdrop-blur px-2 py-2 flex items-end gap-2 relative">
+          {/* Mention picker dropdown — same rendering as adult chat's
+              MessageComposer for consistency. Anchored above the
+              textarea via absolute positioning. */}
+          {mentionQuery !== null && filteredPickerMembers.length > 0 && (
+            <div className="absolute z-30 bottom-full mb-1 left-2 right-16 max-h-48 overflow-y-auto bg-surface-elevated ring-1 ring-line-default/10 rounded-lg shadow-2xl">
+              {filteredPickerMembers.map((m, i) => (
+                <button
+                  key={m.uid}
+                  type="button"
+                  onMouseDown={(e) => {
+                    // onMouseDown (not onClick) so the textarea keeps
+                    // focus and the caret position stays intact.
+                    e.preventDefault();
+                    insertMention(m);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-line-default/5 flex items-center gap-2 ${
+                    i === pickerHighlight ? 'bg-line-default/5' : ''
+                  }`}
+                >
+                  <span className="font-medium text-ink-primary">@{m.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <textarea
+            ref={taRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setText(v);
+              updateMentionState(v, e.target.selectionStart || v.length);
+            }}
             onKeyDown={(e) => {
+              // Picker navigation takes precedence when open.
+              if (mentionQuery !== null && filteredPickerMembers.length > 0) {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setPickerHighlight(h => Math.min(h + 1, filteredPickerMembers.length - 1));
+                  return;
+                }
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setPickerHighlight(h => Math.max(h - 1, 0));
+                  return;
+                }
+                if (e.key === 'Enter' || e.key === 'Tab') {
+                  e.preventDefault();
+                  insertMention(filteredPickerMembers[pickerHighlight]);
+                  return;
+                }
+                if (e.key === 'Escape') {
+                  setMentionQuery(null);
+                  return;
+                }
+              }
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 send();

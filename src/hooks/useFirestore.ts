@@ -422,6 +422,19 @@ const getUserData = useCallback(async (uid: string) => {
     return docs.filter((d: any) => d.isActive !== false);
   }, [getDocuments]);
 
+  /** Gallery photos tagged to a specific player. Powers the Photo
+   *  Tape ribbon on /player/:id — the profile also needs the player_
+   *  media half (existing getPlayerMediaByPlayer + array-contains
+   *  inline in PlayerProfile), so the caller merges both streams.
+   *  array-contains on taggedPlayerIds uses the auto single-field
+   *  index; no composite required. Sort client-side. */
+  const getPhotosByPlayer = useCallback(async (playerId: string) => {
+    const docs = await getDocuments('gallery', [
+      where('taggedPlayerIds', 'array-contains', playerId),
+    ]);
+    return docs.filter((d: any) => d.isActive !== false);
+  }, [getDocuments]);
+
   /** Subscribe (live) to all gallery photos tagged to a specific event,
    *  so the event card's photo strip updates as parents upload. */
   const subscribeToEventPhotos = useCallback((eventId: string, callback: (photos: any[]) => void) => {
@@ -1053,6 +1066,7 @@ const getUserData = useCallback(async (uid: string) => {
     // Gallery functions
     addPhoto,
     getPhotosByTeam,
+    getPhotosByPlayer,
     subscribeToEventPhotos,
     // Chat functions
     addChatThread,

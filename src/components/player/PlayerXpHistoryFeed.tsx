@@ -20,92 +20,11 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { PlayerXpEvent } from '../../types';
+import { toMillis, relativeTime } from '../../utils/timestamps';
+import { SOURCE_LABEL, dotClassForSource } from '../../utils/xpSourceLabels';
 
 interface Props {
   playerId: string;
-}
-
-// Copy locked by product spec — do not paraphrase without a fresh
-// review. Kids read these labels literally.
-const SOURCE_LABEL: Record<PlayerXpEvent['source'], string> = {
-  coach_recognition: 'Coach recognition',
-  coach_live: 'Coach grant',
-  attendance: 'Attendance',
-  potm: 'Player of the match',
-  goal: 'First goal',
-  assist: 'First assist',
-  save: 'First save',
-  clean_sheet: 'Clean sheet',
-  dev_plan_log: 'Practice logged',
-  streak_milestone: 'Streak milestone',
-  team_win: 'Team win',
-  play_time: 'Playing time',
-  backfill: 'XP backfill',
-};
-
-// Color mapping per source family. Coach = brand crimson, first-stats
-// = amber, streak = warm orange, attendance = emerald, dev-plan =
-// brand-primary-soft (cyan-pink). Everything else falls back to a
-// neutral ink dot so the row stays legible without introducing a new
-// palette color.
-function dotClassForSource(source: PlayerXpEvent['source']): string {
-  switch (source) {
-    case 'coach_recognition':
-    case 'coach_live':
-      return 'bg-brand-primary';
-    case 'goal':
-    case 'assist':
-    case 'save':
-    case 'clean_sheet':
-    case 'potm':
-      return 'bg-amber-500';
-    case 'streak_milestone':
-      return 'bg-orange-500';
-    case 'attendance':
-      return 'bg-emerald-500';
-    case 'dev_plan_log':
-      return 'bg-brand-primary-soft';
-    default:
-      return 'bg-ink-secondary/40';
-  }
-}
-
-// Coerce whatever createdAt shape Firestore gave us into ms. Client
-// reads may see a raw Timestamp, a re-hydrated Date, a {seconds,
-// nanoseconds} plain object (if a serialization boundary flattened
-// it), an ISO string, or a raw ms number. Return 0 for unknown so
-// sorts + relative-time stay stable.
-function toMillis(raw: any): number {
-  if (!raw) return 0;
-  if (raw instanceof Date) return raw.getTime();
-  if (typeof raw?.toDate === 'function') {
-    try { return raw.toDate().getTime(); } catch { return 0; }
-  }
-  if (typeof raw?.seconds === 'number') return raw.seconds * 1000;
-  if (typeof raw === 'number') return raw;
-  if (typeof raw === 'string') {
-    const d = new Date(raw);
-    return Number.isNaN(d.getTime()) ? 0 : d.getTime();
-  }
-  return 0;
-}
-
-function relativeTime(ms: number): string {
-  if (!ms) return '';
-  const diff = Date.now() - ms;
-  if (diff < 45 * 1000) return 'just now';
-  const min = Math.round(diff / 60000);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.round(hr / 24);
-  if (day < 7) return `${day}d ago`;
-  const wk = Math.round(day / 7);
-  if (wk < 5) return `${wk}w ago`;
-  const mo = Math.round(day / 30);
-  if (mo < 12) return `${mo}mo ago`;
-  const yr = Math.round(day / 365);
-  return `${yr}y ago`;
 }
 
 interface FeedRow {

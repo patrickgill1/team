@@ -16,6 +16,10 @@ import PlayerXpHistoryFeed from '../components/player/PlayerXpHistoryFeed';
 import CoachRecognitionModal from '../components/player/CoachRecognitionModal';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
 import PlayerCircleCard from '../components/player/PlayerCircleCard';
+import PhotoTape from '../components/player/PhotoTape';
+import CoachRecognitionsArchive from '../components/player/CoachRecognitionsArchive';
+import SeasonTimeline from '../components/player/SeasonTimeline';
+import PersonalRecords from '../components/player/PersonalRecords';
 import AddPlayer from '../components/player/AddPlayer';
 import EmptyState from '../components/common/EmptyState';
 import DataGate from '../components/common/DataGate';
@@ -800,6 +804,19 @@ const PlayerProfile: React.FC = () => {
               />
             )}
 
+            {/* SEASON TIMELINE — narrative opener. Chronological ribbon
+                of every timestamped milestone this player earned in the
+                active season (badges + player_xp_events). Silent empty
+                on legacy teams with xpConfig disabled — respects the
+                no-retroactive-credit rule. */}
+            <SeasonTimeline
+              playerId={playerId!}
+              player={player}
+              teamId={selectedTeamId}
+              season={activeSeason}
+              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
+            />
+
             {/* WHAT PEOPLE ARE SAYING — kids love this. Always render a
                 card so the section never feels missing; show a friendly
                 placeholder when there are no POTM quotes yet. */}
@@ -921,6 +938,24 @@ const PlayerProfile: React.FC = () => {
               );
             })()}
 
+            {/* PERSONAL RECORDS — number receipts. Mirrors the Season
+                Stats scope prop above so the two cards read as a single
+                unit. Client-side one-pass over already-fetched stat
+                rows + votingWins + votingNominations; no extra queries.
+                Silent-empty when the player has no computable
+                records. */}
+            <PersonalRecords
+              playerId={playerId!}
+              player={player}
+              seasonId={
+                selectedSeasonId === 'lifetime' ? 'lifetime'
+                : selectedSeasonId === 'current' ? (activeSeason?.id || 'lifetime')
+                : selectedSeasonId
+              }
+              votingWins={votingWins}
+              votingNominations={allPlayerVotings.map(v => v.voting)}
+            />
+
             {/* PRACTICE EFFORT — consecutive days the player has tapped
                 "I did it" across any goal on any active plan. Sundays
                 are skipped so a religious day of rest doesn't break the
@@ -967,6 +1002,17 @@ const PlayerProfile: React.FC = () => {
                 onUpdated={() => { void loadProfile(); }}
               />
             )}
+
+            {/* COACH RECOGNITIONS ARCHIVE — every "I saw you do this"
+                moment a coach has ever written for this kid. Sits with
+                the human-moments cluster (dev plan above + player info
+                below), not the stats cluster. Silent-empty when xp is
+                off or the kid has zero recognitions. */}
+            <CoachRecognitionsArchive
+              playerId={playerId!}
+              teamId={selectedTeamId}
+              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
+            />
 
             {/* legacy stats summary kept for reference but disabled now;
                 inline card above replaces it. */}
@@ -1045,47 +1091,19 @@ const PlayerProfile: React.FC = () => {
               onUpdated={loadProfile}
             />
 
-            {/* RECENT HIGHLIGHTS */}
-            {recentMedia.length > 0 && (
-              <div className="bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-2xl p-5 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-extrabold uppercase tracking-widest text-brand-primary-soft">Spotlight</h2>
-                  <button onClick={() => setActiveTab('media')} className="text-xs font-bold text-brand-primary-soft hover:text-ink-primary">View All →</button>
-                </div>
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  {recentMedia.map(item => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setLightboxItem(item)}
-                      className="group relative aspect-square bg-black/40 rounded-xl overflow-hidden ring-1 ring-line-default/10 hover:ring-brand-primary-soft/40 transition"
-                    >
-                      {item.type === 'video' ? (
-                        <>
-                          {item.streamUid ? (
-                            <img src={streamThumbnailUrl(item.streamUid, { height: 360, time: item.posterTimeSeconds != null ? `${item.posterTimeSeconds}s` : undefined })} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
-                          ) : item.thumbnailUrl ? (
-                            <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
-                          ) : (
-                            <video src={`${item.url}#t=0.5`} className="w-full h-full object-cover" preload="metadata" muted playsInline />
-                          )}
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-9 h-9 bg-black/60 rounded-full flex items-center justify-center backdrop-blur">
-                              <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <img src={item.url} alt={item.caption || ''} className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
-                      )}
-                      {item.likeCount && item.likeCount > 0 ? (
-                        <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-black/70 text-white text-[10px] font-bold backdrop-blur">❤ {item.likeCount}</div>
-                      ) : null}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* PHOTO TAPE — horizontal-scroll ribbon of every photo
+                this player is tagged in (gallery + player_media).
+                Replaced the prior 3-tile Spotlight grid with a proper
+                highlight-reel ribbon so parents can scroll through the
+                full set instead of tapping through to the Media tab.
+                Videos and recent clips still live on the Media tab and
+                on the "New for you" strip on Team HQ. Silent-empty
+                when the kid has no tagged photos. */}
+            <PhotoTape
+              playerId={playerId!}
+              teamId={selectedTeamId}
+              playerName={player.name}
+            />
 
             {/* AWARDS PEEK */}
             {(votingWins.length > 0 || votingNominations > 0) && (

@@ -20,6 +20,21 @@ function safe(cmd) {
   catch { return ''; }
 }
 
+// CI-only skip. Vercel + GitHub Actions run npm install as part of
+// the build, and that modifies package-lock.json and sometimes
+// vercel.json. Both are "clean at checkout, dirty by prebuild-time"
+// — exactly the false positive this guard is designed to catch on
+// LAPTOPS. The guard's whole purpose is "don't deploy uncommitted
+// laptop work"; on a fresh CI checkout there's no laptop work to
+// protect against. Skip.
+const isCi = !!(
+  process.env.VERCEL
+  || process.env.CI
+  || process.env.GITHUB_ACTIONS
+  || process.env.NETLIFY
+);
+if (isCi) process.exit(0);
+
 // Only inside a git repo — skip cleanly if checked out without git
 // (rare, e.g. a tarball deploy).
 const insideRepo = safe('git rev-parse --is-inside-work-tree');

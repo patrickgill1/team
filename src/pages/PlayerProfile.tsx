@@ -250,10 +250,25 @@ const PlayerProfile: React.FC = () => {
           closedAt: v.closedAt?.toDate ? v.closedAt.toDate() : undefined,
         })) as MatchVoting[];
 
-      const wins = teamVotings.filter(v =>
-        v.winners?.some(w => w.playerId === playerId) || v.winner?.playerId === playerId
-      );
-      setVotingWins(wins);
+      // Career POTM wins — NOT scoped by selectedTeamId so a kid who
+      // played on a renamed / recreated team, or was moved between
+      // teams across seasons, still gets credit for every past win.
+      // The winner match on playerId is unique enough that we don't
+      // need the teamId narrowing here. Patrick 2026-07-12: "my son
+      // did get POTM awards last season but it is not showing under
+      // overall" — root cause was this teamId filter dropping votings
+      // whose team key had drifted.
+      const allWins = (votingsResult.value as any[])
+        .filter(v =>
+          (Array.isArray(v.winners) && v.winners.some((w: any) => w?.playerId === playerId))
+          || v.winner?.playerId === playerId
+        )
+        .map(v => ({
+          ...v,
+          gameDate: v.gameDate?.toDate ? v.gameDate.toDate() : new Date(v.gameDate),
+          closedAt: v.closedAt?.toDate ? v.closedAt.toDate() : undefined,
+        })) as MatchVoting[];
+      setVotingWins(allWins);
 
       // Whispers for this player — coach private notes archived in
       // /parent_whispers. One-shot read on load; if Patrick later wants
@@ -638,7 +653,12 @@ const PlayerProfile: React.FC = () => {
               Season" and "Overall". Past seasons hide inside the dropdown
               for the curious; most coaches/parents just want now-vs-ever. */}
           {(allSeasons.length > 1 || activeSeason) && (
-            <div className="mb-3 inline-flex items-center rounded-full bg-line-default/10 ring-1 ring-line-default/20 backdrop-blur p-0.5">
+            // relative z-30 lifts the season picker (and its ...
+            // dropdown) above the 4-up stat tiles below, which
+            // otherwise create their own stacking contexts via
+            // backdrop-blur and swallow the dropdown even though it
+            // sets z-50 internally.
+            <div className="relative z-30 mb-3 inline-flex items-center rounded-full bg-line-default/10 ring-1 ring-line-default/20 backdrop-blur p-0.5">
               <button
                 onClick={() => setSelectedSeasonId('current')}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
@@ -702,6 +722,27 @@ const PlayerProfile: React.FC = () => {
               ? lifetime
               : getPlayerStats(player as any, seasonForStats);
             const showCareerStrip = selectedSeasonId !== 'lifetime' && (lifetime.goals > 0 || lifetime.assists > 0 || lifetime.gamesPlayed > 0);
+
+            // POTM wins scoped by the same season chip so "This Season"
+            // shows current-season crowns and "Overall" shows career.
+            // Two-signal match: primary is v.seasonId equality; legacy
+            // votings without a seasonId fall back to a closedAt window
+            // check against the resolved season's [startDate, endDate].
+            let potmCount = votingWins.length;
+            if (selectedSeasonId !== 'lifetime' && seasonForStats) {
+              const seasonObj = allSeasons.find(x => x.id === seasonForStats);
+              const startMs = seasonObj?.startDate ? new Date(seasonObj.startDate).getTime() : 0;
+              const endMs = seasonObj?.endDate ? new Date(seasonObj.endDate).getTime() : Infinity;
+              potmCount = votingWins.filter(v => {
+                if ((v as any).seasonId === seasonForStats) return true;
+                if (!(v as any).seasonId && seasonObj) {
+                  const closedMs = v.closedAt ? new Date(v.closedAt as any).getTime() : 0;
+                  return closedMs >= startMs && closedMs <= endMs;
+                }
+                return false;
+              }).length;
+            }
+
             return (
               <>
                 <div className="grid grid-cols-4 gap-2 sm:gap-3">
@@ -714,7 +755,7 @@ const PlayerProfile: React.FC = () => {
                     <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-ink-primary/60 font-bold">Assists</div>
                   </div>
                   <div className="rounded-2xl bg-line-default/10 ring-1 ring-line-default/15 backdrop-blur p-2.5 sm:p-3 text-center">
-                    <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft">{votingWins.length}</div>
+                    <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft">{potmCount}</div>
                     <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-ink-primary/60 font-bold">POTM</div>
                   </div>
                   <div className="rounded-2xl bg-line-default/10 ring-1 ring-line-default/15 backdrop-blur p-2.5 sm:p-3 text-center">

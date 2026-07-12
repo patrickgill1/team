@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { arrayRemove, arrayUnion, collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, collection, doc, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useViewMode } from '../contexts/ViewModeContext';
-import type { Player, Team, DevelopmentPlan } from '../types';
+import type { Player, Team, DevelopmentPlan, Season } from '../types';
 import { debugWarn } from '../utils/debug';
 import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import KidModePinModal from '../components/player/KidModePinModal';
@@ -12,7 +12,12 @@ import KidChatRoom from '../components/kidChat/KidChatRoom';
 import KidHeroCard from '../components/kidChat/KidHeroCard';
 import KidXpToast from '../components/kidChat/KidXpToast';
 import KidBadgeReveal from '../components/kidChat/KidBadgeReveal';
+import PhotoTape from '../components/player/PhotoTape';
+import SeasonTimeline from '../components/player/SeasonTimeline';
+import PersonalRecords from '../components/player/PersonalRecords';
+import CoachRecognitionsArchive from '../components/player/CoachRecognitionsArchive';
 import { awardMicroXp } from '../utils/microXp';
+import { getActiveSeasonForTeam } from '../utils/seasons';
 
 type RsvpStatus = 'going' | 'maybe' | 'no';
 
@@ -45,6 +50,13 @@ const KidDashboard: React.FC = () => {
   const [chatThreadDoc, setChatThreadDoc] = useState<{ notifyAllUids?: string[] } | null>(null);
   const [chatNotifySaving, setChatNotifySaving] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  // Active season + POTM wins/nominations for this kid — fed into
+  // SeasonTimeline + PersonalRecords so the kid sees the same
+  // deep-profile signal a parent sees on /player/:id, without
+  // needing to leave kid mode.
+  const [activeSeason, setActiveSeason] = useState<Season | null>(null);
+  const [votingWins, setVotingWins] = useState<any[]>([]);
+  const [votingNominationsList, setVotingNominationsList] = useState<any[]>([]);
 
   // Load the kid's player doc.
   useEffect(() => {
@@ -143,6 +155,55 @@ const KidDashboard: React.FC = () => {
     return () => unsub();
   }, [player?.teamId]);
 
+  // Resolve the active season for this team — powers SeasonTimeline's
+  // season scoping and Personal Records' "This Season" filter.
+  useEffect(() => {
+    const teamId = player?.teamId;
+    if (!teamId) { setActiveSeason(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const s = await getActiveSeasonForTeam(teamId);
+        if (!cancelled) setActiveSeason(s);
+      } catch (err) {
+        debugWarn('[kid-dash] active season resolve failed', err);
+        if (!cancelled) setActiveSeason(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [player?.teamId]);
+
+  // Load match_votings the kid participated in — powers Personal
+  // Records (career POTM wins + most votes in a match). Same read
+  // path the parent-side profile uses; rules allow open read on
+  // match_votings so no per-season composite index is required.
+  // teamId filter is intentionally OMITTED so a kid who played on a
+  // renamed/recreated team across seasons still gets credit for
+  // every past POTM (matches the 3.9.242 fix on the parent side).
+  useEffect(() => {
+    if (!activeKidPlayerId) { setVotingWins([]); setVotingNominationsList([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, 'match_votings'));
+        if (cancelled) return;
+        const allVotings = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        const wins = allVotings.filter((v: any) =>
+          (Array.isArray(v.winners) && v.winners.some((w: any) => w?.playerId === activeKidPlayerId))
+          || v.winner?.playerId === activeKidPlayerId
+        );
+        const nominated = allVotings.filter((v: any) =>
+          Array.isArray(v.votes) && v.votes.some((x: any) => x?.playerId === activeKidPlayerId)
+        );
+        setVotingWins(wins);
+        setVotingNominationsList(nominated);
+      } catch (err) {
+        debugWarn('[kid-dash] votings load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeKidPlayerId]);
+
   const firstName = (player?.name || '').split(' ')[0] || 'Player';
 
   // Bell toggle state — derived from the live thread doc. Absent doc
@@ -231,6 +292,17 @@ const KidDashboard: React.FC = () => {
             PlayerXpCard on /player/:id (the profile page). */}
         <KidHeroCard player={player} team={team} />
 
+        {/* PHOTO TAPE — sits directly under the hero because scrolling
+            past a wall of photos of yourself is the strongest reason a
+            kid opens the app. Photo-with-purpose: no ambient
+            background image on the hero, but this ribbon gives them
+            an immediate reason to keep scrolling. */}
+        <PhotoTape
+          playerId={activeKidPlayerId}
+          teamId={player.teamId || ''}
+          playerName={firstName}
+        />
+
         {/* Own dev plan + "I did it" — same write path as parent view,
             attributed to whoever's uid is signed in (which is still
             the parent). Kid sees the streak chip + can tap the button. */}
@@ -243,6 +315,39 @@ const KidDashboard: React.FC = () => {
             onUpdated={() => { /* onSnapshot listeners refresh */ }}
           />
         )}
+
+        {/* SEASON TIMELINE — chronological ribbon of every milestone
+            the kid has earned this season. Kids scroll right to watch
+            their season unfold. Silent-empty on brand-new seasons or
+            legacy teams pre-XP-opt-in. */}
+        <SeasonTimeline
+          playerId={activeKidPlayerId}
+          player={player}
+          teamId={player.teamId || ''}
+          season={activeSeason}
+          xpEnabled={Boolean((team as any)?.xpConfig?.enabled)}
+        />
+
+        {/* PERSONAL RECORDS — bragging rights. Most goals in a match,
+            longest scoring streak, career POTM crowns, juggles PB.
+            Client-side one-pass over stats + votings; silent-empty
+            when the kid has nothing above zero yet. */}
+        <PersonalRecords
+          playerId={activeKidPlayerId}
+          player={player}
+          seasonId={activeSeason?.id || 'lifetime'}
+          votingWins={votingWins}
+          votingNominations={votingNominationsList}
+        />
+
+        {/* COACH RECOGNITIONS ARCHIVE — the wall of every kind thing
+            a coach has ever written about them. Read on a bad day is
+            the point. Silent-empty on non-XP teams. */}
+        <CoachRecognitionsArchive
+          playerId={activeKidPlayerId}
+          teamId={player.teamId || ''}
+          xpEnabled={Boolean((team as any)?.xpConfig?.enabled)}
+        />
 
         {/* Upcoming events with RSVP-as-self. Hex icon container on
             the left of each row calls out the event type at a glance

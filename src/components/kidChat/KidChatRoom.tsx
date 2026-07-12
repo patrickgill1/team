@@ -57,10 +57,52 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  // Cached "thread already exists" flag so send() doesn't setDoc on
+  // every message. Firestore rules forbid updates on kid_chat_threads
+  // (create-only), and setDoc(..., {merge:true}) on an existing doc
+  // becomes an UPDATE — that permission-denied error was silently
+  // failing every subsequent send after the first (audit 2026-07-12).
+  const [threadReady, setThreadReady] = useState(false);
 
   const teamId = team?.id || '';
   const threadDocId = teamId ? `team_${teamId}` : '';
   const isCoach = isCoachOfTeam(userData, team);
+
+  // One-shot thread provisioning. Reads existence first, only writes
+  // if missing. Runs on mount + on teamId change; the threadReady
+  // gate below in send() means we never try to write again this
+  // session even if this effect races.
+  useEffect(() => {
+    if (!teamId || !userData) return;
+    if (!canPost) { setThreadReady(true); return; } // read-only viewers don't need write path
+    let cancelled = false;
+    (async () => {
+      try {
+        const ref = doc(db, 'kid_chat_threads', threadDocId);
+        const snap = await getDoc(ref);
+        if (cancelled) return;
+        if (snap.exists()) {
+          setThreadReady(true);
+          return;
+        }
+        // Thread doesn't exist yet — create it once.
+        await setDoc(ref, {
+          teamId,
+          audience: 'kids',
+          createdAt: serverTimestamp(),
+          createdByUid: (userData as any).uid,
+        });
+        if (!cancelled) setThreadReady(true);
+      } catch (err) {
+        // Thread might exist and read was denied, or create race with
+        // another parent. Either way, message send below will surface
+        // the real error if it fails. Mark ready to unblock.
+        console.warn('[kid-chat] thread provision check failed', err);
+        if (!cancelled) setThreadReady(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [teamId, threadDocId, canPost, (userData as any)?.uid]);
 
   // Subscribe to messages for this team's kid chat thread. We use a
   // deterministic thread id (team_<teamId>) so the "one thread per
@@ -110,16 +152,8 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
     if (!actingAsPlayer || !userData || !teamId) return;
     setSending(true);
     try {
-      // Auto-provision the thread doc on first send. setDoc with a
-      // deterministic id is idempotent so subsequent sends no-op the
-      // thread create.
-      await setDoc(doc(db, 'kid_chat_threads', threadDocId), {
-        teamId,
-        audience: 'kids',
-        createdAt: serverTimestamp(),
-        createdByUid: (userData as any).uid,
-      }, { merge: true });
-
+      // Thread doc is provisioned by the mount effect above. Nothing
+      // to write here except the message itself.
       const firstName = (actingAsPlayer.name || 'Player').split(' ')[0];
       await addDoc(collection(db, 'kid_chat_messages'), {
         threadId: threadDocId,

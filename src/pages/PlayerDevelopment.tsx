@@ -5,7 +5,9 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink, Drill, PlanComment } from '../types';
 import DrillPickerModal from '../components/development/DrillPickerModal';
+import CoachSawThisPill from '../components/coach/CoachSawThisPill';
 import { streamIframeUrl } from '../utils/streamUpload';
+import { coachVerifyLogEntry } from '../utils/devPlanActions';
 import { isCoachOfTeam, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
@@ -79,6 +81,21 @@ const PlayerDevelopment: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+
+  // Optimistic verified-by cache for the CoachSawThisPill so the
+  // pill flips state instantly on coach tap without waiting for a
+  // full plan reload. Cleared on plan reload (loadData resets state
+  // implicitly by reassigning plans).
+  const [verifiedOptimistic, setVerifiedOptimistic] = useState<Record<string, { uid: string; name: string; at: Date }>>({});
+  const handleVerifyLog = async (planForVerify: DevelopmentPlan, goalId: string, logId: string) => {
+    try {
+      const result = await coachVerifyLogEntry({ plan: planForVerify, goalId, logId });
+      setVerifiedOptimistic(prev => ({ ...prev, [logId]: result.verifiedBy }));
+    } catch (err) {
+      console.warn('[dev-plan] verify log failed', err);
+      alert('Could not save. Try again.');
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -1095,6 +1112,9 @@ const PlayerDevelopment: React.FC = () => {
                   getProgressPercentage={getProgressPercentage}
                   canPlayerComplete={effectiveView === 'parent' || !isUserCoach}
                   canLogPractice={true}
+                  canVerifyLogs={isUserCoach}
+                  onVerifyLog={handleVerifyLog}
+                  verifiedOptimistic={verifiedOptimistic}
                   streak={playerStreaks[plan.playerId] || 0}
                   playerPhoto={(players.find(pp => pp.id === plan.playerId) as any)?.profilePhotoUrl || null}
                   resolveGoalVideo={resolveGoalVideo}
@@ -1138,6 +1158,9 @@ const PlayerDevelopment: React.FC = () => {
                   getProgressPercentage={getProgressPercentage}
                   canPlayerComplete={false}
                   canLogPractice={false}
+                  canVerifyLogs={isUserCoach}
+                  onVerifyLog={handleVerifyLog}
+                  verifiedOptimistic={verifiedOptimistic}
                   streak={playerStreaks[plan.playerId] || 0}
                   playerPhoto={(players.find(pp => pp.id === plan.playerId) as any)?.profilePhotoUrl || null}
                   resolveGoalVideo={resolveGoalVideo}
@@ -1663,6 +1686,15 @@ interface PlanCardProps {
   getProgressPercentage: (plan: DevelopmentPlan) => number;
   canPlayerComplete: boolean;
   canLogPractice: boolean;
+  /** True when the viewer can tap "Saw this" on a log entry to
+   *  emit a coach_verify whisper. Distinct from canLogPractice
+   *  (which is truthy for parents on their own kid too). */
+  canVerifyLogs: boolean;
+  onVerifyLog: (plan: DevelopmentPlan, goalId: string, logId: string) => Promise<void>;
+  /** Optimistic verified-by cache shared from the outer page so the
+   *  pill flips state instantly on coach tap without waiting for a
+   *  full plan reload. */
+  verifiedOptimistic: Record<string, { uid: string; name: string; at: Date }>;
   streak?: number;
   playerPhoto?: string | null;
   resolveGoalVideo: (goal: DevelopmentGoal) => { streamUid?: string; streamReady?: boolean };
@@ -1737,7 +1769,7 @@ const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) =>
 const PlanCard: React.FC<PlanCardProps> = ({
   plan, isCoach, isExpanded, onToggleExpand, onPlayerComplete, onCoachVerify,
   onCoachNote, onReadyForReview, onAddPracticeLog, onQuickDidIt, onAddComment, onAddVideoLink, onRemoveVideoLink, onArchive, onDelete, onEdit, onCreateNextPlan, playerPhoto,
-  getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice, streak, resolveGoalVideo
+  getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice, canVerifyLogs, onVerifyLog, verifiedOptimistic, streak, resolveGoalVideo
 }) => {
   const progress = getProgressPercentage(plan);
   const playerProgress = plan.goals.length > 0
@@ -2138,7 +2170,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                 <p className="text-xs font-semibold text-ink-primary/50 uppercase tracking-wide">Practice Log</p>
                                 {totalMins > 0 && (
                                   <span className="text-xs font-medium text-brand-primary bg-brand-primary/15 px-2 py-0.5 rounded-full">
-                                    ⏱️ {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} total
+                                    {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} total
                                   </span>
                                 )}
                               </div>
@@ -2164,15 +2196,26 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   }
                                   return null;
                                 })();
+                                const opt = verifiedOptimistic[entry.id];
+                                const mergedEntry = opt ? { ...entry, verifiedBy: entry.verifiedBy || opt } : entry;
                                 return (
-                                <div key={entry.id} className="text-xs text-ink-primary/65 bg-surface-elevated rounded px-2 py-1 border border-line-default/5">
-                                  <span className="text-ink-primary/40">
-                                    {parsed ? parsed.toLocaleDateString() : 'Date unknown'}
-                                  </span>
-                                  {entry.minutes && <span className="text-brand-primary font-medium ml-1">({entry.minutes} min)</span>}
-                                  {' — '}{entry.note}
-                                  {entry.loggedByName && <span className="text-ink-primary/40 ml-1">— {entry.loggedByName}</span>}
-                                </div>
+                                  <div key={entry.id} className="text-xs text-ink-primary/65 bg-surface-elevated rounded px-2 py-1.5 border border-line-default/5">
+                                    <div className="flex flex-wrap items-baseline gap-x-1.5">
+                                      <span className="text-ink-primary/40">
+                                        {parsed ? parsed.toLocaleDateString() : 'Date unknown'}
+                                      </span>
+                                      {entry.minutes && <span className="text-brand-primary font-medium">({entry.minutes} min)</span>}
+                                      <span>: {entry.note}</span>
+                                      {entry.loggedByName && <span className="text-ink-primary/40">by {entry.loggedByName}</span>}
+                                    </div>
+                                    <div className="mt-1">
+                                      <CoachSawThisPill
+                                        entry={mergedEntry}
+                                        canVerify={canVerifyLogs}
+                                        onVerify={() => onVerifyLog(plan, goal.id, entry.id)}
+                                      />
+                                    </div>
+                                  </div>
                                 );
                               })}
                               {logs.length > 3 && showAllLogs !== goal.id && (

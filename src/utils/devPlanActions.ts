@@ -1,6 +1,8 @@
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import type { DevelopmentGoal, DevelopmentPlan, PracticeLogEntry } from '../types';
+import { workerFetch } from './workerFetch';
+import { debugWarn } from './debug';
 
 // Shared dev-plan write actions. Used by both PlayerDevelopment (the
 // dedicated full-plan view) AND PlayerProfile (the inline overview
@@ -8,36 +10,107 @@ import type { DevelopmentGoal, DevelopmentPlan, PracticeLogEntry } from '../type
 // the same action should write the same thing whether you tap it from
 // the profile or from the full plan page.
 
-/** Log "I did it today" for one goal on one plan. Returns the updated
- *  goals array so callers can immediately reconcile local state +
- *  recompute the streak. Idempotent within a day — taps on the same
- *  goal twice the same day each write a log entry, but the streak
- *  derived from unique-day counts dedupes them. */
+/** Log "I did it today" for one goal on one plan.
+ *
+ *  Routes through the worker at POST /dev-plans/log-tap so the write
+ *  is paired with a "did_it" parent_whispers doc atomically. The
+ *  whisper is idempotent per player per Denver day: subsequent taps
+ *  same-day get a Firestore 409 that the worker silently swallows,
+ *  so a kid who taps 3 goals only sends one whisper. Client falls
+ *  back to a direct Firestore write if the worker call fails
+ *  (network flake, worker cold-start miss) so the "I did it" gesture
+ *  is NEVER lost — just the whisper might be missed.
+ *
+ *  Returns the updated goals array so callers can immediately
+ *  reconcile local state + recompute the streak. */
 export async function quickDidIt(
   plan: DevelopmentPlan,
   goalId: string,
   actor: { uid: string; name: string }
 ): Promise<DevelopmentGoal[]> {
-  const entry: PracticeLogEntry = {
+  const optimisticEntry: PracticeLogEntry = {
     id: `log_${Date.now()}`,
     date: new Date(),
     note: 'Did it today',
     loggedBy: actor.uid,
     loggedByName: actor.name,
   };
-  const updatedGoals: DevelopmentGoal[] = plan.goals.map(g =>
-    g.id === goalId ? { ...g, practiceLog: [...(g.practiceLog || []), entry] } : g
+  const optimisticGoals: DevelopmentGoal[] = plan.goals.map(g =>
+    g.id === goalId ? { ...g, practiceLog: [...(g.practiceLog || []), optimisticEntry] } : g
   );
-  await updateDoc(doc(db, 'development_plans', plan.id), { goals: updatedGoals });
+
+  let updatedGoals: DevelopmentGoal[] = optimisticGoals;
+  try {
+    const res = await workerFetch('/dev-plans/log-tap', {
+      method: 'POST',
+      body: JSON.stringify({
+        planId: plan.id,
+        goalId,
+        playerId: plan.playerId,
+        teamId: plan.teamId,
+      }),
+    });
+    const data: any = await res.json();
+    if (res.ok && data?.ok && Array.isArray(data.updatedGoals)) {
+      updatedGoals = data.updatedGoals as DevelopmentGoal[];
+    } else {
+      throw new Error(data?.error || `log-tap-${res.status}`);
+    }
+  } catch (err) {
+    // Rescue path — worker unavailable, fall back to the client
+    // write so the tap is never lost. No whisper fires here; the
+    // primary path takes care of that when the worker is healthy.
+    debugWarn('[dev-plans] log-tap worker fallback:', err);
+    try {
+      await updateDoc(doc(db, 'development_plans', plan.id), { goals: optimisticGoals });
+    } catch (fallbackErr) {
+      // Both paths dead — surface to caller so the UI can retry.
+      throw fallbackErr;
+    }
+  }
+
   // Invalidate the Dashboard tonight-goal cache so the next Dashboard
   // mount refetches instead of showing the stale "not logged today"
-  // state for a beat. Fire-and-forget dynamic import so devPlanActions
-  // stays lightweight for callers that never touch the cache.
+  // state for a beat.
   try {
     const { invalidateCache } = await import('./queryCache');
     invalidateCache(`dashboard:tonightGoal:${plan.playerId}`);
   } catch { /* non-fatal */ }
   return updatedGoals;
+}
+
+/** Coach acknowledges seeing a specific log entry. Routes through
+ *  the worker at POST /dev-plans/log-verify. Server stamps
+ *  verifiedBy on the entry AND fires a coach_verify parent_whispers
+ *  doc (deterministic id per log entry, so re-taps are idempotent). */
+export async function coachVerifyLogEntry(opts: {
+  plan: DevelopmentPlan;
+  goalId: string;
+  logId: string;
+}): Promise<{ verifiedBy: { uid: string; name: string; at: Date }; alreadyVerified: boolean }> {
+  const { plan, goalId, logId } = opts;
+  const res = await workerFetch('/dev-plans/log-verify', {
+    method: 'POST',
+    body: JSON.stringify({
+      planId: plan.id,
+      goalId,
+      logId,
+      playerId: plan.playerId,
+      teamId: plan.teamId,
+    }),
+  });
+  const data: any = await res.json();
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.error || `log-verify-${res.status}`);
+  }
+  return {
+    verifiedBy: {
+      uid: data.verifiedBy.uid,
+      name: data.verifiedBy.name,
+      at: data.verifiedBy.at ? new Date(data.verifiedBy.at) : new Date(),
+    },
+    alreadyVerified: data.alreadyVerified === true,
+  };
 }
 
 /** Coerce a practiceLog entry's `date` to a Date regardless of how

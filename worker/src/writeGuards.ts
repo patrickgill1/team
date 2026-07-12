@@ -3980,6 +3980,212 @@ async function handleXpBackfillCommit(req: Request, env: Env, payload: any): Pro
   });
 }
 
+// ═══════════════════════════════════════════════════════════════
+// POST /dev-plans/log-tap + POST /dev-plans/log-verify
+//
+// FEATURE A ("I did it" whisper): every kid/parent tap on a dev-
+// plan practice-log button goes through /dev-plans/log-tap. The
+// worker:
+//   1. Appends a new PracticeLogEntry to the goal's practiceLog[]
+//      (same shape the client used to write directly)
+//   2. Emits ONE parent_whispers doc per day per player with
+//      kind='did_it', using deterministic id
+//      `did_it-{playerId}-{YYYYMMDD-Denver}` so subsequent taps on
+//      any goal that same day 409-idempotent no-op the whisper
+//      without preventing the log entry from being recorded
+//
+// FEATURE B (coach verify): coach taps "Saw this" on a specific
+// log entry via /dev-plans/log-verify. Worker stamps verifiedBy
+// on the entry and emits a coach_verify whisper with deterministic
+// id `verify-{playerId}-{logId}` so a coach who re-taps just gets
+// the existing ack.
+//
+// Auth:
+//   - log-tap accepts either a team coach OR a parent of the player
+//   - log-verify accepts team coaches only
+// Both endpoints require requireUser first for the caller uid.
+// ═══════════════════════════════════════════════════════════════
+
+/** Return YYYYMMDD in America/Denver (matches feedback_worker_timezone
+ *  standing rule). Used as the whisper-idempotency day key. */
+function denverDayKeyYYYYMMDD(now: Date = new Date()): string {
+  const s = now.toLocaleDateString('en-CA', { timeZone: 'America/Denver' });
+  // en-CA yields "YYYY-MM-DD" — strip the dashes for the doc-id key.
+  return s.replace(/-/g, '');
+}
+
+/** True when uid is on the player's parentIds array. */
+async function isParentOfPlayer(pid: string, sa: ServiceAccount, uid: string, playerId: string): Promise<boolean> {
+  try {
+    const doc = await getDocument(pid, `players/${playerId}`, sa);
+    const parentIds: any[] = Array.isArray(doc?.data?.parentIds) ? doc!.data.parentIds : [];
+    return parentIds.includes(uid);
+  } catch { return false; }
+}
+
+async function handleDevPlansLogTap(req: Request, env: Env, payload: any): Promise<Response> {
+  const planId = String(payload?.planId || '');
+  const goalId = String(payload?.goalId || '');
+  const playerId = String(payload?.playerId || '');
+  const teamId = String(payload?.teamId || '');
+  if (!planId || !goalId || !playerId || !teamId) {
+    return json({ ok: false, error: 'missing_required' }, 400);
+  }
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  // Coach-or-parent gate. Coaches always pass; otherwise verify
+  // parent linkage on the player doc.
+  let isCoach = false;
+  try {
+    await requireCoachOfTeam(req, env, teamId);
+    isCoach = true;
+  } catch { /* not a coach on this team — fall through to parent check */ }
+  if (!isCoach) {
+    const isParent = await isParentOfPlayer(pid, sa, claims.uid, playerId);
+    if (!isParent) return json({ ok: false, error: 'not_authorized' }, 403);
+  }
+
+  // Load the plan, mutate the target goal's practiceLog.
+  const planDoc = await getDocument(pid, `development_plans/${planId}`, sa);
+  if (!planDoc?.data) return json({ ok: false, error: 'plan_not_found' }, 404);
+  const plan: any = planDoc.data;
+  const goals: any[] = Array.isArray(plan.goals) ? plan.goals : [];
+  const goal = goals.find(g => g?.id === goalId);
+  if (!goal) return json({ ok: false, error: 'goal_not_found' }, 404);
+
+  // Build the entry client-parity shape.
+  const now = new Date();
+  const actorName = String((await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null))?.data?.name || 'Family');
+  const entry = {
+    id: `log_${Date.now()}`,
+    date: now,
+    note: String(payload?.note || '').slice(0, 500),
+    minutes: typeof payload?.minutes === 'number' && payload.minutes > 0 ? Math.min(payload.minutes, 600) : undefined,
+    loggedBy: claims.uid,
+    loggedByName: actorName,
+  };
+  const updatedGoals = goals.map(g => {
+    if (g?.id !== goalId) return g;
+    const nextLog = Array.isArray(g.practiceLog) ? [...g.practiceLog, entry] : [entry];
+    return { ...g, practiceLog: nextLog };
+  });
+  await patchDocument(pid, `development_plans/${planId}`, { goals: updatedGoals }, sa);
+
+  // Whisper (Feature A) — deterministic id per player per Denver
+  // day means a second goal-tap same day is a silent 409 no-op.
+  const goalTitle = String(goal.title || 'his practice');
+  const playerName = String(plan.playerName || 'Your player');
+  const message = `${playerName} did practice today: ${goalTitle}`;
+  const whisperId = `did_it-${playerId}-${denverDayKeyYYYYMMDD(now)}`;
+  try {
+    await createDocument(pid, 'parent_whispers', {
+      playerId,
+      playerName,
+      teamId,
+      coachUid: claims.uid,
+      coachName: actorName,
+      coachAvatarUrl: null,
+      message,
+      kind: 'did_it',
+      planId,
+      goalId,
+      goalTitle,
+      logId: entry.id,
+      recipientEmails: [],
+      recipientCount: 0,
+      createdAt: now,
+    }, sa, whisperId);
+  } catch (err) {
+    if (err instanceof AlreadyExistsError) {
+      // Second tap same day — whisper for this day already exists.
+      // The log entry above still landed; no user-visible failure.
+    } else {
+      console.warn('[dev-plans/log-tap] whisper fanout failed (non-fatal):', (err as Error).message);
+    }
+  }
+
+  return json({ ok: true, updatedGoals, entry });
+}
+
+async function handleDevPlansLogVerify(req: Request, env: Env, payload: any): Promise<Response> {
+  const planId = String(payload?.planId || '');
+  const goalId = String(payload?.goalId || '');
+  const logId = String(payload?.logId || '');
+  const playerId = String(payload?.playerId || '');
+  const teamId = String(payload?.teamId || '');
+  if (!planId || !goalId || !logId || !playerId || !teamId) {
+    return json({ ok: false, error: 'missing_required' }, 400);
+  }
+  await requireCoachOfTeam(req, env, teamId);
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  const planDoc = await getDocument(pid, `development_plans/${planId}`, sa);
+  if (!planDoc?.data) return json({ ok: false, error: 'plan_not_found' }, 404);
+  const plan: any = planDoc.data;
+  const goals: any[] = Array.isArray(plan.goals) ? plan.goals : [];
+  const goal = goals.find(g => g?.id === goalId);
+  if (!goal) return json({ ok: false, error: 'goal_not_found' }, 404);
+  const log: any[] = Array.isArray(goal.practiceLog) ? goal.practiceLog : [];
+  const entry = log.find(l => l?.id === logId);
+  if (!entry) return json({ ok: false, error: 'log_entry_not_found' }, 404);
+
+  // Idempotent: if verifiedBy already exists, keep it (first ack
+  // wins). Whisper create still 409s on the deterministic id so no
+  // re-fanout.
+  const now = new Date();
+  const coachName = String((await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null))?.data?.name || 'Coach');
+  const alreadyVerified = !!entry.verifiedBy;
+  if (!alreadyVerified) {
+    const updatedGoals = goals.map(g => {
+      if (g?.id !== goalId) return g;
+      const nextLog = (Array.isArray(g.practiceLog) ? g.practiceLog : []).map((l: any) => {
+        if (l?.id !== logId) return l;
+        return { ...l, verifiedBy: { uid: claims.uid, name: coachName, at: now } };
+      });
+      return { ...g, practiceLog: nextLog };
+    });
+    await patchDocument(pid, `development_plans/${planId}`, { goals: updatedGoals }, sa);
+  }
+
+  const goalTitle = String(goal.title || 'his practice');
+  const playerName = String(plan.playerName || 'Your player');
+  const message = `Coach ${coachName} saw ${playerName} work on ${goalTitle}.`;
+  const whisperId = `verify-${playerId}-${logId}`;
+  try {
+    await createDocument(pid, 'parent_whispers', {
+      playerId,
+      playerName,
+      teamId,
+      coachUid: claims.uid,
+      coachName,
+      coachAvatarUrl: null,
+      message,
+      kind: 'coach_verify',
+      planId,
+      goalId,
+      goalTitle,
+      logId,
+      recipientEmails: [],
+      recipientCount: 0,
+      createdAt: now,
+    }, sa, whisperId);
+  } catch (err) {
+    if (err instanceof AlreadyExistsError) {
+      // Silent — a prior verify on this entry already emitted the whisper.
+    } else {
+      console.warn('[dev-plans/log-verify] whisper fanout failed (non-fatal):', (err as Error).message);
+    }
+  }
+
+  return json({
+    ok: true,
+    verifiedBy: { uid: claims.uid, name: coachName, at: now },
+    alreadyVerified,
+  });
+}
+
 export async function routeWriteGuard(
   pathname: string,
   req: Request,
@@ -4031,6 +4237,10 @@ export async function routeWriteGuard(
     case '/xp/award-recognition':  return handleXpAwardRecognition(req, env, payload);
     case '/xp/grant-coach':        return handleXpGrantCoach(req, env, payload);
     case '/xp/reward-presets':     return handleXpRewardPresets(req, env, payload);
+    case '/xp/backfill-preview':   return handleXpBackfillPreview(req, env, payload);
+    case '/xp/backfill-commit':    return handleXpBackfillCommit(req, env, payload);
+    case '/dev-plans/log-tap':     return handleDevPlansLogTap(req, env, payload);
+    case '/dev-plans/log-verify':  return handleDevPlansLogVerify(req, env, payload);
     case '/register/submit':       return handleRegisterSubmit(req, env, payload);
     default:                       return null;
   }

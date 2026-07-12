@@ -23,7 +23,8 @@ import PersonalRecords from '../components/player/PersonalRecords';
 import AddPlayer from '../components/player/AddPlayer';
 import EmptyState from '../components/common/EmptyState';
 import DataGate from '../components/common/DataGate';
-import { computeStreakDays } from '../utils/devPlanActions';
+import { computeStreakDays, coachVerifyLogEntry } from '../utils/devPlanActions';
+import CoachSawThisPill from '../components/coach/CoachSawThisPill';
 import { computePlayerAttendance } from '../utils/attendance';
 import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
 import { getShareOrigin } from '../utils/origin';
@@ -69,6 +70,18 @@ const PlayerProfile: React.FC = () => {
     clipUrl?: string | null;
     clipCaption?: string | null;
     createdAt: Date;
+    // Extended fields for kind-branched rendering (recognition,
+    // coach_verify, did_it, level_up). Absent kind falls back to the
+    // legacy bare-note render.
+    kind?: 'recognition' | 'coach_verify' | 'did_it' | 'level_up';
+    xp?: number;
+    badgeSlug?: string;
+    badgeCount?: number;
+    planId?: string;
+    goalId?: string;
+    goalTitle?: string;
+    logId?: string;
+    level?: number;
   }>>([]);
   const [allPlayerVotings, setAllPlayerVotings] = useState<{ voting: MatchVoting; playerVotes: { voterName: string; reason?: string }[] }[]>([]);
   const [votingNominations, setVotingNominations] = useState<number>(0);
@@ -293,6 +306,15 @@ const PlayerProfile: React.FC = () => {
             clipUrl: data.clipUrl || null,
             clipCaption: data.clipCaption || null,
             createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
+            kind: data.kind,
+            xp: data.xp,
+            badgeSlug: data.badgeSlug,
+            badgeCount: data.badgeCount,
+            planId: data.planId,
+            goalId: data.goalId,
+            goalTitle: data.goalTitle,
+            logId: data.logId,
+            level: data.level,
           };
         }));
       } catch (err) {
@@ -1451,8 +1473,20 @@ const PlayerProfile: React.FC = () => {
                     userData.uid === w.coachUid
                     || (userData as any).isClubAdmin === true
                   );
+                  // Left-stripe accent per kind. brand-primary for
+                  // coach-signal kinds (recognition, coach_verify),
+                  // amber for level-ups, none for did_it (parent-voice
+                  // daily hum) and the legacy bare-note default.
+                  const stripe = w.kind === 'recognition' || w.kind === 'coach_verify'
+                    ? 'border-l-4 border-brand-primary'
+                    : w.kind === 'level_up'
+                      ? 'border-l-4 border-amber-400'
+                      : '';
+                  const cardWeight = w.kind === 'did_it'
+                    ? 'bg-surface-elevated/70 ring-line-default/10'
+                    : 'bg-surface-elevated ring-line-default/10';
                   return (
-                  <li key={w.id} className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 p-4 sm:p-5">
+                  <li key={w.id} className={`rounded-2xl ${cardWeight} ring-1 ${stripe} p-4 sm:p-5`}>
                     <header className="flex items-center gap-3 mb-3">
                       {w.coachAvatarUrl ? (
                         <img src={w.coachAvatarUrl} alt="" className="w-9 h-9 rounded-full object-cover ring-1 ring-line-default/10" />
@@ -1489,6 +1523,42 @@ const PlayerProfile: React.FC = () => {
                       )}
                     </header>
                     <p className="text-[15px] text-ink-primary/90 leading-relaxed whitespace-pre-wrap break-words">{w.message}</p>
+
+                    {/* Kind-specific attribution chips. Each kind's
+                        chip carries the "who + what" so the whisper
+                        card reads as more than a bare note. */}
+                    {(w.kind === 'recognition' || w.kind === 'coach_verify' || w.kind === 'level_up' || w.kind === 'did_it') && (
+                      <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                        {w.kind === 'recognition' && (
+                          <>
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary/35 text-brand-primary-soft font-black">
+                              Recognition{typeof w.xp === 'number' ? `: +${w.xp} XP` : ''}
+                            </span>
+                            {w.badgeSlug === 'coach_pick' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-200 font-black">
+                                Coach's Pick{typeof w.badgeCount === 'number' && w.badgeCount > 1 ? ` x${w.badgeCount}` : ''}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {w.kind === 'coach_verify' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary/35 text-brand-primary-soft font-black">
+                            Coach saw this{w.goalTitle ? `: ${w.goalTitle}` : ''}
+                          </span>
+                        )}
+                        {w.kind === 'level_up' && typeof w.level === 'number' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-200 font-black">
+                            Level {w.level} unlocked
+                          </span>
+                        )}
+                        {w.kind === 'did_it' && w.goalTitle && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 font-bold">
+                            Practice: {w.goalTitle}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {(w.devPlanTitle || w.clipUrl) && (
                       <div className="mt-3 pt-3 border-t border-line-default/5 flex flex-wrap gap-2 text-[11px]">
                         {w.devPlanTitle && (
@@ -1733,9 +1803,27 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
   const [logNote, setLogNote] = useState('');
   const [logMinutes, setLogMinutes] = useState('');
   const [showAllLogs, setShowAllLogs] = useState<string | null>(null);
+  // Optimistic verified-by cache. Bridges the gap between the worker
+  // ack landing and the plan reload — coach taps "Saw this", we stamp
+  // the entry locally so the pill flips state instantly, and the next
+  // profile refresh replaces the optimistic value with the truthful
+  // one from Firestore.
+  const [verifiedOptimistic, setVerifiedOptimistic] = useState<Record<string, { uid: string; name: string; at: Date }>>({});
   const { userData } = useAuth();
+  const { selectedTeam } = useTeam();
   const { updateDevelopmentPlan } = useFirestore();
   const progress = getProgressPercent(plan);
+  const canVerifyLogs = isCoachOfTeam(userData, selectedTeam);
+
+  const handleVerifyLog = async (goalId: string, logId: string) => {
+    try {
+      const result = await coachVerifyLogEntry({ plan, goalId, logId });
+      setVerifiedOptimistic(prev => ({ ...prev, [logId]: result.verifiedBy }));
+    } catch (err) {
+      console.warn('[plan-detail] verify log failed', err);
+      alert('Could not save. Try again.');
+    }
+  };
 
   const handleSubmitLog = async () => {
     if (!logGoalId || !logNote.trim() || !userData) return;
@@ -1818,16 +1906,31 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
                   {logs.length > 0 && (
                     <div className="mt-2 space-y-1">
                       <p className="text-xs font-semibold text-ink-primary/50 uppercase tracking-wide">Practice Log</p>
-                      {logs.slice().reverse().slice(0, showAllLogs === goal.id ? undefined : 3).map((entry: any) => (
-                        <div key={entry.id} className="text-xs text-ink-primary/65 bg-surface-elevated rounded px-2 py-1 border border-line-default/5">
-                          <span className="text-ink-primary/40">
-                            {entry.date?.toDate ? entry.date.toDate().toLocaleDateString() : new Date(entry.date).toLocaleDateString()}
-                          </span>
-                          {entry.minutes && <span className="text-brand-primary font-medium ml-1">({entry.minutes} min)</span>}
-                          {' — '}{entry.note}
-                          {entry.loggedByName && <span className="text-ink-primary/40 ml-1">— {entry.loggedByName}</span>}
-                        </div>
-                      ))}
+                      {logs.slice().reverse().slice(0, showAllLogs === goal.id ? undefined : 3).map((entry: any) => {
+                        // Merge server-truth with optimistic ack so
+                        // the pill flips state instantly on coach tap.
+                        const opt = verifiedOptimistic[entry.id];
+                        const mergedEntry = opt ? { ...entry, verifiedBy: entry.verifiedBy || opt } : entry;
+                        return (
+                          <div key={entry.id} className="text-xs text-ink-primary/65 bg-surface-elevated rounded px-2 py-1.5 border border-line-default/5">
+                            <div className="flex flex-wrap items-baseline gap-x-1.5">
+                              <span className="text-ink-primary/40">
+                                {entry.date?.toDate ? entry.date.toDate().toLocaleDateString() : new Date(entry.date).toLocaleDateString()}
+                              </span>
+                              {entry.minutes && <span className="text-brand-primary font-medium">({entry.minutes} min)</span>}
+                              <span>: {entry.note}</span>
+                              {entry.loggedByName && <span className="text-ink-primary/40">by {entry.loggedByName}</span>}
+                            </div>
+                            <div className="mt-1">
+                              <CoachSawThisPill
+                                entry={mergedEntry}
+                                canVerify={canVerifyLogs}
+                                onVerify={() => handleVerifyLog(goal.id, entry.id)}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                       {logs.length > 3 && showAllLogs !== goal.id && (
                         <button onClick={() => setShowAllLogs(goal.id)} className="text-xs text-brand-primary hover:text-brand-primary-soft">
                           Show all {logs.length} entries

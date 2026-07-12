@@ -2728,6 +2728,60 @@ export interface PracticeLogEntry {
   minutes?: number;
   loggedBy: string;
   loggedByName: string;
+  /** Per-log-entry coach acknowledgement ("I saw Ruston do this in
+   *  practice"). Written by the worker only via /dev-plans/log-verify
+   *  so the coach's uid + name + timestamp are authoritative. Present
+   *  = ack, absent = pending. The kid card renders a brand-primary
+   *  check chip on verified entries; the parent gets a whisper on
+   *  the first coach ack for a given log entry. */
+  verifiedBy?: {
+    uid: string;
+    name: string;
+    at: Date;
+  };
+}
+
+/** Whisper doc shape stored in parent_whispers. Kind determines
+ *  render treatment:
+ *    - 'recognition': brand-primary crimson stripe + coach attribution
+ *      + XP amount + optional Coach's Pick badge chip
+ *    - 'coach_verify': brand-primary stripe + "Coach {name} saw this"
+ *      + deep link to the specific log entry
+ *    - 'did_it': no stripe, lighter secondary-weight card, avatar
+ *      initial + "{playerName} did practice today" (goal name when
+ *      known). Once per day per player.
+ *    - 'level_up': amber stripe + "Level {level} unlocked" chip
+ *    - undefined (legacy): current bare-note treatment stays as-is
+ *
+ *  Deterministic doc ids on the two new kinds guarantee idempotency:
+ *    - did_it       → did_it-{playerId}-{YYYYMMDD-Denver}
+ *    - coach_verify → verify-{playerId}-{logId}
+ */
+export interface ParentWhisper {
+  id: string;
+  playerId: string;
+  playerName: string;
+  clubId?: string;
+  teamId?: string;
+  coachUid: string;
+  coachName: string;
+  coachAvatarUrl?: string | null;
+  message: string;
+  kind?: 'recognition' | 'coach_verify' | 'did_it' | 'level_up';
+  xp?: number;
+  badgeSlug?: string;
+  badgeCount?: number;
+  /** Level whispered about, on kind === 'level_up'. */
+  level?: number;
+  /** Deep-link context for coach_verify + did_it whispers so the
+   *  parent-side card can route to the exact practice-log entry. */
+  planId?: string;
+  goalId?: string;
+  goalTitle?: string;
+  logId?: string;
+  recipientEmails?: string[];
+  recipientCount?: number;
+  createdAt: Date;
 }
 
 // ================================

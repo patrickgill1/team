@@ -11,6 +11,7 @@ import type { CalendarEvent, Player } from '../types';
 import { REQUIRED_COACH_CERT_KINDS } from '../types';
 import CoachRecentMediaCard from '../components/coach/CoachRecentMediaCard';
 import CoachGrantXpModal from '../components/coach/CoachGrantXpModal';
+import XpIntroCard from '../components/coach/XpIntroCard';
 
 /**
  * Coach cockpit — one-page landing for coaches. Mirror of /club for
@@ -299,6 +300,17 @@ const CoachCockpit: React.FC = () => {
               ))}
             </div>
           </section>
+
+          {/* XP intro nudge — discovery card for coaches on teams
+              where xpConfig is off. Hides once xp is turned on OR
+              the coach has dismissed on this device. Without this,
+              coaches on pre-2026-07-10 teams never discover XP or
+              the Grant XP tile below. */}
+          {selectedTeam && (
+            <div className="mt-3">
+              <XpIntroCard team={selectedTeam} />
+            </div>
+          )}
 
           {/* Coach control panel — 8 quick actions covering the
               team's operational surface. Head coach sees all of

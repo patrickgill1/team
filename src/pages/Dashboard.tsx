@@ -1225,6 +1225,40 @@ const Dashboard: React.FC = () => {
           )
         )}
 
+        {/* TodaysDevelopmentCard — sits directly under MyPlayerCard
+            for parent-mode users, matching Patrick's 2026-07-13
+            approved mockup order (MyPlayerCard → Today's Development
+            → This Week). Hidden entirely for coaches and for parents
+            without an active dev plan. */}
+        {isParentMode && myPlayer && (
+          <div
+            className="transition-all duration-500 ease-out overflow-hidden"
+            style={{
+              maxHeight: !goalLoaded ? '94px' : (tonightGoal ? '260px' : '0px'),
+              opacity: !goalLoaded ? 0 : (tonightGoal ? 1 : 0),
+            }}
+          >
+            {tonightGoal && (
+              <TodaysDevelopmentCard
+                goal={tonightGoal}
+                playerId={myPlayer.id}
+                teamId={selectedTeamId || (myPlayer as any).teamId || ''}
+                onLogged={(updated) => setTonightGoal(updated)}
+              />
+            )}
+          </div>
+        )}
+
+        {/* This Week — up to 3 upcoming events with inline RSVP. */}
+        <UpcomingEventsList
+          events={upcomingEvents}
+          max={3}
+          myLinkedPlayers={myLinkedPlayers as any}
+          currentUid={userData?.uid}
+          isCoach={isUserCoach}
+          onRsvp={rsvpForEvent}
+        />
+
         {/* Welcome grace period — hide the promotional stack for the
             first 45 min after signup so a brand-new coach gets a
             peaceful first look at their populated dashboard instead
@@ -1269,22 +1303,10 @@ const Dashboard: React.FC = () => {
           );
         })()}
 
-        {/* Upcoming events list — replaces the earlier MATCHWEEK
-            fixture ladder. Patrick 2026-07-13: "the calendar looks
-            too much and making it more actionable will be easy. so
-            it shows the next 3 events, as most weeks only have 3
-            events." Each row has an inline RSVP pill that expands
-            to a 3-option segmented control so a parent can respond
-            without leaving the dashboard. Auto-hides when no
-            upcoming events. See UpcomingEventsList.tsx. */}
-        <UpcomingEventsList
-          events={upcomingEvents}
-          max={3}
-          myLinkedPlayers={myLinkedPlayers as any}
-          currentUid={userData?.uid}
-          isCoach={isUserCoach}
-          onRsvp={rsvpForEvent}
-        />
+        {/* UpcomingEventsList moved into the parent-mode
+            emotional-lead block above (right after
+            TodaysDevelopmentCard) — matches the approved mockup
+            order: MyPlayerCard → Today's Development → This Week. */}
 
         {/* Admin cockpit returns to the dashboard when the user is
             in 'admin' view mode (Patrick 2026-06-21: 'shouldn't admin
@@ -1341,24 +1363,10 @@ const Dashboard: React.FC = () => {
             exists) or 0 (if the kid has no active plan). Avoids
             Patrick's 'development card pops in later' complaint
             without showing a skeleton. */}
-        {isParentMode && myPlayer && (
-          <div
-            className="transition-all duration-500 ease-out overflow-hidden"
-            style={{
-              maxHeight: !goalLoaded ? '94px' : (tonightGoal ? '240px' : '0px'),
-              opacity: !goalLoaded ? 0 : (tonightGoal ? 1 : 0),
-            }}
-          >
-        {tonightGoal && myPlayer && (
-          <TodaysDevelopmentCard
-            goal={tonightGoal}
-            playerId={myPlayer.id}
-            teamId={selectedTeamId || (myPlayer as any).teamId || ''}
-            onLogged={(updated) => setTonightGoal(updated)}
-          />
-        )}
-          </div>
-        )}
+        {/* TodaysDevelopmentCard + UpcomingEventsList moved into the
+            parent-mode emotional-lead block above (right after
+            MyPlayerCard) — matches the approved mockup order. This
+            block used to render TodaysDevelopmentCard here. */}
         {/* Coach team-health roll-up — visible to coaches only,
             renders only when the team has at least one player who
             hasn't logged practice this week. Lives below the
@@ -2035,31 +2043,33 @@ const MyPlayerCard: React.FC<{
         aria-hidden
       />
 
-      <div className={`relative ${isPotm ? 'pt-11 pb-4 px-4 sm:pt-12 sm:pb-5 sm:px-5' : 'p-4 sm:p-5'} flex items-center gap-4 w-full`}>
-        {/* Circular photo with crimson ring + #10 jersey pill overlay. */}
+      <div className={`relative ${isPotm ? 'pt-9 pb-3 px-3 sm:pt-10 sm:pb-4 sm:px-4' : 'p-3 sm:p-4'} flex items-center gap-3 sm:gap-4 w-full`}>
+        {/* Photo — crimson ring + #10 jersey pill on the bottom-left,
+            matching the mockup. Shrunk from 96 → 80 to give the
+            info column room without sacrificing the hero medallion. */}
         <div className="relative flex-shrink-0">
-          <div
-            aria-hidden
-            className={`absolute inset-0 rounded-full ring-2 ${isPotm ? 'ring-amber-100/70' : 'ring-brand-primary/60'} shadow-lg ${isPotm ? 'shadow-amber-500/30' : 'shadow-brand-primary/40'}`}
-          />
+          {/* Outer soft crimson glow — reads as premium, on-brand. */}
+          {!isPotm && (
+            <div aria-hidden className="absolute -inset-1 rounded-full bg-brand-primary/25 blur-md pointer-events-none" />
+          )}
           {p.profilePhotoUrl ? (
             <img
               src={p.profilePhotoUrl}
               alt={player.name}
-              className={`relative w-24 h-24 rounded-full object-cover shadow ring-2 ${isPotm ? 'ring-amber-300' : 'ring-brand-primary-soft/45'}`}
+              className={`relative w-20 h-20 rounded-full object-cover shadow-lg ring-[2.5px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}
               loading="lazy"
             />
           ) : (
-            <div className={`relative w-24 h-24 rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-3xl font-black shadow ring-2 ${isPotm ? 'ring-amber-300' : 'ring-brand-primary-soft/45'}`}>
+            <div className={`relative w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[2.5px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
               {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
             </div>
           )}
           {player.jerseyNumber != null && (
             <span
-              className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-black tabular-nums shadow-lg ring-2 ring-offset-1 ring-offset-surface-elevated ${
+              className={`absolute -bottom-0.5 -left-1 z-10 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-black tabular-nums shadow-md ring-1 ${
                 isPotm
-                  ? 'bg-amber-50 text-amber-950 ring-amber-200/80'
-                  : 'bg-charcoal-900 text-white ring-brand-primary/50'
+                  ? 'bg-amber-50 text-amber-950 ring-amber-200'
+                  : 'bg-charcoal-900 text-white ring-brand-primary'
               }`}
             >
               #{player.jerseyNumber}
@@ -2067,81 +2077,82 @@ const MyPlayerCard: React.FC<{
           )}
           {isPotm && (
             <span
-              className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-amber-300 ring-2 ring-amber-700 flex items-center justify-center shadow-lg"
+              className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-amber-300 ring-2 ring-amber-700 flex items-center justify-center shadow-lg"
               aria-label="Player of the Match"
             >
-              <svg className="w-4 h-4 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
               </svg>
             </span>
           )}
         </div>
 
-        {/* Name + position + level/XP + streak/badge chips */}
+        {/* Info column: name, position, level+XP row, streak+badge row */}
         <div className="flex-1 min-w-0">
-          <p className={`text-xl sm:text-2xl font-black leading-tight truncate ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>{player.name}</p>
-          <div className="flex items-center gap-1.5 mt-1 mb-2 flex-wrap">
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest ${
-              isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/80'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
-              {position}
-            </span>
-          </div>
+          <p className={`text-lg sm:text-xl font-black leading-tight truncate ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>{player.name}</p>
+          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 mt-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+            isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/85'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
+            {position}
+          </span>
 
-          {/* Level + XP progress bar */}
-          <div className="flex items-center gap-2 mb-2">
-            <svg className={`w-3.5 h-3.5 flex-shrink-0 ${isPotm ? 'text-amber-100' : 'text-brand-primary-soft'}`} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
-              <polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9 12 2" />
-            </svg>
-            <span className={`text-[11px] font-black uppercase tracking-widest ${isPotm ? 'text-amber-100' : 'text-brand-primary-soft'}`}>
-              Level {level.level}
-            </span>
-            <div className={`flex-1 h-1.5 rounded-full overflow-hidden max-w-[160px] ${isPotm ? 'bg-amber-900/40' : 'bg-line-default/15'}`}>
+          {/* Row: LEVEL badge + XP progress bar + count. Compact. */}
+          <div className="flex items-center gap-2 mt-2">
+            <div className={`inline-flex items-center gap-1 flex-shrink-0 ${isPotm ? 'text-amber-100' : 'text-brand-primary-soft'}`}>
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9 12 2" />
+              </svg>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Lvl {level.level}</span>
+            </div>
+            <div className={`flex-1 h-1.5 rounded-full overflow-hidden min-w-[40px] ${isPotm ? 'bg-amber-900/40' : 'bg-line-default/15'}`}>
               <div
-                className={`h-full rounded-full transition-all duration-500 ${isPotm ? 'bg-amber-100' : 'bg-brand-primary'}`}
+                className={`h-full rounded-full transition-all duration-500 ${isPotm ? 'bg-amber-100' : 'bg-gradient-to-r from-brand-primary to-brand-primary-soft'}`}
                 style={{ width: `${xpPct}%` }}
                 aria-hidden
               />
             </div>
-            <span className={`text-[10px] font-bold tabular-nums flex-shrink-0 ${isPotm ? 'text-amber-100/85' : 'text-ink-primary/55'}`}>
-              {level.xpIntoLevel} / {level.nextLevelThreshold - level.currentLevelThreshold}
-              <span className={isPotm ? 'text-amber-100/60' : 'text-ink-primary/35'}> XP</span>
+            <span className={`text-[9.5px] font-bold tabular-nums flex-shrink-0 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>
+              {level.xpIntoLevel}/{level.nextLevelThreshold - level.currentLevelThreshold}
+              <span className={`ml-0.5 ${isPotm ? 'text-amber-100/55' : 'text-ink-primary/35'}`}>XP</span>
             </span>
           </div>
 
-          {/* Streak + badge chips */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {streakDays > 0 && (
-              <span className={`inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest ${isPotm ? 'text-amber-100' : 'text-orange-300'}`}>
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
-                </svg>
-                <span className="tabular-nums">{streakDays}</span> Day Streak
-              </span>
-            )}
-            {badgeCount > 0 && (
-              <span className={`inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest ${isPotm ? 'text-amber-100' : 'text-amber-300'}`}>
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
-                </svg>
-                <span className="tabular-nums">{badgeCount}</span> {badgeCount === 1 ? 'Badge' : 'Badges'} Earned
-              </span>
-            )}
-          </div>
+          {/* Row: streak + badge on ONE line. Compact icons + tabular-nums count. */}
+          {(streakDays > 0 || badgeCount > 0) && (
+            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+              {streakDays > 0 && (
+                <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] ${isPotm ? 'text-amber-100' : 'text-orange-300'}`}>
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
+                  </svg>
+                  <span className="tabular-nums">{streakDays}</span> Day Streak
+                </span>
+              )}
+              {badgeCount > 0 && (
+                <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] ${isPotm ? 'text-amber-100' : 'text-amber-300'}`}>
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
+                  </svg>
+                  <span className="tabular-nums">{badgeCount}</span> {badgeCount === 1 ? 'Badge' : 'Badges'}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* VIEW PROFILE button — outlined, matches the header white so
-            it softens against the crimson-aura card. Patrick 2026-07-13:
-            "keep the view profile white to match the white in the
-            header and to soften it a bit." */}
-        <div className="flex-shrink-0 self-center hidden sm:block">
-          <span className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest ring-1 whitespace-nowrap transition ${
-            isPotm
-              ? 'ring-amber-100 text-amber-50 bg-amber-900/25 hover:bg-amber-900/40'
-              : 'ring-white/60 text-white hover:bg-white/10'
-          }`}>
-            View profile
+        {/* VIEW PROFILE — small vertical pill on the far right, always
+            visible. Rotated text keeps it compact on mobile. */}
+        <div className="flex-shrink-0 self-stretch flex items-center pr-0.5">
+          <span
+            className={`inline-flex items-center justify-center px-1.5 py-2.5 rounded-full text-[8.5px] font-black tracking-[0.35em] uppercase whitespace-nowrap transition writing-mode-vertical ${
+              isPotm
+                ? 'ring-1 ring-amber-100 text-amber-50 bg-amber-900/25'
+                : 'ring-1 ring-white/60 text-white/95 hover:bg-white/10'
+            }`}
+            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+          >
+            View Profile
           </span>
         </div>
       </div>

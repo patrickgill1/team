@@ -284,8 +284,13 @@ const UpcomingEventsList: React.FC<Props> = ({ events, max = 3, myLinkedPlayers,
                   </p>
                 </div>
 
-                {/* Right: RSVP pill (parent) or nothing (coach) */}
-                {!isCoach && onRsvp && (
+                {/* Right: RSVP pill. Shown whenever there IS a way
+                    to RSVP — for parents with linked kids we RSVP
+                    the kids; for anyone else we RSVP self. Only a
+                    pure coach with no linked kids gets no pill
+                    (they use the coach-attendance toggle on the
+                    event detail page). */}
+                {onRsvp && ((myLinkedPlayers && myLinkedPlayers.length > 0) || !isCoach) && (
                   <div className="flex-shrink-0">
                     <RsvpPill
                       status={status}

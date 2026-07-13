@@ -73,7 +73,7 @@ const PlayerProfile: React.FC = () => {
     // Extended fields for kind-branched rendering (recognition,
     // coach_verify, did_it, level_up). Absent kind falls back to the
     // legacy bare-note render.
-    kind?: 'recognition' | 'coach_verify' | 'did_it' | 'level_up';
+    kind?: 'whisper' | 'recognition' | 'coach_verify' | 'did_it' | 'level_up';
     xp?: number;
     badgeSlug?: string;
     badgeCount?: number;

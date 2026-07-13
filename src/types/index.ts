@@ -2768,7 +2768,7 @@ export interface ParentWhisper {
   coachName: string;
   coachAvatarUrl?: string | null;
   message: string;
-  kind?: 'recognition' | 'coach_verify' | 'did_it' | 'level_up';
+  kind?: 'whisper' | 'recognition' | 'coach_verify' | 'did_it' | 'level_up';
   xp?: number;
   badgeSlug?: string;
   badgeCount?: number;

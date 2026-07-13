@@ -47,10 +47,12 @@ interface Props {
 
 const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }) => {
   const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   if (!open || !invite) return null;
 
   const url = inviteUrl(invite.id);
+  const code = invite.id;
   const subject = invite.type === 'player' && playerName ? `${playerName}'s GoalKickr profile` : 'Join GoalKickr';
   const smsBody =
     invite.type === 'player' && playerName
@@ -69,6 +71,16 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
     } catch {
       // Fallback prompt
       window.prompt('Copy this link:', url);
+    }
+  };
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch {
+      window.prompt('Copy this code:', code);
     }
   };
 
@@ -144,7 +156,7 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
               className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white text-charcoal-800 font-bold text-sm shadow hover:scale-[1.02] transition"
             >
               {copied ? <CheckGlyph className="w-4 h-4" /> : <CopyGlyph className="w-4 h-4" />}
-              <span>{copied ? 'Copied' : 'Copy'}</span>
+              <span>{copied ? 'Copied' : 'Copy link'}</span>
             </button>
             <button
               onClick={handleSms}
@@ -153,6 +165,28 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
               <MessageGlyph className="w-4 h-4" />
               <span>Text</span>
             </button>
+          </div>
+
+          {/* Bare-code panel. Some channels (verbal, printed rosters,
+              Discord announcements, invite cards) work better with a
+              short code than a URL. Parent enters it via the "Have
+              an invite code?" affordance on the sign-in screen and
+              lands on the same /join/{code} route the URL uses. */}
+          <div className="rounded-2xl bg-brand-primary/8 ring-1 ring-brand-primary/25 p-3">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-brand-primary-soft mb-1">Or share just the code</p>
+            <div className="flex items-center gap-2">
+              <p className="flex-1 text-lg font-black font-mono tracking-[0.15em] text-ink-primary break-all">{code}</p>
+              <button
+                onClick={handleCopyCode}
+                className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-brand-primary/20 ring-1 ring-brand-primary/40 text-brand-primary-soft font-bold text-[12px] hover:bg-brand-primary/30 transition"
+              >
+                {codeCopied ? <CheckGlyph className="w-3.5 h-3.5" /> : <CopyGlyph className="w-3.5 h-3.5" />}
+                <span>{codeCopied ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+            <p className="text-[11px] text-white/55 mt-1.5 leading-snug">
+              Parents type this into the sign-in screen after tapping "Have an invite code?"
+            </p>
           </div>
 
           {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (

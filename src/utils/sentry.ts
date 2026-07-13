@@ -30,6 +30,11 @@ const NOISE_PATTERNS: RegExp[] = [
   /Loading chunk \d+ failed/i,
   /ChunkLoadError/i,
   /Loading CSS chunk/i,
+  // Post-deploy stale-chunk case: Vercel served index.html for a
+  // missing hash, browser parsed HTML as JS. installStaleChunkGuard
+  // auto-reloads within ms; no user-actionable signal in Sentry.
+  /Unexpected token '<'/i,
+  /Unexpected token </i,
   /ResizeObserver loop/i, // benign browser quirk
   /Non-Error promise rejection captured with keys/i, // firebase auth churn
 ];

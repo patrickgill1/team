@@ -1,5 +1,6 @@
 import React from 'react';
 import { logRenderCrash } from '../../utils/crashLog';
+import { looksLikeStaleChunkError, tryStaleChunkReload } from '../../utils/staleChunk';
 
 interface State {
   error: Error | null;
@@ -23,12 +24,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, State
   state: State = { error: null, staleChunk: false };
 
   static getDerivedStateFromError(error: Error): State {
-    const msg = String(error?.message || '').toLowerCase();
-    const isStale =
-      msg.includes('loading chunk') ||
-      msg.includes('failed to fetch dynamically imported module') ||
-      msg.includes('importing a module script failed');
-    return { error, staleChunk: isStale };
+    return { error, staleChunk: looksLikeStaleChunkError(error) };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
@@ -45,20 +41,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, State
     // ("Loading chunk 870 failed"). A single hard reload fetches the
     // new index.html and resolves it. We only retry once per session
     // so an infinite loop on a real bug doesn't spin the user.
-    const msg = String(error?.message || '').toLowerCase();
-    const looksLikeStaleChunk =
-      msg.includes('loading chunk') ||
-      msg.includes('failed to fetch dynamically imported module') ||
-      msg.includes('importing a module script failed');
-    if (looksLikeStaleChunk) {
-      const KEY = 'firefc.chunkReloadAt';
-      const last = Number(sessionStorage.getItem(KEY) || 0);
-      // Don't retry more than once in 60s.
-      if (Date.now() - last > 60_000) {
-        try { sessionStorage.setItem(KEY, String(Date.now())); } catch {}
-        window.location.reload();
-      }
-    }
+    if (looksLikeStaleChunkError(error)) tryStaleChunkReload();
   }
 
   handleReload = () => {

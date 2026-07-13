@@ -17,6 +17,23 @@ const PublicWallPost: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Force light theme for the whole time this page is mounted, so the
+  // TipTap-rendered content — which colors h1/h2/strong via
+  // rgb(var(--ink-primary)) — reads as dark ink instead of the dark-
+  // mode near-white default. Public shares always render on a light
+  // marketing chrome (bg-slate-50 + white card). Restore the caller's
+  // prior theme on unmount so the app doesn't get stuck in light after
+  // clicking "Open the app" from here.
+  useEffect(() => {
+    const root = document.documentElement;
+    const prev = root.getAttribute('data-theme');
+    root.setAttribute('data-theme', 'light');
+    return () => {
+      if (prev === null) root.removeAttribute('data-theme');
+      else root.setAttribute('data-theme', prev);
+    };
+  }, []);
+
   useEffect(() => {
     if (!postId) return;
     (async () => {
@@ -72,9 +89,9 @@ const PublicWallPost: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 sm:px-6 py-5 text-center border-b border-brand-primary/15">
-        <p className="text-[10px] font-extrabold tracking-[0.3em] text-brand-primary-soft uppercase">GoalKickr · Team Wall</p>
-        <h1 className="text-xl sm:text-2xl font-black text-white mt-1">A post from {post.senderName}</h1>
+      <header className="bg-white px-4 sm:px-6 py-5 text-center border-b border-brand-primary/15">
+        <p className="text-[10px] font-extrabold tracking-[0.3em] text-brand-primary uppercase">GoalKickr · Team Wall</p>
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">A post from {post.senderName}</h1>
       </header>
 
       <article className="max-w-2xl mx-auto px-4 sm:px-6 py-6">

@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { isTeamStaff } from '../../utils/helpers';
 import { openCustomerPortal } from '../../utils/subscriptionApi';
+import { getShareOrigin } from '../../utils/origin';
 
 // Compact tier + usage card. Lives in Settings (under Video) and
 // surfaces the same data the Upgrade page shows in long form, plus
@@ -62,7 +63,7 @@ const VideoStorageCard: React.FC = () => {
     setBusy('portal');
     const err = await openCustomerPortal({
       customerId: team.videoCustomerId,
-      returnUrl: `${window.location.origin}/settings`,
+      returnUrl: `${getShareOrigin()}/settings`,
     });
     setBusy(null);
     if (err) setError(`Couldn't open billing portal (${err}).`);

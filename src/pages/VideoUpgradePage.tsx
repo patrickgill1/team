@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { isTeamStaff } from '../utils/helpers';
 import { startVideoCheckout, openCustomerPortal } from '../utils/subscriptionApi';
+import { getShareOrigin } from '../utils/origin';
 
 // Marketing-style "why upgrade video?" page. Linked from the Upgrade
 // pill on PlayerMediaPage / FullGames and from the Video Storage card
@@ -65,7 +66,7 @@ const VideoUpgradePage: React.FC = () => {
     setBusy('portal');
     const err = await openCustomerPortal({
       customerId: team.videoCustomerId,
-      returnUrl: `${window.location.origin}/upgrade/video`,
+      returnUrl: `${getShareOrigin()}/upgrade/video`,
     });
     setBusy(null);
     if (err) setError(`Couldn't open billing portal (${err}).`);

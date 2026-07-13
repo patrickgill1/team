@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { applyActionCode, checkActionCode, confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
 import { auth } from '../utils/firebase';
+import { getShareOrigin } from '../utils/origin';
 
 /**
  * Branded handler for Firebase Auth action links (email verification,
@@ -88,8 +89,10 @@ const AuthAction: React.FC = () => {
 
   // Deep-link target for 'Open the app' button. Universal links would
   // open the native app directly; without them we fall back to the
-  // web origin and let Safari's smart app banner suggest the app.
-  const openAppUrl = window.location.origin || 'https://app.goalkickr.com';
+  // canonical app origin so a user reached this page from the native
+  // shell (Android https://localhost, iOS capacitor://localhost)
+  // doesn't get a dead link.
+  const openAppUrl = getShareOrigin();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-surface-base flex items-center justify-center px-4">

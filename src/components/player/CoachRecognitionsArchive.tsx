@@ -3,8 +3,11 @@
 // written for this kid, with coach attribution and date. Emotional
 // density on purpose: a wall of validation the family can scroll.
 //
-// Data: player_xp_events filtered to source == 'coach_recognition',
-// live via onSnapshot. Coach names + avatars are pulled from the
+// Data: parent_whispers filtered to kind in ['whisper', 'recognition'].
+// 'whisper' is the current coach-note kind (2026-07-13+); 'recognition'
+// is the legacy kind emitted by the old /xp/award-recognition worker
+// endpoint (deleted 2026-07-13) — kept in the query so historical
+// notes still surface. Coach names + avatars are pulled from the
 // users collection on demand and cached in-component so we don't
 // re-fetch the same coach twice per snapshot. Missed / denied lookups
 // cache as null and render as "Coach" fallback so a permission gap
@@ -41,6 +44,7 @@ interface Row {
   note: string;
   createdAtMs: number;
   awardedBy: string;
+  clipUrl?: string;
 }
 
 interface CoachInfo {
@@ -65,10 +69,13 @@ const CoachRecognitionsArchive: React.FC<Props> = ({ playerId, teamId, xpEnabled
 
   useEffect(() => {
     if (!xpEnabled || !playerId) return;
+    // parent_whispers is the coach's voice — narrative + XP live
+    // together here now. 'whisper' is the current kind; 'recognition'
+    // is legacy. `in` clause caps at 10 values; two is safe.
     const q = query(
-      collection(db, 'player_xp_events'),
+      collection(db, 'parent_whispers'),
       where('playerId', '==', playerId),
-      where('source', '==', 'coach_recognition'),
+      where('kind', 'in', ['whisper', 'recognition']),
       orderBy('createdAt', 'desc'),
     );
     const unsub = onSnapshot(
@@ -79,9 +86,10 @@ const CoachRecognitionsArchive: React.FC<Props> = ({ playerId, teamId, xpEnabled
           return {
             id: d.id,
             xp: Number(data.xp) || 0,
-            note: String(data.note || '').trim(),
+            note: String(data.message || data.note || '').trim(),
             createdAtMs: toMillis(data.createdAt),
-            awardedBy: String(data.awardedBy || ''),
+            awardedBy: String(data.coachUid || data.awardedBy || ''),
+            clipUrl: data.clipUrl || undefined,
           };
         });
         setRows(next);

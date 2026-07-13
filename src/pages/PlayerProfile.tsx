@@ -13,7 +13,7 @@ import ProfileHero from '../components/player/ProfileHero';
 import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
 import PlayerXpCard from '../components/player/PlayerXpCard';
 import PlayerXpHistoryFeed from '../components/player/PlayerXpHistoryFeed';
-import CoachRecognitionModal from '../components/player/CoachRecognitionModal';
+import CoachGrantXpModal from '../components/coach/CoachGrantXpModal';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
 import PlayerCircleCard from '../components/player/PlayerCircleCard';
 import PhotoTape from '../components/player/PhotoTape';
@@ -112,7 +112,11 @@ const PlayerProfile: React.FC = () => {
   const [statsScope, setStatsScope] = useState<'team_season' | 'team_career' | 'all_time'>('team_season');
   const [lightboxItem, setLightboxItem] = useState<PlayerMedia | null>(null);
   const [showWhisper, setShowWhisper] = useState(false);
-  const [showRecognition, setShowRecognition] = useState(false);
+  const [showGrantXp, setShowGrantXp] = useState(false);
+  // Roster for the CoachGrantXpModal — deferred until the coach
+  // taps Give XP so a parent-view profile doesn't waste a Firestore
+  // read on the roster query.
+  const [grantXpRoster, setGrantXpRoster] = useState<Player[]>([]);
   const [downloading, setDownloading] = useState(false);
   const [downloadPercent, setDownloadPercent] = useState(0);
 
@@ -172,6 +176,32 @@ const PlayerProfile: React.FC = () => {
   useEffect(() => {
     if (playerId && selectedTeamId) loadProfile();
   }, [playerId, selectedTeamId]);
+
+  // Roster load for Give XP modal — deferred until the coach opens it.
+  useEffect(() => {
+    if (!showGrantXp || !selectedTeamId) return;
+    if (grantXpRoster.length > 0) return; // one-shot per profile session
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection, getDocs, query, where } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const snap = await getDocs(query(
+          collection(db, 'players'),
+          where('teamIds', 'array-contains', selectedTeamId),
+        ));
+        if (cancelled) return;
+        setGrantXpRoster(
+          snap.docs
+            .map(d => ({ id: d.id, ...(d.data() as any) }))
+            .filter((p: any) => p.isActive !== false) as Player[]
+        );
+      } catch (err) {
+        console.warn('[player-profile] grant-xp roster load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showGrantXp, selectedTeamId, grantXpRoster.length]);
 
   const loadProfile = async () => {
     if (!playerId || !selectedTeamId) return;
@@ -594,7 +624,7 @@ const PlayerProfile: React.FC = () => {
           && Array.isArray((selectedTeam as any)?.coachIds)
           && (selectedTeam as any).coachIds.includes(userData.uid)
         }
-        onRecognize={() => setShowRecognition(true)}
+        onGiveXp={() => setShowGrantXp(true)}
       />
 
       {/* Recent XP audit trail — Duolingo-style scroll of the concrete
@@ -1527,8 +1557,13 @@ const PlayerProfile: React.FC = () => {
                     {/* Kind-specific attribution chips. Each kind's
                         chip carries the "who + what" so the whisper
                         card reads as more than a bare note. */}
-                    {(w.kind === 'recognition' || w.kind === 'coach_verify' || w.kind === 'level_up' || w.kind === 'did_it') && (
+                    {(w.kind === 'whisper' || w.kind === 'recognition' || w.kind === 'coach_verify' || w.kind === 'level_up' || w.kind === 'did_it') && (
                       <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                        {w.kind === 'whisper' && typeof w.xp === 'number' && w.xp > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary/35 text-brand-primary-soft font-black">
+                            +{w.xp} XP
+                          </span>
+                        )}
                         {w.kind === 'recognition' && (
                           <>
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary/35 text-brand-primary-soft font-black">
@@ -1769,14 +1804,19 @@ const PlayerProfile: React.FC = () => {
         />
       )}
 
-      <CoachRecognitionModal
-        open={showRecognition}
-        onClose={() => setShowRecognition(false)}
-        player={player}
-        teamId={selectedTeamId || (player as any).teamId || ''}
-        onAwarded={() => { void loadProfile(); }}
-        audience={(selectedTeam as any)?.audienceType === 'adult' ? 'adult' : 'youth'}
-      />
+      {showGrantXp && selectedTeam && (selectedTeam as any)?.xpConfig?.enabled === true && player && (
+        <CoachGrantXpModal
+          open={showGrantXp}
+          onClose={() => { setShowGrantXp(false); void loadProfile(); }}
+          team={selectedTeam}
+          /* Fallback single-player roster so the modal opens instantly
+             on tap. The useEffect above replaces this with the full
+             team roster within a few hundred ms — coach can add other
+             kids once it lands. */
+          roster={grantXpRoster.length > 0 ? grantXpRoster : [player]}
+          defaultSelectedIds={[player.id]}
+        />
+      )}
 
       <AddPlayer
         isOpen={editOpen}

@@ -672,8 +672,9 @@ export interface PlayerXpEvent {
   seasonId?: string;
   xp: number;
   source:
-    | 'coach_recognition'
+    | 'coach_recognition' /* legacy, /xp/award-recognition deleted 2026-07-13 */
     | 'coach_live'
+    | 'coach_whisper'
     | 'attendance'
     | 'potm'
     | 'goal' | 'assist' | 'save' | 'clean_sheet'

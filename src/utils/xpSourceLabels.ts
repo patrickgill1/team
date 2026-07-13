@@ -7,8 +7,9 @@
 import type { PlayerXpEvent } from '../types';
 
 export const SOURCE_LABEL: Record<PlayerXpEvent['source'], string> = {
-  coach_recognition: 'Coach recognition',
+  coach_recognition: 'Coach recognition', // legacy — Recognize flow deleted 2026-07-13
   coach_live: 'Coach grant',
+  coach_whisper: 'Whisper',
   attendance: 'Attendance',
   potm: 'Player of the match',
   goal: 'First goal',
@@ -31,6 +32,7 @@ export function dotClassForSource(source: PlayerXpEvent['source']): string {
   switch (source) {
     case 'coach_recognition':
     case 'coach_live':
+    case 'coach_whisper':
       return 'bg-brand-primary';
     case 'goal':
     case 'assist':

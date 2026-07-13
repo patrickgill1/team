@@ -56,7 +56,7 @@ const KID_CELEBRATION: Record<string, string> = {
   streak_10: "10 days in a row. That's a habit.",
   streak_25: "25 days in a row. Serious streak.",
   streak_50: "50 days. Legendary.",
-  coach_pick: "Your coach called out your effort.",
+  coach_pick: "You crossed the Coach's Pick threshold. Your coach has recognized you a lot.",
 };
 
 const KidBadgeReveal: React.FC<Props> = ({ player }) => {

@@ -3184,10 +3184,21 @@ async function handleUsersRefreshClaims(req: Request, env: Env, _payload: any): 
 // isn't rationed by a shared pool, but no kid can be spammed.
 // ────────────────────────────────────────────────────────────────
 
-const RECOGNITION_XP_DEFAULT = 75;
-const RECOGNITION_PER_KID_PER_COACH_PER_WEEK = 2;
-const NOTE_MIN_LENGTH = 5;
-const NOTE_MAX_LENGTH = 500;
+// Whisper XP: fixed +50 per whisper. Decision 2026-07-13 (replaces
+// the old /xp/award-recognition mechanic, which is deleted). Coach
+// gets no amount slider on a whisper — the whole point is that a
+// whisper is a "you leveled up" moment, uniformly emotional; no
+// coach math while writing.
+const WHISPER_XP = 50;
+
+// Coach's Pick badge is now DERIVED: earned once when a player's
+// cumulative coach-authored XP (coach_live grants + coach_whisper
+// whispers + legacy coach_recognition events) crosses this
+// threshold. No coach flag, no metric drift. Historical badges
+// stamped by the old Recognize flow keep their earnedAt + count
+// fields untouched.
+const COACH_PICK_XP_THRESHOLD = 200;
+const COACH_SOURCE_TYPES = ['coach_recognition', 'coach_live', 'coach_whisper'];
 
 // Coach-live raw XP grant constants. Separate quota lane from
 // coach_recognition: recognitions are warm whispered notes capped
@@ -3296,25 +3307,110 @@ function startOfWeekDenverMs(now = new Date()): number {
   return now.getTime() - daysBackMs - intraDayMs;
 }
 
-async function handleXpAwardRecognition(req: Request, env: Env, payload: any): Promise<Response> {
+/**
+ * Sum all coach-authored XP for a player. Includes legacy
+ * coach_recognition (from before the 2026-07-13 refactor) plus
+ * coach_live grants plus coach_whisper whispers. Used to decide
+ * whether the derived Coach's Pick badge threshold has been crossed.
+ *
+ * Bounded scan — runQuery caps at 50 per call. Only invoked when
+ * the player does NOT yet have the coach_pick badge; once earned,
+ * we never re-check.
+ */
+async function sumCoachAuthoredXp(
+  pid: string,
+  playerId: string,
+  sa: ServiceAccount,
+): Promise<number> {
+  let total = 0;
+  for (const source of COACH_SOURCE_TYPES) {
+    try {
+      const events = await runQuery(
+        pid,
+        'player_xp_events',
+        [
+          { field: 'playerId', op: 'EQUAL', value: playerId },
+          { field: 'source', op: 'EQUAL', value: source },
+        ],
+        sa,
+        50,
+      );
+      for (const ev of events) {
+        const n = Number((ev.data as any)?.xp);
+        if (Number.isFinite(n) && n > 0) total += n;
+      }
+    } catch (err) {
+      console.warn(`[xp] coach-xp sum failed for source ${source}:`, (err as Error).message);
+    }
+  }
+  return total;
+}
+
+/**
+ * Auto-grant the Coach's Pick badge if the player's cumulative
+ * coach-authored XP crosses COACH_PICK_XP_THRESHOLD. No-op when the
+ * badge is already earned (single-earn semantic — earnedAt is set
+ * once and never bumped). Legacy `count` from the old Recognize
+ * flow is preserved untouched on any historical badge.
+ *
+ * Called AFTER the current event has been written and the player's
+ * xp/xpCareer transforms have committed, so the sum includes the
+ * just-landed event. Non-fatal on any failure — the primary XP
+ * award still succeeds even if the badge check errors.
+ *
+ * Returns `earned: true` only when THIS call was the one that
+ * crossed the threshold (used by callers to include a "just earned
+ * Coach's Pick" flag in the response payload).
+ */
+async function maybeGrantCoachPick(
+  pid: string,
+  sa: ServiceAccount,
+  playerId: string,
+  existingBadges: Record<string, any>,
+  seasonId: string,
+  seasonName: string,
+): Promise<{ earned: boolean }> {
+  try {
+    const existing: any = existingBadges?.coach_pick;
+    if (existing?.earnedAt) return { earned: false };
+    const total = await sumCoachAuthoredXp(pid, playerId, sa);
+    if (total < COACH_PICK_XP_THRESHOLD) return { earned: false };
+    const now = new Date();
+    const badgeUpdate: Record<string, any> = {
+      earnedAt: now,
+      context: seasonName || '',
+    };
+    if (seasonId) badgeUpdate.seasonId = seasonId;
+    await patchDocument(pid, `players/${playerId}`, { 'badges.coach_pick': badgeUpdate }, sa);
+    return { earned: true };
+  } catch (err) {
+    console.warn('[xp] coach_pick derivation failed (non-fatal):', (err as Error).message);
+    return { earned: false };
+  }
+}
+
+/**
+ * POST /xp/award-whisper — awards a fixed +50 XP to a player after
+ * the client has written the whisper doc. Client is responsible for
+ * the parent_whispers Firestore write (email fanout too); this
+ * endpoint owns the XP side only. Rationale: whispers already write
+ * client-side via the composer with all the email/push machinery;
+ * teasing that apart would double the surface. XP live server-side
+ * so the transform + coach_pick derivation stay atomic.
+ *
+ * No cap. If the whisper was earned by the moment (not chased for
+ * XP), coaches self-regulate. The 50 XP payload is fixed on the
+ * worker side — clients cannot override.
+ */
+async function handleXpAwardWhisper(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
   await requireCoachOfTeam(req, env, teamId);
   const claims = await requireUser(req, env);
   const { pid, sa } = projectAndSA(env);
 
   const playerId = String(payload?.playerId || '');
-  const note = String(payload?.note || '').trim();
-  const xpRaw = Number(payload?.xp);
-  const xp = Number.isFinite(xpRaw) && xpRaw > 0 && xpRaw <= 300
-    ? Math.round(xpRaw)
-    : RECOGNITION_XP_DEFAULT;
-
   if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
-  if (note.length < NOTE_MIN_LENGTH) return json({ ok: false, error: 'note_required' }, 400);
-  if (note.length > NOTE_MAX_LENGTH) return json({ ok: false, error: 'note_too_long' }, 400);
 
-  // Guard: team must have XP enabled. Fetch team doc so we can also
-  // pass clubId/seasonId onto the audit.
   const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
   if (!teamDoc?.data) return json({ ok: false, error: 'team_not_found' }, 404);
   const teamData: any = teamDoc.data;
@@ -3323,8 +3419,6 @@ async function handleXpAwardRecognition(req: Request, env: Env, payload: any): P
   }
   const clubId = teamData.clubId ? String(teamData.clubId) : '';
 
-  // Guard: player must exist and be on this team. Prevents cross-team
-  // targeting by fabricating a playerId.
   const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
   if (!playerDoc?.data) return json({ ok: false, error: 'player_not_found' }, 404);
   const player: any = playerDoc.data;
@@ -3336,66 +3430,6 @@ async function handleXpAwardRecognition(req: Request, env: Env, payload: any): P
   }
   const playerName = String(player.name || 'Player');
 
-  // Weekly cap: count coach_recognition xp events by this coach for
-  // this player in the current Monday-Monday window. Bounded per-kid
-  // + per-coach so a large roster isn't rationed by a shared pool.
-  const weekStartMs = startOfWeekDenverMs();
-  let recentCount = 0;
-  // Query fails → refuse the recognition instead of silently
-  // dropping the cap. Audit 2026-07-10: prior shape bypassed the
-  // cap on any transient Firestore hiccup, letting a coach spam
-  // unlimited recognitions to the same kid + fill parents' whisper
-  // inbox. Fail-closed is the right tradeoff — coaches see a clean
-  // retry-later error instead of the invisible bypass.
-  //
-  // Also added an orderBy hint via the createdAt >= weekStart
-  // predicate so an active coach with 20+ historical events for the
-  // same kid doesn't miss this-week entries (the runQuery limit is 20).
-  try {
-    const events = await runQuery(
-      pid,
-      'player_xp_events',
-      [
-        { field: 'playerId', op: 'EQUAL', value: playerId },
-        { field: 'awardedBy', op: 'EQUAL', value: claims.uid },
-        { field: 'source', op: 'EQUAL', value: 'coach_recognition' },
-        { field: 'createdAt', op: 'GREATER_THAN_OR_EQUAL', value: new Date(weekStartMs) },
-      ],
-      sa,
-      50,
-    );
-    for (const ev of events) {
-      // decodeValue returns a plain JS Date for Firestore
-      // timestampValue (not a Firestore SDK Timestamp).
-      const raw: any = (ev.data as any)?.createdAt;
-      let t = 0;
-      if (raw instanceof Date) t = raw.getTime();
-      else if (typeof raw?.toDate === 'function') { try { t = raw.toDate().getTime(); } catch { /* ignore */ } }
-      else if (typeof raw?.seconds === 'number') t = raw.seconds * 1000;
-      else if (typeof raw === 'number') t = raw;
-      else if (typeof raw === 'string') { const d = new Date(raw); if (!Number.isNaN(d.getTime())) t = d.getTime(); }
-      if (t >= weekStartMs) recentCount++;
-    }
-  } catch (err) {
-    console.error('[xp] recent lookup failed — refusing to bypass cap:', (err as Error).message);
-    return json({
-      ok: false,
-      error: 'xp_cap_check_failed',
-      message: "Couldn't verify the weekly cap. Try again in a moment.",
-    }, 503);
-  }
-  if (recentCount >= RECOGNITION_PER_KID_PER_COACH_PER_WEEK) {
-    return json({
-      ok: false,
-      error: 'weekly_cap_reached',
-      message: `You've already recognized ${playerName.split(' ')[0]} ${RECOGNITION_PER_KID_PER_COACH_PER_WEEK} times this week. Save the next one for next week.`,
-    }, 409);
-  }
-
-  // Resolve active season for stamping onto the audit doc + badge
-  // context. Non-fatal — legacy teams without a seasons/ doc get
-  // an undefined seasonId and the tier calc treats that as
-  // "belongs to the current season anyway".
   let seasonId = '';
   let seasonName = '';
   try {
@@ -3422,87 +3456,36 @@ async function handleXpAwardRecognition(req: Request, env: Env, payload: any): P
     playerId,
     playerName,
     teamId,
-    xp,
-    source: 'coach_recognition',
+    xp: WHISPER_XP,
+    source: 'coach_whisper',
     awardedBy: claims.uid,
     awardedByRole: 'coach',
-    note,
     createdAt: now,
   };
   if (seasonId) eventFields.seasonId = seasonId;
   if (clubId) eventFields.clubId = clubId;
 
-  // 1. Write audit event.
   const eventId = await createDocument(pid, 'player_xp_events', eventFields, sa);
-
-  // 2. Bump the player's xp + xpCareer aggregates.
   await commitDocumentTransforms(
     pid,
     `players/${playerId}`,
     [
-      { fieldPath: 'xp', kind: 'increment', value: xp },
-      { fieldPath: 'xpCareer', kind: 'increment', value: xp },
+      { fieldPath: 'xp', kind: 'increment', value: WHISPER_XP },
+      { fieldPath: 'xpCareer', kind: 'increment', value: WHISPER_XP },
     ],
     null,
     sa,
   );
 
-  // 3. Award / bump the "coach_pick" badge. Read the current badge
-  //    first so we can either create it (first-ever) or bump its
-  //    count field. patchDocument uses updateMask so we only touch
-  //    the one nested key.
-  const currentBadges = (player.badges && typeof player.badges === 'object')
-    ? player.badges
-    : {};
-  const existingCoachPick: any = currentBadges.coach_pick;
-  const currentCount = typeof existingCoachPick?.count === 'number' ? existingCoachPick.count : 0;
-  const badgeUpdate: Record<string, any> = {
-    earnedAt: existingCoachPick?.earnedAt || now,
-    context: seasonName || existingCoachPick?.context || '',
-    count: currentCount + 1,
-  };
-  if (seasonId && !existingCoachPick) badgeUpdate.seasonId = seasonId;
-  await patchDocument(pid, `players/${playerId}`, { 'badges.coach_pick': badgeUpdate }, sa);
-
-  // 4. Write a parent_whispers doc so the note surfaces in the
-  //    parents' existing whispers inbox on /player/{id}. No email +
-  //    no push in Phase 1 — recognition tokens should feel warm, not
-  //    urgent, and we don't want families to feel spammed. Whisper
-  //    stream is the right home for "coach said something nice."
-  try {
-    await createDocument(
-      pid,
-      'parent_whispers',
-      {
-        playerId,
-        playerName,
-        clubId: clubId || null,
-        teamId,
-        coachUid: claims.uid,
-        coachName: String((await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null))?.data?.name || 'Coach'),
-        coachAvatarUrl: null,
-        message: note,
-        kind: 'recognition',
-        xp,
-        badgeSlug: 'coach_pick',
-        badgeCount: currentCount + 1,
-        recipientEmails: [],
-        recipientCount: 0,
-        createdAt: now,
-      },
-      sa,
-    );
-  } catch (err) {
-    console.warn('[xp] whisper fanout failed (non-fatal):', (err as Error).message);
-  }
+  const currentBadges = (player.badges && typeof player.badges === 'object') ? player.badges : {};
+  const pick = await maybeGrantCoachPick(pid, sa, playerId, currentBadges, seasonId, seasonName);
 
   return json({
     ok: true,
     eventId,
-    xp,
-    totalXp: (typeof player.xp === 'number' ? player.xp : 0) + xp,
-    remainingThisWeek: RECOGNITION_PER_KID_PER_COACH_PER_WEEK - (recentCount + 1),
-    badgeCount: currentCount + 1,
+    xp: WHISPER_XP,
+    totalXp: (typeof player.xp === 'number' ? player.xp : 0) + WHISPER_XP,
+    coachPickEarned: pick.earned,
   });
 }
 
@@ -3668,6 +3651,25 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
 
   const grantedCount = results.filter(r => r.ok).length;
 
+  // Derived Coach's Pick badge check. For every player that got at
+  // least one grant this call, sum their coach-authored XP and, if
+  // it crossed the threshold, stamp the badge (single-earn). Runs
+  // AFTER the primary grants land so the sum includes them. Only
+  // hits Firestore for players that don't yet have the badge.
+  const picksEarned: Record<string, boolean> = {};
+  await Promise.all(results.filter(r => r.ok).map(async (r) => {
+    try {
+      const playerDoc = await getDocument(pid, `players/${r.playerId}`, sa).catch(() => null);
+      const existingBadges: any = (playerDoc?.data as any)?.badges || {};
+      // Cheap early exit — skip the sum query if badge already earned.
+      if (existingBadges?.coach_pick?.earnedAt) return;
+      const pick = await maybeGrantCoachPick(pid, sa, r.playerId, existingBadges, seasonId, '');
+      if (pick.earned) picksEarned[r.playerId] = true;
+    } catch (err) {
+      console.warn('[xp] grant-coach coach_pick derivation failed:', (err as Error).message);
+    }
+  }));
+
   // Optional preset save. Fires only if at least one grant landed —
   // no reason to memorialize a phrase the coach never actually used.
   if (savePreset && grantedCount > 0) {
@@ -3683,6 +3685,7 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
           ok: true,
           granted: grantedCount,
           results,
+          picksEarned,
           presetError: 'presets_full',
           message: `Grants sent. Presets are full (${COACH_LIVE_PRESETS_MAX} max) — free one up to save this.`,
         });
@@ -3704,7 +3707,7 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
     }
   }
 
-  return json({ ok: true, granted: grantedCount, results });
+  return json({ ok: true, granted: grantedCount, results, picksEarned });
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -4234,7 +4237,7 @@ export async function routeWriteGuard(
     case '/players/set-teams':     return handlePlayersSetTeams(req, env, payload);
     case '/club/set-admin':        return handleClubSetAdmin(req, env, payload);
     case '/club/remove-admin':     return handleClubRemoveAdmin(req, env, payload);
-    case '/xp/award-recognition':  return handleXpAwardRecognition(req, env, payload);
+    case '/xp/award-whisper':      return handleXpAwardWhisper(req, env, payload);
     case '/xp/grant-coach':        return handleXpGrantCoach(req, env, payload);
     case '/xp/reward-presets':     return handleXpRewardPresets(req, env, payload);
     case '/xp/backfill-preview':   return handleXpBackfillPreview(req, env, payload);

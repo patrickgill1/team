@@ -9,7 +9,8 @@
 //
 // Renders NOTHING when team.xpConfig.enabled !== true, so coaches
 // who haven't opted in never see it. Coach surfaces still get the
-// "Recognize" pill so a moment can be captured on the spot.
+// "Give XP" pill so a moment can be captured on the spot (opens
+// CoachGrantXpModal pre-selected to this player).
 // Parent-facing = read-only celebration card. See goalkickr-xp
 // memo (Phase 1) + xp-card-video-game-redesign judge grafts (B
 // winner + C quest line + A pulsing tip).
@@ -23,7 +24,7 @@ interface Props {
   player: Player;
   team: Team | null | undefined;
   isCoach: boolean;
-  onRecognize: () => void;
+  onGiveXp: () => void;
 }
 
 // Fixed slot order for the collection grid. Kept explicit so the
@@ -117,7 +118,14 @@ const ChevronIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) => {
+const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onGiveXp }) => {
   const xpConfig = (team as any)?.xpConfig;
   const xpEnabled = xpConfig?.enabled === true;
 
@@ -137,7 +145,7 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
   // "Paused" state: coach turned XP off (or never turned it on) BUT
   // the player has history worth keeping. Card renders as a keepsake
   // trophy cabinet — no level, no progression rail, no coach
-  // Recognize button. Just the badges they've earned + career XP
+  // Give XP button. Just the badges they've earned + career XP
   // total + a soft chip that explains the pause without making the
   // kid feel like they're at zero.
   const paused = !xpEnabled;
@@ -157,7 +165,12 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
   // a keeper's first_goal (if earned via a rare set-piece) counts
   // because filterVisibleBadgeSlots includes earned badges regardless.
   const visibleOwnedCount = visibleSlots.reduce((acc, slug) => acc + (badges[slug] ? 1 : 0), 0);
+  // Legacy count from the old Recognize flow (deleted 2026-07-13).
+  // Present only on players who received recognitions before the
+  // switch; new grants no longer bump this. Kept for backward-compat
+  // display on players who have it.
   const coachPickCount = typeof badges?.coach_pick?.count === 'number' ? badges.coach_pick.count : 0;
+  const coachPickEarned = !!badges?.coach_pick?.earnedAt;
 
   const rarity = paused ? 'rookie' : rarityForLevel(level.level);
   const rarityStyle = RARITY_STYLES[rarity];
@@ -193,7 +206,8 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
             />
 
             {/* HEADER: chip left (rarity when live, "TROPHY CABINET"
-                when paused), Recognize right (coach-only + XP-on). */}
+                when paused), Give XP right (coach-only + XP-on).
+                Opens CoachGrantXpModal pre-selected to this player. */}
             <div className="relative px-4 sm:px-5 pt-3 flex items-center justify-between gap-2">
               {paused ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-[0.18em] ring-1 bg-line-default/10 text-ink-primary/75 ring-line-default/25">
@@ -211,12 +225,12 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
               {isCoach && !paused && (
                 <button
                   type="button"
-                  onClick={onRecognize}
+                  onClick={onGiveXp}
                   className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-primary text-white text-[11px] font-black uppercase tracking-wider ring-1 ring-brand-primary/60 shadow-md hover:brightness-110 active:scale-[0.98] transition"
-                  aria-label={`Recognize ${displayName}`}
+                  aria-label={`Give XP to ${displayName}`}
                 >
-                  <StarIcon className="w-3.5 h-3.5" />
-                  Recognize
+                  <PlusIcon className="w-3.5 h-3.5" />
+                  Give XP
                 </button>
               )}
             </div>
@@ -395,12 +409,19 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onRecognize }) =
               ) : ownedCount === 0 ? (
                 <p className="mt-3 text-[11px] text-ink-primary/60 leading-snug text-center">
                   {isCoach
-                    ? "Empty card. Tap Recognize to fill the first slot (Coach's Pick)."
-                    : "Slots fill in as badges are earned. Coach recognitions, POTM, streaks, and season milestones all count."}
+                    ? "Empty card. Tap Give XP up top to award the first points."
+                    : "Slots fill in as badges are earned. Coach's Pick, POTM, streaks, and season milestones all count."}
                 </p>
               ) : coachPickCount >= 5 ? (
+                /* Legacy multi-count from the old Recognize flow.
+                   New players just show the Coach's Pick earned pill
+                   when the derived-threshold badge lands. */
                 <p className="mt-3 text-center text-[10px] font-black uppercase tracking-[0.22em] text-brand-primary">
                   {coachPickCount} Coach Recognitions
+                </p>
+              ) : coachPickEarned ? (
+                <p className="mt-3 text-center text-[10px] font-black uppercase tracking-[0.22em] text-brand-primary">
+                  Coach's Pick
                 </p>
               ) : null}
             </div>

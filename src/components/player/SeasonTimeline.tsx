@@ -67,6 +67,11 @@ function labelForBadgeSlug(slug: string): string {
 // same calendar day. Badge wins because its `context` string ("vs
 // Riverside") is richer than the xp event's `note`, and the label is
 // milestone-flavored ("First goal") instead of the raw source ("Goal").
+// coach_pick removed 2026-07-13: badge is now derived (crosses cumulative
+// coach-XP threshold), so it may land the same day as a coach_live grant
+// OR a coach_whisper. Rather than dedupe against every possible source,
+// let both the badge AND the underlying grant/whisper appear — the
+// badge reads as its own milestone moment, the event reads as the earn.
 const BADGE_TO_XP_SOURCE: Record<string, PlayerXpEvent['source']> = {
   first_goal: 'goal',
   first_assist: 'assist',
@@ -77,7 +82,6 @@ const BADGE_TO_XP_SOURCE: Record<string, PlayerXpEvent['source']> = {
   streak_10: 'streak_milestone',
   streak_25: 'streak_milestone',
   streak_50: 'streak_milestone',
-  coach_pick: 'coach_recognition',
 };
 
 // Round a millisecond timestamp to a local-day key so "same day" dedupe

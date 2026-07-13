@@ -3,6 +3,11 @@ import React, { useMemo, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { Sheet, Button, FormField, fieldInputClass } from '../ui';
+import { workerFetch } from '../../utils/workerFetch';
+
+// Fixed XP a whisper awards. Kept in lockstep with WHISPER_XP in
+// worker/src/writeGuards.ts — coach cannot override.
+const WHISPER_XP = 50;
 
 interface Props {
   isOpen: boolean;
@@ -34,6 +39,8 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
   ];
 
   if (!isOpen) return null;
+
+  const xpEnabled = (selectedTeam as any)?.xpConfig?.enabled === true;
 
   const handleSend = async () => {
     if (!message.trim() || !userData || !player) return;
@@ -91,12 +98,33 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
           devPlanTitle: includePlan && newestPlan ? newestPlan.title : null,
           recipientEmails: parents.map(p => p.email),
           recipientCount: parents.length,
+          xp: WHISPER_XP,
+          kind: 'whisper',
           createdAt: serverTimestamp(),
         });
       } catch (err) {
         // Non-fatal: email already went out. Coach can re-send if they
         // really need an in-app record.
         console.warn('whisper persist failed', err);
+      }
+
+      // XP fanout — fires the fixed +50 XP grant + derived Coach's
+      // Pick badge check via the worker. Non-fatal on failure: the
+      // whisper's already out and the family got the note; the XP
+      // just doesn't land. Coach can nudge Give XP if it really
+      // matters. Only fires when this team has XP enabled — we
+      // don't need to check that client-side because the worker
+      // itself no-ops on xpConfig.enabled !== true.
+      try {
+        const teamIdForXp = (player as any).teamId || selectedTeam?.id || '';
+        if (teamIdForXp && (selectedTeam as any)?.xpConfig?.enabled === true) {
+          await workerFetch('/xp/award-whisper', {
+            method: 'POST',
+            body: JSON.stringify({ playerId: player.id, teamId: teamIdForXp }),
+          });
+        }
+      } catch (err) {
+        console.warn('whisper xp grant failed (non-fatal)', err);
       }
 
       // Push: deliberately generic — parent sees 'New whisper, check
@@ -130,6 +158,11 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
       size="lg"
       footer={
         <>
+          {xpEnabled && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-brand-primary-soft mr-auto">
+              +{WHISPER_XP} XP
+            </span>
+          )}
           <Button variant="ghost" onClick={onClose} disabled={sending}>Cancel</Button>
           <Button
             variant="primary"

@@ -30,7 +30,11 @@ export interface BadgeMeta {
 }
 
 export const BADGE_META: Record<BadgeSlug, BadgeMeta> = {
-  coach_pick:         { label: "Coach's Pick",       celebration: 'earned a Coach Recognition!',           xp: 75 },
+  // coach_pick is DERIVED (2026-07-13+): earned once when cumulative
+  // coach-authored XP crosses 200. No direct grant XP — the badge is
+  // recognition-of-a-pattern, not a payout. xp: 0 so any code path
+  // that reads BADGE_META.coach_pick.xp for a sum doesn't double-count.
+  coach_pick:         { label: "Coach's Pick",       celebration: 'crossed the Coach\'s Pick threshold!',  xp: 0 },
   first_goal:         { label: 'First Goal',         celebration: 'scored their first goal!',              xp: 100 },
   first_assist:       { label: 'First Assist',       celebration: 'notched their first assist!',           xp: 100 },
   first_save:         { label: 'First Save',         celebration: 'made their first save!',                xp: 100 },

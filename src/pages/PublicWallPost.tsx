@@ -17,22 +17,19 @@ const PublicWallPost: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Force light theme for the whole time this page is mounted, so the
-  // TipTap-rendered content — which colors h1/h2/strong via
-  // rgb(var(--ink-primary)) — reads as dark ink instead of the dark-
-  // mode near-white default. Public shares always render on a light
-  // marketing chrome (bg-slate-50 + white card). Restore the caller's
-  // prior theme on unmount so the app doesn't get stuck in light after
-  // clicking "Open the app" from here.
-  useEffect(() => {
-    const root = document.documentElement;
-    const prev = root.getAttribute('data-theme');
-    root.setAttribute('data-theme', 'light');
-    return () => {
-      if (prev === null) root.removeAttribute('data-theme');
-      else root.setAttribute('data-theme', prev);
-    };
-  }, []);
+  // Scoped light-theme overrides for the TipTap-rendered content.
+  // 3.9.255 tried to set data-theme="light" on <html>, but the app's
+  // ThemeProvider's own effect immediately clobbers it back to the
+  // user's stored theme (dark by default) — so h1/h2/strong inside
+  // .tiptap-rendered kept rendering as near-white on white. This
+  // stops fighting ThemeProvider: override the specific CSS vars
+  // .tiptap-rendered reads (--ink-primary, --line-default) as inline
+  // style on the container. Local scope, always wins, ThemeProvider
+  // untouched.
+  const publicShareLightStyle = {
+    '--ink-primary': '15 23 42',
+    '--line-default': '15 23 42',
+  } as React.CSSProperties;
 
   useEffect(() => {
     if (!postId) return;
@@ -94,7 +91,7 @@ const PublicWallPost: React.FC = () => {
         <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">A post from {post.senderName}</h1>
       </header>
 
-      <article className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+      <article className="max-w-2xl mx-auto px-4 sm:px-6 py-6" style={publicShareLightStyle}>
         <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
           <div className="px-4 sm:px-6 py-3 border-b border-slate-100 flex items-center gap-2">
             <span className="text-sm font-bold text-slate-900">{post.senderName}</span>

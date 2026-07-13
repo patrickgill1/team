@@ -10,6 +10,8 @@ import Header from '../components/common/Header';
 import EmailVerifyBanner from '../components/common/EmailVerifyBanner';
 import { RichContent } from './Wall';
 import NextEventPoster from '../components/common/NextEventPoster';
+import WeekAheadRail from '../components/dashboard/WeekAheadRail';
+import SnackAssignmentBanner from '../components/dashboard/SnackAssignmentBanner';
 import FamilyFeed from '../components/dashboard/FamilyFeed';
 import WeeklySpotlightCard, { type SpotlightPotm, type SpotlightPick } from '../components/dashboard/WeeklySpotlightCard';
 import InThePoolHero from '../components/dashboard/InThePoolHero';
@@ -1174,6 +1176,10 @@ const Dashboard: React.FC = () => {
                   bottom sheet on tap. */}
               <NotificationsBanner />
               <TrialCountdownBanner />
+              <SnackAssignmentBanner
+                events={upcomingEvents}
+                myPlayerIds={myPlayers.map((p) => p.id)}
+              />
               <GettingStartedCard players={players} events={upcomingEvents} dataLoading={loading} />
               <SubscribeBanner />
               <SmartDiscoveryPrompts
@@ -1185,6 +1191,14 @@ const Dashboard: React.FC = () => {
             </>
           );
         })()}
+
+        {/* Week ahead rail — 7-day quest map. Sits above admin
+            cockpit + birthday pills so the "what's the week look
+            like?" context lands before per-role detail views.
+            Renders always (not gated by welcome grace) — auto-hides
+            when no events in the window, so an empty dashboard
+            stays empty. See WeekAheadRail.tsx. */}
+        <WeekAheadRail events={upcomingEvents} />
 
         {/* Admin cockpit returns to the dashboard when the user is
             in 'admin' view mode (Patrick 2026-06-21: 'shouldn't admin
@@ -1257,6 +1271,19 @@ const Dashboard: React.FC = () => {
           const streak = tonightGoal.streakDays;
           const loggedCount = tonightGoal.thisWeek.filter(d => d.logged).length;
           const DAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+          // Today-in-flight: find the day-tile that maps to today so
+          // the eye has an anchor for "here's your live edge." When
+          // today is not yet logged AND the current streak is alive,
+          // swap the passive "N of 6 days" line to a verb (matches
+          // Duolingo's streak-at-risk framing). See 2026-07-13
+          // dashboard audit note.
+          const now = new Date();
+          const isSameDay = (a: Date, b: Date) =>
+            a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+          const todayIdx = tonightGoal.thisWeek.findIndex(d => isSameDay(d.date, now));
+          const todayEntry = todayIdx >= 0 ? tonightGoal.thisWeek[todayIdx] : null;
+          const todayNotLogged = !!todayEntry && !todayEntry.logged && !todayEntry.isFuture;
+          const streakAtRisk = todayNotLogged && streak > 0;
           return (
             <Link
               to={`/development?expand=${encodeURIComponent(tonightGoal.planId)}`}
@@ -1285,26 +1312,47 @@ const Dashboard: React.FC = () => {
                   )}
                 </div>
 
-                {/* Row 2: 7 dots + summary count */}
+                {/* Row 2: 7 dots + summary count. Today's dot gets a
+                    pulsing brand-primary-soft tip (same treatment as
+                    the XP progress rail) so the eye anchors on the
+                    live edge. When today isn't logged AND streak is
+                    alive, the summary line becomes an action verb —
+                    static state → urgent nudge. */}
                 <div className="mt-3 flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    {tonightGoal.thisWeek.map((d, i) => (
-                      <div key={i} className="flex flex-col items-center gap-1">
-                        <span className="text-[8px] font-bold tracking-wider text-ink-primary/45">
-                          {DAY_LETTER[d.date.getDay()]}
-                        </span>
-                        {d.logged ? (
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/40" aria-label="logged" />
-                        ) : d.isFuture ? (
-                          <span className="w-2 h-2 rounded-full ring-1 ring-line-default/40" aria-label="upcoming" />
-                        ) : (
-                          <span className="w-2 h-2 rounded-full ring-1 ring-line-default/50" aria-label="not logged" />
-                        )}
-                      </div>
-                    ))}
+                    {tonightGoal.thisWeek.map((d, i) => {
+                      const isToday = i === todayIdx;
+                      return (
+                        <div key={i} className="flex flex-col items-center gap-1">
+                          <span className={`text-[8px] font-bold tracking-wider ${isToday ? 'text-brand-primary-soft' : 'text-ink-primary/45'}`}>
+                            {DAY_LETTER[d.date.getDay()]}
+                          </span>
+                          {d.logged ? (
+                            <span
+                              className={`w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/40 ${isToday ? 'ring-2 ring-emerald-400/50 ring-offset-1 ring-offset-surface-elevated' : ''}`}
+                              aria-label={isToday ? 'today, logged' : 'logged'}
+                            />
+                          ) : isToday ? (
+                            <span
+                              className="w-2 h-2 rounded-full bg-brand-primary-soft animate-pulse"
+                              style={{ boxShadow: '0 0 8px 2px rgba(241,114,130,0.6)' }}
+                              aria-label="today, not logged yet"
+                            />
+                          ) : d.isFuture ? (
+                            <span className="w-2 h-2 rounded-full ring-1 ring-line-default/40" aria-label="upcoming" />
+                          ) : (
+                            <span className="w-2 h-2 rounded-full ring-1 ring-line-default/50" aria-label="not logged" />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="flex-1 text-[11px] text-ink-primary/55 truncate">
-                    <span className="text-ink-primary font-bold tabular-nums">{loggedCount}</span> of 6 days
+                  <div className={`flex-1 text-[11px] truncate ${streakAtRisk ? 'text-brand-primary-soft font-bold' : 'text-ink-primary/55'}`}>
+                    {streakAtRisk ? (
+                      <>Log tonight to keep the {streak}-day streak.</>
+                    ) : (
+                      <><span className="text-ink-primary font-bold tabular-nums">{loggedCount}</span> of 6 days</>
+                    )}
                   </div>
                   <svg
                     className="w-4 h-4 text-ink-primary/35 group-hover:text-brand-primary-soft transition-colors flex-shrink-0"

@@ -2,6 +2,34 @@ import React, { useState } from 'react';
 import { inviteUrl, smsShareLink, type FetchedInvite } from '../../utils/invites';
 import type { Invite } from '../../types';
 
+// Monoline glyphs — replaced the emoji labels that the modal used
+// through v3.9.246 to comply with the no-emojis-in-UI rule
+// (feedback_no_emojis.md). Stroke-based so they inherit currentColor
+// and stay crisp at any size.
+const CopyGlyph: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+  </svg>
+);
+const CheckGlyph: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+    <path d="M5 12l5 5L20 7" />
+  </svg>
+);
+const MessageGlyph: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+    <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10l-4 4v-4H6a2 2 0 0 1-2-2V5z" />
+  </svg>
+);
+const ShareGlyph: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+    <path d="M12 3v12" />
+    <path d="M7 8l5-5 5 5" />
+    <path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+  </svg>
+);
+
 /**
  * Shared modal for any flow that has just created an invite. Renders the
  * shareable link with Copy / SMS / Done buttons. Caller is responsible for
@@ -87,8 +115,11 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
             <h2 className="text-2xl font-black leading-tight">{labelByType[invite.type] || 'Invite'}</h2>
             <p className="text-white/70 text-sm mt-1">
               {invite.type === 'player'
-                ? "Text or AirDrop this link. The first parent that taps it gets auto-linked — no email collection on your end."
+                ? "Text or AirDrop this link. The first parent that taps it gets auto-linked. No email collection on your end."
                 : 'Anyone with this link can join the team in the named role. Reusable up to the limit shown below.'}
+            </p>
+            <p className="text-white/50 text-[11px] mt-2 leading-snug">
+              iOS: link opens the App Store. Android: link opens goalkickr.com in the browser (Play Store beta is still tester-only). Both routes complete the join.
             </p>
           </div>
         </div>
@@ -104,22 +135,25 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
               onClick={handleCopy}
               className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white text-charcoal-800 font-bold text-sm shadow hover:scale-[1.02] transition"
             >
-              {copied ? '✓ Copied' : '📋 Copy'}
+              {copied ? <CheckGlyph className="w-4 h-4" /> : <CopyGlyph className="w-4 h-4" />}
+              <span>{copied ? 'Copied' : 'Copy'}</span>
             </button>
             <button
               onClick={handleSms}
               className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-line-default/15 ring-1 ring-line-default/20 text-white font-semibold text-sm hover:bg-line-default/25 transition backdrop-blur"
             >
-              💬 Text
+              <MessageGlyph className="w-4 h-4" />
+              <span>Text</span>
             </button>
           </div>
 
           {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
             <button
               onClick={handleNativeShare}
-              className="w-full px-4 py-3 rounded-xl bg-line-default/10 ring-1 ring-line-default/15 text-white font-semibold text-sm hover:bg-line-default/20 transition"
+              className="w-full px-4 py-3 rounded-xl bg-line-default/10 ring-1 ring-line-default/15 text-white font-semibold text-sm hover:bg-line-default/20 transition inline-flex items-center justify-center gap-2"
             >
-              ⤴ Share…
+              <ShareGlyph className="w-4 h-4" />
+              <span>Share</span>
             </button>
           )}
 

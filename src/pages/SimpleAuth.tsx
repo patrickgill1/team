@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchSignInMethodsForEmail, getAuth } from 'firebase/auth';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
+import InviteCodeModal from '../components/common/InviteCodeModal';
 import { friendlyAuthError } from '../utils/authErrors';
 import { debug } from '../utils/debug';
 
@@ -57,6 +58,13 @@ const SimpleAuth: React.FC = () => {
   // one without hunting for it. The signup submission then applies
   // the code same as the ?invite= URL path.
   const [joinFlow, setJoinFlow] = useState(false);
+  // "Have an invite code?" fallback modal. Bypasses the entire
+  // login/register decision and routes straight to /join/{code},
+  // which is the same path a tapped invite link uses. Primary use
+  // case: a parent received the 12-char code verbally or in a
+  // context where the deep link isn't tappable (paper, bulletin
+  // board, Android without Play Store beta access yet).
+  const [inviteCodeOpen, setInviteCodeOpen] = useState(false);
   // Progressive disclosure — Heja pattern. Show Apple/Google as
   // one-tap options first; hide the email form behind a 'Continue
   // with email' button so the initial screen isn't a wall of input
@@ -852,6 +860,19 @@ const SimpleAuth: React.FC = () => {
                   the other one" link. */}
             </form>
 
+            {/* Invite-code escape hatch. Coach shared a 12-char code
+                verbally / on paper / via a channel where the deep
+                link doesn't tap? Enter it here and skip to /join. */}
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => setInviteCodeOpen(true)}
+                className="text-[12px] font-semibold text-brand-primary-soft hover:text-brand-primary transition underline underline-offset-2"
+              >
+                Have an invite code?
+              </button>
+            </div>
+
             <p className="mt-6 text-center text-xs text-slate-500">
               By signing in you agree to our{' '}
               <a href="/privacy" className="underline hover:text-slate-300">Privacy Policy</a>.
@@ -859,6 +880,8 @@ const SimpleAuth: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <InviteCodeModal open={inviteCodeOpen} onClose={() => setInviteCodeOpen(false)} />
     </div>
   );
 };

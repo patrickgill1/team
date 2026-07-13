@@ -2,9 +2,9 @@
  * Returns the production web origin to embed in shareable links / push
  * notification URLs / outgoing emails.
  *
- * On the Capacitor iOS / Android shell, `window.location.origin` is
- * `capacitor://localhost` — useless when someone else clicks the link.
- * Detect the native shell and hard-pin the canonical web domain instead.
+ * On the Capacitor native shell, `window.location.origin` is a local
+ * scheme that a remote recipient can't open. Detect the native shell
+ * and hard-pin the canonical web domain instead.
  *
  * On web (CRA dev or Vercel prod), fall through to `window.location.origin`
  * so http://localhost:3000 / https://app.goalkickr.com keep working naturally
@@ -23,14 +23,45 @@
  * Migrated from firefc.app → goalkickr.com on 2026-06-18 after Google
  * Safe Browsing flagged firefc.app. Legacy firefc.app links 301 to
  * app.goalkickr.com via vercel.json so old texts / emails don't break.
+ *
+ * NATIVE-SHELL DETECTION HISTORY:
+ *   - iOS Capacitor serves the WebView from capacitor://localhost.
+ *     The `/^https?:/i` regex fails → returns PROD. Fine.
+ *   - Android Capacitor with `androidScheme: 'https'` (our
+ *     capacitor.config.ts) serves the WebView from https://localhost.
+ *     The regex PASSES and returned "https://localhost" verbatim,
+ *     shipping "https://localhost/join/<id>" to every recipient of an
+ *     invite generated on an Android coach's phone. That silently cost
+ *     a team as of 2026-07-13.
+ *   - Fix: use Capacitor.isNativePlatform() as the primary signal;
+ *     keep the scheme and localhost checks as belt-and-suspenders.
  */
 export function getShareOrigin(): string {
   const PROD = 'https://app.goalkickr.com';
   if (typeof window === 'undefined') return PROD;
+
+  // Primary signal: are we running inside the Capacitor native shell
+  // (either iOS or Android)? If yes, whatever the WebView's location
+  // reports is useless to a remote recipient.
+  try {
+    if ((window as any).Capacitor?.isNativePlatform?.()) return PROD;
+  } catch { /* ignore — fall through to origin checks */ }
+
   const origin = window.location?.origin || '';
   // Anything that isn't an http(s) origin (capacitor://, file://, etc.)
-  // can't be opened by a remote recipient — fall back to the canonical
-  // app domain.
+  // can't be opened by a remote recipient.
   if (!/^https?:/i.test(origin)) return PROD;
+
+  // Belt-and-suspenders for the Android https-scheme case if the
+  // Capacitor global is late to attach: `https://localhost` (or with
+  // any port other than 3000, our CRA dev server) is never a real
+  // shareable origin. Web dev on localhost:3000 stays legal so live
+  // testing keeps working.
+  const host = window.location?.hostname || '';
+  const port = window.location?.port || '';
+  if ((host === 'localhost' || host === '127.0.0.1') && port !== '3000') {
+    return PROD;
+  }
+
   return origin;
 }

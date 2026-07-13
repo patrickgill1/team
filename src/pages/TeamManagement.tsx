@@ -937,7 +937,7 @@ const TeamManagement: React.FC = () => {
                         </span>
                         {teamPublicFixtures && editingTeam && (
                           <span className="block mt-2 text-[11px] font-mono text-brand-primary-soft break-all">
-                            {(window.location.origin || 'https://app.goalkickr.com') + '/f/' + editingTeam.id}
+                            {getShareOrigin() + '/f/' + editingTeam.id}
                           </span>
                         )}
                       </span>

@@ -6,12 +6,14 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Player, CalendarEvent, PlayerMedia as PlayerMediaType } from '../types';
 import { formatDateTime, isCoachOfTeam } from '../utils/helpers';
+import { computeXpLevel } from '../utils/xpLevel';
 import Header from '../components/common/Header';
 import EmailVerifyBanner from '../components/common/EmailVerifyBanner';
 import { RichContent } from './Wall';
 import NextEventPoster from '../components/common/NextEventPoster';
-import WeekAheadRail from '../components/dashboard/WeekAheadRail';
+import UpcomingEventsList from '../components/dashboard/UpcomingEventsList';
 import SnackAssignmentBanner from '../components/dashboard/SnackAssignmentBanner';
+import TodaysDevelopmentCard from '../components/dashboard/TodaysDevelopmentCard';
 import FamilyFeed from '../components/dashboard/FamilyFeed';
 import WeeklySpotlightCard, { type SpotlightPotm, type SpotlightPick } from '../components/dashboard/WeeklySpotlightCard';
 import InThePoolHero from '../components/dashboard/InThePoolHero';
@@ -915,6 +917,58 @@ const Dashboard: React.FC = () => {
     await setMyRsvp(status);
   };
 
+  // Generic per-event RSVP — used by the UpcomingEventsList tiles
+  // where the user can RSVP for events beyond the next one. Mirrors
+  // the kid-vs-self dispatch in quickRsvp but takes an explicit
+  // eventId instead of implicitly targeting nextEvent.
+  const rsvpForEvent = async (eventId: string, status: 'going' | 'maybe' | 'no') => {
+    const target = upcomingEvents.find((e) => e.id === eventId);
+    if (!target || !userData?.uid) return;
+    if (useKidQuickRsvp) {
+      const nextMap: Record<string, any> = { ...(((target as any).playerRsvps) || {}) };
+      for (const p of myLinkedPlayers) {
+        nextMap[p.id] = {
+          status,
+          playerName: p.name,
+          byUid: userData.uid,
+          byName: userData.name || undefined,
+          respondedAt: new Date(),
+        };
+      }
+      const prev = ((target as any).playerRsvps) || {};
+      setUpcomingEvents((all) =>
+        all.map((e) => (e.id === eventId ? ({ ...e, playerRsvps: nextMap } as any) : e))
+      );
+      try {
+        await updateDocument('events', eventId, { playerRsvps: nextMap });
+      } catch (err) {
+        console.error('[dashboard] rsvpForEvent kid failed', err);
+        setUpcomingEvents((all) =>
+          all.map((e) => (e.id === eventId ? ({ ...e, playerRsvps: prev } as any) : e))
+        );
+      }
+      return;
+    }
+    // Self path
+    const next = {
+      ...(target.rsvps || {}),
+      [userData.uid]: {
+        status,
+        name: userData.name || (isUserCoach ? 'Coach' : 'Member'),
+        role: isUserCoach ? 'coach' : undefined,
+        respondedAt: new Date(),
+      },
+    };
+    setUpcomingEvents((all) =>
+      all.map((e) => (e.id === eventId ? ({ ...e, rsvps: next } as CalendarEvent) : e))
+    );
+    try {
+      await updateDocument('events', eventId, { rsvps: next });
+    } catch (err) {
+      console.error('[dashboard] rsvpForEvent self failed', err);
+    }
+  };
+
   // Coach attendance toggle moved off the dashboard hero per Patrick
   // 2026-06-21 ('i want to clean up the header'). The toggle now
   // lives on the EventDetail page (visible to coaches with linked
@@ -1215,13 +1269,22 @@ const Dashboard: React.FC = () => {
           );
         })()}
 
-        {/* Week ahead rail — 7-day quest map. Sits above admin
-            cockpit + birthday pills so the "what's the week look
-            like?" context lands before per-role detail views.
-            Renders always (not gated by welcome grace) — auto-hides
-            when no events in the window, so an empty dashboard
-            stays empty. See WeekAheadRail.tsx. */}
-        <WeekAheadRail events={upcomingEvents} />
+        {/* Upcoming events list — replaces the earlier MATCHWEEK
+            fixture ladder. Patrick 2026-07-13: "the calendar looks
+            too much and making it more actionable will be easy. so
+            it shows the next 3 events, as most weeks only have 3
+            events." Each row has an inline RSVP pill that expands
+            to a 3-option segmented control so a parent can respond
+            without leaving the dashboard. Auto-hides when no
+            upcoming events. See UpcomingEventsList.tsx. */}
+        <UpcomingEventsList
+          events={upcomingEvents}
+          max={3}
+          myLinkedPlayers={myLinkedPlayers as any}
+          currentUid={userData?.uid}
+          isCoach={isUserCoach}
+          onRsvp={rsvpForEvent}
+        />
 
         {/* Admin cockpit returns to the dashboard when the user is
             in 'admin' view mode (Patrick 2026-06-21: 'shouldn't admin
@@ -1286,108 +1349,14 @@ const Dashboard: React.FC = () => {
               opacity: !goalLoaded ? 0 : (tonightGoal ? 1 : 0),
             }}
           >
-        {tonightGoal && (() => {
-          // Streak source of truth = the value computed in
-          // tonightGoal's effect from the freshly-fetched plans. The
-          // cached myPlayer.currentStreakDays can lag if a prior
-          // persist write raced with the dashboard fetch.
-          const streak = tonightGoal.streakDays;
-          const loggedCount = tonightGoal.thisWeek.filter(d => d.logged).length;
-          const DAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-          // Today-in-flight: find the day-tile that maps to today so
-          // the eye has an anchor for "here's your live edge." When
-          // today is not yet logged AND the current streak is alive,
-          // swap the passive "N of 6 days" line to a verb (matches
-          // Duolingo's streak-at-risk framing). See 2026-07-13
-          // dashboard audit note.
-          const now = new Date();
-          const isSameDay = (a: Date, b: Date) =>
-            a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-          const todayIdx = tonightGoal.thisWeek.findIndex(d => isSameDay(d.date, now));
-          const todayEntry = todayIdx >= 0 ? tonightGoal.thisWeek[todayIdx] : null;
-          const todayNotLogged = !!todayEntry && !todayEntry.logged && !todayEntry.isFuture;
-          const streakAtRisk = todayNotLogged && streak > 0;
-          return (
-            <Link
-              to={`/development?expand=${encodeURIComponent(tonightGoal.planId)}`}
-              className="block group relative overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 hover:ring-emerald-400/40 transition shadow-lg shadow-black/5"
-            >
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-brand-primary-soft to-transparent pointer-events-none" aria-hidden />
-
-              <div className="relative px-4 pt-3 pb-3.5">
-                {/* Row 1: focus on left, streak chip on right */}
-                <div className="flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">
-                      {tonightGoal.loggedToday ? 'Logged today' : 'This week'}
-                      <span className="text-ink-primary/30"> · </span>
-                      <span className="text-ink-primary/70 normal-case tracking-normal font-bold">{tonightGoal.planTitle}</span>
-                    </div>
-                    <div className="text-[13.5px] text-ink-primary leading-snug mt-1 line-clamp-2">
-                      {tonightGoal.focus || tonightGoal.goalTitle}
-                    </div>
-                  </div>
-                  {streak > 0 && (
-                    <div className="flex-shrink-0 inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/35">
-                      <div className="text-[18px] font-black text-emerald-300 leading-none tabular-nums">{streak}</div>
-                      <div className="text-[8px] font-extrabold tracking-widest uppercase text-ink-primary/55 mt-0.5">Day streak</div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Row 2: 7 dots + summary count. Today's dot gets a
-                    pulsing brand-primary-soft tip (same treatment as
-                    the XP progress rail) so the eye anchors on the
-                    live edge. When today isn't logged AND streak is
-                    alive, the summary line becomes an action verb —
-                    static state → urgent nudge. */}
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    {tonightGoal.thisWeek.map((d, i) => {
-                      const isToday = i === todayIdx;
-                      return (
-                        <div key={i} className="flex flex-col items-center gap-1">
-                          <span className={`text-[8px] font-bold tracking-wider ${isToday ? 'text-brand-primary-soft' : 'text-ink-primary/45'}`}>
-                            {DAY_LETTER[d.date.getDay()]}
-                          </span>
-                          {d.logged ? (
-                            <span
-                              className={`w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/40 ${isToday ? 'ring-2 ring-emerald-400/50 ring-offset-1 ring-offset-surface-elevated' : ''}`}
-                              aria-label={isToday ? 'today, logged' : 'logged'}
-                            />
-                          ) : isToday ? (
-                            <span
-                              className="w-2 h-2 rounded-full bg-brand-primary-soft animate-pulse"
-                              style={{ boxShadow: '0 0 8px 2px rgba(241,114,130,0.6)' }}
-                              aria-label="today, not logged yet"
-                            />
-                          ) : d.isFuture ? (
-                            <span className="w-2 h-2 rounded-full ring-1 ring-line-default/40" aria-label="upcoming" />
-                          ) : (
-                            <span className="w-2 h-2 rounded-full ring-1 ring-line-default/50" aria-label="not logged" />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className={`flex-1 text-[11px] truncate ${streakAtRisk ? 'text-brand-primary-soft font-bold' : 'text-ink-primary/55'}`}>
-                    {streakAtRisk ? (
-                      <>Log tonight to keep the {streak}-day streak.</>
-                    ) : (
-                      <><span className="text-ink-primary font-bold tabular-nums">{loggedCount}</span> of 6 days</>
-                    )}
-                  </div>
-                  <svg
-                    className="w-4 h-4 text-ink-primary/35 group-hover:text-brand-primary-soft transition-colors flex-shrink-0"
-                    fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
-                  >
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-              </div>
-            </Link>
-          );
-        })()}
+        {tonightGoal && myPlayer && (
+          <TodaysDevelopmentCard
+            goal={tonightGoal}
+            playerId={myPlayer.id}
+            teamId={selectedTeamId || (myPlayer as any).teamId || ''}
+            onLogged={(updated) => setTonightGoal(updated)}
+          />
+        )}
           </div>
         )}
         {/* Coach team-health roll-up — visible to coaches only,
@@ -2004,11 +1973,10 @@ const MyPlayerCard: React.FC<{
 }> = ({ player, isPotm }) => {
   const p: any = player;
   const position = p.positions?.[0] || p.position || 'Player';
-  // Same denormalized source PlayerCard reads — keeps the streak in
-  // sync across surfaces (no two-source divergence). Updated whenever
-  // a parent logs practice via devPlanActions.
   const streakDays: number = p.currentStreakDays || 0;
-  // Position pill colour — mirrors PlayerCard's positionDotColor map.
+  const xp = Number(p.xp) || 0;
+  const level = computeXpLevel(xp);
+  const badgeCount = p.badges && typeof p.badges === 'object' ? Object.keys(p.badges).length : 0;
   const positionDot = (() => {
     switch (position) {
       case 'Goalkeeper': return 'bg-amber-400';
@@ -2020,139 +1988,80 @@ const MyPlayerCard: React.FC<{
       default: return 'bg-slate-400';
     }
   })();
-  // Brand-themed accent for non-POTM cards. Every player card
-  // gets the same crimson aura so it reads as a GoalKickr card,
-  // not a generic dark surface. Role is communicated via the
-  // position pill DOT below (which keeps its position-specific
-  // color), so role-info isn't lost — it just lives in the right
-  // place. Cohesion across players matters more than per-player
-  // color identity for brand consistency.
-  // Aura tuned per theme: dark mode keeps the crimson aura Patrick
-  // loves (subtle glow blob + rimmed ring). Light mode dials the blob
-  // WAY down and softens the ring — the crimson outline that felt
-  // "premium" in dark was reading as a peach fill bleeding into the
-  // card in light. Blob-in-corner reads as ambient glow on dark
-  // surfaces; on white it just paints a splash.
-  const brandAccent = {
-    ring: 'ring-brand-primary/10 dark:ring-brand-primary/35',
-    shadow: 'shadow-brand-primary/10 dark:shadow-brand-primary/25',
-    blob: 'bg-brand-primary/[0.03] dark:bg-brand-primary/20',
-  };
-  // POTM-of-the-week treatment — the whole card goes gold. Bright
-  // saturated gradient, thick gold ring, glow shadow, animated
-  // shimmer stripe, and a "PLAYER OF THE MATCH" banner across the
-  // top. Should be impossible to miss. Patrick: "i want the whole
-  // profile on the dashboard in gold when they get POTM."
+
+  // Card background: POTM stays gold (the "whole card goes gold" rule
+  // Patrick set on POTM week); everything else uses the dark surface
+  // with a subtle crimson aura in the corner.
   const cardBg = isPotm
     ? 'bg-gradient-to-br from-yellow-300 via-amber-500 to-orange-500 ring-4 ring-amber-300/80 shadow-2xl shadow-amber-500/50'
-    : `bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base ring-1 ${brandAccent.ring}`;
-  const accentText = isPotm ? 'text-amber-50' : 'text-ink-primary/70';
-  const subText = isPotm ? 'text-amber-100/80' : 'text-ink-primary/55';
-  // Streak badge tones — single visual grammar: warm orange/amber
-  // scale from low to blazing, no cyan-terminating rainbow (audit
-  // 2026-07-12). Flame SVG sits INSIDE the pill, not floating at a
-  // diagonal — no "sticker on a sticker" anchoring.
-  const streakBadgeTone = streakDays >= 25
-    ? 'bg-gradient-to-br from-amber-300 to-orange-600 text-white ring-amber-200/70'
-    : streakDays >= 10
-      ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white ring-orange-200/60'
-      : streakDays >= 5
-        ? 'bg-orange-500 text-white ring-orange-300/60'
-        : isPotm
-          ? 'bg-amber-50 text-amber-950 ring-amber-200/80'
-          : 'bg-orange-500/85 text-white ring-orange-300/50';
-  const jerseyBadgeTone = isPotm
-    ? 'bg-amber-50 text-amber-950 ring-amber-200/80 shadow-amber-900/20'
-    : 'bg-white text-charcoal-950 ring-brand-primary-soft/45 shadow-brand-primary/20';
+    : 'bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base ring-1 ring-brand-primary/10 dark:ring-brand-primary/35 shadow-brand-primary/10 dark:shadow-brand-primary/25';
+
+  const xpPct = Math.min(100, Math.max(0, Math.round((level.xpIntoLevel / Math.max(1, level.nextLevelThreshold - level.currentLevelThreshold)) * 100)));
+
   return (
     <Link
       to={`/player/${player.id}`}
-      className={`relative overflow-hidden rounded-2xl ${isPotm ? 'text-white' : 'text-ink-primary'} shadow-xl ${isPotm ? '' : brandAccent.shadow} hover:shadow-2xl active:scale-[0.995] transition flex ${cardBg}`}
+      className={`relative overflow-hidden rounded-2xl ${isPotm ? 'text-white' : 'text-ink-primary'} shadow-xl hover:shadow-2xl active:scale-[0.995] transition block ${cardBg}`}
     >
-      {/* POTM banner across the very top of the card. Black text on
-          a deeper amber strip keeps it readable against the bright
-          gradient body below. */}
+      {/* POTM banner across the top when applicable. */}
       {isPotm && (
         <div className="absolute top-0 inset-x-0 z-10 bg-gradient-to-r from-amber-700 via-amber-800 to-amber-700 px-4 py-1.5 flex items-center justify-center gap-2 border-b border-amber-900/40">
           <svg className="w-4 h-4 text-amber-100 drop-shadow" fill="currentColor" viewBox="0 0 24 24">
             <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
           </svg>
-          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-100 drop-shadow">
-            Player of the Match
-          </span>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-100 drop-shadow">Player of the Match</span>
           <svg className="w-4 h-4 text-amber-100 drop-shadow" fill="currentColor" viewBox="0 0 24 24">
             <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
           </svg>
         </div>
       )}
-      {/* Animated shimmer — a thin band of brighter gold sweeps
-          diagonally across the card every few seconds. CSS keyframe
-          'potm-shimmer' defined in index.css. */}
       {isPotm && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
-        >
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
           <div className="absolute -inset-y-2 -inset-x-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent rotate-12 potm-shimmer" />
         </div>
       )}
-      {/* Brand aura blob — soft blurred crimson in the top-left
-          corner that bleeds into the card. Reads as ambient
-          GoalKickr color, not a sharp accent. Role still shows
-          via the position pill DOT below. Skipped for POTM since
-          the gold gradient is already plenty. */}
+      {/* Subtle crimson aura blob (non-POTM only). */}
       {!isPotm && (
         <div
           aria-hidden
-          className={`absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl pointer-events-none ${brandAccent.blob}`}
+          className="absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl pointer-events-none bg-brand-primary/[0.03] dark:bg-brand-primary/20"
         />
       )}
-      {/* Subtle Fire FC logo watermark on the right */}
+      {/* GK logo watermark on the right. */}
       <img
         src="/images/logo.png"
         alt=""
         className="absolute -right-6 top-1/2 -translate-y-1/2 w-40 h-40 opacity-[0.08] pointer-events-none"
         aria-hidden
       />
-      <div className={`relative ${isPotm ? 'pt-12 pb-4 px-4 sm:pt-14 sm:pb-5 sm:px-5' : 'p-4 sm:p-5'} flex items-center gap-4 w-full`}>
-        {/* Connected avatar medallion: streak and jersey ride the
-            same orbit as the portrait instead of floating as separate
-            stickers. */}
-        <div className="relative flex-shrink-0 p-1.5">
+
+      <div className={`relative ${isPotm ? 'pt-11 pb-4 px-4 sm:pt-12 sm:pb-5 sm:px-5' : 'p-4 sm:p-5'} flex items-center gap-4 w-full`}>
+        {/* Circular photo with crimson ring + #10 jersey pill overlay. */}
+        <div className="relative flex-shrink-0">
           <div
             aria-hidden
-            className={`absolute inset-0 rounded-full ring-2 ${isPotm ? 'ring-amber-100/70' : 'ring-brand-primary-soft/35'} shadow-lg ${isPotm ? 'shadow-amber-500/30' : 'shadow-brand-primary/20'}`}
+            className={`absolute inset-0 rounded-full ring-2 ${isPotm ? 'ring-amber-100/70' : 'ring-brand-primary/60'} shadow-lg ${isPotm ? 'shadow-amber-500/30' : 'shadow-brand-primary/40'}`}
           />
           {p.profilePhotoUrl ? (
             <img
               src={p.profilePhotoUrl}
               alt={player.name}
-              className={`relative w-20 h-20 rounded-full object-cover shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-brand-primary-soft/45'}`}
+              className={`relative w-24 h-24 rounded-full object-cover shadow ring-2 ${isPotm ? 'ring-amber-300' : 'ring-brand-primary-soft/45'}`}
               loading="lazy"
             />
           ) : (
-            <div className={`relative w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-3xl font-black shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-brand-primary-soft/45'}`}>
+            <div className={`relative w-24 h-24 rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-3xl font-black shadow ring-2 ${isPotm ? 'ring-amber-300' : 'ring-brand-primary-soft/45'}`}>
               {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
             </div>
           )}
-          {streakDays > 0 && (
+          {player.jerseyNumber != null && (
             <span
-              title={`${streakDays}-day practice streak`}
-              className={`absolute -top-1 -left-1 z-10 inline-flex h-9 min-w-9 items-center justify-center gap-0.5 px-1.5 rounded-full text-[12px] font-black tabular-nums ring-2 ring-offset-2 ring-offset-surface-elevated ${streakBadgeTone}`}
+              className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-black tabular-nums shadow-lg ring-2 ring-offset-1 ring-offset-surface-elevated ${
+                isPotm
+                  ? 'bg-amber-50 text-amber-950 ring-amber-200/80'
+                  : 'bg-charcoal-900 text-white ring-brand-primary/50'
+              }`}
             >
-              <svg
-                className="w-3.5 h-3.5 shrink-0"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden
-              >
-                <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
-              </svg>
-              {streakDays}
-            </span>
-          )}
-          {p.profilePhotoUrl && player.jerseyNumber != null && (
-            <span className={`absolute -bottom-1 -right-1 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-black tracking-tight ring-2 ring-offset-2 ring-offset-surface-elevated shadow-lg ${jerseyBadgeTone}`}>
               #{player.jerseyNumber}
             </span>
           )}
@@ -2168,12 +2077,10 @@ const MyPlayerCard: React.FC<{
           )}
         </div>
 
-        {/* Name + meta + stats */}
+        {/* Name + position + level/XP + streak/badge chips */}
         <div className="flex-1 min-w-0">
           <p className={`text-xl sm:text-2xl font-black leading-tight truncate ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>{player.name}</p>
-          {/* The small "POTW" chip next to the name was redundant with
-              the big banner at the top of the card. Removed. */}
-          <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+          <div className="flex items-center gap-1.5 mt-1 mb-2 flex-wrap">
             <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest ${
               isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/80'
             }`}>
@@ -2181,63 +2088,60 @@ const MyPlayerCard: React.FC<{
               {position}
             </span>
           </div>
-          {/* Stat row hides itself when every stat is zero —
-              advertising 0/0/0 was worse than empty state because
-              it implied "this app shows no stats." Patrick (half-
-              empty critique): "0 GOALS · 0 ASSISTS · 0 GAMES is
-              three big zeros taking real estate to say no data."
-              Replaced with a quiet "Season starts soon" cue when
-              the player has zero numbers across the board, so the
-              card still has visible content beneath the position
-              pill but doesn't proudly display zeros. */}
-          {(() => {
-            const goals  = player.stats?.goals || 0;
-            const assists = player.stats?.assists || 0;
-            const games  = player.stats?.gamesPlayed || 0;
-            const saves  = (player as any).stats?.saves || 0;
-            const anyStat = goals > 0 || assists > 0 || games > 0 || saves > 0;
-            if (!anyStat) {
-              return (
-                <p className={`text-[11px] font-semibold uppercase tracking-widest ${subText}`}>
-                  Season starts soon
-                </p>
-              );
-            }
-            return (
-              <div className="flex items-end gap-4 sm:gap-6">
-                <div>
-                  <p className="text-2xl font-black leading-none">{goals}</p>
-                  <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Goals</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-black leading-none">{assists}</p>
-                  <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Assists</p>
-                </div>
-                {/* Saves only renders for goalkeepers — same logic
-                    as the full PlayerCard. Outfielders get
-                    Goals/Assists/Games. */}
-                {position === 'Goalkeeper' && (
-                  <div>
-                    <p className="text-2xl font-black leading-none">{saves}</p>
-                    <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Saves</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-2xl font-black leading-none">{games}</p>
-                  <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Games</p>
-                </div>
-              </div>
-            );
-          })()}
+
+          {/* Level + XP progress bar */}
+          <div className="flex items-center gap-2 mb-2">
+            <svg className={`w-3.5 h-3.5 flex-shrink-0 ${isPotm ? 'text-amber-100' : 'text-brand-primary-soft'}`} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
+              <polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9 12 2" />
+            </svg>
+            <span className={`text-[11px] font-black uppercase tracking-widest ${isPotm ? 'text-amber-100' : 'text-brand-primary-soft'}`}>
+              Level {level.level}
+            </span>
+            <div className={`flex-1 h-1.5 rounded-full overflow-hidden max-w-[160px] ${isPotm ? 'bg-amber-900/40' : 'bg-line-default/15'}`}>
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${isPotm ? 'bg-amber-100' : 'bg-brand-primary'}`}
+                style={{ width: `${xpPct}%` }}
+                aria-hidden
+              />
+            </div>
+            <span className={`text-[10px] font-bold tabular-nums flex-shrink-0 ${isPotm ? 'text-amber-100/85' : 'text-ink-primary/55'}`}>
+              {level.xpIntoLevel} / {level.nextLevelThreshold - level.currentLevelThreshold}
+              <span className={isPotm ? 'text-amber-100/60' : 'text-ink-primary/35'}> XP</span>
+            </span>
+          </div>
+
+          {/* Streak + badge chips */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {streakDays > 0 && (
+              <span className={`inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest ${isPotm ? 'text-amber-100' : 'text-orange-300'}`}>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
+                </svg>
+                <span className="tabular-nums">{streakDays}</span> Day Streak
+              </span>
+            )}
+            {badgeCount > 0 && (
+              <span className={`inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest ${isPotm ? 'text-amber-100' : 'text-amber-300'}`}>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
+                </svg>
+                <span className="tabular-nums">{badgeCount}</span> {badgeCount === 1 ? 'Badge' : 'Badges'} Earned
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* View profile pill */}
-        <div className="flex-shrink-0 self-center">
-          <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow ${isPotm ? 'bg-amber-900 text-amber-100' : 'bg-white text-charcoal-950'}`}>
+        {/* VIEW PROFILE button — outlined, matches the header white so
+            it softens against the crimson-aura card. Patrick 2026-07-13:
+            "keep the view profile white to match the white in the
+            header and to soften it a bit." */}
+        <div className="flex-shrink-0 self-center hidden sm:block">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest ring-1 whitespace-nowrap transition ${
+            isPotm
+              ? 'ring-amber-100 text-amber-50 bg-amber-900/25 hover:bg-amber-900/40'
+              : 'ring-white/60 text-white hover:bg-white/10'
+          }`}>
             View profile
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
           </span>
         </div>
       </div>

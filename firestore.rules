@@ -1352,6 +1352,26 @@ service cloud.firestore {
       allow delete: if isPlatformAdmin();
     }
 
+    // Android beta tester requests. Workflow queue while the Play
+    // Store listing is still tester-gated. Coach or admin submits
+    // a parent's email; platform admin (Patrick) batch-pastes into
+    // Play Console. Zero worker involvement — just a shared
+    // Firestore queue.
+    //
+    // Coaches can create requests (they know the email from the
+    // invite flow) but cannot read the full queue — no leaking
+    // other parents' emails between clubs. Platform admin gets
+    // full CRUD.
+    match /beta_requests/{requestId} {
+      allow create: if isAuthed()
+        && request.resource.data.requestedByUid == request.auth.uid
+        && request.resource.data.email is string
+        && request.resource.data.email.size() >= 5
+        && request.resource.data.status == 'pending';
+      allow get, list: if isPlatformAdmin();
+      allow update, delete: if isPlatformAdmin();
+    }
+
     // Catch-all: deny unknown collections by default. Anything added
     // later must get an explicit rule. Previous catch-all was
     // permissive ("any auth"), which was itself a multi-tenant leak.

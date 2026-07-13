@@ -3226,6 +3226,37 @@ service cloud.firestore {
 }
 */
 
+/** Android beta tester request. Coach or parent submits an email;
+ *  platform admin (Patrick) batch-pastes into Play Console. Purely
+ *  a workflow queue — no worker automation. Once Play Console
+ *  publishes to open testing (post-14-day gate) this collection
+ *  becomes vestigial and the coach-side affordance auto-hides via
+ *  ANDROID_BETA_OPEN / PLAY_STORE_LIVE flags. */
+export interface BetaRequest {
+  id: string;
+  /** Email address to add to the Play Store tester allowlist. */
+  email: string;
+  /** Optional context so the admin queue shows who this parent is
+   *  supposed to be the parent OF. Denormed for display speed. */
+  playerId?: string;
+  playerName?: string;
+  teamId?: string;
+  teamName?: string;
+  /** Who submitted this request. Coach or platform admin. Never
+   *  the parent themselves in v1 (coach mints on behalf, matching
+   *  the invite-flow ownership model). */
+  requestedByUid: string;
+  requestedByName: string;
+  requestedAt: Date;
+  status: 'pending' | 'added' | 'declined';
+  /** Set when admin flips status to 'added'. Purely audit. */
+  addedAt?: Date;
+  addedByUid?: string;
+  /** Freeform note the coach can attach (e.g. "wife of Ruston's
+   *  dad"). Not surfaced anywhere except the admin queue. */
+  note?: string;
+}
+
 // ================================
 // FIRESTORE INDEXES NEEDED
 // ================================

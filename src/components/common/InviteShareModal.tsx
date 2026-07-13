@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../utils/firebase';
+import { useAuth } from '../../hooks/useAuth';
 import { inviteUrl, smsShareLink, type FetchedInvite } from '../../utils/invites';
 import { PLAY_STORE_LIVE, ANDROID_BETA_OPEN, ANDROID_BETA_OPTIN_URL } from '../../utils/appAvailability';
+import { debugWarn } from '../../utils/debug';
 import type { Invite } from '../../types';
 
 // Monoline glyphs — replaced the emoji labels that the modal used
@@ -46,13 +50,33 @@ interface Props {
 }
 
 const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }) => {
+  const { userData } = useAuth();
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+  // Fast-track state — coach types the parent's email so Patrick
+  // can batch-paste them into Play Console. Progressive disclosure:
+  // form is hidden until the "Fast-track this parent..." link is
+  // tapped, so the primary share flow stays clean.
+  const [fastTrackOpen, setFastTrackOpen] = useState(false);
+  const [fastTrackEmail, setFastTrackEmail] = useState('');
+  const [fastTrackNote, setFastTrackNote] = useState('');
+  const [fastTrackBusy, setFastTrackBusy] = useState(false);
+  const [fastTrackSubmitted, setFastTrackSubmitted] = useState(false);
 
   if (!open || !invite) return null;
 
   const url = inviteUrl(invite.id);
   const code = invite.id;
+  // Player invites carry playerId + teamId — use those for context on
+  // the fast-track queue row. Staff invites don't, so the section
+  // hides for coach/manager invites (fast-track is a parent flow).
+  const inviteAsAny: any = invite;
+  const invitePlayerId: string | undefined = inviteAsAny.playerId;
+  const inviteTeamId: string | undefined = inviteAsAny.teamId;
+  const showFastTrackSection = invite.type === 'player'
+    && !PLAY_STORE_LIVE
+    && !!userData
+    && !!invitePlayerId;
   const subject = invite.type === 'player' && playerName ? `${playerName}'s GoalKickr profile` : 'Join GoalKickr';
   const smsBody =
     invite.type === 'player' && playerName
@@ -81,6 +105,40 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
       setTimeout(() => setCodeCopied(false), 2000);
     } catch {
       window.prompt('Copy this code:', code);
+    }
+  };
+
+  const submitFastTrack = async () => {
+    if (fastTrackBusy) return;
+    const email = fastTrackEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+    if (!userData || !invitePlayerId) return;
+    setFastTrackBusy(true);
+    try {
+      const doc: any = {
+        email,
+        playerId: invitePlayerId,
+        playerName: playerName || null,
+        teamId: inviteTeamId || null,
+        requestedByUid: (userData as any).uid,
+        requestedByName: (userData as any).name || 'Coach',
+        requestedAt: serverTimestamp(),
+        status: 'pending',
+      };
+      if (fastTrackNote.trim()) doc.note = fastTrackNote.trim().slice(0, 200);
+      await addDoc(collection(db, 'beta_requests'), doc);
+      setFastTrackSubmitted(true);
+      setFastTrackEmail('');
+      setFastTrackNote('');
+      setTimeout(() => setFastTrackSubmitted(false), 4000);
+    } catch (err) {
+      debugWarn('[fast-track] submit failed', err);
+      alert('Could not submit. Try again.');
+    } finally {
+      setFastTrackBusy(false);
     }
   };
 
@@ -197,6 +255,77 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
               <ShareGlyph className="w-4 h-4" />
               <span>Share</span>
             </button>
+          )}
+
+          {/* Fast-track for the Android app. Progressive disclosure —
+              the link is quiet until tapped so the primary share flow
+              stays visually clean. Submits to beta_requests where the
+              platform admin batch-processes them into Play Console.
+              Auto-hides when PLAY_STORE_LIVE is true (open testing +
+              production launch = no allowlist gate). */}
+          {showFastTrackSection && (
+            <div className="pt-2 border-t border-line-default/10">
+              {!fastTrackOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setFastTrackOpen(true)}
+                  className="w-full text-center text-[12px] font-semibold text-brand-primary-soft hover:text-white transition py-1"
+                >
+                  Fast-track this parent for the Android app
+                </button>
+              ) : (
+                <div className="rounded-xl bg-brand-primary/8 ring-1 ring-brand-primary/25 p-3 space-y-2">
+                  <p className="text-[11px] text-white/70 leading-snug">
+                    Send Patrick this parent's email so he can add them to the Play Store tester list. They will not be able to install the Android app until he does.
+                  </p>
+                  {fastTrackSubmitted ? (
+                    <p className="text-[13px] font-bold text-emerald-300 flex items-center gap-2">
+                      <CheckGlyph className="w-4 h-4" />
+                      Submitted. Patrick will add them within a day or so.
+                    </p>
+                  ) : (
+                    <>
+                      <input
+                        type="email"
+                        inputMode="email"
+                        autoComplete="off"
+                        placeholder="parent@example.com"
+                        value={fastTrackEmail}
+                        onChange={(e) => setFastTrackEmail(e.target.value)}
+                        disabled={fastTrackBusy}
+                        className="w-full rounded-lg bg-surface-base/60 ring-1 ring-line-default/20 px-3 py-2 text-sm text-ink-primary placeholder:text-ink-primary/40 outline-none focus:ring-brand-primary disabled:opacity-60"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Optional note (e.g. Hunter's dad)"
+                        value={fastTrackNote}
+                        onChange={(e) => setFastTrackNote(e.target.value.slice(0, 200))}
+                        disabled={fastTrackBusy}
+                        className="w-full rounded-lg bg-surface-base/60 ring-1 ring-line-default/20 px-3 py-2 text-[13px] text-ink-primary placeholder:text-ink-primary/40 outline-none focus:ring-brand-primary disabled:opacity-60"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={submitFastTrack}
+                          disabled={fastTrackBusy || !fastTrackEmail.trim()}
+                          className="flex-1 px-3 py-2 rounded-lg bg-brand-primary text-white font-black text-[12px] hover:brightness-110 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {fastTrackBusy ? 'Sending...' : 'Send to Patrick'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setFastTrackOpen(false); setFastTrackEmail(''); setFastTrackNote(''); }}
+                          disabled={fastTrackBusy}
+                          className="px-3 py-2 rounded-lg text-white/60 hover:text-white text-[12px] font-semibold transition disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           <div className="pt-2 border-t border-line-default/10 text-xs text-white/55 space-y-0.5">

@@ -6,6 +6,7 @@ import android.view.View;
 import android.webkit.WebView;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.getcapacitor.BridgeActivity;
@@ -32,6 +33,16 @@ public class MainActivity extends BridgeActivity {
         // additional plugin gets its own registerPlugin line.
         registerPlugin(WidgetBridgePlugin.class);
         super.onCreate(savedInstanceState);
+
+        // Android 15 (SDK 35) modern edge-to-edge opt-in. Replaces
+        // the deprecated `android:windowOptOutEdgeToEdgeEnforcement`
+        // theme attribute that Play Console flagged 2026-07-12. The
+        // paired setOnApplyWindowInsetsListener below still handles
+        // safe-area padding so the WebView keeps clear of the
+        // status bar / gesture nav, giving the same visual result
+        // the opt-out attribute produced — just via the currently-
+        // supported API surface.
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         // Defensive safe-area handling. Android 15 forces apps into
         // edge-to-edge; the theme attribute opts us out, but Samsung
         // One UI in particular tends to ignore that and still draws

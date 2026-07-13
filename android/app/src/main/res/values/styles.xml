@@ -36,13 +36,15 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
-        <!-- Opt out of Android 15's forced edge-to-edge so the WebView
-             doesn't draw underneath the status bar (top of the app was
-             getting clipped behind the system clock) or the gesture
-             nav bar (composer was sitting underneath it). Honored on
-             API 35+; ignored on older Android where the WebView is
-             already insetted by default. -->
-        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+        <!-- Edge-to-edge is embraced (not opted out of) as of
+             2026-07-12. MainActivity calls
+             WindowCompat.setDecorFitsSystemWindows(false) and the
+             root view's setOnApplyWindowInsetsListener pads the
+             WebView by system-bar insets — same visual result the
+             old windowOptOutEdgeToEdgeEnforcement attribute
+             produced, but via the currently-supported API surface.
+             The Play Console warning about the deprecated opt-out
+             clears on the next upload. -->
         <!-- Paint the status / nav bars and the activity window
              background with charcoal-950 (the GoalKickr brand dark)
              so the insetted strips blend into the system bars
@@ -50,7 +52,11 @@
              Tailwind's `charcoal.950` token = #0d0d10 and the
              runtime StatusBar.setBackgroundColor call in
              src/utils/nativeShell.ts. Patrick caught the leftover
-             navy at top + bottom of a Pixel 9a on 2026-06-21. -->
+             navy at top + bottom of a Pixel 9a on 2026-06-21.
+             statusBarColor + navigationBarColor are deprecated on
+             SDK 35 but still honored; leaving them until the
+             replacement API (WindowInsetsController with a solid
+             fill) is worth the churn. -->
         <item name="android:statusBarColor">#0d0d10</item>
         <item name="android:navigationBarColor">#0d0d10</item>
         <item name="android:windowBackground">#0d0d10</item>

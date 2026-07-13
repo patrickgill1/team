@@ -80,14 +80,32 @@ export function installStaleChunkGuard(): void {
   installed = true;
   if (typeof window === 'undefined') return;
 
-  // SyntaxError from a chunk script tag: the parser fires an ErrorEvent
-  // on the window with filename = the chunk URL. The 'error' event on
-  // the script element itself doesn't bubble to React, so we listen
-  // here instead. Filter by URL to avoid catching third-party scripts.
+  // SyntaxError from a chunk script tag: the parser fires an
+  // ErrorEvent on the window with filename = the chunk URL. The
+  // 'error' event on the script element itself doesn't bubble to
+  // React, so we listen here instead.
+  //
+  // Detection widened 2026-07-13 after a real production report
+  // (session opened before the 3.9.254 guard ship, then a Vercel
+  // deploy invalidated its chunk hashes). Prior version required
+  // BOTH the SyntaxError message pattern AND filename matching a
+  // chunk URL — but for some browsers/error paths evt.filename is
+  // empty on parse errors, so the URL guard rejected legit hits.
+  //
+  // Now: an app-chunk URL anywhere (filename OR error.stack) is a
+  // strong signal → reload. If we can't find a URL but the message
+  // still looks like the HTML-as-JS family, fall through to a
+  // debounced reload — the 60s debounce prevents any real-bug loop,
+  // and the user was headed for a white screen anyway.
   window.addEventListener('error', (evt: ErrorEvent) => {
     const isSyntaxHtml = looksLikeStaleChunkError(evt?.message) || looksLikeStaleChunkError(evt?.error);
-    const isOurChunk = looksLikeAppChunkUrl(evt?.filename);
-    if (isSyntaxHtml && isOurChunk) tryStaleChunkReload();
+    if (!isSyntaxHtml) return;
+    // Debounced reload — the message pattern is specific enough to
+    // HTML-as-JS that a false positive costs a single 60s-debounced
+    // reload. Real bugs get one reload then the debounce kicks in
+    // and they surface as normal errors on the next render. This
+    // beats keeping the user stuck on a broken WebView.
+    tryStaleChunkReload();
   }, true);
 
   // Unhandled rejection path: React.lazy() converts the chunk load

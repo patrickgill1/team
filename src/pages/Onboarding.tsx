@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { createPlayerInvite, createStaffInvite, inviteUrl } from '../utils/invites';
 import { sendEmail } from '../utils/notify';
+import { APP_STORE_URL, androidHintText } from '../utils/appAvailability';
 import { openWebSignup } from '../utils/subscriptionApi';
 import BulkAddPlayersForm from '../components/people/BulkAddPlayersForm';
 import { Capacitor } from '@capacitor/core';
@@ -492,8 +493,8 @@ const Onboarding: React.FC = () => {
               `Tap to claim your spot:`,
               link,
               ``,
-              `App Store: https://apps.apple.com/app/id6770324158`,
-              `Google Play: https://play.google.com/store/apps/details?id=com.firefc.team`,
+              `App Store: ${APP_STORE_URL}`,
+              androidHintText(),
             ].join('\n'),
           });
           sent += 1;

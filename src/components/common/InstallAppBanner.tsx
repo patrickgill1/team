@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { APP_STORE_URL, PLAY_STORE_URL, PLAY_STORE_LIVE, APP_STORE_LIVE } from '../../utils/appAvailability';
 
 /**
- * Top-of-page banner urging mobile-web users to download the native
- * Fire FC app. iOS Safari already shows Apple's native Smart App
- * Banner from the meta tag in index.html — so on iOS this is a
- * fallback for non-Safari browsers and a richer prompt with our
- * branding. On Android we drive the install ourselves (Google's
- * native PWA banner doesn't link to the Play Store).
+ * Top-of-page banner urging mobile-web users to install the native
+ * GoalKickr app OR (while the Android Play listing is still closed
+ * testing) add the web app to their home screen.
+ *
+ * iOS: prompts the App Store install.
+ * Android + PLAY_STORE_LIVE=true: prompts the Play Store install.
+ * Android + PLAY_STORE_LIVE=false (2026-07-12 reality): shows a
+ *   Home-Screen install nudge with plain-English steps. Avoids the
+ *   old beta-recruit CTA that pointed at a Google opt-in group,
+ *   which "has never worked without me putting their email into my
+ *   tester list" per Patrick.
  *
  * Hidden when:
  *   - Running inside the Capacitor native app (already installed)
@@ -20,18 +26,6 @@ const DISMISS_REMINDER_MS = 1000 * 60 * 60 * 24 * 14;  // 14 days after an X-out
 // rather than nagging them on every web visit.
 const INSTALLED_SNOOZE_MS = 1000 * 60 * 60 * 24 * 180; // ~6 months after tapping Install
 
-// Fire FC on the App Store (Apple ID 6770324158).
-const APP_STORE_URL = 'https://apps.apple.com/app/id6770324158';
-const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.firefc.team';
-
-// Pre-launch Android: recruit closed-testing volunteers via the Play
-// opt-in landing page. Tester list is backed by the firefctesters
-// Google Group (members of the group are automatically on the test),
-// and Google's opt-in page walks new testers through joining +
-// installing. Once ANDROID_STORE_LIVE flips true, the banner swaps
-// to the public Play Store listing URL instead.
-const ANDROID_BETA_OPTIN_URL = 'https://play.google.com/apps/testing/com.firefc.team';
-
 const isCapacitor = () => {
   if (typeof window === 'undefined') return false;
   // Capacitor exposes window.Capacitor inside the WKWebView / Android
@@ -44,18 +38,9 @@ const detectPlatform = (): Platform => {
   if (typeof navigator === 'undefined') return null;
   const ua = navigator.userAgent || '';
   if (/iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream) return 'ios';
-  // Android detection works fine, but we don't surface a CTA until the
-  // Android app actually ships on the Play Store — see the gate in the
-  // render path below. Detected here so we can light it up easily once
-  // the Play listing is live.
   if (/android/i.test(ua)) return 'android';
   return null;
 };
-
-// IOS_STORE_LIVE: on — Fire FC is live on the App Store.
-// ANDROID_STORE_LIVE: set to true after the Play Store listing is live.
-const IOS_STORE_LIVE = true;
-const ANDROID_STORE_LIVE = false;
 
 const InstallAppBanner: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -66,22 +51,17 @@ const InstallAppBanner: React.FC = () => {
     const detected = detectPlatform();
     if (!detected) return;                           // desktop / unknown
     if (typeof window === 'undefined') return;
-    // Hide on real desktops (≥ 1024px / Tailwind's lg breakpoint).
-    // 768 was too aggressive — Android tablets land right at 768 in
+    // Hide on real desktops (>= 1024px / Tailwind's lg breakpoint).
+    // 768 was too aggressive; Android tablets land right at 768 in
     // portrait and never saw the banner.
     if (window.innerWidth >= 1024) return;
 
     // Stored value is the epoch-ms the banner should stay hidden UNTIL.
-    // An X-out sets ~14 days; tapping Install sets ~6 months.
+    // An X-out sets ~14 days; tapping the primary action sets ~6 months.
     const snoozeUntil = Number(localStorage.getItem(STORAGE_KEY) || 0);
     if (snoozeUntil && Date.now() < snoozeUntil) return;
 
-    // Android users on the web see EITHER the beta-recruitment CTA
-    // (while ANDROID_STORE_LIVE is false and we still need closed
-    // testers) OR the standard install CTA once Play goes public.
-    // Both paths use the same banner shell. iOS stays gated on the
-    // store actually being live.
-    if (detected === 'ios' && !IOS_STORE_LIVE) return;
+    if (detected === 'ios' && !APP_STORE_LIVE) return;
 
     setPlatform(detected);
     setVisible(true);
@@ -92,24 +72,28 @@ const InstallAppBanner: React.FC = () => {
     setVisible(false);
   };
   const dismiss = () => snooze(DISMISS_REMINDER_MS);
-  const onInstall = () => snooze(INSTALLED_SNOOZE_MS); // they're likely installing now
+  const onPrimary = () => snooze(INSTALLED_SNOOZE_MS);
 
   if (!visible || !platform) return null;
 
-  // Pre-launch Android beta variant — recruit testers instead of
-  // pointing them at a Play Store listing that 404s.
-  const isAndroidBeta = platform === 'android' && !ANDROID_STORE_LIVE;
-  const installUrl = isAndroidBeta
-    ? ANDROID_BETA_OPTIN_URL
-    : platform === 'ios'
-    ? APP_STORE_URL
-    : PLAY_STORE_URL;
-  const storeLabel = isAndroidBeta ? 'beta signup' : platform === 'ios' ? 'App Store' : 'Google Play';
-  const ctaTitle = isAndroidBeta ? 'Help test the GoalKickr Android app' : 'Get the GoalKickr app';
-  const ctaSubtitle = isAndroidBeta
-    ? "We're in closed beta — tap to join + install."
+  // Three copy variants:
+  //   1. iOS: standard App Store install.
+  //   2. Android + Play Store live: standard Play Store install.
+  //   3. Android + Play Store closed (today): honest A2HS nudge. No
+  //      CTA target because the "how" is browser-menu-dependent and
+  //      we don't want to promise a one-tap flow that isn't real.
+  const isAndroidWebOnly = platform === 'android' && !PLAY_STORE_LIVE;
+  const installUrl = platform === 'ios' ? APP_STORE_URL
+    : PLAY_STORE_LIVE ? PLAY_STORE_URL
+    : undefined;
+  const ctaTitle = isAndroidWebOnly
+    ? 'Use GoalKickr as an app on Android'
+    : 'Get the GoalKickr app';
+  const ctaSubtitle = isAndroidWebOnly
+    ? 'Tap your browser menu, then Add to Home Screen. Full app, no wait.'
     : 'Push notifications, faster, works offline.';
-  const ctaButtonLabel = isAndroidBeta ? 'Join beta' : 'Install';
+  const ctaButtonLabel = isAndroidWebOnly ? 'Got it' : 'Install';
+  const storeLabel = isAndroidWebOnly ? 'Home Screen' : platform === 'ios' ? 'App Store' : 'Google Play';
 
   return (
     <div className="lg:hidden bg-gradient-to-r from-brand-primary to-surface-raised text-white shadow">
@@ -123,15 +107,25 @@ const InstallAppBanner: React.FC = () => {
           <p className="text-sm font-bold leading-tight truncate">{ctaTitle}</p>
           <p className="text-[11px] text-white/80 leading-tight truncate">{ctaSubtitle}</p>
         </div>
-        <a
-          href={installUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={onInstall}
-          className="shrink-0 inline-flex items-center gap-1.5 bg-white text-charcoal-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition"
-        >
-          <span>{ctaButtonLabel}</span>
-        </a>
+        {installUrl ? (
+          <a
+            href={installUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onPrimary}
+            className="shrink-0 inline-flex items-center gap-1.5 bg-white text-charcoal-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition"
+          >
+            <span>{ctaButtonLabel}</span>
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={onPrimary}
+            className="shrink-0 inline-flex items-center gap-1.5 bg-white text-charcoal-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition"
+          >
+            <span>{ctaButtonLabel}</span>
+          </button>
+        )}
         <button
           onClick={dismiss}
           aria-label="Dismiss"

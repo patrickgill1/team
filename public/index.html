@@ -10,6 +10,18 @@
     <meta name="description" content="GoalKickr — the all-in-one team app for youth soccer." />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
+    <!-- iOS Add-to-Home-Screen: render as a chrome-less standalone
+         app shell instead of a Safari-wrapped webpage. Matters while
+         the Android Play listing is still closed testing and web
+         mobile is the actual Android experience — parents who tap
+         "Add to Home Screen" should get an app-like frame with our
+         icon and no Safari URL bar. Android Chrome already honors
+         the manifest's display:standalone; these tags make iOS
+         match. Ignored by Capacitor's native shells. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="GoalKickr" />
+
     <!--
       Apple's native Smart App Banner is intentionally disabled: we use
       our own InstallAppBanner component on every mobile browser (incl.

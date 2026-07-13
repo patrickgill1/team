@@ -16,8 +16,13 @@ const SITE_URL = 'https://goalkickr.com';
 // Country-neutral form (no /us/ segment) — iTunes auto-routes to the
 // user's home store. The /us/ form was failing for non-US Apple IDs
 // with 'not available in your country'.
-const APP_STORE_URL = 'https://apps.apple.com/app/id6770324158';
-const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.firefc.team';
+import {
+  APP_STORE_URL,
+  PLAY_STORE_URL,
+  PLAY_STORE_LIVE,
+  androidHintText,
+  androidHintHtml,
+} from './appAvailability';
 const LOGO_URL = 'https://goalkickr.com/logo-light.svg';
 const CRIMSON = '#DC2626';
 const CHARCOAL_950 = '#0d0d10';
@@ -83,7 +88,7 @@ export function buildParentInviteEmail(opts: ParentInviteOptions): BuiltEmail {
     note ? `Note from ${coachFirstName}: ${note}` : '',
     ``,
     `App Store: ${APP_STORE_URL}`,
-    `Google Play: ${PLAY_STORE_URL}`,
+    androidHintText(),
     ``,
     `— The ${APP_NAME} team`,
   ].filter(Boolean).join('\n');
@@ -209,13 +214,14 @@ export function buildParentInviteEmail(opts: ParentInviteOptions): BuiltEmail {
                         Download for iPhone
                       </a>
                     </td>
-                    <td style="padding:0 6px;">
+                    ${PLAY_STORE_LIVE ? `<td style="padding:0 6px;">
                       <a href="${PLAY_STORE_URL}" target="_blank" style="display:inline-block;padding:10px 18px;background:#000000;border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#ffffff;font-size:13px;font-weight:700;text-decoration:none;">
                         Download for Android
                       </a>
-                    </td>
+                    </td>` : ''}
                   </tr>
                 </table>
+                ${androidHintHtml() || ''}
               </td>
             </tr>
 

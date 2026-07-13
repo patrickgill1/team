@@ -1538,6 +1538,8 @@ const PAGE_BG = '#f3f4f6'; // light grey behind the dark email card
 // glyphs and rendered as 'G/ KICKR' with a gap in the middle).
 const LOGO_ICON_URL = 'https://goalkickr.com/logo-light.svg';
 const TAGLINE = 'Every Team Deserves a Shot';
+import { PLAY_STORE_LIVE } from './appAvailability';
+
 // COUNTRY-NEUTRAL App Store URL — no /us/ segment so iTunes uses
 // the user's home store automatically. The /us/ form was failing
 // for non-US Apple IDs with "not available in your country."
@@ -1653,7 +1655,13 @@ function welcomeEmailHtml(opts: { tierLabel: string; trialEndDate: Date | null }
               </td>
             </tr>
 
-            <!-- App store badges -->
+            <!-- App store badges. Play Store badge gates on
+                 PLAY_STORE_LIVE so the welcome email never promises
+                 an install that requires the coach to allowlist the
+                 recipient's email first. When PLAY_STORE_LIVE is
+                 false we render only the App Store badge + a subdued
+                 line explaining the web app is the Android path
+                 today. -->
             <tr>
               <td align="center" style="padding:8px 32px 20px 32px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
@@ -1663,13 +1671,14 @@ function welcomeEmailHtml(opts: { tierLabel: string; trialEndDate: Date | null }
                         App Store
                       </a>
                     </td>
-                    <td style="padding:0 6px;">
+                    ${PLAY_STORE_LIVE ? `<td style="padding:0 6px;">
                       <a href="${PLAY_STORE_URL}" target="_blank" style="display:inline-block;font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:${BONE};background:#1a1a22;border:1px solid #2a2a36;border-radius:6px;padding:8px 14px;text-decoration:none;">
                         Google Play
                       </a>
-                    </td>
+                    </td>` : ''}
                   </tr>
                 </table>
+                ${PLAY_STORE_LIVE ? '' : `<p style="margin:12px 32px 0;font-size:12px;color:#8a8275;line-height:1.55;text-align:center;">On Android? Open goalkickr.com in Chrome. The web version is the full app. Our Android app is still in closed beta.</p>`}
               </td>
             </tr>
 

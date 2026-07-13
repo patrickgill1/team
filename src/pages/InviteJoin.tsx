@@ -282,7 +282,11 @@ const InviteJoin: React.FC = () => {
     return (
       <Page>
         <div className="p-8 text-center">
-          <div className="text-5xl mb-3">😕</div>
+          <svg className="w-14 h-14 mx-auto mb-3 text-rose-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
           <h1 className="text-xl font-bold">Invite unavailable</h1>
           <p className="text-white/70 text-sm mt-2">{error}</p>
           <Link to="/auth" className="mt-6 inline-block px-4 py-2 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-sm font-semibold">Go to sign-in</Link>
@@ -296,7 +300,10 @@ const InviteJoin: React.FC = () => {
     return (
       <Page>
         <div className="p-8 text-center">
-          <div className="text-5xl mb-3">⏰</div>
+          <svg className="w-14 h-14 mx-auto mb-3 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
           <h1 className="text-xl font-bold">This invite {reason}</h1>
           <p className="text-white/70 text-sm mt-2">Ask the coach to send you a fresh link.</p>
         </div>
@@ -308,9 +315,12 @@ const InviteJoin: React.FC = () => {
     return (
       <Page>
         <div className="p-8 text-center">
-          <div className="text-5xl mb-3">🎉</div>
+          <svg className="w-14 h-14 mx-auto mb-3 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
           <h1 className="text-2xl font-black">You're in!</h1>
-          <p className="text-white/70 text-sm mt-2">Loading your team…</p>
+          <p className="text-white/70 text-sm mt-2">Opening your Team HQ...</p>
         </div>
       </Page>
     );
@@ -503,8 +513,12 @@ const InviteJoin: React.FC = () => {
             disabled={submitting}
             className="w-full py-3 rounded-xl bg-brand-primary hover:bg-brand-primary text-white font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? 'Working…' : mode === 'sign-up' ? 'Create account & join' : 'Sign in & join'}
+            {submitting ? 'Working...' : mode === 'sign-up' ? 'Create account & join' : 'Sign in & join'}
           </button>
+
+          <p className="text-white/45 text-[11px] text-center leading-snug">
+            Nothing to install. You'll be inside your team hub in this browser the moment this finishes.
+          </p>
         </form>
       )}
 

@@ -106,30 +106,38 @@ const PlayerXpHistoryFeed: React.FC<Props> = ({ playerId }) => {
             <>
               <ul className="divide-y divide-line-default/15">
                 {visibleRows.map((row) => (
+                  // Two-line row: metadata (XP + source + relative
+                  // time) on line 1, full reason wrapping on line 2.
+                  // Prior single-line layout truncated the reason,
+                  // which Patrick caught 2026-07-12: "the players
+                  // can't see the full reason for the xp." Reason is
+                  // the emotional payload — never truncate it.
                   <li
                     key={row.id}
-                    className="px-4 sm:px-5 py-2.5 flex items-center gap-3"
+                    className="px-4 sm:px-5 py-2.5 flex items-start gap-3"
                   >
                     <span
-                      className={`shrink-0 w-2 h-2 rounded-full ${dotClassForSource(row.source)}`}
+                      className={`shrink-0 mt-1.5 w-2 h-2 rounded-full ${dotClassForSource(row.source)}`}
                       aria-hidden
                     />
-                    <div className="min-w-0 flex-1 flex items-baseline gap-2">
-                      <span className="shrink-0 text-[13px] font-black text-ink-primary tabular-nums">
-                        +{row.xp} XP
-                      </span>
-                      <span className="shrink-0 text-[12px] font-semibold text-ink-primary/80">
-                        {SOURCE_LABEL[row.source] || 'XP grant'}
-                      </span>
-                      {row.reason && (
-                        <span className="truncate text-[12px] italic text-ink-secondary">
-                          {row.reason}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="shrink-0 text-[13px] font-black text-ink-primary tabular-nums">
+                          +{row.xp} XP
                         </span>
+                        <span className="shrink-0 text-[12px] font-semibold text-ink-primary/80">
+                          {SOURCE_LABEL[row.source] || 'XP grant'}
+                        </span>
+                        <span className="ml-auto shrink-0 text-[11px] text-ink-secondary tabular-nums">
+                          {relativeTime(row.createdAtMs)}
+                        </span>
+                      </div>
+                      {row.reason && (
+                        <p className="mt-0.5 text-[12px] italic text-ink-secondary leading-snug whitespace-pre-wrap break-words">
+                          {row.reason}
+                        </p>
                       )}
                     </div>
-                    <span className="shrink-0 text-[11px] text-ink-secondary tabular-nums">
-                      {relativeTime(row.createdAtMs)}
-                    </span>
                   </li>
                 ))}
               </ul>

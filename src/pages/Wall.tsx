@@ -581,7 +581,22 @@ const Wall: React.FC = () => {
         const el = entry.target as HTMLElement;
         const postId = el.getAttribute('data-post-id');
         if (!postId) continue;
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+        // Tall posts (polls with 6 options, image-heavy posts, long
+        // rich content) can exceed viewport height. When that happens
+        // intersectionRatio for the element caps below 0.5 (visible
+        // slice / element total) and the strict >= 0.5 gate never
+        // fires. Patrick 2026-07-12: "i can't see the 'seen' on this
+        // post, i think it has to do with the poll." Root cause was
+        // exactly this. Fix: also count a view when the visible slice
+        // covers >= 50% of the VIEWPORT (i.e. the post fills half or
+        // more of what the user is looking at right now), regardless
+        // of what fraction that represents of the whole post.
+        const viewportH = typeof window !== 'undefined' ? window.innerHeight : 0;
+        const visibleH = entry.intersectionRect.height;
+        const coversViewport = viewportH > 0 && (visibleH / viewportH) >= 0.5;
+        const inView = entry.isIntersecting
+          && (entry.intersectionRatio >= 0.5 || coversViewport);
+        if (inView) {
           if (dwell.has(postId)) continue;
           // 1s dwell prevents fast-scroll fly-bys from counting as a view.
           const timer = window.setTimeout(() => {
@@ -594,7 +609,11 @@ const Wall: React.FC = () => {
           if (t) { window.clearTimeout(t); dwell.delete(postId); }
         }
       }
-    }, { threshold: [0, 0.5, 1] });
+      // Multi-threshold list ensures the callback fires as the
+      // element scrolls through the viewport at any depth — needed
+      // for the visible-slice check to catch tall posts as their
+      // MIDDLE crosses viewport center.
+    }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
 
     document.querySelectorAll('li[data-post-id]').forEach(el => observer.observe(el));
 

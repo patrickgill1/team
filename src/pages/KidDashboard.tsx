@@ -16,6 +16,7 @@ import PhotoTape from '../components/player/PhotoTape';
 import SeasonTimeline from '../components/player/SeasonTimeline';
 import PersonalRecords from '../components/player/PersonalRecords';
 import CoachRecognitionsArchive from '../components/player/CoachRecognitionsArchive';
+import PlayerXpHistoryFeed from '../components/player/PlayerXpHistoryFeed';
 import { awardMicroXp } from '../utils/microXp';
 import { getActiveSeasonForTeam } from '../utils/seasons';
 
@@ -348,6 +349,14 @@ const KidDashboard: React.FC = () => {
           teamId={player.teamId || ''}
           xpEnabled={Boolean((team as any)?.xpConfig?.enabled)}
         />
+
+        {/* RECENT XP — every XP grant the kid has earned, including
+            coach live grants (Coach recognitions have their own
+            archive above; this one is the fuller ledger with reasons).
+            Patrick 2026-07-12: "players should be able to see past
+            xp points as well." Silent-empty on non-XP teams; the feed
+            component gates on its own query result. */}
+        <PlayerXpHistoryFeed playerId={activeKidPlayerId} />
 
         {/* Upcoming events with RSVP-as-self. Hex icon container on
             the left of each row calls out the event type at a glance

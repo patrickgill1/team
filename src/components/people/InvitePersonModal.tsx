@@ -139,26 +139,17 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
       )}
     >
       <div className="space-y-3">
-        {/* Kind toggle */}
-        <div className="flex gap-1">
-          {([
-            { k: 'parent' as const, label: 'Family' },
-            { k: 'staff' as const, label: 'Coach / Manager' },
-          ]).map(({ k, label }) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => { setKind(k); setShareUrl(null); }}
-              className={`flex-1 px-3 py-1.5 rounded-md text-[11px] font-extrabold tracking-widest uppercase ring-1 transition ${
-                kind === k
-                  ? 'bg-brand-primary/15 text-brand-primary-soft ring-brand-primary/40'
-                  : 'bg-surface-base text-ink-primary/70 ring-line-default/10 hover:bg-line-default/5'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* Kind mode is progressive-disclosure now. The modal opens
+            straight to the Family form (default and 90% of the time
+            what a coach means when they tap Invite). The Coach/
+            Manager path lives behind a small text link at the
+            bottom of the form so it's discoverable but not
+            accidentally tappable. Root cause: pre-3.9.251 there
+            was a top-of-modal segmented toggle that made staff
+            mode one-tap-away, and a coach who bumped it would
+            invite a parent as staff by mistake — different write
+            path, wrong Firestore doc, no way to recover except
+            re-invite. */}
 
         {kind === 'parent' ? (
           <>
@@ -264,6 +255,33 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
               )}
             </div>
             <p className="text-[10px] text-ink-primary/55">Link expires in 30 days, good for up to 5 uses.</p>
+          </div>
+        )}
+
+        {/* Kind switcher — hidden by default when a caller pins the
+            kind via defaultKind (e.g. PersonAdmin's "Add Guardian"
+            action, which explicitly wants parent-only). Always
+            visible on the generic "Bring Someone In" path so the
+            staff route stays reachable without being a footgun. */}
+        {!defaultKind && !shareUrl && (
+          <div className="pt-2 border-t border-line-default/10">
+            {kind === 'parent' ? (
+              <button
+                type="button"
+                onClick={() => { setKind('staff'); setShareUrl(null); }}
+                className="w-full text-center text-[11px] font-semibold text-ink-primary/55 hover:text-brand-primary-soft transition"
+              >
+                Inviting a coach or team manager instead?
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setKind('parent'); setShareUrl(null); }}
+                className="w-full text-center text-[11px] font-semibold text-ink-primary/55 hover:text-brand-primary-soft transition"
+              >
+                Inviting a family member instead?
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -440,11 +440,12 @@ const Dashboard: React.FC = () => {
   // players (previously gated to isParentMode, which hid it from
   // coaches who ALSO have a kid on the team — Patrick's own case).
   // Matched to the user's linked players by first-name substring
-  // against the post content. Time-bounded to 14 days.
+  // against the post content. Time-bounded to 24 hours so the strip
+  // is a "today" signal, not a rolling two-week nostalgia scroll.
   const newForYouPosts = useMemo(() => {
     if (myPlayers.length === 0) return [];
     const RECOGNITION_KINDS = new Set(['potm', 'juggle', 'devplan', 'video']);
-    const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
     const firstNames = myPlayers.map(p => (p.name || '').trim().split(/\s+/)[0].toLowerCase()).filter(Boolean);
     return wallPosts
       .filter(p => RECOGNITION_KINDS.has(p.postedFrom || ''))

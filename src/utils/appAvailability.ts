@@ -39,14 +39,23 @@ export const APP_STORE_LIVE = true;
  *  production access. Flip to true then. */
 export const PLAY_STORE_LIVE = false;
 
-/** Android BETA opt-in flow is live? True once the Play Console
- *  tester source is set to the Google Group AND the group is set
- *  to "Anyone can join." Flipping this true lights the beta CTA
- *  everywhere and updates the Android-parent copy to mention the
- *  one-tap install path. Flip to false again if the beta ever
- *  closes (unlikely; usually we'd flip PLAY_STORE_LIVE=true and
- *  supersede this instead). */
-export const ANDROID_BETA_OPEN = true;
+/** Android BETA opt-in flow via public URL is live?
+ *
+ *  Turned OFF 2026-07-13 after testing: the
+ *  play.google.com/apps/testing/... link ONLY works if the tester
+ *  has already joined the Google Group in a separate step, and
+ *  Google does not surface that "join the group" flow inline. A
+ *  parent tapping the URL cold sees "App not available" and gets
+ *  stuck. That's worse than no CTA at all.
+ *
+ *  Coaches now submit parent emails through InviteShareModal's
+ *  fast-track panel, which writes to beta_requests. Patrick works
+ *  the queue from the admin portal at admin.goalkickr.com and
+ *  pastes emails into Play Console directly.
+ *
+ *  Flip back to true only if we move to open testing (no allowlist)
+ *  OR find a Group-join flow that actually works end-to-end. */
+export const ANDROID_BETA_OPEN = false;
 
 /** Copy fragment for plain-text emails. Three variants:
  *    - Play Store live → straight Play Store link

@@ -59,7 +59,6 @@ const RegisterSuccess = React.lazy(() => import('./pages/RegisterStripeReturn').
 const RegisterCancel = React.lazy(() => import('./pages/RegisterStripeReturn').then(m => ({ default: m.RegisterCancel })));
 const Registrations = React.lazy(() => import('./pages/Registrations'));
 const AdminTeams = React.lazy(() => import('./pages/AdminTeams'));
-const AdminBetaRequests = React.lazy(() => import('./pages/AdminBetaRequests'));
 const SeasonWizard = React.lazy(() => import('./pages/SeasonWizard'));
 const CoachCockpit = React.lazy(() => import('./pages/CoachCockpit'));
 const StaffManagement = React.lazy(() => import('./pages/StaffManagement'));
@@ -664,14 +663,6 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <AdminTeams />
-                </AppLayout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/admin/beta-requests" element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <AdminBetaRequests />
                 </AppLayout>
               </ProtectedRoute>
             } />

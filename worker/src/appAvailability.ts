@@ -16,7 +16,9 @@ export const APP_STORE_LIVE = true;
  *  the 20-testers/14-days gate + applies for production access. */
 export const PLAY_STORE_LIVE = false;
 
-/** Beta opt-in flow live (Google Group tester source with "Anyone
- *  can join" enabled). Flip to true 2026-07-12 alongside client
- *  copy. Keep in lockstep with src/utils/appAvailability.ts. */
-export const ANDROID_BETA_OPEN = true;
+/** Beta opt-in URL flow live? Turned OFF 2026-07-13 after testing
+ *  proved the Group-join step is a dead end for cold parents
+ *  (they see "App not available"). Now handled via coach-submitted
+ *  beta_requests + manual paste-in from admin portal. Keep in
+ *  lockstep with src/utils/appAvailability.ts. */
+export const ANDROID_BETA_OPEN = false;

@@ -1148,6 +1148,29 @@ const Dashboard: React.FC = () => {
       <div className="relative">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+        {/* Parent-mode emotional lead. Patrick 2026-07-13: "the
+            player profile should be first. that is the most
+            important thing." Promoted from below the coach cards
+            to right below the hero — every open should reward a
+            parent with a look at their kid before any chrome.
+            Coach-mode leaves this null (their equivalent hero is
+            CoachTonightCard further down). */}
+        {isParentMode && myPlayers.length > 0 && (
+          myPlayers.length === 1 ? (
+            <MyPlayerCard
+              player={myPlayers[0]}
+              latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
+              isPotm={isPotmThisWeek}
+            />
+          ) : (
+            <SiblingCarousel
+              players={myPlayers}
+              latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
+              isPotmForPrimary={isPotmThisWeek}
+            />
+          )
+        )}
+
         {/* Welcome grace period — hide the promotional stack for the
             first 45 min after signup so a brand-new coach gets a
             peaceful first look at their populated dashboard instead
@@ -1373,21 +1396,10 @@ const Dashboard: React.FC = () => {
             practice-streak ribbon since they're related surfaces.
             Patrick 2026-06-21 dialogue idea #3. */}
         <CoachTeamHealthCard />
-        {isParentMode && myPlayers.length > 0 && (
-          myPlayers.length === 1 ? (
-            <MyPlayerCard
-              player={myPlayers[0]}
-              latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
-              isPotm={isPotmThisWeek}
-            />
-          ) : (
-            <SiblingCarousel
-              players={myPlayers}
-              latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
-              isPotmForPrimary={isPotmThisWeek}
-            />
-          )
-        )}
+        {/* MyPlayerCard / SiblingCarousel moved to top-of-content
+            in the parent-mode emotional-lead block above. Left this
+            comment as an anchor in case anyone greps for the old
+            position. */}
 
         {/* FamilyFeed — cross-team summary for multi-team families.
             Sits BELOW the player card so a parent's kid stays the

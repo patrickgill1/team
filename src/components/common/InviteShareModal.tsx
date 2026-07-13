@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { inviteUrl, smsShareLink, type FetchedInvite } from '../../utils/invites';
-import { PLAY_STORE_LIVE } from '../../utils/appAvailability';
+import { PLAY_STORE_LIVE, ANDROID_BETA_OPEN, ANDROID_BETA_OPTIN_URL } from '../../utils/appAvailability';
 import type { Invite } from '../../types';
 
 // Monoline glyphs — replaced the emoji labels that the modal used
@@ -120,9 +120,13 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
                 : 'Anyone with this link can join the team in the named role. Reusable up to the limit shown below.'}
             </p>
             {!PLAY_STORE_LIVE && (
-              <div className="mt-3 rounded-xl bg-amber-500/8 ring-1 ring-amber-400/25 p-3 space-y-1 text-white/80 text-[12px] leading-snug">
+              <div className="mt-3 rounded-xl bg-amber-500/8 ring-1 ring-amber-400/25 p-3 space-y-1.5 text-white/80 text-[12px] leading-snug">
                 <p><b className="text-amber-200">iPhone parents:</b> tap the link. Opens the App Store, then completes the join.</p>
-                <p><b className="text-amber-200">Android parents:</b> tap the link on their phone. Opens goalkickr.com in Chrome and works the same. Do not point them at the Play Store; the Android app is still closed beta and I have to add each email by hand.</p>
+                {ANDROID_BETA_OPEN ? (
+                  <p><b className="text-amber-200">Android parents:</b> tap the link on their phone (opens goalkickr.com in Chrome, works the same as the app), OR install the app in one tap via <a href={ANDROID_BETA_OPTIN_URL} target="_blank" rel="noopener noreferrer" className="underline decoration-amber-400/60 hover:text-white">early access</a>. Either path works, no email allowlist step on either.</p>
+                ) : (
+                  <p><b className="text-amber-200">Android parents:</b> tap the link on their phone. Opens goalkickr.com in Chrome and works the same. Do not point them at the Play Store; the Android app is still closed beta and I have to add each email by hand.</p>
+                )}
               </div>
             )}
           </div>

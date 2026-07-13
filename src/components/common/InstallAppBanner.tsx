@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { APP_STORE_URL, PLAY_STORE_URL, PLAY_STORE_LIVE, APP_STORE_LIVE } from '../../utils/appAvailability';
+import {
+  APP_STORE_URL,
+  PLAY_STORE_URL,
+  PLAY_STORE_LIVE,
+  APP_STORE_LIVE,
+  ANDROID_BETA_OPTIN_URL,
+  ANDROID_BETA_OPEN,
+} from '../../utils/appAvailability';
 
 /**
  * Top-of-page banner urging mobile-web users to install the native
@@ -76,24 +83,36 @@ const InstallAppBanner: React.FC = () => {
 
   if (!visible || !platform) return null;
 
-  // Three copy variants:
+  // Four copy variants:
   //   1. iOS: standard App Store install.
   //   2. Android + Play Store live: standard Play Store install.
-  //   3. Android + Play Store closed (today): honest A2HS nudge. No
-  //      CTA target because the "how" is browser-menu-dependent and
-  //      we don't want to promise a one-tap flow that isn't real.
-  const isAndroidWebOnly = platform === 'android' && !PLAY_STORE_LIVE;
+  //   3. Android + Play Store closed + beta OPEN: one-tap install
+  //      via the Google-Group-backed opt-in URL. Real install, no
+  //      allowlist tax.
+  //   4. Android + Play Store closed + beta closed: honest A2HS
+  //      nudge with no CTA target (can't promise a one-tap flow
+  //      that isn't real).
+  const isAndroidBeta = platform === 'android' && !PLAY_STORE_LIVE && ANDROID_BETA_OPEN;
+  const isAndroidA2HS = platform === 'android' && !PLAY_STORE_LIVE && !ANDROID_BETA_OPEN;
   const installUrl = platform === 'ios' ? APP_STORE_URL
     : PLAY_STORE_LIVE ? PLAY_STORE_URL
+    : isAndroidBeta ? ANDROID_BETA_OPTIN_URL
     : undefined;
-  const ctaTitle = isAndroidWebOnly
-    ? 'Use GoalKickr as an app on Android'
-    : 'Get the GoalKickr app';
-  const ctaSubtitle = isAndroidWebOnly
-    ? 'Tap your browser menu, then Add to Home Screen. Full app, no wait.'
-    : 'Push notifications, faster, works offline.';
-  const ctaButtonLabel = isAndroidWebOnly ? 'Got it' : 'Install';
-  const storeLabel = isAndroidWebOnly ? 'Home Screen' : platform === 'ios' ? 'App Store' : 'Google Play';
+  const ctaTitle = isAndroidBeta
+    ? 'Install GoalKickr on Android'
+    : isAndroidA2HS
+      ? 'Use GoalKickr as an app on Android'
+      : 'Get the GoalKickr app';
+  const ctaSubtitle = isAndroidBeta
+    ? 'One-tap install via early access. No wait, no email allowlist.'
+    : isAndroidA2HS
+      ? 'Tap your browser menu, then Add to Home Screen. Full app, no wait.'
+      : 'Push notifications, faster, works offline.';
+  const ctaButtonLabel = isAndroidA2HS ? 'Got it' : 'Install';
+  const storeLabel = isAndroidBeta ? 'early access'
+    : isAndroidA2HS ? 'Home Screen'
+    : platform === 'ios' ? 'App Store'
+    : 'Google Play';
 
   return (
     <div className="lg:hidden bg-gradient-to-r from-brand-primary to-surface-raised text-white shadow">

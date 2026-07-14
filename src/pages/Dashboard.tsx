@@ -2104,7 +2104,7 @@ const MyPlayerCard: React.FC<{
           kicker + hairline, identity row (photo + name/pill + VIEW
           PROFILE), 4-col HUD (LEVEL/STREAK/BADGES/LATEST BADGE),
           then XP bar with progress-to-next-level text. */}
-      <div className={`relative z-[2] ${isPotm ? 'pt-10 pb-4 px-4' : 'p-4'} flex flex-col gap-3`}>
+      <div className={`relative z-[2] ${isPotm ? 'pt-10 pb-3 px-3' : 'p-3'} flex flex-col gap-2`}>
         {/* SEASON CARD kicker removed 2026-07-13 (Patrick: "maybe
             season card doesn't need to be there, and we can move the
             profile pic up") — freed ~24px of vertical space. VIEW
@@ -2131,13 +2131,13 @@ const MyPlayerCard: React.FC<{
               ticks + node dots at every arc endpoint. The top-left
               quadrant is DELIBERATELY empty so the jersey pill has
               clean negative space to land in. */}
-          <div className="relative flex-shrink-0 w-[140px] h-[140px]">
+          <div className="relative flex-shrink-0 w-[128px] h-[128px]">
             {!isPotm && (
               <>
                 {/* Soft crimson glow BEHIND the photo — dark mode only.
                     In light mode it bleeds pink onto the white card
                     (2026-07-14: light-mode audit). */}
-                <div aria-hidden className="hidden dark:block absolute top-[20px] left-[20px] w-[100px] h-[100px] rounded-full bg-brand-primary/15 blur-md pointer-events-none" />
+                <div aria-hidden className="hidden dark:block absolute top-[16px] left-[16px] w-[96px] h-[96px] rounded-full bg-brand-primary/15 blur-md pointer-events-none" />
                 {/* Radar-arc decoration split into ROTATING and STATIC
                     layers (Patrick 2026-07-13: "i thought the lines
                     would move or something lol"). Arcs + their
@@ -2146,7 +2146,7 @@ const MyPlayerCard: React.FC<{
                     ticks stay fixed as compass markers. `motion-safe:`
                     honours the user's reduced-motion preference. */}
                 <div
-                  className="absolute inset-0 w-[140px] h-[140px] pointer-events-none motion-safe:animate-spin opacity-70 dark:opacity-100"
+                  className="absolute inset-0 w-[128px] h-[128px] pointer-events-none motion-safe:animate-spin opacity-70 dark:opacity-100"
                   style={{ animationDuration: '45s', animationTimingFunction: 'linear' }}
                 >
                   <svg aria-hidden viewBox="0 0 140 140" className="w-full h-full">
@@ -2188,7 +2188,7 @@ const MyPlayerCard: React.FC<{
                 </div>
                 {/* Static compass layer — ticks stay put while arcs
                     orbit past them, sells the "radar" feel. */}
-                <svg aria-hidden viewBox="0 0 140 140" className="absolute inset-0 w-[140px] h-[140px] pointer-events-none opacity-70 dark:opacity-100">
+                <svg aria-hidden viewBox="0 0 140 140" className="absolute inset-0 w-[128px] h-[128px] pointer-events-none opacity-70 dark:opacity-100">
                   <g stroke="#c8202c" strokeLinecap="round">
                     <line x1="70" y1="0.5" x2="70" y2="4.5" strokeWidth="1.5" />
                     <line x1="139.5" y1="70" x2="135.5" y2="70" strokeWidth="1.5" />
@@ -2209,11 +2209,11 @@ const MyPlayerCard: React.FC<{
               <img
                 src={p.profilePhotoUrl}
                 alt={player.name}
-                className={`absolute top-[20px] left-[20px] w-[100px] h-[100px] rounded-full object-cover shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}
+                className={`absolute top-[16px] left-[16px] w-[96px] h-[96px] rounded-full object-cover shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}
                 loading="lazy"
               />
             ) : (
-              <div className={`absolute top-[20px] left-[20px] w-[100px] h-[100px] rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
+              <div className={`absolute top-[16px] left-[16px] w-[96px] h-[96px] rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
                 {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
               </div>
             )}
@@ -2253,7 +2253,7 @@ const MyPlayerCard: React.FC<{
               lives INLINE at the head of the subtitle so it flows
               with the rest of the text. */}
           <div className="flex-1 min-w-0">
-            <p className={`text-[24px] sm:text-[26px] font-black leading-[1] tracking-tight ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
+            <p className={`text-[21px] sm:text-[23px] font-black leading-[1] tracking-tight ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
               {player.name}
             </p>
             {!isPotm && (
@@ -2262,7 +2262,7 @@ const MyPlayerCard: React.FC<{
                 className="block h-[2px] w-14 mt-2 rounded-full bg-gradient-to-r from-brand-primary via-brand-primary/70 to-transparent"
               />
             )}
-            <p className={`mt-2 text-[10.5px] font-black uppercase tracking-widest leading-snug ${isPotm ? 'text-amber-100/90' : 'text-ink-primary/70'}`}>
+            <p className={`mt-1.5 text-[10px] font-black uppercase tracking-widest leading-snug ${isPotm ? 'text-amber-100/90' : 'text-ink-primary/70'}`}>
               <span>{position}</span>
               {player.jerseyNumber != null && (
                 <>
@@ -2294,55 +2294,32 @@ const MyPlayerCard: React.FC<{
           const sv = (player as any).stats?.saves || 0;
           const cs = (player as any).stats?.cleanSheets || 0;
           const isGK = position === 'Goalkeeper';
-          const cells: Array<{ value: number; label: string; icon: React.ReactNode }> = isGK
+          // Icons dropped 2026-07-14 (Patrick: "what are these icons
+          // for the stats?"). Number + uppercase label reads instantly;
+          // invented icons were adding visual clutter without clarity.
+          const cells: Array<{ value: number; label: string }> = isGK
             ? [
-                { value: gp, label: gp === 1 ? 'Game' : 'Games', icon: (
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                )},
-                { value: sv, label: sv === 1 ? 'Save' : 'Saves', icon: (
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
-                )},
-                { value: cs, label: cs === 1 ? 'Sheet' : 'Sheets', icon: (
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="12" cy="12" r="10" /><polyline points="9 12 11 14 15 10" />
-                  </svg>
-                )},
+                { value: gp, label: gp === 1 ? 'Game' : 'Games' },
+                { value: sv, label: sv === 1 ? 'Save' : 'Saves' },
+                { value: cs, label: cs === 1 ? 'Sheet' : 'Sheets' },
               ]
             : [
-                { value: g, label: g === 1 ? 'Goal' : 'Goals', icon: (
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" strokeWidth="1.4" opacity="0.55" />
-                  </svg>
-                )},
-                { value: a, label: a === 1 ? 'Assist' : 'Assists', icon: (
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M4 20l4-16M4 20l7-4M4 20l-1-4" />
-                  </svg>
-                )},
-                { value: gp, label: gp === 1 ? 'Game' : 'Games', icon: (
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                )},
+                { value: g, label: g === 1 ? 'Goal' : 'Goals' },
+                { value: a, label: a === 1 ? 'Assist' : 'Assists' },
+                { value: gp, label: gp === 1 ? 'Game' : 'Games' },
               ];
           return (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
                 <span className="h-px flex-1 bg-brand-primary/25" aria-hidden />
-                <span className="text-[9px] font-black uppercase tracking-[0.32em] text-brand-primary">This Season</span>
+                <span className="text-[8.5px] font-black uppercase tracking-[0.32em] text-brand-primary">This Season</span>
                 <span className="h-px flex-1 bg-brand-primary/25" aria-hidden />
               </div>
               <div className="grid grid-cols-3 gap-1">
-                {cells.map(({ value, label, icon }) => (
-                  <div key={label} className="flex flex-col items-center justify-center min-w-0 py-1">
-                    <span className="text-brand-primary dark:text-brand-primary-soft mb-0.5">{icon}</span>
-                    <span className="text-[20px] font-black leading-none tabular-nums text-ink-primary">{value}</span>
-                    <p className="text-[8px] font-black uppercase tracking-[0.16em] mt-1 truncate max-w-full text-ink-primary/55">{label}</p>
+                {cells.map(({ value, label }) => (
+                  <div key={label} className="flex flex-col items-center justify-center min-w-0">
+                    <span className="text-[19px] font-black leading-none tabular-nums text-ink-primary">{value}</span>
+                    <p className="text-[8px] font-black uppercase tracking-[0.18em] mt-1 truncate max-w-full text-ink-primary/55">{label}</p>
                   </div>
                 ))}
               </div>
@@ -2369,16 +2346,16 @@ const MyPlayerCard: React.FC<{
                   Fixes Patrick's "1 of 11 what?" — header now names
                   the metric so subtitle can be unambiguous context. */}
               {/* LEVEL */}
-              <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-line-default/15'}`}>
+              <div className={`px-1.5 py-1.5 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-line-default/15'}`}>
                 <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Level</p>
-                <span className={`text-[22px] font-black leading-none tabular-nums mt-1 ${isPotm ? 'text-amber-50' : 'text-brand-primary dark:text-brand-primary-soft'}`}>{level.level}</span>
+                <span className={`text-[19px] font-black leading-none tabular-nums mt-1 ${isPotm ? 'text-amber-50' : 'text-brand-primary dark:text-brand-primary-soft'}`}>{level.level}</span>
                 <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>{tier}</p>
               </div>
               {/* STREAK */}
-              <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-line-default/15'}`}>
+              <div className={`px-1.5 py-1.5 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-line-default/15'}`}>
                 <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Streak</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{streakDays}</span>
+                  <span className={`text-[19px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{streakDays}</span>
                   <svg className="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                     <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248z" clipRule="evenodd" />
                   </svg>
@@ -2386,10 +2363,10 @@ const MyPlayerCard: React.FC<{
                 <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>{streakDays === 1 ? 'Day' : 'Days'}</p>
               </div>
               {/* BADGES */}
-              <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-line-default/15'}`}>
+              <div className={`px-1.5 py-1.5 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-line-default/15'}`}>
                 <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Badges</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{badgeCount}</span>
+                  <span className={`text-[19px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{badgeCount}</span>
                   <svg className="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                     <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
                   </svg>
@@ -2397,7 +2374,7 @@ const MyPlayerCard: React.FC<{
                 <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 tabular-nums ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>of {totalBadgeSlots}</p>
               </div>
               {/* LATEST BADGE — 3-row contract too: label / art / name */}
-              <div className="px-1.5 py-2 flex flex-col items-center justify-center min-w-0">
+              <div className="px-1.5 py-1.5 flex flex-col items-center justify-center min-w-0">
                 <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Latest</p>
                 {latestBadge ? (
                   <>
@@ -2479,7 +2456,7 @@ const MyPlayerCard: React.FC<{
             const cols = showSaves ? 'grid-cols-4' : 'grid-cols-3';
             const cellBorder = isPotm ? 'border-amber-100/25' : 'border-line-default/15';
             const label = `text-[8.5px] font-black uppercase tracking-[0.26em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`;
-            const val = `text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`;
+            const val = `text-[19px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`;
             return (
               <div className={`grid ${cols} rounded-xl overflow-hidden ring-1 ${
                 isPotm ? 'bg-amber-900/25 ring-amber-100/40' : 'bg-ink-primary/[0.04] dark:bg-black/30 ring-line-default/15'

@@ -2124,129 +2124,111 @@ const MyPlayerCard: React.FC<{
           </div>
         )}
 
-        {/* IDENTITY ROW: photo + name column. items-center balances
-            the shorter name column against the photo. */}
-        <div className="flex items-center gap-4">
-          {/* Photo — the solid crimson 3px ring on the photo IS the
-              contour outline (Patrick 2026-07-13: "outline contours to
-              the profile photo"). Dashed reticle + ticks removed —
-              they floated outside the photo and read as separate from
-              it, breaking the "connected to the photo" feel. Soft
-              crimson glow behind, dialed down from /25 to /15 to keep
-              interior red saturation in check. */}
-          <div className="relative flex-shrink-0 w-[100px] h-[100px]">
-            {!isPotm && (
-              <div aria-hidden className="absolute -inset-1 rounded-full bg-brand-primary/15 blur-md pointer-events-none" />
-            )}
-            {p.profilePhotoUrl ? (
-              <img
-                src={p.profilePhotoUrl}
-                alt={player.name}
-                className={`relative w-[100px] h-[100px] rounded-full object-cover shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}
-                loading="lazy"
+        {/* COMPOUND OUTLINE — one continuous crimson stroke wraps
+            photo + HUD as a single shape (Patrick 2026-07-13 sketch).
+            Photo has NO ring of its own; HUD has NO ring or cell
+            dividers. The SVG path is the ONLY outline: half-circle
+            over the photo bump, smooth curves down to the HUD
+            rounded rectangle, wraps HUD, and closes back around
+            the photo. `preserveAspectRatio="none"` stretches the
+            path to fill the wrapper — arcs distort minimally at
+            mobile-portrait aspect ratios (target 380:216 ≈ 1.76,
+            actual iPhone card is close). POTM keeps its old shape
+            since the gold treatment carries its own drama. */}
+        {!isPotm && xpEnabled ? (
+          <div className="relative">
+            <svg
+              aria-hidden
+              viewBox="0 0 380 216"
+              preserveAspectRatio="none"
+              className="absolute inset-0 w-full h-full pointer-events-none"
+            >
+              <path
+                d="M 5 62 A 57 57 0 1 1 119 62 C 130 90, 210 130, 362 130 A 12 12 0 0 1 374 142 L 374 200 A 12 12 0 0 1 362 212 L 18 212 A 12 12 0 0 1 6 200 L 6 142 A 12 12 0 0 1 18 130 C -30 130, 5 100, 5 62 Z"
+                fill="none"
+                stroke="rgba(200,32,44,0.6)"
+                strokeWidth="1.3"
+                strokeLinejoin="round"
               />
-            ) : (
-              <div className={`relative w-[100px] h-[100px] rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
-                {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
-              </div>
-            )}
-            {/* Jersey number pill overlaid on photo — Patrick moved it
-                back here 2026-07-13 ("I want the jersey number more
-                prominent and probably back where it was on the photo").
-                Chunky 34px disc, bottom-right, bold tabular number so
-                double-digits sit centered. */}
-            {player.jerseyNumber != null && !isPotm && (
-              <span
-                className="absolute -bottom-0.5 -right-0.5 z-10 w-[34px] h-[34px] rounded-full bg-charcoal-900 text-white ring-2 ring-brand-primary flex items-center justify-center text-[13px] font-black tabular-nums shadow-lg"
-                aria-label={`Jersey number ${player.jerseyNumber}`}
-              >
-                {player.jerseyNumber}
-              </span>
-            )}
-            {isPotm && (
-              <span
-                className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-amber-300 ring-2 ring-amber-700 flex items-center justify-center shadow-lg"
-                aria-label="Player of the Match"
-              >
-                <svg className="w-3.5 h-3.5 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
-                </svg>
-              </span>
-            )}
-          </div>
+            </svg>
 
-          {/* Name column — "Hunter Gill" + crimson hairline rule
-              (Patrick 2026-07-13: "the red line under hunter will
-              make it look better formatted") + DEFENDER pill. Jersey
-              number lives on the photo, so no subline here. */}
-          <div className="flex-1 min-w-0">
-            <p className={`text-[24px] sm:text-[26px] font-black leading-[1] tracking-tight ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
-              {player.name}
-            </p>
-            {!isPotm && (
-              <span
-                aria-hidden
-                className="block h-[2px] w-14 mt-2 rounded-full bg-gradient-to-r from-brand-primary via-brand-primary/70 to-transparent"
-              />
-            )}
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 mt-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
-              isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/85'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
-              {position}
-            </span>
-          </div>
-        </div>
-
-        {xpEnabled ? (
-          <>
-            {/* HUD STAT BLOCK — 4 equal cells: LEVEL / STREAK /
-                BADGES / LATEST BADGE. Each cell is compact enough
-                to fit on mobile portrait; subtitle line under each
-                value carries the qualifier (tier / "DAY STREAK" /
-                "N of 11" / badge name). */}
-            <div className={`grid grid-cols-4 rounded-xl overflow-hidden ring-1 ${
-              isPotm
-                ? 'bg-amber-900/25 ring-amber-100/40'
-                : 'bg-black/30 ring-line-default/15'
-            }`}>
-              {/* Uniform cell contract across all 4 cells:
-                    row 1: HEADER label (8px uppercase tracked)
-                    row 2: primary VALUE (22px, sometimes with inline icon)
-                    row 3: SUBTITLE / qualifier (8px, muted)
-                  Fixes Patrick's "1 of 11 what?" — header now names
-                  the metric so subtitle can be unambiguous context. */}
-              {/* LEVEL */}
-              <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-line-default/15'}`}>
-                <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Level</p>
-                <span className={`text-[22px] font-black leading-none tabular-nums mt-1 ${isPotm ? 'text-amber-50' : 'text-brand-primary-soft'}`}>{level.level}</span>
-                <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>{tier}</p>
+            {/* Identity block sits inside the compound outline's
+                top-left "bump" zone. Padding keeps the photo away
+                from the outline edge (Patrick: "enough space between
+                the pic and the line to make it look good"). */}
+            <div className="relative flex items-center gap-4 pt-1 pb-6 pl-1 pr-2">
+              <div className="relative flex-shrink-0 w-[100px] h-[100px]">
+                {p.profilePhotoUrl ? (
+                  <img
+                    src={p.profilePhotoUrl}
+                    alt={player.name}
+                    className="w-[100px] h-[100px] rounded-full object-cover shadow-lg"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-[100px] h-[100px] rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg">
+                    {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
+                  </div>
+                )}
+                {/* Jersey pill: TOP-LEFT of the photo (Patrick:
+                    "you can put the number 10 higher or even on
+                    top left or right"). Sits above the compound
+                    outline's photo arc for a clean shield-badge feel. */}
+                {player.jerseyNumber != null && (
+                  <span
+                    className="absolute -top-1 -left-1 z-10 w-[32px] h-[32px] rounded-full bg-charcoal-900 text-white ring-2 ring-brand-primary flex items-center justify-center text-[13px] font-black tabular-nums shadow-lg"
+                    aria-label={`Jersey number ${player.jerseyNumber}`}
+                  >
+                    {player.jerseyNumber}
+                  </span>
+                )}
               </div>
-              {/* STREAK */}
-              <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-line-default/15'}`}>
-                <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Streak</p>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-[24px] sm:text-[26px] font-black leading-[1] tracking-tight text-ink-primary">
+                  {player.name}
+                </p>
+                <span aria-hidden className="block h-[2px] w-14 mt-2 rounded-full bg-gradient-to-r from-brand-primary via-brand-primary/70 to-transparent" />
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 mt-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-line-default/10 text-ink-primary/85">
+                  <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
+                  {position}
+                </span>
+              </div>
+            </div>
+
+            {/* HUD — 4 cells with GAP between them (Patrick: "space
+                between the lines of the four boxes"). No ring, no
+                cell dividers, no background — the compound outline
+                above supplies the frame. Padding + gap gives cells
+                their box breathing room inside the outline. */}
+            <div className="relative grid grid-cols-4 gap-1 pt-2 pb-3 px-3">
+              <div className="flex flex-col items-center justify-center min-w-0">
+                <p className="text-[8px] font-black uppercase tracking-[0.22em] text-ink-primary/55">Level</p>
+                <span className="text-[22px] font-black leading-none tabular-nums mt-1 text-brand-primary-soft">{level.level}</span>
+                <p className="text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full text-ink-primary/50">{tier}</p>
+              </div>
+              <div className="flex flex-col items-center justify-center min-w-0">
+                <p className="text-[8px] font-black uppercase tracking-[0.22em] text-ink-primary/55">Streak</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{streakDays}</span>
+                  <span className="text-[22px] font-black leading-none tabular-nums text-ink-primary">{streakDays}</span>
                   <svg className="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                     <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>{streakDays === 1 ? 'Day' : 'Days'}</p>
+                <p className="text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full text-ink-primary/50">{streakDays === 1 ? 'Day' : 'Days'}</p>
               </div>
-              {/* BADGES */}
-              <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-line-default/15'}`}>
-                <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Badges</p>
+              <div className="flex flex-col items-center justify-center min-w-0">
+                <p className="text-[8px] font-black uppercase tracking-[0.22em] text-ink-primary/55">Badges</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{badgeCount}</span>
+                  <span className="text-[22px] font-black leading-none tabular-nums text-ink-primary">{badgeCount}</span>
                   <svg className="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                     <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
                   </svg>
                 </div>
-                <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 tabular-nums ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>of {totalBadgeSlots}</p>
+                <p className="text-[8px] font-black uppercase tracking-[0.14em] mt-1 tabular-nums text-ink-primary/50">of {totalBadgeSlots}</p>
               </div>
-              {/* LATEST BADGE — 3-row contract too: label / art / name */}
-              <div className="px-1.5 py-2 flex flex-col items-center justify-center min-w-0">
-                <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Latest</p>
+              <div className="flex flex-col items-center justify-center min-w-0">
+                <p className="text-[8px] font-black uppercase tracking-[0.22em] text-ink-primary/55">Latest</p>
                 {latestBadge ? (
                   <>
                     <img
@@ -2255,19 +2237,134 @@ const MyPlayerCard: React.FC<{
                       className="w-[26px] h-[26px] mt-0.5 object-contain drop-shadow"
                       loading="lazy"
                     />
-                    <p className={`text-[8px] font-black uppercase tracking-[0.1em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/85' : 'text-ink-primary/70'}`}>{latestBadge.label}</p>
+                    <p className="text-[8px] font-black uppercase tracking-[0.1em] mt-1 truncate max-w-full text-ink-primary/70">{latestBadge.label}</p>
                   </>
                 ) : (
                   <>
-                    {/* Empty state: dashed shield outline + label. */}
-                    <svg className={`w-[26px] h-[26px] mt-0.5 ${isPotm ? 'text-amber-100/45' : 'text-ink-primary/25'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 2" aria-hidden>
+                    <svg className="w-[26px] h-[26px] mt-0.5 text-ink-primary/25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 2" aria-hidden>
                       <path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z" />
                     </svg>
-                    <p className={`text-[8px] font-black uppercase tracking-[0.1em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/45'}`}>None yet</p>
+                    <p className="text-[8px] font-black uppercase tracking-[0.1em] mt-1 truncate max-w-full text-ink-primary/45">None yet</p>
                   </>
                 )}
               </div>
             </div>
+          </div>
+        ) : (
+          /* POTM path OR xpEnabled=false path: fall back to the
+             separate photo + separate HUD layout (no compound
+             outline). POTM has its own gold treatment; xp-off has
+             the season-starts-soon fallback below. */
+          <>
+            <div className="flex items-center gap-4">
+              <div className="relative flex-shrink-0 w-[100px] h-[100px]">
+                {!isPotm && (
+                  <div aria-hidden className="absolute -inset-1 rounded-full bg-brand-primary/15 blur-md pointer-events-none" />
+                )}
+                {p.profilePhotoUrl ? (
+                  <img
+                    src={p.profilePhotoUrl}
+                    alt={player.name}
+                    className={`relative w-[100px] h-[100px] rounded-full object-cover shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className={`relative w-[100px] h-[100px] rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
+                    {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
+                  </div>
+                )}
+                {player.jerseyNumber != null && !isPotm && (
+                  <span
+                    className="absolute -top-1 -left-1 z-10 w-[32px] h-[32px] rounded-full bg-charcoal-900 text-white ring-2 ring-brand-primary flex items-center justify-center text-[13px] font-black tabular-nums shadow-lg"
+                    aria-label={`Jersey number ${player.jerseyNumber}`}
+                  >
+                    {player.jerseyNumber}
+                  </span>
+                )}
+                {isPotm && (
+                  <span
+                    className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-amber-300 ring-2 ring-amber-700 flex items-center justify-center shadow-lg"
+                    aria-label="Player of the Match"
+                  >
+                    <svg className="w-3.5 h-3.5 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
+                    </svg>
+                  </span>
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className={`text-[24px] sm:text-[26px] font-black leading-[1] tracking-tight ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
+                  {player.name}
+                </p>
+                {!isPotm && (
+                  <span
+                    aria-hidden
+                    className="block h-[2px] w-14 mt-2 rounded-full bg-gradient-to-r from-brand-primary via-brand-primary/70 to-transparent"
+                  />
+                )}
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 mt-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                  isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/85'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
+                  {position}
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+        {xpEnabled ? (
+          <>{/* HUD already rendered inside compound outline above (non-POTM) OR still needs a POTM HUD below */}
+            {isPotm && (
+              <div className="grid grid-cols-4 rounded-xl overflow-hidden ring-1 bg-amber-900/25 ring-amber-100/40">
+                <div className="px-1.5 py-2 flex flex-col items-center justify-center min-w-0 border-r border-amber-100/25">
+                  <p className="text-[8px] font-black uppercase tracking-[0.22em] text-amber-100/80">Level</p>
+                  <span className="text-[22px] font-black leading-none tabular-nums mt-1 text-amber-50">{level.level}</span>
+                  <p className="text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full text-amber-100/70">{tier}</p>
+                </div>
+                <div className="px-1.5 py-2 flex flex-col items-center justify-center min-w-0 border-r border-amber-100/25">
+                  <p className="text-[8px] font-black uppercase tracking-[0.22em] text-amber-100/80">Streak</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-[22px] font-black leading-none tabular-nums text-amber-50">{streakDays}</span>
+                    <svg className="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                      <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <p className="text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full text-amber-100/70">{streakDays === 1 ? 'Day' : 'Days'}</p>
+                </div>
+                <div className="px-1.5 py-2 flex flex-col items-center justify-center min-w-0 border-r border-amber-100/25">
+                  <p className="text-[8px] font-black uppercase tracking-[0.22em] text-amber-100/80">Badges</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-[22px] font-black leading-none tabular-nums text-amber-50">{badgeCount}</span>
+                    <svg className="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                      <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-[8px] font-black uppercase tracking-[0.14em] mt-1 tabular-nums text-amber-100/70">of {totalBadgeSlots}</p>
+                </div>
+                <div className="px-1.5 py-2 flex flex-col items-center justify-center min-w-0">
+                  <p className="text-[8px] font-black uppercase tracking-[0.22em] text-amber-100/80">Latest</p>
+                  {latestBadge ? (
+                    <>
+                      <img
+                        src={badgeImageSrc(latestBadge.slug, 64)}
+                        alt={latestBadge.label}
+                        className="w-[26px] h-[26px] mt-0.5 object-contain drop-shadow"
+                        loading="lazy"
+                      />
+                      <p className="text-[8px] font-black uppercase tracking-[0.1em] mt-1 truncate max-w-full text-amber-100/85">{latestBadge.label}</p>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-[26px] h-[26px] mt-0.5 text-amber-100/45" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 2" aria-hidden>
+                        <path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z" />
+                      </svg>
+                      <p className="text-[8px] font-black uppercase tracking-[0.1em] mt-1 truncate max-w-full text-amber-100/70">None yet</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* XP PROGRESS BAR — crimson→pink gradient with a glowing
                 endpoint. Left: X / Y XP. Right: "N XP TO LEVEL M ›"

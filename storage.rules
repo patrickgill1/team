@@ -103,6 +103,36 @@ service firebase.storage {
       allow write: if request.auth != null;
     }
 
+    // User own-profile uploads. Path shape: users/{uid}/{filename}.
+    // Used by useStorage.uploadUserPhoto for parent/coach profile
+    // photos. Owner-scoped write: only the user whose uid matches
+    // the path can write. This is the tight rule we WANT everywhere
+    // — it's possible here because the path contains uid.
+    // Missing this rule was Patrick's 2026-07-14 report (403 on
+    // `users/Leek1JUyr2dWaUAw7Uem6XY61v22/8fb89f24-...png` after
+    // the first rules deploy only covered player-photos/).
+    match /users/{uid}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Team-scoped player photo uploads via useStorage.uploadPlayerPhoto.
+    // Path shape: players/{teamId}/{filename}. Distinct from the
+    // legacy player-photos/ path (AddPlayer.tsx) — this one is
+    // team-scoped so we can at least segment writes by team, but
+    // can't cheaply verify coach membership in rules.
+    match /players/{teamId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Gallery uploads via useStorage.uploadGalleryPhoto.
+    // Path shape: gallery/{teamId}/{filename}. Coach-gated in UI.
+    match /gallery/{teamId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
     // Default fallback: authed users can READ anything else that
     // slipped past the explicit prefixes, but NOTHING writes here.
     // Compare to the previous wildcard that allowed writes too — that

@@ -2138,10 +2138,10 @@ const MyPlayerCard: React.FC<{
                 </p>
                 {lastName && (
                   <p
-                    className={`text-[38px] sm:text-[44px] leading-[0.82] uppercase truncate ${isPotm ? 'text-amber-100 drop-shadow' : 'text-brand-primary'}`}
+                    className={`text-[38px] sm:text-[44px] leading-[0.95] uppercase whitespace-nowrap ${isPotm ? 'text-amber-100 drop-shadow' : 'text-brand-primary'}`}
                     style={{
                       // Bangers = Google Font bundled at
-                      // public/fonts/bangers.woff2. Comic-book / sports
+                      // src/fonts/bangers.woff2. Comic-book / sports
                       // poster feel — bold uppercase with slightly
                       // rough painterly edges. Falls through to
                       // Chalkduster (iOS) or Impact (Android/Windows)
@@ -2150,6 +2150,15 @@ const MyPlayerCard: React.FC<{
                       // margin-top so the two words visually stack
                       // like a hand-painted signature block, matching
                       // Patrick's 2026-07-13 reference.
+                      //
+                      // NO `truncate` and NO `overflow-hidden` on
+                      // this element — Bangers has descenders and
+                      // the italic + skew tails extend past the
+                      // paragraph's box; truncate was cutting off
+                      // the bottoms of letters. Use `overflow:
+                      // visible` explicitly + `whitespace-nowrap`
+                      // so the shadow renders fully and long names
+                      // still stay on one line.
                       fontFamily: '"Bangers", "Chalkduster", "Marker Felt", Impact, "Anton", "Bebas Neue", "Arial Black", sans-serif',
                       fontWeight: 400,
                       fontStyle: 'italic',
@@ -2157,7 +2166,9 @@ const MyPlayerCard: React.FC<{
                       transform: 'skewX(-4deg)',
                       transformOrigin: 'left bottom',
                       display: 'inline-block',
-                      marginTop: '-6px',
+                      marginTop: '-4px',
+                      paddingBottom: '6px',
+                      overflow: 'visible',
                       filter: isPotm ? undefined : 'drop-shadow(0 2px 8px rgba(200,32,44,0.5))',
                     }}
                   >

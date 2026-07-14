@@ -19,6 +19,7 @@ import React from 'react';
 import { Player, Team } from '../../types';
 import { computeXpLevel } from '../../utils/xpLevel';
 import { badgeImageSrc, badgeSrcSet, badgeLabel, filterVisibleBadgeSlots } from '../../utils/badgeMeta';
+import { playerTier } from '../../utils/playerTier';
 
 interface Props {
   player: Player;
@@ -219,7 +220,12 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onGiveXp }) => {
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-[0.18em] ring-1 ${rarityStyle.chip}`}
                 >
                   <StarIcon className="w-2.5 h-2.5" />
-                  {rarityStyle.label}
+                  {/* Per-level tier label (Patrick's warm-only progression).
+                      rarityStyle still drives the chip's colors + card
+                      frame style — we only override the TEXT so a
+                      Level 3 player reads "GAME READY" here just like
+                      on the dashboard, not "ROOKIE". */}
+                  {playerTier(level.level)}
                 </span>
               )}
               {isCoach && !paused && (

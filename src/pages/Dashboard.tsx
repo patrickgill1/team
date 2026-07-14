@@ -8,6 +8,7 @@ import { Player, CalendarEvent, PlayerMedia as PlayerMediaType } from '../types'
 import { formatDateTime, isCoachOfTeam } from '../utils/helpers';
 import { computeXpLevel } from '../utils/xpLevel';
 import { badgeImageSrc, badgeLabel } from '../utils/badgeMeta';
+import { playerTier } from '../utils/playerTier';
 import Header from '../components/common/Header';
 import EmailVerifyBanner from '../components/common/EmailVerifyBanner';
 import { RichContent } from './Wall';
@@ -2018,19 +2019,9 @@ const MyPlayerCard: React.FC<{
   const xpPct = Math.min(100, Math.max(0, Math.round((level.xpIntoLevel / Math.max(1, level.nextLevelThreshold - level.currentLevelThreshold)) * 100)));
   const xpToNext = Math.max(0, level.nextLevelThreshold - level.currentLevelThreshold - level.xpIntoLevel);
 
-  // Tier label per Patrick 2026-07-13. Warm-only progression — no
-  // "Rookie" / "Beginner" floor because a U10 seeing "Beginner"
-  // on their card every open is the opposite of the emotional lift
-  // the hero is supposed to deliver.
-  const tier = (() => {
-    const l = level.level;
-    if (l >= 6) return 'GOAT';
-    if (l === 5) return 'CAPTAIN';
-    if (l === 4) return 'PLAYMAKER';
-    if (l === 3) return 'GAME READY';
-    if (l === 2) return 'RISING STAR';
-    return 'NEW SIGNING';
-  })();
+  // Tier label — shared with PlayerXpCard so the dashboard hero and
+  // the profile Season Card show the same tier for a given level.
+  const tier = playerTier(level.level);
 
   // Latest badge — most-recently-earned entry from player.badges.
   // Rendered in the 4th HUD cell of the new hero layout. When empty

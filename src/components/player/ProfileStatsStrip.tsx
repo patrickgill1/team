@@ -53,10 +53,15 @@ const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePc
   );
 };
 
+// Neutralized outlines 2026-07-14 (Patrick: "we should at least make
+// the color consistent in the actual profile"). All four tiles now
+// share the same quiet ring so the strip reads as one composed unit;
+// icons keep their semantic color (amber trophy, emerald flame,
+// crimson check) so the metric is still visible at a glance.
 const ACCENT: Record<string, { bg: string; ring: string; badge: string; text: string }> = {
-  amber: { bg: 'bg-surface-elevated/80', ring: 'ring-amber-400/35', badge: 'bg-amber-400', text: 'text-ink-primary' },
-  emerald: { bg: 'bg-surface-elevated/80', ring: 'ring-emerald-400/30', badge: 'bg-emerald-400', text: 'text-ink-primary' },
-  cyan: { bg: 'bg-surface-elevated/80', ring: 'ring-brand-primary-soft/30', badge: 'bg-brand-primary-soft', text: 'text-ink-primary' },
+  amber: { bg: 'bg-surface-elevated/80', ring: 'ring-line-default/15', badge: 'bg-amber-400', text: 'text-ink-primary' },
+  emerald: { bg: 'bg-surface-elevated/80', ring: 'ring-line-default/15', badge: 'bg-emerald-400', text: 'text-ink-primary' },
+  cyan: { bg: 'bg-surface-elevated/80', ring: 'ring-line-default/15', badge: 'bg-brand-primary-soft', text: 'text-ink-primary' },
 };
 
 const StatTile: React.FC<{

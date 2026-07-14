@@ -7,6 +7,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Player, CalendarEvent, PlayerMedia as PlayerMediaType } from '../types';
 import { formatDateTime, isCoachOfTeam } from '../utils/helpers';
 import { computeXpLevel } from '../utils/xpLevel';
+import { badgeImageSrc, badgeLabel } from '../utils/badgeMeta';
 import Header from '../components/common/Header';
 import EmailVerifyBanner from '../components/common/EmailVerifyBanner';
 import { RichContent } from './Wall';
@@ -2015,14 +2016,43 @@ const MyPlayerCard: React.FC<{
     : 'bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base ring-1 ring-brand-primary/10 dark:ring-brand-primary/35 shadow-brand-primary/10 dark:shadow-brand-primary/25';
 
   const xpPct = Math.min(100, Math.max(0, Math.round((level.xpIntoLevel / Math.max(1, level.nextLevelThreshold - level.currentLevelThreshold)) * 100)));
+  const xpToNext = Math.max(0, level.nextLevelThreshold - level.currentLevelThreshold - level.xpIntoLevel);
 
-  // Split the name so we can style the last name as a script/brush
-  // treatment in crimson — matches Patrick's 2026-07-13 reference
-  // where "GILL" reads as a hero-splash signature under "HUNTER."
-  // Single-word names collapse to first-only (no script line).
-  const nameParts = String(player.name || '').trim().split(/\s+/).filter(Boolean);
-  const firstName = nameParts[0] || String(player.name || 'Player');
-  const lastName = nameParts.slice(1).join(' ');
+  // Tier label per Patrick 2026-07-13. Warm-only progression — no
+  // "Rookie" / "Beginner" floor because a U10 seeing "Beginner"
+  // on their card every open is the opposite of the emotional lift
+  // the hero is supposed to deliver.
+  const tier = (() => {
+    const l = level.level;
+    if (l >= 6) return 'GOAT';
+    if (l === 5) return 'CAPTAIN';
+    if (l === 4) return 'PLAYMAKER';
+    if (l === 3) return 'GAME READY';
+    if (l === 2) return 'RISING STAR';
+    return 'NEW SIGNING';
+  })();
+
+  // Latest badge — most-recently-earned entry from player.badges.
+  // Rendered in the 4th HUD cell of the new hero layout. When empty
+  // we show a dashed-shield "NO BADGE YET" placeholder in the cell
+  // so the layout stays balanced.
+  const badges: Record<string, any> = (p.badges && typeof p.badges === 'object') ? p.badges : {};
+  const totalBadgeSlots = 11; // matches the fixed BADGE_SLOTS list on PlayerXpCard
+  const latestBadge = (() => {
+    const toMs = (v: any): number => {
+      if (!v) return 0;
+      if (v instanceof Date) return v.getTime();
+      if (typeof v?.toDate === 'function') { try { return v.toDate().getTime(); } catch { return 0; } }
+      if (typeof v?.seconds === 'number') return v.seconds * 1000;
+      if (typeof v === 'number') return v;
+      return 0;
+    };
+    const entries = Object.entries(badges);
+    if (entries.length === 0) return null;
+    entries.sort(([, a]: any, [, b]: any) => toMs(b?.earnedAt) - toMs(a?.earnedAt));
+    const [slug] = entries[0];
+    return { slug, label: badgeLabel(slug) };
+  })();
 
   return (
     <Link
@@ -2081,39 +2111,68 @@ const MyPlayerCard: React.FC<{
           }}
         />
       )}
-      {/* Card content — z-[2] to sit above the giant jersey watermark
-          rendered at z-[1] above. Two-part layout: identity block up
-          top (photo + name splash + Profile chip + position), stats
-          HUD below (LEVEL / STREAK / BADGES 3-column) + XP bar with
-          LV markers and glowing endpoint. */}
-      <div className={`relative z-[2] ${isPotm ? 'pt-10 pb-4 px-4' : 'p-4'} flex flex-col gap-3.5`}>
-        {/* IDENTITY ROW: photo + name column */}
+      {/* Card content — z-[2] to sit above the backdrop pattern
+          at z-[1]. SEASON CARD layout (2026-07-13 reference):
+          kicker + hairline, identity row (photo + name/pill + VIEW
+          PROFILE), 4-col HUD (LEVEL/STREAK/BADGES/LATEST BADGE),
+          then XP bar with progress-to-next-level text. */}
+      <div className={`relative z-[2] ${isPotm ? 'pt-10 pb-4 px-4' : 'p-4'} flex flex-col gap-3`}>
+        {/* SEASON CARD kicker + hairline underline — sports-poster
+            eyebrow that names what this artifact IS. Suppressed on
+            POTM week (the gold banner already labels it). */}
+        {!isPotm && (
+          <div className="flex items-center justify-between gap-3 -mb-1">
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="text-[9.5px] font-black uppercase tracking-[0.32em] text-brand-primary">Season Card</span>
+              <span className="h-px flex-1 bg-gradient-to-r from-brand-primary/70 via-brand-primary/25 to-transparent" aria-hidden />
+            </div>
+            <span className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9.5px] font-black uppercase tracking-[0.22em] ring-1 ring-brand-primary/50 text-brand-primary-soft hover:bg-brand-primary/10 transition whitespace-nowrap">
+              View Profile
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
+                <polyline points="9 6 15 12 9 18" />
+              </svg>
+            </span>
+          </div>
+        )}
+
+        {/* IDENTITY ROW: photo (target-ring framed) + name column */}
         <div className="flex items-start gap-4">
-          {/* Photo — crimson ring 3px + subtle crimson glow behind. */}
-          <div className="relative flex-shrink-0">
+          {/* Photo — layered concentric dashed rings evoke a target
+              /scouting frame. Subtle crimson glow behind. */}
+          <div className="relative flex-shrink-0 w-[92px] h-[92px]">
             {!isPotm && (
-              <div aria-hidden className="absolute -inset-1.5 rounded-full bg-brand-primary/25 blur-md pointer-events-none" />
+              <>
+                <div aria-hidden className="absolute -inset-2 rounded-full bg-brand-primary/25 blur-md pointer-events-none" />
+                {/* Concentric dashed target rings — SVG for crisp
+                    dashes at any DPR. Two rings + a subtle tick at
+                    12 o'clock so it reads as a scouting reticle
+                    without shouting. */}
+                <svg
+                  aria-hidden
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  viewBox="0 0 100 100"
+                >
+                  <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(200,32,44,0.55)" strokeWidth="0.75" strokeDasharray="1.5 2" />
+                  <circle cx="50" cy="50" r="45.5" fill="none" stroke="rgba(200,32,44,0.28)" strokeWidth="0.5" strokeDasharray="0.75 1.5" />
+                  <line x1="50" y1="0.5" x2="50" y2="3.5" stroke="rgba(200,32,44,0.75)" strokeWidth="0.9" strokeLinecap="round" />
+                </svg>
+              </>
             )}
             {p.profilePhotoUrl ? (
               <img
                 src={p.profilePhotoUrl}
                 alt={player.name}
-                className={`relative w-24 h-24 rounded-full object-cover shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}
+                className={`relative rounded-full object-cover shadow-lg ring-[3px] ${
+                  isPotm ? 'w-[92px] h-[92px] ring-amber-300' : 'w-[76px] h-[76px] m-2 ring-brand-primary'
+                }`}
                 loading="lazy"
               />
             ) : (
-              <div className={`relative w-24 h-24 rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-3xl font-black shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
+              <div className={`relative rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[3px] ${
+                isPotm ? 'w-[92px] h-[92px] ring-amber-300' : 'w-[76px] h-[76px] m-2 ring-brand-primary'
+              }`}>
                 {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
               </div>
-            )}
-            {player.jerseyNumber != null && (
-              <span
-                className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-black tabular-nums shadow-md ring-1 ${
-                  isPotm ? 'bg-amber-50 text-amber-950 ring-amber-200' : 'bg-charcoal-900 text-white ring-brand-primary'
-                }`}
-              >
-                #{player.jerseyNumber}
-              </span>
             )}
             {isPotm && (
               <span
@@ -2127,131 +2186,102 @@ const MyPlayerCard: React.FC<{
             )}
           </div>
 
-          {/* Name column — FIRST NAME uppercase display, LAST NAME
-              brush-script crimson on the next line. Profile chip
-              anchored top-right of the column. DEFENDER pill below. */}
-          <div className="flex-1 min-w-0 pt-0.5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className={`text-[26px] sm:text-[30px] font-black leading-[0.9] uppercase tracking-tight truncate ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
-                  {firstName}
-                </p>
-                {lastName && (
-                  <p
-                    className={`text-[38px] sm:text-[44px] leading-[0.95] uppercase whitespace-nowrap ${isPotm ? 'text-amber-100 drop-shadow' : 'text-brand-primary'}`}
-                    style={{
-                      // Bangers = Google Font bundled at
-                      // src/fonts/bangers.woff2. Comic-book / sports
-                      // poster feel — bold uppercase with slightly
-                      // rough painterly edges. Falls through to
-                      // Chalkduster (iOS) or Impact (Android/Windows)
-                      // if the font hasn't loaded yet on first paint.
-                      // Overlap with the first name via negative
-                      // margin-top so the two words visually stack
-                      // like a hand-painted signature block, matching
-                      // Patrick's 2026-07-13 reference.
-                      //
-                      // NO `truncate` and NO `overflow-hidden` on
-                      // this element — Bangers has descenders and
-                      // the italic + skew tails extend past the
-                      // paragraph's box; truncate was cutting off
-                      // the bottoms of letters. Use `overflow:
-                      // visible` explicitly + `whitespace-nowrap`
-                      // so the shadow renders fully and long names
-                      // still stay on one line.
-                      fontFamily: '"Bangers", "Chalkduster", "Marker Felt", Impact, "Anton", "Bebas Neue", "Arial Black", sans-serif',
-                      fontWeight: 400,
-                      fontStyle: 'italic',
-                      letterSpacing: '0.005em',
-                      transform: 'skewX(-4deg)',
-                      transformOrigin: 'left bottom',
-                      display: 'inline-block',
-                      marginTop: '-4px',
-                      paddingBottom: '6px',
-                      overflow: 'visible',
-                      filter: isPotm ? undefined : 'drop-shadow(0 2px 8px rgba(200,32,44,0.5))',
-                    }}
-                  >
-                    {lastName}
-                  </p>
-                )}
-              </div>
-              <span className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9.5px] font-black uppercase tracking-[0.22em] ring-1 whitespace-nowrap transition ${
-                isPotm
-                  ? 'ring-amber-100/70 text-amber-50 bg-amber-900/25'
-                  : 'ring-brand-primary/50 text-brand-primary-soft hover:bg-brand-primary/10'
+          {/* Name column — clean bold sans "Hunter Gill" (no brush
+              split; reference goes clean), DEFENDER pill + jersey
+              subline. Profile chip lives in the kicker row above. */}
+          <div className="flex-1 min-w-0 pt-1">
+            <p className={`text-[22px] sm:text-[24px] font-black leading-[1.05] tracking-tight ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
+              {player.name}
+            </p>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/85'
               }`}>
-                Profile
-                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
-                  <polyline points="9 6 15 12 9 18" />
-                </svg>
+                <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
+                {position}
               </span>
+              {player.jerseyNumber != null && (
+                <span className={`text-[11px] font-black tabular-nums tracking-tight ${isPotm ? 'text-amber-100/85' : 'text-ink-primary/55'}`}>
+                  #{player.jerseyNumber}
+                </span>
+              )}
             </div>
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 mt-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
-              isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/85'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
-              {position}
-            </span>
           </div>
         </div>
 
         {xpEnabled ? (
           <>
-            {/* HUD STAT BLOCK — 3 equal columns: LEVEL / DAY STREAK /
-                BADGES. Framed in a subtle dark plate with a crimson
-                ring so it reads as a distinct game-HUD region, not
-                three floating chips. */}
-            <div className={`grid grid-cols-3 rounded-xl overflow-hidden ring-1 ${
+            {/* HUD STAT BLOCK — 4 equal cells: LEVEL / STREAK /
+                BADGES / LATEST BADGE. Each cell is compact enough
+                to fit on mobile portrait; subtitle line under each
+                value carries the qualifier (tier / "DAY STREAK" /
+                "N of 11" / badge name). */}
+            <div className={`grid grid-cols-4 rounded-xl overflow-hidden ring-1 ${
               isPotm
                 ? 'bg-amber-900/25 ring-amber-100/40'
                 : 'bg-black/30 ring-brand-primary/25'
             }`}>
               {/* LEVEL */}
-              <div className={`px-3 py-2 flex flex-col items-center justify-center ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-brand-primary/20'}`}>
-                <p className={`text-[8.5px] font-black uppercase tracking-[0.26em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Level</p>
-                <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-brand-primary-soft'}`}>{level.level}</span>
-                  <svg className={`w-3 h-3 ${isPotm ? 'text-amber-100/70' : 'text-brand-primary-soft/70'}`} fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                    <polyline points="17 6 23 6 23 12" />
-                  </svg>
-                </div>
+              <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-brand-primary/20'}`}>
+                <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Level</p>
+                <span className={`text-[22px] font-black leading-none tabular-nums mt-0.5 ${isPotm ? 'text-amber-50' : 'text-brand-primary-soft'}`}>{level.level}</span>
+                <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>{tier}</p>
               </div>
               {/* DAY STREAK */}
-              <div className={`px-3 py-2 flex flex-col items-center justify-center ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-brand-primary/20'}`}>
-                <div className="flex items-baseline gap-1">
-                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{streakDays}</span>
-                  <svg className="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <p className={`text-[8.5px] font-black uppercase tracking-[0.26em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Day Streak</p>
+              <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-brand-primary/20'}`}>
+                <svg className="w-3 h-3 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248z" clipRule="evenodd" />
+                </svg>
+                <span className={`text-[22px] font-black leading-none tabular-nums mt-0.5 ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{streakDays}</span>
+                <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>Day Streak</p>
               </div>
               {/* BADGES */}
-              <div className="px-3 py-2 flex flex-col items-center justify-center">
-                <div className="flex items-baseline gap-1">
-                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{badgeCount}</span>
-                  <svg className="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
-                  </svg>
-                </div>
-                <p className={`text-[8.5px] font-black uppercase tracking-[0.26em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>{badgeCount === 1 ? 'Badge' : 'Badges'}</p>
+              <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-brand-primary/20'}`}>
+                <svg className="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
+                </svg>
+                <span className={`text-[22px] font-black leading-none tabular-nums mt-0.5 ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{badgeCount}</span>
+                <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 tabular-nums ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>of {totalBadgeSlots}</p>
+              </div>
+              {/* LATEST BADGE */}
+              <div className="px-1.5 py-2 flex flex-col items-center justify-center min-w-0">
+                <p className={`text-[8px] font-black uppercase tracking-[0.16em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Latest</p>
+                {latestBadge ? (
+                  <>
+                    <img
+                      src={badgeImageSrc(latestBadge.slug, 64)}
+                      alt={latestBadge.label}
+                      className="w-8 h-8 mt-0.5 object-contain drop-shadow"
+                      loading="lazy"
+                    />
+                    <p className={`text-[8px] font-black uppercase tracking-[0.1em] mt-0.5 truncate max-w-full ${isPotm ? 'text-amber-100/85' : 'text-ink-primary/70'}`}>{latestBadge.label}</p>
+                  </>
+                ) : (
+                  <>
+                    {/* Empty state: dashed shield outline + label. */}
+                    <svg className={`w-8 h-8 mt-0.5 ${isPotm ? 'text-amber-100/45' : 'text-ink-primary/25'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 2" aria-hidden>
+                      <path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z" />
+                    </svg>
+                    <p className={`text-[8px] font-black uppercase tracking-[0.1em] mt-0.5 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/45'}`}>None yet</p>
+                  </>
+                )}
               </div>
             </div>
 
             {/* XP PROGRESS BAR — crimson→pink gradient with a glowing
-                endpoint dot that marks "you are here." LV markers
-                above the bar frame the current → next-level jump so
-                the ladder feels tangible. */}
+                endpoint. Left: X / Y XP. Right: "N XP TO LEVEL M ›"
+                so the ladder feels tangible + directional. */}
             <div>
-              <div className="flex items-baseline justify-between mb-1">
-                <span className="text-[10px] font-black tracking-[0.12em] tabular-nums">
+              <div className="flex items-baseline justify-between mb-1 gap-2">
+                <span className="text-[10px] font-black tracking-[0.08em] tabular-nums whitespace-nowrap">
                   <span className={isPotm ? 'text-amber-50' : 'text-brand-primary'}>{level.xpIntoLevel}</span>
                   <span className={isPotm ? 'text-amber-100/60' : 'text-ink-primary/40'}> / {level.nextLevelThreshold - level.currentLevelThreshold} XP</span>
                 </span>
-                <span className={`text-[9px] font-black uppercase tracking-[0.26em] tabular-nums ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/45'}`}>
-                  Lv {level.level} <span className={isPotm ? 'text-amber-100/40' : 'text-ink-primary/25'}>›</span> Lv {level.level + 1}
+                <span className={`text-[9px] font-black uppercase tracking-[0.18em] tabular-nums whitespace-nowrap flex items-center gap-1 ${isPotm ? 'text-amber-100/75' : 'text-ink-primary/55'}`}>
+                  {xpToNext} XP to Lv {level.level + 1}
+                  <svg className="w-2 h-2" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
+                    <polyline points="9 6 15 12 9 18" />
+                  </svg>
                 </span>
               </div>
               <div className={`relative h-2 rounded-full ${isPotm ? 'bg-amber-900/40' : 'bg-line-default/15'}`}>

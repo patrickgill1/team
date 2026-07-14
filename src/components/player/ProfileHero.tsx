@@ -48,12 +48,12 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
             <button
               type="button"
               onClick={onKudos}
-              className="inline-flex items-center gap-1.5 px-3 h-10 rounded-full bg-brand-primary text-white ring-1 ring-brand-primary shadow-md text-xs font-black uppercase tracking-widest hover:brightness-110 transition"
-              aria-label="Send a Kudos"
-              title="Send a Kudos — a short note about something you noticed"
+              className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full bg-brand-primary text-white ring-1 ring-brand-primary/40 shadow-sm text-[11px] font-black uppercase tracking-[0.14em] hover:brightness-110 transition whitespace-nowrap"
+              aria-label="Give Kudos"
+              title="Give Kudos — a short note about something you noticed"
             >
               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" /></svg>
-              Kudos
+              Give Kudos
             </button>
           )}
           {canEdit && (
@@ -74,17 +74,21 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-6 flex items-start gap-5">
         {/* Photo with cyan ring + jersey number badge */}
         <div className="relative shrink-0">
+          {/* 2026-07-14: photo ring aligned with Dashboard Season Card
+              treatment (solid crimson, 3px). Prior ring-4 + soft/70
+              read as chunky washed pink; the Season Card set the
+              cleaner reference and this page now matches it. */}
           {player.profilePhotoUrl ? (
             <img
               src={player.profilePhotoUrl}
               alt={player.name}
-              className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover ring-4 shadow-2xl ${
-                isCurrentPotm ? 'ring-amber-300 shadow-amber-400/30' : 'ring-brand-primary-soft/70 shadow-brand-primary-soft/20'
+              className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover shadow-lg ring-[3px] ${
+                isCurrentPotm ? 'ring-amber-300' : 'ring-brand-primary'
               }`}
             />
           ) : (
-            <div className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-line-default/10 ring-4 shadow-2xl flex items-center justify-center backdrop-blur ${
-              isCurrentPotm ? 'ring-amber-300 shadow-amber-400/40' : 'ring-brand-primary-soft/70'
+            <div className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-line-default/10 flex items-center justify-center backdrop-blur shadow-lg ring-[3px] ${
+              isCurrentPotm ? 'ring-amber-300' : 'ring-brand-primary'
             }`}>
               <span className="text-4xl sm:text-5xl font-black text-ink-primary">
                 {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}

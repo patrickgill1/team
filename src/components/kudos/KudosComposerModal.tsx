@@ -158,7 +158,7 @@ const KudosComposerModal: React.FC<Props> = ({ isOpen, onClose, player, onSent }
   };
 
   return (
-    <Sheet isOpen={isOpen} onClose={onClose} title={`Kudos for ${firstName}`}>
+    <Sheet open={isOpen} onClose={onClose} title={`Kudos for ${firstName}`}>
       <div className="p-4 sm:p-5 flex flex-col gap-4">
         {/* Intro */}
         <p className="text-sm text-ink-primary/70 leading-relaxed">

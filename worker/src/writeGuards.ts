@@ -343,6 +343,63 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
   });
 }
 
+// ────────────────────────────────────────────────────────────────
+// /parent/pool-status — read-only endpoint for the unrostered
+// parent's dashboard "InThePoolHero." Reads /registrations
+// server-side via admin SDK, filtering by the caller's verified
+// auth.token.email, and returns a sanitized list of the parent's
+// own kids + statuses.
+//
+// Why not a direct client Firestore query: the /registrations LIST
+// rule was tightened 2026-07-14 to require clubId scope, but
+// parents on this hero have NO clubIds on their user doc (they
+// haven't been rostered yet). Rules can't scope a parent's
+// pool-status query. Worker owns it.
+// ────────────────────────────────────────────────────────────────
+async function handleParentPoolStatus(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  // Trust the JWT's email, not the payload — prevents a caller
+  // from asking for someone else's registrations.
+  const email = normEmail(claims.email);
+  if (!email) {
+    return json({ ok: false, error: 'no_verified_email' }, 400);
+  }
+
+  // parents field is a list-of-maps in Firestore; parentEmails is
+  // a denormalized flat list-of-strings on the same doc (populated
+  // by /register/submit). Query the flat list — no ARRAY_CONTAINS
+  // on nested-map field. See writeGuards.ts:2273 for the write.
+  let regs: any[] = [];
+  try {
+    regs = await runQuery(
+      pid,
+      'registrations',
+      [{ field: 'parentEmails', op: 'ARRAY_CONTAINS', value: email }],
+      sa,
+      100,
+    );
+  } catch (err) {
+    console.warn('[pool-status] query failed:', (err as Error).message);
+    return json({ ok: false, error: 'query_failed' }, 500);
+  }
+
+  const kids = regs.map((r) => {
+    const data: any = r.data || {};
+    const first = String(data.player?.firstName || '').trim();
+    const last = String(data.player?.lastName || '').trim();
+    return {
+      registrationId: r.id,
+      playerName: (first || last) ? `${first} ${last}`.trim() : 'Your kid',
+      ageGroup: data.player?.ageGroup || null,
+      status: data.status || 'pending_payment',
+    };
+  });
+
+  return json({ ok: true, kids });
+}
+
 // ════════════════════════════════════════════════════════════════
 // Phase B — applyMembership() unified core
 // ════════════════════════════════════════════════════════════════
@@ -4265,6 +4322,7 @@ export async function routeWriteGuard(
     case '/dev-plans/log-tap':     return handleDevPlansLogTap(req, env, payload);
     case '/dev-plans/log-verify':  return handleDevPlansLogVerify(req, env, payload);
     case '/register/submit':       return handleRegisterSubmit(req, env, payload);
+    case '/parent/pool-status':    return handleParentPoolStatus(req, env, payload);
     default:                       return null;
   }
 }

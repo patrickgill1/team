@@ -971,11 +971,31 @@ service cloud.firestore {
     // ActiveInvitesPanel + coach admin flows list invites. Followup:
     // scope list to createdBy == request.auth.uid so a compromised
     // authed session still can't enumerate every invite in the org.
+    // /invites — 2026-07-14 audit: update/delete tightened. Previously
+    // `if request.auth != null` — any authed user could revoke or
+    // hijack any invite in the system (rotate parentEmails, flip
+    // revokedAt, overwrite teamId/playerId to hijack the target
+    // account when the invitee clicks the link). Verified via
+    // call-site audit: only client update is `revokeInvite` at
+    // src/utils/invites.ts:198-200, called from ActiveInvitesPanel.
+    // Widened predicate to allow any team coach (not just the
+    // original creator) so a head coach can revoke an assistant's
+    // stale invite — the ActiveInvitesPanel deliberately surfaces
+    // invites for the whole team. Worker /claim/invite bypasses
+    // rules via admin SDK; no impact.
     match /invites/{inviteId} {
       allow get: if true;
       allow list: if request.auth != null;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        resource.data.createdBy == request.auth.uid
+        || isPlatformAdmin()
+        || (
+          resource.data.teamId is string
+          && exists(/databases/$(database)/documents/teams/$(resource.data.teamId))
+          && request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.coachIds
+        )
+      );
     }
 
     // /coach_invites — 2026-07-14 audit: update/delete tightened from
@@ -1067,7 +1087,24 @@ service cloud.firestore {
             && request.auth.token.email is string
             && request.auth.token.email.lower() in resource.data.parentEmails)
       );
-      allow list: if request.auth != null;
+      // 2026-07-14 audit: LIST tightened. Previously `if request.auth
+      // != null` — any authed parent could dump every family's PII
+      // (child name/DOB, guardian contact, waiver + medical answers,
+      // payment status) from the browser console. The very leak the
+      // 2026-07-08 hardening was meant to prevent — but LIST was left
+      // permissive because per-doc predicates block ordered queries.
+      //
+      // Rule now enforces the same clubId scope as GET. Client MUST
+      // include `where('clubId', '==', callerClubId)` in the query
+      // for the list to succeed. Every admin page was updated to
+      // include this filter in the same commit. Parent-side LIST
+      // (InThePoolHero) moved to a worker endpoint /parent/pool-
+      // status because parents have no clubIds.
+      allow list: if request.auth != null && (
+        isPlatformAdmin()
+        || (resource.data.clubId is string
+            && resource.data.clubId in userDoc().get('clubIds', []))
+      );
       allow create: if request.resource.data.clubId is string
         && request.resource.data.parents.size() > 0;
       allow update: if request.auth != null && (
@@ -1125,16 +1162,69 @@ service cloud.firestore {
     // fields. Escape hatch removed. Non-status-field updates now must
     // go through the worker (/claim/offer-accept, /claim/offer-decline
     // both use the service account).
+    // /offers — 2026-07-14 audit: create/delete tightened. Previously
+    // `if request.auth != null` — any authed user could seed fake
+    // offers on any club or delete pending offers to sabotage a
+    // rival. Verified: SendOfferModal is the only client create
+    // (coach path); worker /claim/offer-accept + /claim/offer-decline
+    // handle parent-side accept flows via admin SDK.
+    //
+    // Predicate uses clubId OR teamId branch because invited-coach
+    // accounts get user.teamIds populated but NOT user.clubIds
+    // (applyMembership stamps only teamIds), so the clubId-only rule
+    // from the audit would 403 any assistant coach who tries to send
+    // an offer. Every offer doc stamps both clubId and teamId
+    // (verified at SendOfferModal.tsx:127-131).
+    //
+    // Update rule keeps the field allowlist for the parent-side
+    // status flip UI, but broadened to also allow coach edits with
+    // clubId/teamId scope for a future "edit offer" flow.
     match /offers/{offerId} {
       allow read: if request.auth != null;
-      allow update: if request.auth != null
-        && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'respondedAt', 'declineReason', 'promotedToPlayerId', 'promotedAt', 'updatedAt']);
-      allow create, delete: if request.auth != null;
+      allow update: if request.auth != null && (
+        // Field-allowlisted status flips (parent accept/decline UI +
+        // worker /claim/offer-accept promoted-metadata stamp).
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'respondedAt', 'declineReason', 'promotedToPlayerId', 'promotedAt', 'updatedAt'])
+        // Club admins / team coaches can edit their own club's/team's offer.
+        || (resource.data.clubId is string
+            && resource.data.clubId in userDoc().get('clubIds', []))
+        || (resource.data.teamId is string
+            && resource.data.teamId in userDoc().get('teamIds', []))
+      );
+      allow create: if request.auth != null && (
+        (request.resource.data.clubId is string
+          && request.resource.data.clubId in userDoc().get('clubIds', []))
+        || (request.resource.data.teamId is string
+          && request.resource.data.teamId in userDoc().get('teamIds', []))
+      );
+      allow delete: if request.auth != null && (
+        (resource.data.clubId is string
+          && resource.data.clubId in userDoc().get('clubIds', []))
+        || (resource.data.teamId is string
+          && resource.data.teamId in userDoc().get('teamIds', []))
+      );
     }
 
+    // /offer_templates — 2026-07-14 audit: was completely open
+    // (`allow read, write: if request.auth != null`). Any authed
+    // user could read every club's fee templates (competitive
+    // intelligence) and inject fake $0 templates into rivals.
+    // Scoped to caller's club/team same as /offers above.
     match /offer_templates/{templateId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && (
+        (request.resource.data.clubId is string
+          && request.resource.data.clubId in userDoc().get('clubIds', []))
+        || (request.resource.data.teamId is string
+          && request.resource.data.teamId in userDoc().get('teamIds', []))
+      );
+      allow update, delete: if request.auth != null && (
+        (resource.data.clubId is string
+          && resource.data.clubId in userDoc().get('clubIds', []))
+        || (resource.data.teamId is string
+          && resource.data.teamId in userDoc().get('teamIds', []))
+      );
     }
 
     match /form_definitions/{formId} {

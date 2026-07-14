@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin } from '../utils/helpers';
@@ -15,6 +15,10 @@ import type { OfferLetter, Registration } from '../types';
 const Reports: React.FC = () => {
   const { userData } = useAuth();
   const allowed = isClubAdmin(userData);
+  // 2026-07-14: registrations LIST rule now requires clubId scope.
+  // Pull the caller's first clubId from userData; club admins are
+  // scoped to one club today (multi-club admin is a future config).
+  const clubId: string | null = (userData as any)?.clubIds?.[0] || null;
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [offers, setOffers] = useState<OfferLetter[]>([]);
   const [seasonFilter, setSeasonFilter] = useState<string>('all');
@@ -22,15 +26,15 @@ const Reports: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!allowed) { setLoading(false); return; }
+    if (!allowed || !clubId) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {
         setLoading(true);
         const [rSnap, oSnap, sSnap] = await Promise.all([
-          getDocs(query(collection(db, 'registrations'), orderBy('createdAt', 'desc'))),
-          getDocs(query(collection(db, 'offers'), orderBy('createdAt', 'desc'))),
-          getDocs(query(collection(db, 'seasons'), orderBy('createdAt', 'desc'))),
+          getDocs(query(collection(db, 'registrations'), where('clubId', '==', clubId), orderBy('createdAt', 'desc'))),
+          getDocs(query(collection(db, 'offers'), where('clubId', '==', clubId), orderBy('createdAt', 'desc'))),
+          getDocs(query(collection(db, 'seasons'), where('clubId', '==', clubId), orderBy('createdAt', 'desc'))),
         ]);
         if (cancelled) return;
         setRegistrations(rSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }) as Registration));
@@ -41,7 +45,7 @@ const Reports: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [allowed]);
+  }, [allowed, clubId]);
 
   const filteredRegs = useMemo(() => {
     if (seasonFilter === 'all') return registrations;

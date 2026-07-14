@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getCountFromServer, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Admin cockpit strip — renders at the top of the Dashboard when the
 // current user is a club admin. Patrick 2026-06-21: 'what about the
@@ -34,6 +35,11 @@ interface Counts {
 const ZERO: Counts = { pendingRegistrations: 0, outstandingPayments: 0, teamsToActivate: 0 };
 
 const AdminCockpit: React.FC = () => {
+  const { userData } = useAuth();
+  // 2026-07-14: registrations LIST + count queries now require clubId
+  // scope. Pull caller's first clubId; parent-org admins fall back
+  // to 0 counts (component is admin-only anyway).
+  const clubId: string | null = (userData as any)?.clubIds?.[0] || null;
   const [counts, setCounts] = useState<Counts>(ZERO);
   const [loaded, setLoaded] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
@@ -58,8 +64,16 @@ const AdminCockpit: React.FC = () => {
         //
         // PENDING REGISTRATIONS: status in the not-yet-converted set.
         // 'in' max 10 values; we have 3.
+        // 2026-07-14: both registrations counts must be clubId-scoped
+        // now. Bail early with zeros if the admin has no clubId (rare —
+        // scope check upstream should prevent it).
+        if (!clubId) {
+          if (!cancelled) { setCounts(ZERO); setLoaded(true); }
+          return;
+        }
         const pendingRegsQ = query(
           collection(db, 'registrations'),
+          where('clubId', '==', clubId),
           where('status', 'in', ['pending_payment', 'tryout_invited', 'offer_sent'])
         );
         // OUTSTANDING PAYMENTS: a strict subset of pending — only the
@@ -67,6 +81,7 @@ const AdminCockpit: React.FC = () => {
         // paid. This is the row admin chases on dues day.
         const outstandingQ = query(
           collection(db, 'registrations'),
+          where('clubId', '==', clubId),
           where('status', '==', 'pending_payment')
         );
         // TEAMS TO ACTIVATE: every team still in active rotation
@@ -75,7 +90,8 @@ const AdminCockpit: React.FC = () => {
         // field' as a Firestore where() filter, so we fetch the
         // active team docs (small collection — typically < 50 per
         // club) and count un-activated client-side. Trivial cost.
-        const activeTeamsQ = query(collection(db, 'teams'), where('isActive', '==', true));
+        // Scope by clubId so counts don't cross tenants.
+        const activeTeamsQ = query(collection(db, 'teams'), where('clubId', '==', clubId), where('isActive', '==', true));
 
         const [pendingRegs, outstanding, activeTeamsSnap] = await Promise.all([
           getCountFromServer(pendingRegsQ),
@@ -103,7 +119,7 @@ const AdminCockpit: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [clubId]);
 
   const chips: Array<{ count?: number; label: string; href: string; emphasize?: boolean; cta?: boolean }> = [
     { label: 'Start a season',            href: '/admin/seasons/new', cta: true },

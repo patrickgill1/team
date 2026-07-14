@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
-import { db } from '../../utils/firebase';
+import { workerFetch } from '../../utils/workerFetch';
 import type { Registration } from '../../types';
 
 // Hero shown to parents who've registered through the new auth-gated
@@ -73,21 +72,23 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
     (async () => {
       if (!email) { setLoading(false); return; }
       try {
-        // Query every registration this parent's email shows up on.
-        const snap = await getDocs(query(
-          collection(db, 'registrations'),
-          orderBy('createdAt', 'desc'),
-        ));
-        const matching: KidStatus[] = snap.docs
-          .map(d => ({ id: d.id, ...(d.data() as any) } as Registration))
-          .filter(r => (r.parents || []).some(p => p.email?.toLowerCase() === email.toLowerCase()))
-          .map(r => ({
-            registrationId: r.id,
-            playerName: `${r.player?.firstName || ''} ${r.player?.lastName || ''}`.trim() || 'Your kid',
-            ageGroup: r.player?.ageGroup,
-            status: r.status,
-          }));
-        if (!cancelled) setKids(matching);
+        // 2026-07-14: /registrations LIST rule now requires clubId
+        // scope. Parents on this hero haven't been rostered yet and
+        // have no clubIds on their user doc, so rules can't scope
+        // this query. Worker /parent/pool-status uses admin SDK and
+        // filters by the caller's verified auth.token.email.
+        const res = await workerFetch('/parent/pool-status', {
+          method: 'POST',
+          body: JSON.stringify({}),
+        });
+        const data: any = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) {
+          console.warn('InThePoolHero worker load failed', data?.error || res.status);
+          if (!cancelled) setKids([]);
+          return;
+        }
+        const kids: KidStatus[] = Array.isArray(data.kids) ? data.kids : [];
+        if (!cancelled) setKids(kids);
       } catch (err) {
         console.warn('InThePoolHero load failed', err);
       } finally {

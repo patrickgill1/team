@@ -61,9 +61,14 @@ const FamilyTimeline: React.FC = () => {
         } catch {/* household lookup failed — proceed in single-email mode */}
 
         // 2. Registrations — match by ANY household email.
-        const regsSnap = await getDocs(query(collection(db, 'registrations'), orderBy('createdAt', 'desc')));
+        // 2026-07-14: LIST rule requires clubId scope. Pull the caller's
+        // clubId from userData; skip if missing (page 403s cleanly).
+        const callerClubId: string | null = (userData as any)?.clubIds?.[0] || (userData as any)?.clubId || null;
+        const regsSnap = callerClubId
+          ? await getDocs(query(collection(db, 'registrations'), where('clubId', '==', callerClubId), orderBy('createdAt', 'desc')))
+          : { docs: [] as any[] };
         const registrations: Registration[] = regsSnap.docs
-          .map(d => ({ id: d.id, ...(d.data() as any) } as Registration))
+          .map((d: any) => ({ id: d.id, ...(d.data() as any) } as Registration))
           .filter(r => (r.parents || []).some(p => emails.includes(p.email?.toLowerCase() || '')));
 
         // 3. Offers — collect for each email (no `in` query needed for

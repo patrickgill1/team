@@ -57,26 +57,29 @@ const Registrations: React.FC = () => {
     (async () => {
       try {
         setLoading(true);
-        const seasonsSnap = await getDocs(query(collection(db, 'seasons'), orderBy('createdAt', 'desc')));
+        const seasonsSnap = clubId
+          ? await getDocs(query(collection(db, 'seasons'), where('clubId', '==', clubId), orderBy('createdAt', 'desc')))
+          : { docs: [] as any[] };
         if (cancelled) return;
-        const ss = seasonsSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        const ss = seasonsSnap.docs.map((d: any) => ({ id: d.id, ...(d.data() as any) }));
         setSeasons(ss);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [allowed]);
+  }, [allowed, clubId]);
 
   const reload = async () => {
-    if (!allowed) return;
+    if (!allowed || !clubId) return;
     try {
       setLoading(true);
+      // 2026-07-14: registrations LIST rule requires clubId scope.
       let q;
       if (seasonId === 'all') {
-        q = query(collection(db, 'registrations'), orderBy('createdAt', 'desc'));
+        q = query(collection(db, 'registrations'), where('clubId', '==', clubId), orderBy('createdAt', 'desc'));
       } else {
-        q = query(collection(db, 'registrations'), where('seasonId', '==', seasonId), orderBy('createdAt', 'desc'));
+        q = query(collection(db, 'registrations'), where('clubId', '==', clubId), where('seasonId', '==', seasonId), orderBy('createdAt', 'desc'));
       }
       const snap = await getDocs(q);
       const list = snap.docs.map(d => {
@@ -94,7 +97,7 @@ const Registrations: React.FC = () => {
       setLoading(false);
     }
   };
-  useEffect(() => { void reload(); }, [seasonId, allowed]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void reload(); }, [seasonId, allowed, clubId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();

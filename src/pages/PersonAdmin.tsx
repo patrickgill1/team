@@ -166,17 +166,21 @@ const PersonAdmin: React.FC = () => {
 
       // Registrations — match by parent email since pre-Player there
       // was no playerId. Pull all + filter client-side; small N.
+      // 2026-07-14: LIST rule now requires clubId scope; skip the
+      // pull entirely if we don't have userClubId (rule would 403).
       const parentEmails: string[] = (p.parentEmails || []).map((e: string) => e?.toLowerCase().trim()).filter(Boolean);
       let regs: Registration[] = [];
-      if (parentEmails.length > 0) {
-        const regSnap = await getDocs(query(collection(db, 'registrations'), orderBy('createdAt', 'desc')));
+      if (parentEmails.length > 0 && userClubId) {
+        const regSnap = await getDocs(query(collection(db, 'registrations'), where('clubId', '==', userClubId), orderBy('createdAt', 'desc')));
         regs = regSnap.docs
           .map(d => ({ id: d.id, ...(d.data() as any) } as Registration))
           .filter(r => (r.parents || []).some(par => parentEmails.includes(par.email?.toLowerCase() || '')));
       }
       // Plus any direct promotedToPlayerId match (covers parents the
-      // admin manually attached after promotion).
-      const direct = await getDocs(query(collection(db, 'registrations'), where('promotedToPlayerId', '==', playerId)));
+      // admin manually attached after promotion). Also clubId-scoped.
+      const direct = userClubId
+        ? await getDocs(query(collection(db, 'registrations'), where('clubId', '==', userClubId), where('promotedToPlayerId', '==', playerId)))
+        : { forEach: (_: any) => {} } as any;
       direct.forEach(d => {
         if (!regs.find(r => r.id === d.id)) regs.unshift({ id: d.id, ...(d.data() as any) } as Registration);
       });

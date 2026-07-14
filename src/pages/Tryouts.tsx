@@ -42,12 +42,16 @@ const Tryouts: React.FC = () => {
   const [openNotesFor, setOpenNotesFor] = useState<string | null>(null);
   const [offerFor, setOfferFor] = useState<Registration | null>(null);
 
+  // 2026-07-14: registrations LIST rule now requires clubId scope.
+  const clubId: string | null = (userData as any)?.clubIds?.[0] || null;
+
   const reload = async () => {
+    if (!clubId) { setLoading(false); return; }
     try {
       setLoading(true);
       const [rSnap, aSnap] = await Promise.all([
-        getDocs(query(collection(db, 'registrations'), orderBy('createdAt', 'desc'))),
-        getDocs(query(collection(db, 'activities'), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'registrations'), where('clubId', '==', clubId), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'activities'), where('clubId', '==', clubId), orderBy('createdAt', 'desc'))),
       ]);
       setRegistrations(rSnap.docs.map(d => {
         const data = d.data() as any;
@@ -72,7 +76,7 @@ const Tryouts: React.FC = () => {
     }
   };
 
-  useEffect(() => { if (allowed) void reload(); }, [allowed]);
+  useEffect(() => { if (allowed) void reload(); }, [allowed, clubId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Build the list of unique filter values from the loaded set.
   const ageGroups = useMemo(

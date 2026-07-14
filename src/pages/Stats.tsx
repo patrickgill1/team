@@ -574,7 +574,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortKey)}
-                  className="px-2 py-1 border border-line-default/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="px-2 py-1 bg-surface-input text-ink-primary border border-line-default/20 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   style={{ fontSize: '16px' }}
                 >
                   <option value="goals">Goals</option>

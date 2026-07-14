@@ -2058,9 +2058,11 @@ const MyPlayerCard: React.FC<{
             matching the mockup. Shrunk from 96 → 80 to give the
             info column room without sacrificing the hero medallion. */}
         <div className="relative flex-shrink-0">
-          {/* Outer soft crimson glow — reads as premium, on-brand. */}
+          {/* Subtle crimson halo — dialled down from /25 to /15 in
+              the polish pass so the ring itself does the heavy
+              lifting and the card reads cleaner. */}
           {!isPotm && (
-            <div aria-hidden className="absolute -inset-1 rounded-full bg-brand-primary/25 blur-md pointer-events-none" />
+            <div aria-hidden className="absolute -inset-1 rounded-full bg-brand-primary/15 blur-md pointer-events-none" />
           )}
           {p.profilePhotoUrl ? (
             <img
@@ -2097,10 +2099,26 @@ const MyPlayerCard: React.FC<{
           )}
         </div>
 
-        {/* Info column: name, position, level+XP row, streak+badge row */}
+        {/* Info column: name row (with View Profile chip on the right),
+            position, level+XP row, streak+badge row. Patrick 2026-07-13
+            polish pass: killed the vertical View Profile pill — this
+            chip lives inline with the name on the top-right of the
+            info column, always visible and horizontally readable. */}
         <div className="flex-1 min-w-0">
-          <p className={`text-lg sm:text-xl font-black leading-tight truncate ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>{player.name}</p>
-          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 mt-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+          <div className="flex items-center justify-between gap-2">
+            <p className={`text-lg sm:text-xl font-black leading-tight truncate min-w-0 ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>{player.name}</p>
+            <span className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9.5px] font-black uppercase tracking-[0.22em] ring-1 whitespace-nowrap transition ${
+              isPotm
+                ? 'ring-amber-100/70 text-amber-50 bg-amber-900/25'
+                : 'ring-brand-primary/50 text-brand-primary-soft hover:bg-brand-primary/10'
+            }`}>
+              Profile
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
+                <polyline points="9 6 15 12 9 18" />
+              </svg>
+            </span>
+          </div>
+          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 mt-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
             isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/85'
           }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
@@ -2206,20 +2224,6 @@ const MyPlayerCard: React.FC<{
           )}
         </div>
 
-        {/* VIEW PROFILE — small vertical pill on the far right, always
-            visible. Rotated text keeps it compact on mobile. */}
-        <div className="flex-shrink-0 self-stretch flex items-center pr-0.5">
-          <span
-            className={`inline-flex items-center justify-center px-1.5 py-2.5 rounded-full text-[8.5px] font-black tracking-[0.35em] uppercase whitespace-nowrap transition writing-mode-vertical ${
-              isPotm
-                ? 'ring-1 ring-amber-100 text-amber-50 bg-amber-900/25'
-                : 'ring-1 ring-white/60 text-white/95 hover:bg-white/10'
-            }`}
-            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-          >
-            View Profile
-          </span>
-        </div>
       </div>
     </Link>
   );

@@ -2245,28 +2245,14 @@ const MyPlayerCard: React.FC<{
             )}
           </div>
 
-          {/* Name column — expanded 2026-07-14 to fill the dead
-              space Patrick called out ("so much space around that
-              area and it doesn't seem symmetrical with the rest of
-              the card"). Structure now mirrors the reference mockup:
-                1) TIER chip up top (identity marker)
-                2) Big display name
-                3) Hairline rule
-                4) Subtitle: POSITION · #JERSEY · TEAM
-              Inline stats line removed — replaced by the dedicated
-              THIS SEASON row below the identity block so stats read
-              as their own row of the card, not as trailing text. */}
+          {/* Name column — big name + hairline + subtitle. Tier chip
+              removed 2026-07-14 (Patrick: "you can take out the
+              shield and game ready pill" — redundant with LEVEL cell
+              subtitle below). Orphan position dot removed — was
+              wrapping to its own line above the subtitle. Position
+              lives INLINE at the head of the subtitle so it flows
+              with the rest of the text. */}
           <div className="flex-1 min-w-0">
-            {!isPotm && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase tracking-[0.22em] ring-1 ring-brand-primary/40 bg-brand-primary/[0.06] text-brand-primary dark:text-brand-primary-soft mb-1.5">
-                <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z" />
-                </svg>
-                {tier}
-                <span className="opacity-40">|</span>
-                <span className="tabular-nums">Lv {level.level}</span>
-              </span>
-            )}
             <p className={`text-[24px] sm:text-[26px] font-black leading-[1] tracking-tight ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
               {player.name}
             </p>
@@ -2276,27 +2262,21 @@ const MyPlayerCard: React.FC<{
                 className="block h-[2px] w-14 mt-2 rounded-full bg-gradient-to-r from-brand-primary via-brand-primary/70 to-transparent"
               />
             )}
-            {/* Subtitle: position dot + POSITION · #JERSEY · TEAM.
-                Uses inline flex so the position dot stays visually
-                tied to the position label. */}
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
-              <p className={`text-[10.5px] font-black uppercase tracking-widest ${isPotm ? 'text-amber-100/90' : 'text-ink-primary/70'}`}>
-                <span>{position}</span>
-                {player.jerseyNumber != null && (
-                  <>
-                    <span className="text-ink-primary/25 mx-1.5">·</span>
-                    <span className="tabular-nums">#{player.jerseyNumber}</span>
-                  </>
-                )}
-                {teamName && (
-                  <>
-                    <span className="text-ink-primary/25 mx-1.5">·</span>
-                    <span>{teamName}</span>
-                  </>
-                )}
-              </p>
-            </div>
+            <p className={`mt-2 text-[10.5px] font-black uppercase tracking-widest leading-snug ${isPotm ? 'text-amber-100/90' : 'text-ink-primary/70'}`}>
+              <span>{position}</span>
+              {player.jerseyNumber != null && (
+                <>
+                  <span className="text-ink-primary/25 mx-1.5">·</span>
+                  <span className="tabular-nums">#{player.jerseyNumber}</span>
+                </>
+              )}
+              {teamName && (
+                <>
+                  <span className="text-ink-primary/25 mx-1.5">·</span>
+                  <span>{teamName}</span>
+                </>
+              )}
+            </p>
           </div>
         </div>
 
@@ -2305,9 +2285,8 @@ const MyPlayerCard: React.FC<{
             clean sheets for goalkeepers). Sits between identity and
             the XP HUD, with a small header rule so it reads as
             "these are the on-field numbers, distinct from your XP
-            journey below." Only renders when xpEnabled + non-POTM
-            + at least one stat > 0 — otherwise it would show a row
-            of 0's mid-season or on freshly-joined players. */}
+            journey below." Renders whenever xpEnabled + non-POTM
+            (zeros show as "0" — clean-slate signal, not a bug). */}
         {xpEnabled && !isPotm && (() => {
           const g = player.stats?.goals || 0;
           const a = player.stats?.assists || 0;
@@ -2351,7 +2330,6 @@ const MyPlayerCard: React.FC<{
                   </svg>
                 )},
               ];
-          if (!cells.some(c => c.value > 0)) return null;
           return (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">

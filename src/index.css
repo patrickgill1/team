@@ -4,15 +4,16 @@
 
 /* Bangers — sports-poster / comic-book display face used by the
    MyPlayerCard last-name splash treatment (crimson brush-style
-   uppercase). Google-Font latin subset, 23KB, bundled at
-   public/fonts/bangers.woff2 so it ships inside the Capgo bundle
-   and works offline / in the WebView with no external fetch. */
+   uppercase). Google-Font latin subset, 23KB, at
+   src/fonts/bangers.woff2 so webpack picks it up via file-loader
+   and hashes it into the build output (vs public/fonts which
+   CRA's postcss-loader tries to module-resolve and fails on). */
 @font-face {
   font-family: 'Bangers';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(/fonts/bangers.woff2) format('woff2');
+  src: url(./fonts/bangers.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 

@@ -2016,10 +2016,34 @@ const MyPlayerCard: React.FC<{
 
   const xpPct = Math.min(100, Math.max(0, Math.round((level.xpIntoLevel / Math.max(1, level.nextLevelThreshold - level.currentLevelThreshold)) * 100)));
 
+  // Split the name so we can style the last name as a script/brush
+  // treatment in crimson — matches Patrick's 2026-07-13 reference
+  // where "GILL" reads as a hero-splash signature under "HUNTER."
+  // Single-word names collapse to first-only (no script line).
+  const nameParts = String(player.name || '').trim().split(/\s+/).filter(Boolean);
+  const firstName = nameParts[0] || String(player.name || 'Player');
+  const lastName = nameParts.slice(1).join(' ');
+
   return (
     <Link
       to={`/player/${player.id}`}
-      className={`relative overflow-hidden rounded-2xl ${isPotm ? 'text-white' : 'text-ink-primary'} shadow-xl hover:shadow-2xl active:scale-[0.995] transition block ${cardBg}`}
+      className={`relative overflow-hidden rounded-2xl ${isPotm ? 'text-white' : 'text-ink-primary'} active:scale-[0.995] transition block ${cardBg}`}
+      style={
+        isPotm
+          ? undefined
+          : {
+              // Neon crimson perimeter halo — layered box-shadow gives
+              // the "lit up" 3D feel Patrick asked to bring back
+              // (2026-07-13 reference). Inset ring adds definition;
+              // the two outer glows carry the atmosphere.
+              boxShadow: `
+                inset 0 0 0 1px rgba(200, 32, 44, 0.4),
+                0 0 22px -2px rgba(200, 32, 44, 0.42),
+                0 0 44px -12px rgba(200, 32, 44, 0.28),
+                0 14px 36px -14px rgba(0, 0, 0, 0.55)
+              `,
+            }
+      }
     >
       {/* POTM banner across the top when applicable. */}
       {isPotm && (
@@ -2038,192 +2062,244 @@ const MyPlayerCard: React.FC<{
           <div className="absolute -inset-y-2 -inset-x-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent rotate-12 potm-shimmer" />
         </div>
       )}
-      {/* Subtle crimson aura blob (non-POTM only). */}
-      {!isPotm && (
+
+      {/* Giant jersey-number watermark behind the photo — reads as
+          hero splash art. Overflow-hidden on the Link clips the
+          excess bleed off the left edge. Skipped when jersey is
+          unset or on POTM (gold gradient carries the drama). */}
+      {!isPotm && player.jerseyNumber != null && (
         <div
           aria-hidden
-          className="absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl pointer-events-none bg-brand-primary/[0.03] dark:bg-brand-primary/20"
-        />
-      )}
-      {/* GK logo watermark on the right. */}
-      <img
-        src="/images/logo.png"
-        alt=""
-        className="absolute -right-6 top-1/2 -translate-y-1/2 w-40 h-40 opacity-[0.08] pointer-events-none"
-        aria-hidden
-      />
-
-      <div className={`relative ${isPotm ? 'pt-9 pb-3 px-3 sm:pt-10 sm:pb-4 sm:px-4' : 'p-3 sm:p-4'} flex items-center gap-3 sm:gap-4 w-full`}>
-        {/* Photo — crimson ring + #10 jersey pill on the bottom-left,
-            matching the mockup. Shrunk from 96 → 80 to give the
-            info column room without sacrificing the hero medallion. */}
-        <div className="relative flex-shrink-0">
-          {/* Subtle crimson halo — dialled down from /25 to /15 in
-              the polish pass so the ring itself does the heavy
-              lifting and the card reads cleaner. */}
-          {!isPotm && (
-            <div aria-hidden className="absolute -inset-1 rounded-full bg-brand-primary/15 blur-md pointer-events-none" />
-          )}
-          {p.profilePhotoUrl ? (
-            <img
-              src={p.profilePhotoUrl}
-              alt={player.name}
-              className={`relative w-20 h-20 rounded-full object-cover shadow-lg ring-[2.5px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}
-              loading="lazy"
-            />
-          ) : (
-            <div className={`relative w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[2.5px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
-              {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
-            </div>
-          )}
-          {player.jerseyNumber != null && (
-            <span
-              className={`absolute -bottom-0.5 -left-1 z-10 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-black tabular-nums shadow-md ring-1 ${
-                isPotm
-                  ? 'bg-amber-50 text-amber-950 ring-amber-200'
-                  : 'bg-charcoal-900 text-white ring-brand-primary'
-              }`}
-            >
-              #{player.jerseyNumber}
-            </span>
-          )}
-          {isPotm && (
-            <span
-              className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-amber-300 ring-2 ring-amber-700 flex items-center justify-center shadow-lg"
-              aria-label="Player of the Match"
-            >
-              <svg className="w-3.5 h-3.5 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
-              </svg>
-            </span>
-          )}
+          className="absolute -left-4 top-1/2 -translate-y-1/2 pointer-events-none select-none z-[1] tabular-nums"
+          style={{
+            fontFamily: '-apple-system, "Helvetica Neue", sans-serif',
+            fontSize: '160px',
+            fontWeight: 900,
+            lineHeight: 0.82,
+            color: 'rgba(200, 32, 44, 0.09)',
+            letterSpacing: '-0.06em',
+          }}
+        >
+          {player.jerseyNumber}
         </div>
+      )}
+      {/* Card content — z-[2] to sit above the giant jersey watermark
+          rendered at z-[1] above. Two-part layout: identity block up
+          top (photo + name splash + Profile chip + position), stats
+          HUD below (LEVEL / STREAK / BADGES 3-column) + XP bar with
+          LV markers and glowing endpoint. */}
+      <div className={`relative z-[2] ${isPotm ? 'pt-10 pb-4 px-4' : 'p-4'} flex flex-col gap-3.5`}>
+        {/* IDENTITY ROW: photo + name column */}
+        <div className="flex items-start gap-4">
+          {/* Photo — crimson ring 3px + subtle crimson glow behind. */}
+          <div className="relative flex-shrink-0">
+            {!isPotm && (
+              <div aria-hidden className="absolute -inset-1.5 rounded-full bg-brand-primary/25 blur-md pointer-events-none" />
+            )}
+            {p.profilePhotoUrl ? (
+              <img
+                src={p.profilePhotoUrl}
+                alt={player.name}
+                className={`relative w-24 h-24 rounded-full object-cover shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}
+                loading="lazy"
+              />
+            ) : (
+              <div className={`relative w-24 h-24 rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-3xl font-black shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
+                {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
+              </div>
+            )}
+            {player.jerseyNumber != null && (
+              <span
+                className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-black tabular-nums shadow-md ring-1 ${
+                  isPotm ? 'bg-amber-50 text-amber-950 ring-amber-200' : 'bg-charcoal-900 text-white ring-brand-primary'
+                }`}
+              >
+                #{player.jerseyNumber}
+              </span>
+            )}
+            {isPotm && (
+              <span
+                className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-amber-300 ring-2 ring-amber-700 flex items-center justify-center shadow-lg"
+                aria-label="Player of the Match"
+              >
+                <svg className="w-3.5 h-3.5 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
+                </svg>
+              </span>
+            )}
+          </div>
 
-        {/* Info column: name row (with View Profile chip on the right),
-            position, level+XP row, streak+badge row. Patrick 2026-07-13
-            polish pass: killed the vertical View Profile pill — this
-            chip lives inline with the name on the top-right of the
-            info column, always visible and horizontally readable. */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <p className={`text-lg sm:text-xl font-black leading-tight truncate min-w-0 ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>{player.name}</p>
-            <span className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9.5px] font-black uppercase tracking-[0.22em] ring-1 whitespace-nowrap transition ${
-              isPotm
-                ? 'ring-amber-100/70 text-amber-50 bg-amber-900/25'
-                : 'ring-brand-primary/50 text-brand-primary-soft hover:bg-brand-primary/10'
+          {/* Name column — FIRST NAME uppercase display, LAST NAME
+              brush-script crimson on the next line. Profile chip
+              anchored top-right of the column. DEFENDER pill below. */}
+          <div className="flex-1 min-w-0 pt-0.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className={`text-[22px] sm:text-[24px] font-black leading-none uppercase tracking-tight truncate ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
+                  {firstName}
+                </p>
+                {lastName && (
+                  <p
+                    className={`text-[26px] sm:text-[30px] leading-[0.9] mt-0.5 truncate ${isPotm ? 'text-amber-100 drop-shadow' : 'text-brand-primary-soft'}`}
+                    style={{
+                      fontFamily: '"Snell Roundhand", "Bradley Hand", "Marker Felt", "Segoe Script", cursive',
+                      fontStyle: 'italic',
+                      fontWeight: 800,
+                      letterSpacing: '-0.01em',
+                      filter: isPotm ? undefined : 'drop-shadow(0 1px 3px rgba(200,32,44,0.35))',
+                    }}
+                  >
+                    {lastName}
+                  </p>
+                )}
+              </div>
+              <span className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9.5px] font-black uppercase tracking-[0.22em] ring-1 whitespace-nowrap transition ${
+                isPotm
+                  ? 'ring-amber-100/70 text-amber-50 bg-amber-900/25'
+                  : 'ring-brand-primary/50 text-brand-primary-soft hover:bg-brand-primary/10'
+              }`}>
+                Profile
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
+                  <polyline points="9 6 15 12 9 18" />
+                </svg>
+              </span>
+            </div>
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 mt-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
+              isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/85'
             }`}>
-              Profile
-              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
-                <polyline points="9 6 15 12 9 18" />
-              </svg>
+              <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
+              {position}
             </span>
           </div>
-          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 mt-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-            isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/85'
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
-            {position}
-          </span>
-
-          {xpEnabled ? (
-            <>
-              {/* Row: LEVEL badge + XP progress bar + count. Compact. */}
-              <div className="flex items-center gap-2 mt-2">
-                <div className={`inline-flex items-center gap-1 flex-shrink-0 ${isPotm ? 'text-amber-100' : 'text-brand-primary-soft'}`}>
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9 12 2" />
-                  </svg>
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Lvl {level.level}</span>
-                </div>
-                <div className={`flex-1 h-1.5 rounded-full overflow-hidden min-w-[40px] ${isPotm ? 'bg-amber-900/40' : 'bg-line-default/15'}`}>
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${isPotm ? 'bg-amber-100' : 'bg-gradient-to-r from-brand-primary to-brand-primary-soft'}`}
-                    style={{ width: `${xpPct}%` }}
-                    aria-hidden
-                  />
-                </div>
-                <span className={`text-[9.5px] font-bold tabular-nums flex-shrink-0 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>
-                  {level.xpIntoLevel}/{level.nextLevelThreshold - level.currentLevelThreshold}
-                  <span className={`ml-0.5 ${isPotm ? 'text-amber-100/55' : 'text-ink-primary/35'}`}>XP</span>
-                </span>
-              </div>
-
-              {/* Row: streak + badge on ONE line. */}
-              {(streakDays > 0 || badgeCount > 0) && (
-                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                  {streakDays > 0 && (
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] ${isPotm ? 'text-amber-100' : 'text-orange-300'}`}>
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                        <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
-                      </svg>
-                      <span className="tabular-nums">{streakDays}</span> Day Streak
-                    </span>
-                  )}
-                  {badgeCount > 0 && (
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] ${isPotm ? 'text-amber-100' : 'text-amber-300'}`}>
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                        <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
-                      </svg>
-                      <span className="tabular-nums">{badgeCount}</span> {badgeCount === 1 ? 'Badge' : 'Badges'}
-                    </span>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            /* XP-disabled fallback: stats row (Goals · Assists · Games)
-               + optional streak chip inline. Keeps the card informative
-               for teams that haven't opted into XP without shipping an
-               empty-looking hero. Season-starts-soon fallback preserved
-               from the pre-XP variant when every stat is zero. */
-            (() => {
-              const goals   = player.stats?.goals || 0;
-              const assists = player.stats?.assists || 0;
-              const games   = player.stats?.gamesPlayed || 0;
-              const saves   = (player as any).stats?.saves || 0;
-              const anyStat = goals > 0 || assists > 0 || games > 0 || saves > 0;
-              return (
-                <div className="mt-2 space-y-1.5">
-                  {anyStat ? (
-                    <div className={`flex items-end gap-4 sm:gap-5 ${isPotm ? 'text-white' : 'text-ink-primary'}`}>
-                      <div>
-                        <p className="text-lg font-black leading-none tabular-nums">{goals}</p>
-                        <p className={`text-[9px] font-black uppercase tracking-[0.18em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/50'}`}>Goals</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-black leading-none tabular-nums">{assists}</p>
-                        <p className={`text-[9px] font-black uppercase tracking-[0.18em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/50'}`}>Assists</p>
-                      </div>
-                      {position === 'Goalkeeper' && (
-                        <div>
-                          <p className="text-lg font-black leading-none tabular-nums">{saves}</p>
-                          <p className={`text-[9px] font-black uppercase tracking-[0.18em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/50'}`}>Saves</p>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-lg font-black leading-none tabular-nums">{games}</p>
-                        <p className={`text-[9px] font-black uppercase tracking-[0.18em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/50'}`}>Games</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isPotm ? 'text-amber-100/85' : 'text-ink-primary/55'}`}>
-                      Season starts soon
-                    </p>
-                  )}
-                  {streakDays > 0 && (
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] ${isPotm ? 'text-amber-100' : 'text-orange-300'}`}>
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                        <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
-                      </svg>
-                      <span className="tabular-nums">{streakDays}</span> Day Streak
-                    </span>
-                  )}
-                </div>
-              );
-            })()
-          )}
         </div>
 
+        {xpEnabled ? (
+          <>
+            {/* HUD STAT BLOCK — 3 equal columns: LEVEL / DAY STREAK /
+                BADGES. Framed in a subtle dark plate with a crimson
+                ring so it reads as a distinct game-HUD region, not
+                three floating chips. */}
+            <div className={`grid grid-cols-3 rounded-xl overflow-hidden ring-1 ${
+              isPotm
+                ? 'bg-amber-900/25 ring-amber-100/40'
+                : 'bg-black/30 ring-brand-primary/25'
+            }`}>
+              {/* LEVEL */}
+              <div className={`px-3 py-2 flex flex-col items-center justify-center ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-brand-primary/20'}`}>
+                <p className={`text-[8.5px] font-black uppercase tracking-[0.26em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Level</p>
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-brand-primary-soft'}`}>{level.level}</span>
+                  <svg className={`w-3 h-3 ${isPotm ? 'text-amber-100/70' : 'text-brand-primary-soft/70'}`} fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
+                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                    <polyline points="17 6 23 6 23 12" />
+                  </svg>
+                </div>
+              </div>
+              {/* DAY STREAK */}
+              <div className={`px-3 py-2 flex flex-col items-center justify-center ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-brand-primary/20'}`}>
+                <div className="flex items-baseline gap-1">
+                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{streakDays}</span>
+                  <svg className="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className={`text-[8.5px] font-black uppercase tracking-[0.26em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Day Streak</p>
+              </div>
+              {/* BADGES */}
+              <div className="px-3 py-2 flex flex-col items-center justify-center">
+                <div className="flex items-baseline gap-1">
+                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{badgeCount}</span>
+                  <svg className="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
+                  </svg>
+                </div>
+                <p className={`text-[8.5px] font-black uppercase tracking-[0.26em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>{badgeCount === 1 ? 'Badge' : 'Badges'}</p>
+              </div>
+            </div>
+
+            {/* XP PROGRESS BAR — crimson→pink gradient with a glowing
+                endpoint dot that marks "you are here." LV markers
+                above the bar frame the current → next-level jump so
+                the ladder feels tangible. */}
+            <div>
+              <div className="flex items-baseline justify-between mb-1">
+                <span className="text-[10px] font-black tracking-[0.12em] tabular-nums">
+                  <span className={isPotm ? 'text-amber-50' : 'text-brand-primary'}>{level.xpIntoLevel}</span>
+                  <span className={isPotm ? 'text-amber-100/60' : 'text-ink-primary/40'}> / {level.nextLevelThreshold - level.currentLevelThreshold} XP</span>
+                </span>
+                <span className={`text-[9px] font-black uppercase tracking-[0.26em] tabular-nums ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/45'}`}>
+                  Lv {level.level} <span className={isPotm ? 'text-amber-100/40' : 'text-ink-primary/25'}>›</span> Lv {level.level + 1}
+                </span>
+              </div>
+              <div className={`relative h-2 rounded-full ${isPotm ? 'bg-amber-900/40' : 'bg-line-default/15'}`}>
+                <div
+                  className={`h-full rounded-full transition-all duration-500 relative ${isPotm ? 'bg-amber-100' : 'bg-gradient-to-r from-brand-primary via-brand-primary to-brand-primary-soft'}`}
+                  style={{
+                    width: `${Math.max(3, xpPct)}%`,
+                    boxShadow: isPotm ? undefined : '0 0 10px rgba(241,114,130,0.55)',
+                  }}
+                  aria-hidden
+                >
+                  {!isPotm && xpPct > 0 && (
+                    <span
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 rounded-full bg-brand-primary-soft ring-2 ring-brand-primary/40"
+                      style={{ boxShadow: '0 0 10px 2px rgba(241,114,130,0.9)' }}
+                      aria-hidden
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* XP-disabled fallback: 3-column stats HUD in the same
+              shape as the XP block above, so the card structure
+              stays consistent whether the team opted in or not.
+              Season-starts-soon rendered when all stats are zero. */
+          (() => {
+            const goals   = player.stats?.goals || 0;
+            const assists = player.stats?.assists || 0;
+            const games   = player.stats?.gamesPlayed || 0;
+            const saves   = (player as any).stats?.saves || 0;
+            const anyStat = goals > 0 || assists > 0 || games > 0 || saves > 0;
+            if (!anyStat) {
+              return (
+                <p className={`text-[10px] font-black uppercase tracking-[0.2em] text-center py-1 ${isPotm ? 'text-amber-100/85' : 'text-ink-primary/55'}`}>
+                  Season starts soon
+                </p>
+              );
+            }
+            const showSaves = position === 'Goalkeeper';
+            const cols = showSaves ? 'grid-cols-4' : 'grid-cols-3';
+            const cellBorder = isPotm ? 'border-amber-100/25' : 'border-brand-primary/20';
+            const label = `text-[8.5px] font-black uppercase tracking-[0.26em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`;
+            const val = `text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`;
+            return (
+              <div className={`grid ${cols} rounded-xl overflow-hidden ring-1 ${
+                isPotm ? 'bg-amber-900/25 ring-amber-100/40' : 'bg-black/30 ring-brand-primary/25'
+              }`}>
+                <div className={`px-3 py-2 flex flex-col items-center justify-center border-r ${cellBorder}`}>
+                  <span className={val}>{goals}</span>
+                  <p className={label}>Goals</p>
+                </div>
+                <div className={`px-3 py-2 flex flex-col items-center justify-center border-r ${cellBorder}`}>
+                  <span className={val}>{assists}</span>
+                  <p className={label}>Assists</p>
+                </div>
+                {showSaves && (
+                  <div className={`px-3 py-2 flex flex-col items-center justify-center border-r ${cellBorder}`}>
+                    <span className={val}>{saves}</span>
+                    <p className={label}>Saves</p>
+                  </div>
+                )}
+                <div className="px-3 py-2 flex flex-col items-center justify-center">
+                  <span className={val}>{games}</span>
+                  <p className={label}>Games</p>
+                </div>
+              </div>
+            );
+          })()
+        )}
       </div>
     </Link>
   );

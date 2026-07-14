@@ -585,11 +585,19 @@ service cloud.firestore {
     // wall), parents get an RSVP-fields-only path when on the team.
     match /events/{eventId} {
       allow get, list: if request.auth != null;
+      // 2026-07-14 audit: removed the `resource == null` short-circuit.
+      // That branch was intended as a legacy setDoc-with-id escape
+      // hatch, but audit found ZERO client callers using setDoc on
+      // /events — every mutation goes through addDoc (CREATE rule)
+      // or updateDoc (existing-doc path). The `resource == null`
+      // branch was silently defeating the CREATE rule: any authed
+      // user could call setDoc(doc(db,'events',<newId>), {...}) and
+      // seed events on any team, skipping the coach-of-team check.
+      // If a legit future flow needs setDoc-with-id it will hit the
+      // CREATE rule and pass so long as it's coach-of-team.
       allow update: if request.auth != null && (
-        // Fresh doc branch preserved for legacy setDoc paths.
-        resource == null
         // Coach on this team can update anything.
-        || (isTeamCoach(resource.data.teamId) && canCoachWrite())
+        (isTeamCoach(resource.data.teamId) && canCoachWrite())
         // Parent on this team can flip RSVP-style fields only.
         || (
           onTeam(resource.data.teamId)
@@ -624,10 +632,15 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // /messages — LEGACY DEAD COLLECTION. 2026-07-14 audit confirmed
+    // zero client + zero worker callers. The active chat stack uses
+    // chat_messages / kid_chat_messages / chat_threads. Comment at
+    // src/pages/TeamChat.tsx:2147 explicitly documents /messages as
+    // "unrelated legacy collection." Prior rule allowed authed
+    // read/update/delete on the whole collection — cross-tenant
+    // enumeration surface with no legit purpose. Locked entirely.
     match /messages/{messageId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && canCoachWrite();
-      allow update, delete: if request.auth != null;
+      allow read, write: if false;
     }
 
     // Chat threads — privacy is enforced in the UI (the thread list
@@ -864,11 +877,23 @@ service cloud.firestore {
     }
 
     // Stats records (per-game player stats). Team-scoped.
+    //
+    // UPDATE/DELETE tightened 2026-07-14 (audit finding). Previously
+    // `if isAuthed()`, which meant any signed-in user — including a
+    // rival team's parent — could rewrite or delete goals/assists/
+    // POTM across every team in the database. Season leaders, records,
+    // and player profiles were open vandalism targets. Verified via
+    // parallel call-site audit: the entire stats workflow is CREATE-
+    // only (StatsTracker, GameDay, Stats corrections, PlayerMediaPage
+    // clip credit); manual corrections are additive `adjust_*` docs,
+    // not mutations. No client code mutates or deletes existing stats
+    // docs, so tightening to coach-of-team costs nothing today and
+    // leaves room for a future coach "fix this stat" flow.
     match /stats/{statId} {
       allow get:  if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow list: if isAuthed();
       allow create: if isAuthed() && onTeam(request.resource.data.teamId);
-      allow update, delete: if isAuthed();
+      allow update, delete: if isTeamCoach(resource.data.teamId) || isPlatformAdmin();
     }
 
     // Player development plans. Team-scoped.
@@ -953,11 +978,19 @@ service cloud.firestore {
       allow update, delete: if request.auth != null;
     }
 
+    // /coach_invites — 2026-07-14 audit: update/delete tightened from
+    // `if request.auth != null` (anyone could hijack an invite:
+    // rotate emails, flip revokedAt, overwrite teamId to hijack the
+    // target account when the invitee clicks the link). Verified via
+    // call-site audit: ZERO client-side updateDoc/deleteDoc on
+    // coach_invites — the only mutating flow is worker /claim/coach-
+    // invite via admin SDK, which bypasses rules. Safe to lock down
+    // to admin-only client access; worker still owns the writes.
     match /coach_invites/{inviteId} {
       allow get: if true;
       allow list: if request.auth != null;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
+      allow update, delete: if isPlatformAdmin();
     }
 
     // ────────────────────────────────────────────────────────────

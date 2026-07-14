@@ -225,24 +225,9 @@ const CoachCockpit: React.FC = () => {
         title="Coach"
         subtitle={selectedTeam ? `${selectedTeam.name}${selectedTeam.ageGroup ? ` · ${selectedTeam.ageGroup}` : ''}${(selectedTeam as any).format ? ` · ${(selectedTeam as any).format}` : ''}` : 'No team selected'}
       />
-      {/* Coach hero — sunset huddle image. Frames the whole page as
-          'this is your coach's role,' not just 'you have a team.'
-          Fades into the page background so the flow cards below read
-          without competing chrome. */}
-      <div className="relative overflow-hidden -mt-1">
-        <div className="aspect-[16/7] sm:aspect-[16/5] relative">
-          <img
-            src="/hero/coach-huddle.jpg"
-            alt="Coach kneeling with team at sunset"
-            className="absolute inset-0 w-full h-full object-cover"
-            loading="eager"
-          />
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-surface-base via-surface-base/70 to-transparent pointer-events-none" aria-hidden />
-          <div className="absolute inset-x-0 bottom-3 sm:bottom-4 max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-[10px] sm:text-[11px] font-black tracking-widest uppercase text-white/80 drop-shadow">Every kid remembers their coach</p>
-          </div>
-        </div>
-      </div>
+      {/* 2026-07-14: hero image removed per Patrick — coaches use
+          this page as a launchpad, not a mood board, and the photo
+          was pushing action cards below the fold on smaller phones. */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-4">
         {showProgress && !loaded && (
           <div className="h-0.5 bg-brand-primary/15 overflow-hidden rounded-full">
@@ -385,7 +370,6 @@ const CoachCockpit: React.FC = () => {
               <CoachActionTile
                 title="Grant XP"
                 hint="Hand out live XP mid-practice."
-                accent="brand"
                 onClick={() => setGrantXpOpen(true)}
                 icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <path d="M12 2l8.66 5v10L12 22 3.34 17V7L12 2z" /><path d="M12 8v6M9 11h6" />

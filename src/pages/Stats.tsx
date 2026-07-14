@@ -21,6 +21,13 @@ const Stats: React.FC = () => {
   const { selectedTeamId, selectedTeam } = useTeam();
   const { getPlayersByTeam, getTeamPlayerStatsMap, getPlayerMediaByTeam, addGameStat, updatePlayerStats } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
+  // 2026-07-14: keep BOTH scopes' aggregates around so the
+  // This Season / Overall toggle actually shows different numbers.
+  // Prior to this change, the toggle silently rendered the same
+  // team-lifetime numbers because getPlayerStats(player, seasonId)
+  // fell back to player.stats (statsBySeasonId is unwritten in prod).
+  const [seasonStatsMap, setSeasonStatsMap] = useState<Record<string, Player['stats']>>({});
+  const [lifetimeStatsMap, setLifetimeStatsMap] = useState<Record<string, Player['stats']>>({});
   const [mediaCount, setMediaCount] = useState(0);
   const [isStatsTrackerOpen, setIsStatsTrackerOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
@@ -46,12 +53,27 @@ const Stats: React.FC = () => {
         setLoadError(null);
         debug('Loading players for stats page...');
         
-        const teamPlayers = await getPlayersByTeam(selectedTeamId);
-        const statsMap = await getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any));
+        // Fetch player list + BOTH stat aggregates. The season-scoped
+        // map drives "This Season" (statsScope === 'current') and the
+        // team-lifetime map drives "Overall". Both are cheap client-
+        // side filters of the same underlying stats/ collection query
+        // (see getTeamPlayerStatsMap).
+        const [teamPlayers, seasonMap, lifetimeMap] = await Promise.all([
+          getPlayersByTeam(selectedTeamId),
+          getTeamPlayerStatsMap(selectedTeamId, activeSeason?.id || null).catch(() => ({} as any)),
+          getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any)),
+        ]);
+        setSeasonStatsMap(seasonMap as any);
+        setLifetimeStatsMap(lifetimeMap as any);
         const playersWithDates = teamPlayers.map((player: any) => {
           const empty = { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
           const isShared = Array.isArray(player.teamIds) && player.teamIds.length > 1;
-          const stats = (statsMap as any)[player.id] || (isShared ? empty : (player.stats || empty));
+          // Keep player.stats as team-lifetime for backwards compat
+          // with any consumers of `players` that read .stats directly
+          // (e.g. TeamRecordsSection card summaries). Scope-specific
+          // reads go through statsFor() which selects from the two
+          // maps above.
+          const stats = (lifetimeMap as any)[player.id] || (isShared ? empty : (player.stats || empty));
           return {
             ...player,
             createdAt: player.createdAt?.toDate ? player.createdAt.toDate() : new Date(player.createdAt),
@@ -83,20 +105,23 @@ const Stats: React.FC = () => {
     };
 
     loadPlayers();
-  }, [selectedTeamId, getPlayersByTeam, getTeamPlayerStatsMap]);
+  }, [selectedTeamId, activeSeason?.id, getPlayersByTeam, getTeamPlayerStatsMap]);
 
   // Update players list when stats are recorded
   const handleStatsRecorded = () => {
-    // Reload players to get updated stats
+    // Reload players AND both stat scopes so the toggle stays accurate.
     if (selectedTeamId) {
       Promise.all([
         getPlayersByTeam(selectedTeamId),
+        getTeamPlayerStatsMap(selectedTeamId, activeSeason?.id || null).catch(() => ({} as any)),
         getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any)),
-      ]).then(([teamPlayers, statsMap]: any) => {
+      ]).then(([teamPlayers, seasonMap, lifetimeMap]: any) => {
+        setSeasonStatsMap(seasonMap as any);
+        setLifetimeStatsMap(lifetimeMap as any);
         const playersWithDates = (teamPlayers as any[]).map((player: any) => {
           const empty = { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
           const isShared = Array.isArray(player.teamIds) && player.teamIds.length > 1;
-          const stats = (statsMap as any)[player.id] || (isShared ? empty : (player.stats || empty));
+          const stats = (lifetimeMap as any)[player.id] || (isShared ? empty : (player.stats || empty));
           return {
             ...player,
             createdAt: player.createdAt?.toDate ? player.createdAt.toDate() : new Date(player.createdAt),
@@ -187,6 +212,8 @@ const Stats: React.FC = () => {
                 activeSeason={activeSeason}
                 statsScope={statsScope}
                 setStatsScope={setStatsScope}
+                seasonStatsMap={seasonStatsMap}
+                lifetimeStatsMap={lifetimeStatsMap}
                 sortBy={sortBy}
                 setSortBy={setSortBy}
                 loadError={loadError}
@@ -259,9 +286,16 @@ const Stats: React.FC = () => {
                           </div>
 
                           {(() => {
+                            // 2026-07-14: read from the pre-computed
+                            // scoped maps instead of getPlayerStats/
+                            // getPlayerLifetimeStats. The old helpers
+                            // fell back to player.stats (unwritten
+                            // statsBySeasonId), so both toggle states
+                            // rendered identical numbers.
+                            const empty = { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
                             const s = statsScope === 'lifetime'
-                              ? getPlayerLifetimeStats(player as any)
-                              : getPlayerStats(player as any, activeSeason?.id);
+                              ? (lifetimeStatsMap[player.id] || empty)
+                              : (seasonStatsMap[player.id] || empty);
                             return (
                               <div className="grid grid-cols-3 gap-2 text-center">
                                 <div>
@@ -415,6 +449,8 @@ interface StatsOverviewProps {
   activeSeason: any;
   statsScope: 'current' | 'lifetime';
   setStatsScope: (s: 'current' | 'lifetime') => void;
+  seasonStatsMap: Record<string, Player['stats']>;
+  lifetimeStatsMap: Record<string, Player['stats']>;
   sortBy: SortKey;
   setSortBy: (s: SortKey) => void;
   loadError: string | null;
@@ -423,13 +459,18 @@ interface StatsOverviewProps {
 }
 
 const StatsOverview: React.FC<StatsOverviewProps> = ({
-  players, mediaCount, activeSeason, statsScope, setStatsScope, sortBy, setSortBy, loadError, selectedPlayerId, setSelectedPlayerId,
+  players, mediaCount, activeSeason, statsScope, setStatsScope, seasonStatsMap, lifetimeStatsMap, sortBy, setSortBy, loadError, selectedPlayerId, setSelectedPlayerId,
 }) => {
   // Resolve stats per player given the current scope toggle.
+  // 2026-07-14: switched off the getPlayerStats/getLifetimeStats
+  // helpers because both fall back to player.stats (statsBySeasonId
+  // is unwritten in prod). The parent now hands us pre-computed
+  // per-scope maps, and the toggle actually differs across scopes.
+  const empty = { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
   const statsFor = (p: Player) =>
     statsScope === 'lifetime'
-      ? getPlayerLifetimeStats(p as any)
-      : getPlayerStats(p as any, activeSeason?.id);
+      ? (lifetimeStatsMap[p.id] || empty)
+      : (seasonStatsMap[p.id] || empty);
 
   // Aggregate counts for the quick-stat tiles.
   const totalGoals = players.reduce((sum, p) => sum + (statsFor(p).goals || 0), 0);

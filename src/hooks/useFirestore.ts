@@ -312,10 +312,27 @@ const getUserData = useCallback(async (uid: string) => {
   // `stats` collection (per-game records). Use this for displays that need
   // accurate stats for SHARED players (rostered on multiple teams) so we
   // don't combine stats across teams via the global player.stats aggregate.
-  const getTeamPlayerStatsMap = useCallback(async (teamId: string): Promise<Record<string, Player['stats']>> => {
+  //
+  // 2026-07-14: added optional seasonId — when provided, rows are filtered
+  // client-side to that season (matches the pattern in
+  // src/utils/teamRecords.ts filterStatsBySeason). Founder-reported bug:
+  // Dashboard MyPlayerCard's "This Season" was showing last season's totals
+  // because this map wasn't season-scoped. Client-side filter avoids
+  // needing a new composite index and is safe because per-team stat volume
+  // is small (hundreds of docs per team-season). Rows written before we
+  // auto-stamped seasonId in addGameStat will lack the field and be
+  // excluded from a season-scoped call — that's correct behavior: a
+  // pre-history row belongs to no season.
+  const getTeamPlayerStatsMap = useCallback(async (
+    teamId: string,
+    seasonId?: string | null,
+  ): Promise<Record<string, Player['stats']>> => {
     const records = await getDocuments('stats', [where('teamId', '==', teamId)]);
+    const filtered = seasonId
+      ? (records as any[]).filter((r) => (r?.seasonId || null) === seasonId)
+      : (records as any[]);
     const map: Record<string, any> = {};
-    for (const r of records as any[]) {
+    for (const r of filtered as any[]) {
       const pid = r.playerId;
       if (!pid) continue;
       const cur = map[pid] || { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
@@ -353,8 +370,18 @@ const getUserData = useCallback(async (uid: string) => {
 
   // Stats-specific functions
   const addGameStat = useCallback(async (statData: Omit<GameStat, 'id' | 'createdAt'>) => {
+    // 2026-07-14: auto-stamp seasonId at the funnel so callers can't
+    // forget. Before this fix, GameDay + AdjustStatsModal wrapped
+    // payloads in withSeasonId, but StatsTracker.handleSubmit and
+    // PlayerMediaPage clip-credit skipped it — the rows they wrote
+    // never joined a season and were invisible to any season-scoped
+    // read (Dashboard Season Card, TeamRecordsSection "This Season").
+    // withSeasonId is idempotent: no-op when seasonId is already set,
+    // resolves from the team's active season otherwise.
+    const { withSeasonId } = await import('../utils/seasons');
+    const stamped = await withSeasonId(statData as any);
     const statToAdd = {
-      ...statData,
+      ...stamped,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -888,10 +915,21 @@ const getUserData = useCallback(async (uid: string) => {
     return res;
   }, []);
 
-  const getDevelopmentPlansByPlayer = useCallback(async (playerId: string) => {
-    const docs = await getDocuments('development_plans', [
-      where('playerId', '==', playerId),
-    ]);
+  // 2026-07-14: optional teamId scopes results to a single team.
+  // Founder-reported bug: a shared/transferred player was seeing an
+  // old team's dev plans on the new team's PlayerProfile view. Plan
+  // docs already carry teamId at write time (PlayerDevelopment.tsx
+  // stamps it via withSeasonId), but the LIST rule on
+  // /development_plans is isAuthed(), so a playerId-only query
+  // returns every team's plans. Callers that view a single-team
+  // scope (Profile, /development, Dashboard tonight-goal, Kid
+  // dashboard) MUST pass teamId now. Omitting teamId preserves the
+  // legacy any-team behavior for the rare caller that genuinely
+  // wants a career view (none today).
+  const getDevelopmentPlansByPlayer = useCallback(async (playerId: string, teamId?: string) => {
+    const clauses: any[] = [where('playerId', '==', playerId)];
+    if (teamId) clauses.push(where('teamId', '==', teamId));
+    const docs = await getDocuments('development_plans', clauses);
     return docs.sort((a: any, b: any) => {
       const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt || 0).getTime();
       const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt || 0).getTime();

@@ -283,7 +283,13 @@ const PlayerProfile: React.FC = () => {
       getDocuments('player_media', [
         where('taggedPlayerIds', 'array-contains', playerId),
       ]),
-      getDevelopmentPlansByPlayer(playerId),
+      // Scope to selectedTeamId so a Team B coach viewing a player
+      // who was on Team A does NOT see Team A's plans. Founder-
+      // reported bug 2026-07-14: "i have one player that has old
+      // development plans showing up from our last team". Plans
+      // stamp teamId at write time; the LIST rule was allowing
+      // cross-team reads.
+      getDevelopmentPlansByPlayer(playerId, selectedTeamId),
       getDocuments('match_votings', []),
     ]);
 

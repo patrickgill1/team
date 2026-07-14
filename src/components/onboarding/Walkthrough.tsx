@@ -65,7 +65,7 @@ const roleSlides: Record<WalkthroughRole, Slide[]> = {
   {
     kicker: 'Coach week',
     title: 'Run the next practice or game.',
-    body: 'The coach cockpit points you to the next event, missing RSVPs, messages, and the lineup tools you need before kickoff.',
+    body: 'The Dugout points you to the next event, missing RSVPs, messages, and the lineup tools you need before kickoff.',
     icon: (
       <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-16 h-16 text-brand-primary">
         <rect x="10" y="12" width="44" height="40" rx="6" />

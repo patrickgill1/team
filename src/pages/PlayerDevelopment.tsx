@@ -219,8 +219,14 @@ const PlayerDevelopment: React.FC = () => {
       if (!opts.silent) setLoading(true);
 
       // Load players and plans in parallel
+      // Pass selectedTeamId so a shared player selected from the
+      // dropdown doesn't leak their OTHER team's plans into this
+      // team's /development view. The dropdown itself is populated
+      // from getPlayersByTeam(selectedTeamId) so the (playerId,
+      // teamId) pair is always consistent here. Founder-reported
+      // bug 2026-07-14 (cross-team dev plan bleed).
       const plansPromise = (selectedPlayerId && selectedPlayerId !== 'all')
-        ? getDevelopmentPlansByPlayer(selectedPlayerId)
+        ? getDevelopmentPlansByPlayer(selectedPlayerId, selectedTeamId)
         : getDevelopmentPlansByTeam(selectedTeamId);
 
       const [teamPlayersRaw, plansData] = await Promise.all([

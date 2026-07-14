@@ -220,7 +220,7 @@ const StaffManagement: React.FC = () => {
             Only the head coach of <b>{team.name}</b> can manage this team's staff and permissions.
           </p>
           <Link to="/coach" className="mt-4 inline-block text-brand-primary-soft text-sm font-bold hover:underline">
-            ← Back to Coach cockpit
+            ← Back to Dugout
           </Link>
         </div>
       </div>

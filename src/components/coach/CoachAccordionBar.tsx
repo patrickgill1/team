@@ -450,7 +450,7 @@ const CoachAccordionBar: React.FC = () => {
               </Link>
               <Link to="/coach" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-surface-base ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition py-2 text-ink-primary/85 hover:text-ink-primary">
                 <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" /></svg>
-                <span className="text-[10px] font-bold">Cockpit</span>
+                <span className="text-[10px] font-bold">Dugout</span>
               </Link>
             </div>
           </div>

@@ -161,11 +161,17 @@ const Dashboard: React.FC = () => {
       if (!selectedTeamId) return;
       setLoading(true);
       try {
+        // Pass the team's active seasonId so player.stats on this
+        // Dashboard renders as THIS SEASON, not team-lifetime. Fixes
+        // the founder-reported bug (2026-07-14): "stats are showing
+        // up on my team for last season as this season." When a team
+        // has no active season yet, the aggregator returns the same
+        // team-lifetime numbers as before (falsy seasonId → no filter).
         const [teamPlayers, teamEvents, teamMedia, statsMap] = await Promise.all([
           getPlayersByTeam(selectedTeamId),
           getEventsByTeam(selectedTeamId),
           getPlayerMediaByTeam(selectedTeamId).catch(() => []),
-          getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any)),
+          getTeamPlayerStatsMap(selectedTeamId, activeSeason?.id || null).catch(() => ({} as any)),
         ]);
 
         const playersWithDates = (teamPlayers as any[]).map((p: any) => {
@@ -210,7 +216,10 @@ const Dashboard: React.FC = () => {
       }
     };
     load();
-  }, [selectedTeamId, getPlayersByTeam, getEventsByTeam, getPlayerMediaByTeam, getTeamPlayerStatsMap]);
+    // activeSeason?.id in deps so a team's season rollover (or a
+    // team switch that brings a different active season) re-fetches
+    // stats scoped to the new season.
+  }, [selectedTeamId, activeSeason?.id, getPlayersByTeam, getEventsByTeam, getPlayerMediaByTeam, getTeamPlayerStatsMap]);
 
   // Build a uid → photoURL map for the Recent Chats card so DM rows
   // render real avatars. One-shot fetch — photos rarely change, and
@@ -478,8 +487,11 @@ const Dashboard: React.FC = () => {
     // tonightGoal for this player in this session, paint the last
     // value INSTANTLY and refetch in the background. Kills the
     // "quick verifying" flash Patrick reported on every home visit.
-    // Cache lives in src/utils/queryCache.ts.
-    const cacheKey = `dashboard:tonightGoal:${myPlayer.id}`;
+    // Cache lives in src/utils/queryCache.ts. Key includes the
+    // current teamId now (2026-07-14) — a player on two teams needs
+    // separate tonight-goal state per team, or a parent switching
+    // teams would see the OTHER team's goal from cache.
+    const cacheKey = `dashboard:tonightGoal:${myPlayer.id}:${selectedTeamId || 'none'}`;
     // Dynamic import so a first-load Dashboard doesn't pay a bundle
     // hit for a module a parent already loaded.
     let cancelled = false;
@@ -502,7 +514,22 @@ const Dashboard: React.FC = () => {
           orderBy('createdAt', 'desc'),
         ));
         if (cancelled) return;
-        const plans = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        // Client-side team scope. Plan docs carry teamId at write
+        // time, but the LIST rule on /development_plans is isAuthed(),
+        // so this playerId+status query returns plans across every
+        // team the player is on. Without this narrowing, a parent
+        // whose kid is on two teams sees the newer team's tonight-
+        // goal or vice versa, and the streak self-heal below fuses
+        // both teams' practice logs into one currentStreakDays.
+        // Client-side filter avoids needing a new composite index
+        // (playerId + teamId + status + createdAt desc). Legacy
+        // plans missing teamId are conservatively excluded — no
+        // known writer skips teamId, and dataloss for the edge case
+        // beats leaking wrong-team plans onto the home card.
+        const allPlans = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        const plans = selectedTeamId
+          ? allPlans.filter((p: any) => p.teamId === selectedTeamId)
+          : allPlans;
 
         // STREAK SELF-HEAL — runs UNCONDITIONALLY on every dashboard
         // mount so the cached currentStreakDays is corrected even
@@ -606,7 +633,12 @@ const Dashboard: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [myPlayer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    // selectedTeamId added 2026-07-14 so shared-player parents get a
+    // fresh query when they switch teams. Prior deps closed over
+    // selectedTeamId but never re-ran on switch (myPlayer.id stays
+    // the same for a player on two teams), so tonight-goal was
+    // stuck on whichever team was selected at first mount.
+  }, [myPlayer?.id, selectedTeamId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Is my player the current Player of the Match for this week? If a
   // match_votings doc closed in the last 7 days has my player in its

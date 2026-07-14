@@ -86,16 +86,26 @@ const KidDashboard: React.FC = () => {
     return () => unsub();
   }, [player?.teamId]);
 
-  // Load the kid's active dev plans.
+  // Load the kid's active dev plans, scoped to the team they're
+  // currently viewing. 2026-07-14: added teamId narrowing to fix
+  // cross-team leak — a kid rostered on two teams was seeing both
+  // teams' plans in this home card. Team-scope is applied client-
+  // side (no composite index needed) and the effect deliberately
+  // waits until `player` (and therefore teamId) has loaded before
+  // subscribing, so we never fall back to an unfiltered query.
   useEffect(() => {
     if (!activeKidPlayerId) return;
+    const teamId = player?.teamId || (Array.isArray((player as any)?.teamIds) ? (player as any).teamIds[0] : '');
+    if (!teamId) return; // wait for player to resolve — no unfiltered fallback.
     const q = query(collection(db, 'development_plans'), where('playerId', '==', activeKidPlayerId));
     const unsub = onSnapshot(q, (snap) => {
-      const rows: DevelopmentPlan[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as any;
+      const rows: DevelopmentPlan[] = snap.docs
+        .map(d => ({ id: d.id, ...(d.data() as any) }))
+        .filter((p: any) => p.teamId === teamId) as any;
       setPlans(rows);
     }, err => console.warn('kid dashboard plans load failed', err));
     return () => unsub();
-  }, [activeKidPlayerId]);
+  }, [activeKidPlayerId, player?.teamId]);
 
   // Subscribe to this team's kid_chat thread doc so the header bell
   // reflects the current notifyAllUids state. One-thread-per-team

@@ -21,10 +21,17 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // /register is the season-registration flow — every user landing
+  // here is a PARENT signing up their kid. Pass 'parent' explicitly
+  // to the Google/Apple bootstrap or the worker will fall through
+  // to its inviteTeamId-based derivation and stamp role='coach' on
+  // the user doc (a real bug caught by the 2026-07-14 signup-flow
+  // audit — email path was correct at :61 below but the social
+  // buttons weren't).
   const handleGoogle = async () => {
     setBusy(true); setError(null);
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(undefined, 'parent');
       onAuthed();
     } catch (err: any) {
       setError(err?.message || 'Sign in failed.');
@@ -36,7 +43,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
   const handleApple = async () => {
     setBusy(true); setError(null);
     try {
-      await signInWithApple();
+      await signInWithApple(undefined, 'parent');
       onAuthed();
     } catch (err: any) {
       setError(err?.message || 'Sign in failed.');

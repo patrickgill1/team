@@ -951,14 +951,58 @@ service cloud.firestore {
     }
 
     // Player + staff memberships (season-scoped roster pivot tables).
-    // Auth required; no sub gate (these get written by invite-consume
-    // flows where the joining user may not yet have an active sub).
+    // 2026-07-14 audit hardening: previously `read, write: if authed`,
+    // which meant any authed user could enumerate every team's season
+    // roster history (kid names, seasons) and every coaching staff's
+    // placement across every club, plus create/update/delete arbitrary
+    // rows — poisoning historical stats + season badges.
+    //
+    // WRITE: coach-of-team only (or platform admin). Verified against
+    // all client callers (People.tsx TeamAssignSheet / bulkAddToTeam,
+    // AddPlayerModal.tsx) — every write is by a coach whose uid is
+    // in team.coachIds; every membership doc consistently carries
+    // teamId in the payload.
+    //
+    // READ: split into tight GET and permissive LIST — matches the
+    // established pattern for players/users/households/stats/etc. A
+    // strict LIST predicate (resource.data.teamId in userDoc.teamIds)
+    // silently 403s scoped queries because Firestore can't statically
+    // match `where teamId=='X'` against a userDoc-driven predicate
+    // (documented in the players/users blocks above; the July 9
+    // Squad-tab breakage). LIST stays authed-only, GET does the real
+    // per-doc scope check.
+    //
+    // GET (player_memberships): platform admin OR on-team OR
+    //   parent-of-player. The parent-of-player branch is required
+    //   for PlayerProfile career/all-time tabs, which surface
+    //   memberships from teams the parent may no longer be on
+    //   (kid moved teams mid-year, prior season history).
+    // GET (staff_memberships): platform admin OR on-team. No
+    //   parent-of-player branch — parents don't render staff
+    //   history on the profile.
     match /player_memberships/{membershipId} {
-      allow read, write: if request.auth != null;
+      allow get: if isAuthed() && (
+        isPlatformAdmin()
+        || (resource.data.teamId is string && onTeam(resource.data.teamId))
+        || (
+          resource.data.playerId is string
+          && exists(/databases/$(database)/documents/players/$(resource.data.playerId))
+          && request.auth.uid in get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.parentIds
+        )
+      );
+      allow list: if isAuthed();
+      allow create: if isTeamCoach(request.resource.data.teamId) || isPlatformAdmin();
+      allow update, delete: if isTeamCoach(resource.data.teamId) || isPlatformAdmin();
     }
 
     match /staff_memberships/{membershipId} {
-      allow read, write: if request.auth != null;
+      allow get: if isAuthed() && (
+        isPlatformAdmin()
+        || (resource.data.teamId is string && onTeam(resource.data.teamId))
+      );
+      allow list: if isAuthed();
+      allow create: if isTeamCoach(request.resource.data.teamId) || isPlatformAdmin();
+      allow update, delete: if isTeamCoach(resource.data.teamId) || isPlatformAdmin();
     }
 
     // Invites — unguessable doc ID IS the capability. Public `list`

@@ -2103,7 +2103,7 @@ const MyPlayerCard: React.FC<{
             PROFILE moved to a floating absolute chip at card top-right
             below so the affordance is still visible. */}
         {!isPotm && (
-          <span className="absolute top-3 right-3 z-[3] inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9.5px] font-black uppercase tracking-[0.22em] ring-1 ring-brand-primary/50 text-brand-primary-soft hover:bg-brand-primary/10 transition whitespace-nowrap bg-charcoal-900/40 backdrop-blur-sm">
+          <span className="absolute top-3 right-3 z-[3] inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9.5px] font-black uppercase tracking-[0.22em] ring-1 ring-brand-primary/50 text-brand-primary dark:text-brand-primary-soft hover:bg-brand-primary/10 transition whitespace-nowrap bg-surface-elevated/70 dark:bg-charcoal-900/40 backdrop-blur-sm">
             View Profile
             <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
               <polyline points="9 6 15 12 9 18" />
@@ -2126,8 +2126,10 @@ const MyPlayerCard: React.FC<{
           <div className="relative flex-shrink-0 w-[140px] h-[140px]">
             {!isPotm && (
               <>
-                {/* Soft crimson glow BEHIND the photo. */}
-                <div aria-hidden className="absolute top-[20px] left-[20px] w-[100px] h-[100px] rounded-full bg-brand-primary/15 blur-md pointer-events-none" />
+                {/* Soft crimson glow BEHIND the photo — dark mode only.
+                    In light mode it bleeds pink onto the white card
+                    (2026-07-14: light-mode audit). */}
+                <div aria-hidden className="hidden dark:block absolute top-[20px] left-[20px] w-[100px] h-[100px] rounded-full bg-brand-primary/15 blur-md pointer-events-none" />
                 {/* Radar-arc decoration split into ROTATING and STATIC
                     layers (Patrick 2026-07-13: "i thought the lines
                     would move or something lol"). Arcs + their
@@ -2136,7 +2138,7 @@ const MyPlayerCard: React.FC<{
                     ticks stay fixed as compass markers. `motion-safe:`
                     honours the user's reduced-motion preference. */}
                 <div
-                  className="absolute inset-0 w-[140px] h-[140px] pointer-events-none motion-safe:animate-spin"
+                  className="absolute inset-0 w-[140px] h-[140px] pointer-events-none motion-safe:animate-spin opacity-70 dark:opacity-100"
                   style={{ animationDuration: '45s', animationTimingFunction: 'linear' }}
                 >
                   <svg aria-hidden viewBox="0 0 140 140" className="w-full h-full">
@@ -2178,7 +2180,7 @@ const MyPlayerCard: React.FC<{
                 </div>
                 {/* Static compass layer — ticks stay put while arcs
                     orbit past them, sells the "radar" feel. */}
-                <svg aria-hidden viewBox="0 0 140 140" className="absolute inset-0 w-[140px] h-[140px] pointer-events-none">
+                <svg aria-hidden viewBox="0 0 140 140" className="absolute inset-0 w-[140px] h-[140px] pointer-events-none opacity-70 dark:opacity-100">
                   <g stroke="#c8202c" strokeLinecap="round">
                     <line x1="70" y1="0.5" x2="70" y2="4.5" strokeWidth="1.5" />
                     <line x1="139.5" y1="70" x2="135.5" y2="70" strokeWidth="1.5" />
@@ -2290,7 +2292,7 @@ const MyPlayerCard: React.FC<{
             <div className={`grid grid-cols-4 rounded-xl overflow-hidden ring-1 ${
               isPotm
                 ? 'bg-amber-900/25 ring-amber-100/40'
-                : 'bg-black/30 ring-line-default/15'
+                : 'bg-ink-primary/[0.04] dark:bg-black/30 ring-line-default/15'
             }`}>
               {/* Uniform cell contract across all 4 cells:
                     row 1: HEADER label (8px uppercase tracked)
@@ -2301,7 +2303,7 @@ const MyPlayerCard: React.FC<{
               {/* LEVEL */}
               <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-line-default/15'}`}>
                 <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Level</p>
-                <span className={`text-[22px] font-black leading-none tabular-nums mt-1 ${isPotm ? 'text-amber-50' : 'text-brand-primary-soft'}`}>{level.level}</span>
+                <span className={`text-[22px] font-black leading-none tabular-nums mt-1 ${isPotm ? 'text-amber-50' : 'text-brand-primary dark:text-brand-primary-soft'}`}>{level.level}</span>
                 <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>{tier}</p>
               </div>
               {/* STREAK */}
@@ -2412,7 +2414,7 @@ const MyPlayerCard: React.FC<{
             const val = `text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`;
             return (
               <div className={`grid ${cols} rounded-xl overflow-hidden ring-1 ${
-                isPotm ? 'bg-amber-900/25 ring-amber-100/40' : 'bg-black/30 ring-line-default/15'
+                isPotm ? 'bg-amber-900/25 ring-amber-100/40' : 'bg-ink-primary/[0.04] dark:bg-black/30 ring-line-default/15'
               }`}>
                 <div className={`px-3 py-2 flex flex-col items-center justify-center border-r ${cellBorder}`}>
                   <span className={val}>{goals}</span>

@@ -158,10 +158,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         const { workerFetch } = await import('../utils/workerFetch');
+        // Role must be explicit — worker /users/bootstrap 400s on
+        // missing/invalid role now (2026-07-14). Prior `|| 'parent'`
+        // fallback masked client bugs by silently making the user a
+        // parent. UserData type requires role, so a caller that omits
+        // it is a bug we WANT to surface immediately.
         const bootstrapRes = await workerFetch('/users/bootstrap', {
           method: 'POST',
           body: JSON.stringify({
-            role: newUserData.role || 'parent',
+            role: newUserData.role,
             name: newUserData.name || '',
             email: (newUserData.email || email).toLowerCase(),
             phone: (newUserData as any).phone || '',

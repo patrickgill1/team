@@ -183,7 +183,27 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
   // Allowlist. Everything not on this list is dropped — a malicious
   // client can't sneak in isClubAdmin, coachLevel, or a fake teamIds
   // array via this endpoint.
-  const wantRole: 'coach' | 'parent' = payload?.role === 'coach' ? 'coach' : 'parent';
+  //
+  // Role is REQUIRED and must be exactly "coach" or "parent". Prior
+  // code silently defaulted to "parent" for missing / invalid inputs,
+  // which meant any client bug (forgotten field, race condition,
+  // Google popup that lost the wantRole hint) would create a parent
+  // account without anyone asking for it. Patrick 2026-07-14: "i had
+  // another user sign up that put them in as a parent... please please
+  // please stop that from happening." Every legit signup flow now sets
+  // role explicitly (SimpleAuth email defaults to coach; SimpleAuth
+  // Google/Apple passes joinFlow-derived role; RegisterAuthGate sends
+  // parent for the /register season path). Missing role at this
+  // endpoint is a client bug and 400 makes it visible instead of
+  // silently miscategorizing the user.
+  if (payload?.role !== 'coach' && payload?.role !== 'parent') {
+    return json({
+      ok: false,
+      error: 'invalid_role',
+      hint: 'role must be exactly "coach" or "parent"; got ' + JSON.stringify(payload?.role),
+    }, 400);
+  }
+  const wantRole: 'coach' | 'parent' = payload.role;
   const name = String(payload?.name || claims.name || '').slice(0, 100);
   const email = normEmail(payload?.email || claims.email);
   const phone = typeof payload?.phone === 'string' ? payload.phone.slice(0, 40) : '';

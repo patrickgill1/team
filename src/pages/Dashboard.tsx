@@ -2127,37 +2127,99 @@ const MyPlayerCard: React.FC<{
         {/* IDENTITY ROW: photo + name column. items-center balances
             the shorter name column against the photo. */}
         <div className="flex items-center gap-4">
-          {/* Photo — the solid crimson 3px ring on the photo IS the
-              contour outline (Patrick 2026-07-13: "outline contours to
-              the profile photo"). Dashed reticle + ticks removed —
-              they floated outside the photo and read as separate from
-              it, breaking the "connected to the photo" feel. Soft
-              crimson glow behind, dialed down from /25 to /15 to keep
-              interior red saturation in check. */}
-          <div className="relative flex-shrink-0 w-[100px] h-[100px]">
+          {/* Photo + RADAR ARCS decoration (Patrick 2026-07-13, Option C).
+              Container is 140x140 so the arcs have room to breathe
+              outside the 100px photo. Photo has its own crimson ring
+              (still Patrick's "outline"); arcs live in the 20px halo
+              around it — broken concentric segments at r=68, r=62, and
+              an amber inner accent at r=58, plus cardinal + diagonal
+              ticks + node dots at every arc endpoint. The top-left
+              quadrant is DELIBERATELY empty so the jersey pill has
+              clean negative space to land in. */}
+          <div className="relative flex-shrink-0 w-[140px] h-[140px]">
             {!isPotm && (
-              <div aria-hidden className="absolute -inset-1 rounded-full bg-brand-primary/15 blur-md pointer-events-none" />
+              <>
+                {/* Soft crimson glow BEHIND the photo. */}
+                <div aria-hidden className="absolute top-[20px] left-[20px] w-[100px] h-[100px] rounded-full bg-brand-primary/15 blur-md pointer-events-none" />
+                {/* Radar-arc decoration — three tiers of broken arcs
+                    + tick marks + node dots. currentColor kept as
+                    solid crimson; gradient defs unique-ID'd via
+                    player.id so multiple cards can't collide. */}
+                <svg
+                  aria-hidden
+                  viewBox="0 0 140 140"
+                  className="absolute inset-0 w-[140px] h-[140px] pointer-events-none"
+                >
+                  <defs>
+                    <linearGradient id={`arcGrad-${player.id}`} x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stopColor="#c8202c" stopOpacity="0.15" />
+                      <stop offset="0.5" stopColor="#c8202c" stopOpacity="1" />
+                      <stop offset="1" stopColor="#c8202c" stopOpacity="0.15" />
+                    </linearGradient>
+                  </defs>
+                  {/* Outer arcs r=68 — top-right + bottom-left, gradient-faded. */}
+                  <path d="M 75.93 2.26 A 68 68 0 0 1 131.63 98.74" stroke={`url(#arcGrad-${player.id})`} strokeWidth="2" fill="none" strokeLinecap="round" />
+                  <path d="M 98.74 131.63 A 68 68 0 0 1 2.26 75.93" stroke={`url(#arcGrad-${player.id})`} strokeWidth="2" fill="none" strokeLinecap="round" />
+                  {/* Mid arcs r=62 — right side + bottom-left, solid. */}
+                  <path d="M 123.7 39 A 62 62 0 0 1 109.9 117.5" stroke="#c8202c" strokeWidth="1.25" fill="none" opacity="0.7" strokeLinecap="round" />
+                  <path d="M 31.42 115.96 A 62 62 0 0 1 10.23 75.23" stroke="#c8202c" strokeWidth="1.25" fill="none" opacity="0.7" strokeLinecap="round" />
+                  {/* Amber inner accent r=58 — bottom-right sweep. */}
+                  <path d="M 120.2 99 A 58 58 0 0 1 59.93 127.12" stroke="#f59e0b" strokeWidth="1" fill="none" opacity="0.75" strokeLinecap="round" />
+                  {/* Cardinal tick marks at N/E/S/W (edges of 140x140). */}
+                  <g stroke="#c8202c" strokeLinecap="round">
+                    <line x1="70" y1="0.5" x2="70" y2="4.5" strokeWidth="1.5" />
+                    <line x1="139.5" y1="70" x2="135.5" y2="70" strokeWidth="1.5" />
+                    <line x1="70" y1="139.5" x2="70" y2="135.5" strokeWidth="1.5" />
+                    <line x1="0.5" y1="70" x2="4.5" y2="70" strokeWidth="1.5" />
+                  </g>
+                  {/* Diagonal tick marks (NE/SE/SW) — top-left omitted for jersey pill. */}
+                  <g stroke="#c8202c" strokeWidth="1" strokeLinecap="round" opacity="0.55">
+                    <line x1="116.67" y1="23.33" x2="120.21" y2="19.79" />
+                    <line x1="116.67" y1="116.67" x2="120.21" y2="120.21" />
+                    <line x1="23.33" y1="116.67" x2="19.79" y2="120.21" />
+                  </g>
+                  {/* Node dots at outer-arc endpoints. */}
+                  <g fill="#c8202c">
+                    <circle cx="75.93" cy="2.26" r="1.8" />
+                    <circle cx="131.63" cy="98.74" r="1.8" />
+                    <circle cx="98.74" cy="131.63" r="1.8" />
+                    <circle cx="2.26" cy="75.93" r="1.8" />
+                  </g>
+                  {/* Node dots at mid-arc endpoints. */}
+                  <g fill="#c8202c" opacity="0.85">
+                    <circle cx="123.7" cy="39" r="1.25" />
+                    <circle cx="109.9" cy="117.5" r="1.25" />
+                    <circle cx="31.42" cy="115.96" r="1.25" />
+                    <circle cx="10.23" cy="75.23" r="1.25" />
+                  </g>
+                  {/* Node dots at amber-arc endpoints. */}
+                  <g fill="#f59e0b">
+                    <circle cx="120.2" cy="99" r="1.4" />
+                    <circle cx="59.93" cy="127.12" r="1.4" />
+                  </g>
+                </svg>
+              </>
             )}
+            {/* Photo — centered inside the 140x140 container, keeps
+                its solid 3px crimson ring. */}
             {p.profilePhotoUrl ? (
               <img
                 src={p.profilePhotoUrl}
                 alt={player.name}
-                className={`relative w-[100px] h-[100px] rounded-full object-cover shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}
+                className={`absolute top-[20px] left-[20px] w-[100px] h-[100px] rounded-full object-cover shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}
                 loading="lazy"
               />
             ) : (
-              <div className={`relative w-[100px] h-[100px] rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
+              <div className={`absolute top-[20px] left-[20px] w-[100px] h-[100px] rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
                 {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
               </div>
             )}
-            {/* Jersey number pill overlaid on photo — Patrick moved it
-                back here 2026-07-13 ("I want the jersey number more
-                prominent and probably back where it was on the photo").
-                Chunky 34px disc, bottom-right, bold tabular number so
-                double-digits sit centered. */}
+            {/* Jersey pill: TOP-LEFT, landing in the empty quadrant
+                the radar arcs left open. 32px charcoal disc with
+                crimson ring and bold tabular number. */}
             {player.jerseyNumber != null && !isPotm && (
               <span
-                className="absolute -bottom-0.5 -right-0.5 z-10 w-[34px] h-[34px] rounded-full bg-charcoal-900 text-white ring-2 ring-brand-primary flex items-center justify-center text-[13px] font-black tabular-nums shadow-lg"
+                className="absolute top-[6px] left-[6px] z-10 w-[32px] h-[32px] rounded-full bg-charcoal-900 text-white ring-2 ring-brand-primary flex items-center justify-center text-[13px] font-black tabular-nums shadow-lg"
                 aria-label={`Jersey number ${player.jerseyNumber}`}
               >
                 {player.jerseyNumber}
@@ -2165,7 +2227,7 @@ const MyPlayerCard: React.FC<{
             )}
             {isPotm && (
               <span
-                className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-amber-300 ring-2 ring-amber-700 flex items-center justify-center shadow-lg"
+                className="absolute top-[14px] right-[14px] w-7 h-7 rounded-full bg-amber-300 ring-2 ring-amber-700 flex items-center justify-center shadow-lg"
                 aria-label="Player of the Match"
               >
                 <svg className="w-3.5 h-3.5 text-amber-900" fill="currentColor" viewBox="0 0 24 24">

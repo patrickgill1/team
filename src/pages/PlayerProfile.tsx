@@ -1552,7 +1552,7 @@ const PlayerProfile: React.FC = () => {
                 <div>
                   <h2 className="text-lg sm:text-xl font-black text-ink-primary">Kudos from your Circle</h2>
                   <p className="text-[12.5px] text-ink-primary/60 mt-1">
-                    Short notes from the people who watch {player.name?.split(' ')[0] || 'this player'} grow. Coach may add XP if they agree.
+                    Notes from the people cheering {player.name?.split(' ')[0] || 'this player'} on.
                   </p>
                 </div>
                 {kudosList.length === 0 ? (

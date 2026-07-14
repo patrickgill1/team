@@ -593,16 +593,17 @@ export function tplKudosNew(opts: {
   presetKind?: string | null;
   playerId: string;
 }): { subject: string; html: string } {
-  const subject = `${opts.senderName} sent a Kudos about ${opts.playerName}`;
+  const first = String(opts.playerName || '').split(' ')[0] || opts.playerName;
+  const subject = `${opts.senderName} saw something ${first} did`;
   const safeMsg = (opts.note || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
   const html = wrap(`
-    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">Kudos from ${opts.senderName}</div>
-    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">About ${opts.playerName}</h2>
+    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">Kudos for ${first}</div>
+    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">${opts.senderName} noticed something about ${first}</h2>
     <div style="margin:14px 0 18px;padding:16px 18px;background:#f0f9ff;border-left:3px solid ${BRAND_CYAN};border-radius:8px;color:#0c4a6e;font-size:15px;line-height:1.6;">
       ${safeMsg}
     </div>
-    <p style="margin:0 0 16px;font-size:13px;color:#64748b;">Circle members send Kudos when they notice something worth calling out. You can leave it as a moment on ${opts.playerName}'s profile, or one-tap convert it to XP if you agree.</p>
-    ${button(`${APP_BASE}/player/${opts.playerId}?tab=whispers`, `Open ${opts.playerName}'s profile`)}
+    <p style="margin:0 0 16px;font-size:13px;color:#64748b;">If it deserves XP, you can add it in one tap. Either way, ${first} will see this on their profile.</p>
+    ${button(`${APP_BASE}/player/${opts.playerId}?tab=whispers`, `Open ${first}'s profile`)}
   `);
   return { subject, html };
 }
@@ -619,15 +620,16 @@ export function tplKudosXpAwarded(opts: {
   note: string;
   playerId: string;
 }): { subject: string; html: string } {
-  const subject = `+${opts.amount} XP for ${opts.playerName} — ${opts.coachName} agreed with ${opts.senderName}`;
+  const first = String(opts.playerName || '').split(' ')[0] || opts.playerName;
+  const subject = `+${opts.amount} XP for ${first} — ${opts.coachName} agreed`;
   const safeMsg = (opts.note || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
   const html = wrap(`
-    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">+${opts.amount} XP for ${opts.playerName}</div>
-    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">${opts.coachName} agreed with ${opts.senderName}'s Kudos</h2>
+    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">+${opts.amount} XP for ${first}</div>
+    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">Coach saw ${opts.senderName}'s Kudos and agreed</h2>
     <div style="margin:14px 0 18px;padding:16px 18px;background:#f0f9ff;border-left:3px solid ${BRAND_CYAN};border-radius:8px;color:#0c4a6e;font-size:15px;line-height:1.6;">
       ${safeMsg}
     </div>
-    ${button(`${APP_BASE}/player/${opts.playerId}?tab=xp`, `See ${opts.playerName}'s XP feed`)}
+    ${button(`${APP_BASE}/player/${opts.playerId}?tab=xp`, `See ${first}'s XP`)}
   `);
   return { subject, html };
 }

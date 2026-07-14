@@ -160,11 +160,13 @@ const KudosComposerModal: React.FC<Props> = ({ isOpen, onClose, player, onSent }
   return (
     <Sheet open={isOpen} onClose={onClose} title={`Kudos for ${firstName}`}>
       <div className="p-4 sm:p-5 flex flex-col gap-4">
-        {/* Intro */}
-        <p className="text-sm text-ink-primary/70 leading-relaxed">
-          Send {firstName} a note about something you noticed. Coach may add XP if they agree, but
-          the moment itself lands on {firstName}&rsquo;s profile either way &mdash; your people
-          seeing you is the point.
+        {/* Intro — voice per Patrick 2026-07-14: warm, personable,
+            asks a real question. NOT "here's what this feature does."
+            "them" is a deliberate pronoun-neutral default since
+            Player type doesn't carry gender; reads naturally for
+            kids, adults, and every audience. */}
+        <p className="text-sm text-ink-primary/75 leading-relaxed">
+          Did {firstName} do something special? Give them some Kudos to let them know you noticed.
         </p>
 
         {/* Presets */}
@@ -193,7 +195,7 @@ const KudosComposerModal: React.FC<Props> = ({ isOpen, onClose, player, onSent }
           <textarea
             className={`${fieldInputClass} min-h-[120px] resize-none`}
             style={{ fontSize: '16px' }}
-            placeholder={`What did you see? "${firstName} stayed after to work on their left foot…"`}
+            placeholder={`Tell ${firstName} what you saw…`}
             value={note}
             onChange={(e) => {
               setNote(e.target.value.slice(0, NOTE_MAX));
@@ -215,7 +217,7 @@ const KudosComposerModal: React.FC<Props> = ({ isOpen, onClose, player, onSent }
               : 'bg-rose-500/10 text-rose-600 ring-1 ring-rose-500/20'
           }`}>
             {result.ok
-              ? `Sent — coach can add XP if they agree, and ${firstName} will see this on their profile.`
+              ? `${firstName} will see this. Coach may add XP too.`
               : result.reason || 'Could not send. Try again.'}
           </div>
         )}

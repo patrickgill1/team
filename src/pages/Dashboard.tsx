@@ -2106,22 +2106,18 @@ const MyPlayerCard: React.FC<{
           PROFILE), 4-col HUD (LEVEL/STREAK/BADGES/LATEST BADGE),
           then XP bar with progress-to-next-level text. */}
       <div className={`relative z-[2] ${isPotm ? 'pt-10 pb-4 px-4' : 'p-4'} flex flex-col gap-3`}>
-        {/* SEASON CARD kicker + hairline underline — sports-poster
-            eyebrow that names what this artifact IS. Suppressed on
-            POTM week (the gold banner already labels it). */}
+        {/* SEASON CARD kicker removed 2026-07-13 (Patrick: "maybe
+            season card doesn't need to be there, and we can move the
+            profile pic up") — freed ~24px of vertical space. VIEW
+            PROFILE moved to a floating absolute chip at card top-right
+            below so the affordance is still visible. */}
         {!isPotm && (
-          <div className="flex items-center justify-between gap-3 -mb-1">
-            <div className="flex items-baseline gap-2 min-w-0">
-              <span className="text-[9.5px] font-black uppercase tracking-[0.32em] text-brand-primary">Season Card</span>
-              <span className="h-px flex-1 bg-gradient-to-r from-brand-primary/70 via-brand-primary/25 to-transparent" aria-hidden />
-            </div>
-            <span className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9.5px] font-black uppercase tracking-[0.22em] ring-1 ring-brand-primary/50 text-brand-primary-soft hover:bg-brand-primary/10 transition whitespace-nowrap">
-              View Profile
-              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
-                <polyline points="9 6 15 12 9 18" />
-              </svg>
-            </span>
-          </div>
+          <span className="absolute top-3 right-3 z-[3] inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9.5px] font-black uppercase tracking-[0.22em] ring-1 ring-brand-primary/50 text-brand-primary-soft hover:bg-brand-primary/10 transition whitespace-nowrap bg-charcoal-900/40 backdrop-blur-sm">
+            View Profile
+            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
+              <polyline points="9 6 15 12 9 18" />
+            </svg>
+          </span>
         )}
 
         {/* IDENTITY ROW: photo + name column. items-center balances
@@ -2141,61 +2137,67 @@ const MyPlayerCard: React.FC<{
               <>
                 {/* Soft crimson glow BEHIND the photo. */}
                 <div aria-hidden className="absolute top-[20px] left-[20px] w-[100px] h-[100px] rounded-full bg-brand-primary/15 blur-md pointer-events-none" />
-                {/* Radar-arc decoration — three tiers of broken arcs
-                    + tick marks + node dots. currentColor kept as
-                    solid crimson; gradient defs unique-ID'd via
-                    player.id so multiple cards can't collide. */}
-                <svg
-                  aria-hidden
-                  viewBox="0 0 140 140"
-                  className="absolute inset-0 w-[140px] h-[140px] pointer-events-none"
+                {/* Radar-arc decoration split into ROTATING and STATIC
+                    layers (Patrick 2026-07-13: "i thought the lines
+                    would move or something lol"). Arcs + their
+                    endpoint dots orbit slowly (45s per rotation) via
+                    the Tailwind `spin` keyframe. Cardinal + diagonal
+                    ticks stay fixed as compass markers. `motion-safe:`
+                    honours the user's reduced-motion preference. */}
+                <div
+                  className="absolute inset-0 w-[140px] h-[140px] pointer-events-none motion-safe:animate-spin"
+                  style={{ animationDuration: '45s', animationTimingFunction: 'linear' }}
                 >
-                  <defs>
-                    <linearGradient id={`arcGrad-${player.id}`} x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0" stopColor="#c8202c" stopOpacity="0.15" />
-                      <stop offset="0.5" stopColor="#c8202c" stopOpacity="1" />
-                      <stop offset="1" stopColor="#c8202c" stopOpacity="0.15" />
-                    </linearGradient>
-                  </defs>
-                  {/* Outer arcs r=68 — top-right + bottom-left, gradient-faded. */}
-                  <path d="M 75.93 2.26 A 68 68 0 0 1 131.63 98.74" stroke={`url(#arcGrad-${player.id})`} strokeWidth="2" fill="none" strokeLinecap="round" />
-                  <path d="M 98.74 131.63 A 68 68 0 0 1 2.26 75.93" stroke={`url(#arcGrad-${player.id})`} strokeWidth="2" fill="none" strokeLinecap="round" />
-                  {/* Mid arcs r=62 — right side + bottom-left, solid. */}
-                  <path d="M 123.7 39 A 62 62 0 0 1 109.9 117.5" stroke="#c8202c" strokeWidth="1.25" fill="none" opacity="0.7" strokeLinecap="round" />
-                  <path d="M 31.42 115.96 A 62 62 0 0 1 10.23 75.23" stroke="#c8202c" strokeWidth="1.25" fill="none" opacity="0.7" strokeLinecap="round" />
-                  {/* Amber inner accent r=58 — bottom-right sweep. */}
-                  <path d="M 120.2 99 A 58 58 0 0 1 59.93 127.12" stroke="#f59e0b" strokeWidth="1" fill="none" opacity="0.75" strokeLinecap="round" />
-                  {/* Cardinal tick marks at N/E/S/W (edges of 140x140). */}
+                  <svg aria-hidden viewBox="0 0 140 140" className="w-full h-full">
+                    <defs>
+                      <linearGradient id={`arcGrad-${player.id}`} x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stopColor="#c8202c" stopOpacity="0.15" />
+                        <stop offset="0.5" stopColor="#c8202c" stopOpacity="1" />
+                        <stop offset="1" stopColor="#c8202c" stopOpacity="0.15" />
+                      </linearGradient>
+                    </defs>
+                    {/* Outer arcs r=68 — top-right + bottom-left, gradient-faded. */}
+                    <path d="M 75.93 2.26 A 68 68 0 0 1 131.63 98.74" stroke={`url(#arcGrad-${player.id})`} strokeWidth="2" fill="none" strokeLinecap="round" />
+                    <path d="M 98.74 131.63 A 68 68 0 0 1 2.26 75.93" stroke={`url(#arcGrad-${player.id})`} strokeWidth="2" fill="none" strokeLinecap="round" />
+                    {/* Mid arcs r=62 — right side + bottom-left, solid. */}
+                    <path d="M 123.7 39 A 62 62 0 0 1 109.9 117.5" stroke="#c8202c" strokeWidth="1.25" fill="none" opacity="0.7" strokeLinecap="round" />
+                    <path d="M 31.42 115.96 A 62 62 0 0 1 10.23 75.23" stroke="#c8202c" strokeWidth="1.25" fill="none" opacity="0.7" strokeLinecap="round" />
+                    {/* Amber inner accent r=58 — bottom-right sweep. */}
+                    <path d="M 120.2 99 A 58 58 0 0 1 59.93 127.12" stroke="#f59e0b" strokeWidth="1" fill="none" opacity="0.75" strokeLinecap="round" />
+                    {/* Node dots at outer-arc endpoints (rotate with arcs). */}
+                    <g fill="#c8202c">
+                      <circle cx="75.93" cy="2.26" r="1.8" />
+                      <circle cx="131.63" cy="98.74" r="1.8" />
+                      <circle cx="98.74" cy="131.63" r="1.8" />
+                      <circle cx="2.26" cy="75.93" r="1.8" />
+                    </g>
+                    {/* Node dots at mid-arc endpoints. */}
+                    <g fill="#c8202c" opacity="0.85">
+                      <circle cx="123.7" cy="39" r="1.25" />
+                      <circle cx="109.9" cy="117.5" r="1.25" />
+                      <circle cx="31.42" cy="115.96" r="1.25" />
+                      <circle cx="10.23" cy="75.23" r="1.25" />
+                    </g>
+                    {/* Node dots at amber-arc endpoints. */}
+                    <g fill="#f59e0b">
+                      <circle cx="120.2" cy="99" r="1.4" />
+                      <circle cx="59.93" cy="127.12" r="1.4" />
+                    </g>
+                  </svg>
+                </div>
+                {/* Static compass layer — ticks stay put while arcs
+                    orbit past them, sells the "radar" feel. */}
+                <svg aria-hidden viewBox="0 0 140 140" className="absolute inset-0 w-[140px] h-[140px] pointer-events-none">
                   <g stroke="#c8202c" strokeLinecap="round">
                     <line x1="70" y1="0.5" x2="70" y2="4.5" strokeWidth="1.5" />
                     <line x1="139.5" y1="70" x2="135.5" y2="70" strokeWidth="1.5" />
                     <line x1="70" y1="139.5" x2="70" y2="135.5" strokeWidth="1.5" />
                     <line x1="0.5" y1="70" x2="4.5" y2="70" strokeWidth="1.5" />
                   </g>
-                  {/* Diagonal tick marks (NE/SE/SW) — top-left omitted for jersey pill. */}
                   <g stroke="#c8202c" strokeWidth="1" strokeLinecap="round" opacity="0.55">
                     <line x1="116.67" y1="23.33" x2="120.21" y2="19.79" />
                     <line x1="116.67" y1="116.67" x2="120.21" y2="120.21" />
                     <line x1="23.33" y1="116.67" x2="19.79" y2="120.21" />
-                  </g>
-                  {/* Node dots at outer-arc endpoints. */}
-                  <g fill="#c8202c">
-                    <circle cx="75.93" cy="2.26" r="1.8" />
-                    <circle cx="131.63" cy="98.74" r="1.8" />
-                    <circle cx="98.74" cy="131.63" r="1.8" />
-                    <circle cx="2.26" cy="75.93" r="1.8" />
-                  </g>
-                  {/* Node dots at mid-arc endpoints. */}
-                  <g fill="#c8202c" opacity="0.85">
-                    <circle cx="123.7" cy="39" r="1.25" />
-                    <circle cx="109.9" cy="117.5" r="1.25" />
-                    <circle cx="31.42" cy="115.96" r="1.25" />
-                    <circle cx="10.23" cy="75.23" r="1.25" />
-                  </g>
-                  {/* Node dots at amber-arc endpoints. */}
-                  <g fill="#f59e0b">
-                    <circle cx="120.2" cy="99" r="1.4" />
-                    <circle cx="59.93" cy="127.12" r="1.4" />
                   </g>
                 </svg>
               </>
@@ -2257,6 +2259,33 @@ const MyPlayerCard: React.FC<{
               <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
               {position}
             </span>
+            {/* Inline season-stats line — fills identity-column dead
+                space (Patrick 2026-07-13). Only shows when xpEnabled
+                so we don't duplicate the xp-off fallback GOALS/ASSISTS
+                /GAMES grid below. Hidden if all stats are zero so
+                pre-season doesn't render "0 goals · 0 assists". */}
+            {xpEnabled && !isPotm && (() => {
+              const g = player.stats?.goals || 0;
+              const a = player.stats?.assists || 0;
+              const gp = player.stats?.gamesPlayed || 0;
+              const sv = (player as any).stats?.saves || 0;
+              const isGK = position === 'Goalkeeper';
+              const items: Array<[number, string]> = isGK
+                ? [[gp, gp === 1 ? 'game' : 'games'], [sv, sv === 1 ? 'save' : 'saves']]
+                : [[g, g === 1 ? 'goal' : 'goals'], [a, a === 1 ? 'assist' : 'assists'], [gp, gp === 1 ? 'game' : 'games']];
+              if (!items.some(([v]) => v > 0)) return null;
+              return (
+                <p className="mt-2 text-[10.5px] font-bold text-ink-primary/60 tracking-tight">
+                  {items.map(([v, label], i) => (
+                    <span key={label}>
+                      {i > 0 && <span className="text-ink-primary/25 mx-1.5">·</span>}
+                      <span className="tabular-nums text-ink-primary/85">{v}</span>{' '}
+                      <span className="uppercase text-[9px] tracking-wider">{label}</span>
+                    </span>
+                  ))}
+                </p>
+              );
+            })()}
           </div>
         </div>
 

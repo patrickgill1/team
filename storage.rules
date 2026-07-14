@@ -71,6 +71,38 @@ service firebase.storage {
       allow write: if request.auth != null;
     }
 
+    // Legacy PROFILE photo uploads (players/coaches/parents). Path
+    // shape: player-photos/{fileName}. Used by AddPlayer.tsx and
+    // parent/coach photo upload flows. Note: this legacy path does
+    // NOT include userId in the path (files are named by random
+    // string), so we can't scope writes to owner via Storage rules
+    // alone — client is coach/parent-gated for the flows that hit
+    // this path. Missing this rule was Patrick's 2026-07-14 report
+    // of "not letting people upload profile photos, permission
+    // issue."
+    match /player-photos/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Player media (coach uploads to a player's timeline: game clips,
+    // action photos, moments). Path shape:
+    //   player_media/{teamId}/{playerId}/{filename}
+    // Same authed-only rationale as team paths; the upload UI is
+    // coach-gated.
+    match /player_media/{teamId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Event photo attachments (photos attached to a calendar event).
+    // Path shape: events/{teamId}/{eventId}/{filename}. Coach-gated
+    // in the UI.
+    match /events/{teamId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
     // Default fallback: authed users can READ anything else that
     // slipped past the explicit prefixes, but NOTHING writes here.
     // Compare to the previous wildcard that allowed writes too — that

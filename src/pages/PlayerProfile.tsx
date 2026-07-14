@@ -651,6 +651,8 @@ const PlayerProfile: React.FC = () => {
         isCurrentPotm={!!(player as any).isCurrentPotm}
         onBack={() => { window.history.length > 1 ? window.history.back() : (window.location.href = '/players'); }}
         onEdit={() => setEditOpen(true)}
+        showKudos={!!userData && Array.isArray((player as any)?.parentIds) && (player as any).parentIds.includes(userData.uid)}
+        onKudos={() => setShowKudos(true)}
       />
       <ProfileStatsStrip
         potmWins={votingWins.length}

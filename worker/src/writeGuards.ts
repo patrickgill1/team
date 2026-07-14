@@ -3275,7 +3275,11 @@ const WHISPER_XP = 50;
 // stamped by the old Recognize flow keep their earnedAt + count
 // fields untouched.
 const COACH_PICK_XP_THRESHOLD = 200;
-const COACH_SOURCE_TYPES = ['coach_recognition', 'coach_live', 'coach_whisper'];
+// Includes kudos_coach_convert (2026-07-14) because a coach who
+// promotes a Circle-member kudos to XP is authoring the recognition
+// with the same intent as a whisper or live grant. Kudos → XP
+// conversions count toward Coach's Pick.
+const COACH_SOURCE_TYPES = ['coach_recognition', 'coach_live', 'coach_whisper', 'kudos_coach_convert'];
 
 // Coach-live raw XP grant constants. Separate quota lane from
 // coach_recognition: recognitions are warm whispered notes capped
@@ -3563,6 +3567,172 @@ async function handleXpAwardWhisper(req: Request, env: Env, payload: any): Promi
     xp: WHISPER_XP,
     totalXp: (typeof player.xp === 'number' ? player.xp : 0) + WHISPER_XP,
     coachPickEarned: pick.earned,
+  });
+}
+
+// ────────────────────────────────────────────────────────────────
+// POST /xp/convert-kudos — coach one-taps a Circle member's kudos
+// note into +N XP. Client already wrote the kudos doc; this
+// endpoint stamps the audit event, increments xp/xpCareer, updates
+// the kudos doc with the xpAwarded/xpEventId links, and derives
+// Coach's Pick if applicable.
+//
+// Idempotent-ish: uses deterministic event id `kudos-${kudosId}` so
+// double-tap converts as a Firestore 409 no-op (AlreadyExistsError).
+// See project_player_circle_mission memory for context.
+// ────────────────────────────────────────────────────────────────
+async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  const playerId = String(payload?.playerId || '');
+  const kudosId = String(payload?.kudosId || '');
+  const amountRaw = Number(payload?.amount);
+  const coachNote = String(payload?.coachNote || '').trim();
+
+  if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+  if (!kudosId) return json({ ok: false, error: 'kudos_id_required' }, 400);
+  if (!Number.isFinite(amountRaw) || amountRaw < COACH_LIVE_XP_MIN || amountRaw > COACH_LIVE_XP_MAX) {
+    return json({ ok: false, error: 'amount_out_of_range' }, 400);
+  }
+  const amount = Math.round(amountRaw);
+  const now = new Date();
+
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  if (!teamDoc?.data) return json({ ok: false, error: 'team_not_found' }, 404);
+  const teamData: any = teamDoc.data;
+  if (teamData?.xpConfig?.enabled !== true) {
+    return json({ ok: false, error: 'xp_not_enabled' }, 403);
+  }
+  const clubId = teamData.clubId ? String(teamData.clubId) : '';
+
+  const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+  if (!playerDoc?.data) return json({ ok: false, error: 'player_not_found' }, 404);
+  const player: any = playerDoc.data;
+  const playerTeams: string[] = Array.isArray(player.teamIds)
+    ? player.teamIds
+    : (player.teamId ? [player.teamId] : []);
+  if (!playerTeams.includes(teamId)) {
+    return json({ ok: false, error: 'player_not_on_team' }, 403);
+  }
+  const playerName = String(player.name || 'Player');
+
+  // Load the kudos doc so we can carry sender info into the audit
+  // event + fail cleanly if it doesn't exist or was already converted.
+  const kudosDoc = await getDocument(pid, `kudos/${kudosId}`, sa).catch(() => null);
+  if (!kudosDoc?.data) return json({ ok: false, error: 'kudos_not_found' }, 404);
+  const kudos: any = kudosDoc.data;
+  if (kudos.xpEventId) {
+    return json({ ok: false, error: 'kudos_already_converted', xpEventId: kudos.xpEventId }, 409);
+  }
+  if (String(kudos.playerId || '') !== playerId) {
+    return json({ ok: false, error: 'kudos_player_mismatch' }, 400);
+  }
+
+  let seasonId = '';
+  let seasonName = '';
+  try {
+    const seasonQ = await runQuery(
+      pid,
+      'seasons',
+      [
+        { field: 'teamId', op: 'EQUAL', value: teamId },
+        { field: 'isActive', op: 'EQUAL', value: true },
+      ],
+      sa,
+      1,
+    );
+    if (seasonQ.length > 0) {
+      seasonId = seasonQ[0].id;
+      seasonName = String((seasonQ[0].data as any)?.name || '');
+    }
+  } catch (err) {
+    console.warn('[xp/convert-kudos] season lookup failed:', (err as Error).message);
+  }
+
+  let coachName = '';
+  try {
+    const coachDoc = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+    if (coachDoc?.data) coachName = String((coachDoc.data as any)?.name || '');
+  } catch { /* non-fatal */ }
+
+  // Deterministic doc id — safe against double-tap.
+  const eventId = `kudos-${kudosId}`;
+  const eventFields: Record<string, any> = {
+    playerId,
+    playerName,
+    teamId,
+    xp: amount,
+    source: 'kudos_coach_convert',
+    awardedBy: claims.uid,
+    awardedByRole: 'coach',
+    awardedByName: coachName || null,
+    note: coachNote || String(kudos.note || ''),
+    sourceRef: kudosId,
+    createdAt: now,
+  };
+  if (seasonId) eventFields.seasonId = seasonId;
+  if (clubId) eventFields.clubId = clubId;
+
+  try {
+    await createDocument(pid, 'player_xp_events', eventFields, sa, eventId);
+  } catch (err: any) {
+    if (err?.name === 'AlreadyExistsError') {
+      return json({ ok: false, error: 'kudos_already_converted' }, 409);
+    }
+    throw err;
+  }
+
+  try {
+    await commitDocumentTransforms(
+      pid,
+      `players/${playerId}`,
+      [
+        { fieldPath: 'xp', kind: 'increment', value: amount },
+        { fieldPath: 'xpCareer', kind: 'increment', value: amount },
+      ],
+      null,
+      sa,
+    );
+  } catch (err) {
+    // Orphan the audit doc if the player transform fails. Best-effort
+    // undo matches the whisper handler pattern (see
+    // deleteAuditEventBestEffort in the file).
+    await deleteAuditEventBestEffort(pid, sa, eventId);
+    throw err;
+  }
+
+  // Stamp the kudos doc bidirectionally so the profile UI can show
+  // "coach converted this to +N XP" chrome and hide the "Convert to
+  // XP" button for future viewers.
+  try {
+    await patchDocument(pid, `kudos/${kudosId}`, {
+      xpAwarded: amount,
+      xpAwardedBy: claims.uid,
+      xpAwardedByName: coachName || '',
+      xpAwardedAt: now,
+      xpEventId: eventId,
+      xpNote: coachNote || '',
+    }, sa);
+  } catch (err) {
+    console.warn('[xp/convert-kudos] kudos stamp failed (non-fatal):', (err as Error).message);
+  }
+
+  // Coach's Pick derivation — kudos_coach_convert IS in
+  // COACH_SOURCE_TYPES, so this sum includes the just-landed event.
+  const pick = await maybeGrantCoachPick(
+    pid, sa, playerId, player.badges || {}, seasonId, seasonName,
+  );
+
+  return json({
+    ok: true,
+    eventId,
+    xp: amount,
+    totalXp: (typeof player.xp === 'number' ? player.xp : 0) + amount,
+    coachPickEarned: pick.earned,
+    kudosId,
   });
 }
 
@@ -4316,6 +4486,7 @@ export async function routeWriteGuard(
     case '/club/remove-admin':     return handleClubRemoveAdmin(req, env, payload);
     case '/xp/award-whisper':      return handleXpAwardWhisper(req, env, payload);
     case '/xp/grant-coach':        return handleXpGrantCoach(req, env, payload);
+    case '/xp/convert-kudos':      return handleXpConvertKudos(req, env, payload);
     case '/xp/reward-presets':     return handleXpRewardPresets(req, env, payload);
     case '/xp/backfill-preview':   return handleXpBackfillPreview(req, env, payload);
     case '/xp/backfill-commit':    return handleXpBackfillCommit(req, env, payload);

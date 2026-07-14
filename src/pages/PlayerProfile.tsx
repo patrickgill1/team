@@ -8,6 +8,7 @@ import { Player, PlayerMedia, DevelopmentPlan, Season } from '../types';
 import { isCoachOfTeam, formatDate, isGoalkeeper, getPlayerPositionsLabel } from '../utils/helpers';
 import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
+import KudosComposerModal from '../components/kudos/KudosComposerModal';
 import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import ProfileHero from '../components/player/ProfileHero';
 import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
@@ -83,6 +84,22 @@ const PlayerProfile: React.FC = () => {
     logId?: string;
     level?: number;
   }>>([]);
+  // Kudos — Circle-member notes on this player (2026-07-14). Live on
+  // the whispers tab as their own section, chronological. Coach can
+  // one-tap convert any un-converted kudos to +N XP via worker
+  // /xp/convert-kudos. See project_player_circle_mission memory.
+  const [kudosList, setKudosList] = useState<Array<{
+    id: string;
+    senderUid: string;
+    senderName: string;
+    senderAvatarUrl?: string | null;
+    note: string;
+    presetKind?: string | null;
+    createdAt: Date;
+    xpAwarded?: number;
+    xpAwardedByName?: string;
+    xpAwardedAt?: Date | null;
+  }>>([]);
   const [allPlayerVotings, setAllPlayerVotings] = useState<{ voting: MatchVoting; playerVotes: { voterName: string; reason?: string }[] }[]>([]);
   const [votingNominations, setVotingNominations] = useState<number>(0);
   const [attendance, setAttendance] = useState<{ percent: number | null; totalEvents: number; attendedEvents: number }>({ percent: null, totalEvents: 0, attendedEvents: 0 });
@@ -112,6 +129,8 @@ const PlayerProfile: React.FC = () => {
   const [statsScope, setStatsScope] = useState<'team_season' | 'team_career' | 'all_time'>('team_season');
   const [lightboxItem, setLightboxItem] = useState<PlayerMedia | null>(null);
   const [showWhisper, setShowWhisper] = useState(false);
+  const [showKudos, setShowKudos] = useState(false);
+  const [kudosBumpKey, setKudosBumpKey] = useState(0); // force reload on send
   const [showGrantXp, setShowGrantXp] = useState(false);
   // Roster for the CoachGrantXpModal — deferred until the coach
   // taps Give XP so a parent-view profile doesn't waste a Firestore
@@ -374,6 +393,36 @@ const PlayerProfile: React.FC = () => {
           setWhispers(list);
         } catch { /* whispers absent on this profile is fine */ }
       }
+
+      // Kudos — Circle-member notes tied to this player. Same read
+      // scope as whispers (rule callerCanReadWhisper). Fire-and-forget;
+      // failure is fine (no kudos yet is the common case).
+      try {
+        const { collection, getDocs, query, where } = await import('firebase/firestore');
+        const { db: kdb } = await import('../utils/firebase');
+        const kSnap = await getDocs(query(
+          collection(kdb, 'kudos'),
+          where('playerId', '==', playerId),
+        ));
+        const kList = kSnap.docs.map(d => {
+          const data: any = d.data();
+          return {
+            id: d.id,
+            senderUid: data.senderUid || '',
+            senderName: data.senderName || 'A Circle member',
+            senderAvatarUrl: data.senderAvatarUrl || null,
+            note: data.note || '',
+            presetKind: data.presetKind || null,
+            createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
+            xpAwarded: typeof data.xpAwarded === 'number' ? data.xpAwarded : undefined,
+            xpAwardedByName: data.xpAwardedByName || null,
+            xpAwardedAt: data.xpAwardedAt?.toDate?.() || null,
+          };
+        });
+        kList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        setKudosList(kList);
+      } catch { /* no kudos yet is fine */ }
+
 
       // Collect all votings where this player received votes (with reasons)
       const playerVotings = teamVotings
@@ -660,6 +709,19 @@ const PlayerProfile: React.FC = () => {
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
               Whisper
+            </button>
+          )}
+          {/* Kudos — any Circle member (person in player.parentIds) can
+              send a note. Coaches also see this if they're in parentIds
+              (i.e. coaching their own kid); coaches otherwise use Whisper. */}
+          {userData && Array.isArray((player as any)?.parentIds) && (player as any).parentIds.includes(userData.uid) && (
+            <button
+              onClick={() => setShowKudos(true)}
+              className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-surface-elevated hover:bg-surface-input text-ink-primary text-xs font-bold ring-1 ring-line-default/15 transition"
+              title="Send a Kudos — a short note about something you noticed"
+            >
+              <svg className="w-3.5 h-3.5 text-brand-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" /></svg>
+              Kudos
             </button>
           )}
           <button
@@ -1477,7 +1539,134 @@ const PlayerProfile: React.FC = () => {
             channel; this is the receipts surface so parents can
             re-read past notes without scrolling through Gmail. */}
         {activeTab === 'whispers' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* ─── KUDOS section (2026-07-14) ──────────────────────
+                Circle-member notes about this player. Coach can
+                one-tap convert any un-converted kudos to +N XP via
+                worker /xp/convert-kudos. See project_player_circle
+                _mission memory. */}
+            {(kudosList.length > 0 || (userData && Array.isArray((player as any)?.parentIds) && (player as any).parentIds.includes(userData.uid))) && (
+              <div className="space-y-3">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-black text-ink-primary">Kudos from your Circle</h2>
+                  <p className="text-[12.5px] text-ink-primary/60 mt-1">
+                    Short notes from the people who watch {player.name?.split(' ')[0] || 'this player'} grow. Coach may add XP if they agree.
+                  </p>
+                </div>
+                {kudosList.length === 0 ? (
+                  <EmptyState
+                    icon={<svg className="w-5 h-5 text-brand-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" /></svg>}
+                    title="No Kudos yet"
+                    description={`Tap the Kudos button above to send ${player.name?.split(' ')[0] || 'them'} the first one.`}
+                  />
+                ) : (
+                  <ul className="space-y-3">
+                    {kudosList.map(k => {
+                      const isCoach = !!userData && isCoachOfTeam(userData, selectedTeam);
+                      const alreadyConverted = typeof k.xpAwarded === 'number' && k.xpAwarded > 0;
+                      const canConvert = isCoach && !alreadyConverted && (selectedTeam as any)?.xpConfig?.enabled === true;
+                      const handleConvert = async () => {
+                        const teamIdForConvert = (player as any).teamId
+                          || (Array.isArray((player as any).teamIds) ? (player as any).teamIds[0] : '')
+                          || '';
+                        if (!teamIdForConvert) {
+                          alert('Missing team context — cannot convert.');
+                          return;
+                        }
+                        const raw = window.prompt(`Add XP for this Kudos from ${k.senderName}? Enter amount 1–500.`, '25');
+                        if (!raw) return;
+                        const amount = parseInt(raw, 10);
+                        if (!Number.isFinite(amount) || amount < 1 || amount > 500) {
+                          alert('Amount must be 1–500.');
+                          return;
+                        }
+                        try {
+                          const { workerFetch } = await import('../utils/workerFetch');
+                          const res = await workerFetch('/xp/convert-kudos', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                              teamId: teamIdForConvert,
+                              playerId: player.id,
+                              kudosId: k.id,
+                              amount,
+                            }),
+                          });
+                          const data: any = await res.json().catch(() => ({}));
+                          if (!res.ok || !data?.ok) {
+                            alert(`Could not convert: ${data?.error || res.status}`);
+                            return;
+                          }
+                          // Optimistic local update — actual re-fetch happens on next mount.
+                          setKudosList(list => list.map(x => x.id === k.id
+                            ? { ...x, xpAwarded: amount, xpAwardedByName: userData?.name || 'Coach', xpAwardedAt: new Date() }
+                            : x));
+                          // Fire-and-forget push to player's parents celebrating the conversion.
+                          try {
+                            const { tplKudosXpAwarded, sendEmailBatch, sendPushToPlayerParents, getParentEmailsForPlayer } = await import('../utils/notify');
+                            sendPushToPlayerParents(player.id, {
+                              title: `+${amount} XP for ${player.name?.split(' ')[0] || 'your player'}`,
+                              body: `Coach agreed with ${k.senderName}'s Kudos: "${k.note.slice(0, 120)}"`,
+                              url: `/player/${player.id}?tab=xp`,
+                            }, 'devPlan').catch(() => { /* non-fatal */ });
+                            const parents = await getParentEmailsForPlayer(player.id, 'devPlan');
+                            if (parents.length > 0) {
+                              const { subject, html } = tplKudosXpAwarded({
+                                playerName: player.name || 'the player',
+                                senderName: k.senderName,
+                                coachName: userData?.name || 'Coach',
+                                amount,
+                                note: k.note,
+                                playerId: player.id,
+                              });
+                              await sendEmailBatch(parents.map(p => ({ to: p.email, subject, html })));
+                            }
+                          } catch { /* non-fatal */ }
+                        } catch (err: any) {
+                          alert(`Convert failed: ${err?.message || 'network error'}`);
+                        }
+                      };
+                      return (
+                        <li key={k.id} className="p-3 sm:p-4 rounded-xl bg-surface-elevated ring-1 ring-line-default/15 border-l-4 border-brand-primary/60">
+                          <div className="flex items-start gap-3">
+                            {k.senderAvatarUrl ? (
+                              <img src={k.senderAvatarUrl} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="w-9 h-9 rounded-full bg-brand-primary/15 text-brand-primary flex items-center justify-center font-black text-sm flex-shrink-0">
+                                {(k.senderName || '?').charAt(0)}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-baseline gap-2 flex-wrap">
+                                <span className="text-sm font-bold text-ink-primary">{k.senderName}</span>
+                                <span className="text-[11px] text-ink-primary/50">{k.createdAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                {alreadyConverted && (
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full">
+                                    +{k.xpAwarded} XP {k.xpAwardedByName ? `· ${k.xpAwardedByName}` : ''}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[14px] text-ink-primary/90 mt-1 whitespace-pre-wrap leading-relaxed">{k.note}</p>
+                              {canConvert && (
+                                <button
+                                  type="button"
+                                  onClick={handleConvert}
+                                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-brand-primary/10 text-brand-primary ring-1 ring-brand-primary/30 hover:bg-brand-primary/20 transition"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+                                  Convert to XP
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* ─── WHISPERS section (existing) ───────────────────── */}
             <div>
               <h2 className="text-lg sm:text-xl font-black text-ink-primary">Coach whispers</h2>
               <p className="text-[12.5px] text-ink-primary/60 mt-1">
@@ -1801,6 +1990,15 @@ const PlayerProfile: React.FC = () => {
           player={player}
           recentMedia={recentMedia}
           activePlans={activePlans}
+        />
+      )}
+
+      {showKudos && player && (
+        <KudosComposerModal
+          isOpen={showKudos}
+          onClose={() => setShowKudos(false)}
+          player={player}
+          onSent={() => setKudosBumpKey(k => k + 1)}
         />
       )}
 

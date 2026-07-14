@@ -10,6 +10,7 @@ export const SOURCE_LABEL: Record<PlayerXpEvent['source'], string> = {
   coach_recognition: 'Coach recognition', // legacy — Recognize flow deleted 2026-07-13
   coach_live: 'Coach grant',
   coach_whisper: 'Whisper',
+  kudos_coach_convert: 'Kudos', // Circle-member note promoted to XP by coach
   attendance: 'Attendance',
   potm: 'Player of the match',
   goal: 'First goal',
@@ -33,6 +34,7 @@ export function dotClassForSource(source: PlayerXpEvent['source']): string {
     case 'coach_recognition':
     case 'coach_live':
     case 'coach_whisper':
+    case 'kudos_coach_convert':
       return 'bg-brand-primary';
     case 'goal':
     case 'assist':

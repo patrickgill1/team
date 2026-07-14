@@ -1337,6 +1337,42 @@ service cloud.firestore {
       allow update, delete: if isAuthed() && callerCanReadWhisper();
     }
 
+    // Kudos — 2026-07-14. Notes any Player Circle member (parent,
+    // grandparent, aunt, other guardian) can send to a player.
+    // Emotional-core feature: makes players feel SEEN by their people.
+    // See project_player_circle_mission memory.
+    //
+    // READ: same scope as whispers (team coach or player's parents or
+    // platform admin) — kudos are player-tied moments that show up in
+    // the same PlayerProfile stream. Reuses callerCanReadWhisper()
+    // since fields (teamId + playerId) are identical.
+    //
+    // CREATE: sender must be in the player's parentIds list (i.e. an
+    // actual Circle member). One cross-doc get() per write; well
+    // within the 10-get rule budget.
+    //
+    // UPDATE: worker-only (via admin SDK, bypasses rules) for the
+    // coach → convert-to-XP flow which stamps xpAwarded/xpEventId/
+    // xpAwardedBy/etc. If a coach tries to update from the client
+    // it'll 403 — force it through /xp/convert-kudos.
+    //
+    // DELETE: sender only, or platform admin. Circle members own
+    // their own words.
+    match /kudos/{kudosId} {
+      allow get: if isAuthed() && callerCanReadWhisper();
+      allow list: if isAuthed() && callerCanReadWhisper();
+      allow create: if isAuthed()
+        && request.resource.data.senderUid == request.auth.uid
+        && request.resource.data.playerId is string
+        && exists(/databases/$(database)/documents/players/$(request.resource.data.playerId))
+        && request.auth.uid in get(/databases/$(database)/documents/players/$(request.resource.data.playerId)).data.parentIds;
+      allow update: if isPlatformAdmin();
+      allow delete: if isAuthed() && (
+        resource.data.senderUid == request.auth.uid
+        || isPlatformAdmin()
+      );
+    }
+
     // Player XP events — audit trail for the private-XP + badges
     // system. Every coach recognition, POTM award, attendance mark,
     // dev-plan log, and game-stat entry that grants XP writes one

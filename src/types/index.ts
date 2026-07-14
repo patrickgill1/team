@@ -664,6 +664,50 @@ export interface CoachRewardPreset {
 /** Audit-trail doc written to player_xp_events on every XP grant.
  *  Immutable, indexed by teamId + createdAt for coach review. Worker
  *  writes only; client never mutates. */
+/** A "Kudos" — a note from any Player Circle member (parent,
+ *  grandparent, aunt, other guardian) tied to a specific player.
+ *  Circle members can drop kudos any time; coach can one-tap
+ *  convert a kudos to +N XP if they agree it merits recognition
+ *  (writes a player_xp_events doc with source='kudos_coach_convert'
+ *  and stamps xpAwarded on the kudos itself). See
+ *  project_player_circle_mission memory for the emotional model:
+ *  kudos exist to make the player feel SEEN by their people —
+ *  XP conversion is secondary, not the point. Introduced 2026-07-14. */
+export interface Kudos {
+  id: string;
+  playerId: string;
+  playerName: string;
+  teamId: string;
+  clubId?: string;
+  seasonId?: string;
+  /** uid of the Circle member who wrote it. */
+  senderUid: string;
+  /** Display name captured at write time so a later user-rename
+   *  doesn't rewrite history. */
+  senderName: string;
+  /** Optional avatar URL captured at write time. */
+  senderAvatarUrl?: string | null;
+  /** Preset slug the sender picked (e.g., 'practiced_hard',
+   *  'kind_moment'), or null when the sender wrote free-form. */
+  presetKind?: string | null;
+  /** Free-form note body (1–500 chars). */
+  note: string;
+  createdAt: Date;
+  /** Populated when a coach converts the kudos to XP. Zero/undefined
+   *  = coach hasn't converted (or won't — that's fine, the kudos
+   *  still lives as a moment on the player's profile). */
+  xpAwarded?: number;
+  xpAwardedBy?: string; // coach uid
+  xpAwardedByName?: string;
+  xpAwardedAt?: Date;
+  /** player_xp_events doc id created by the conversion, so the kudos
+   *  and its XP event stay linked bidirectionally. */
+  xpEventId?: string;
+  /** Optional coach note added at conversion time ("Great catch on
+   *  the effort — earned +25"). */
+  xpNote?: string;
+}
+
 export interface PlayerXpEvent {
   id: string;
   playerId: string;
@@ -675,6 +719,7 @@ export interface PlayerXpEvent {
     | 'coach_recognition' /* legacy, /xp/award-recognition deleted 2026-07-13 */
     | 'coach_live'
     | 'coach_whisper'
+    | 'kudos_coach_convert' /* 2026-07-14 — Circle member's kudos promoted to XP by coach */
     | 'attendance'
     | 'potm'
     | 'goal' | 'assist' | 'save' | 'clean_sheet'

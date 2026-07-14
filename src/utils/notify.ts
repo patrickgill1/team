@@ -345,6 +345,66 @@ export async function sendPushToTeam(
   return sendPushToUsers(Array.from(uidSet), msg, { pushPrefKey: 'events', fromUid: opts?.excludeUid });
 }
 
+/** Push to a team's coach(es) — resolved via team.coachIds (the
+ *  authoritative per-team role, per coach-role-model memory) rather
+ *  than user.role which is global. Used by Kudos to notify the team's
+ *  coach when a Circle member sends a note. */
+export async function sendPushToTeamCoaches(
+  teamId: string,
+  msg: { title: string; body: string; url?: string },
+  prefKey?: EmailPrefKey,
+): Promise<boolean> {
+  if (!teamId) return false;
+  try {
+    const teamSnap = await getDoc(doc(db, 'teams', teamId));
+    if (!teamSnap.exists()) return false;
+    const team: any = teamSnap.data();
+    const coachIds: string[] = Array.isArray(team.coachIds) ? team.coachIds : [];
+    if (coachIds.length === 0) return false;
+    return await sendPushToUsers(coachIds, msg, { prefKey });
+  } catch (err) {
+    console.warn('[notify] sendPushToTeamCoaches failed', err);
+    return false;
+  }
+}
+
+/** Resolve the email addresses of every coach on a team (via
+ *  team.coachIds → users.email), honoring emailPreferences[prefKey].
+ *  Used by Kudos email fanout to the team's coach(es). */
+export async function getCoachEmailsForTeam(
+  teamId: string,
+  prefKey?: EmailPrefKey,
+): Promise<Array<{ uid: string; email: string; name?: string }>> {
+  if (!teamId) return [];
+  try {
+    const teamSnap = await getDoc(doc(db, 'teams', teamId));
+    if (!teamSnap.exists()) return [];
+    const team: any = teamSnap.data();
+    const coachIds: string[] = Array.isArray(team.coachIds) ? team.coachIds : [];
+    if (coachIds.length === 0) return [];
+    const out: Array<{ uid: string; email: string; name?: string }> = [];
+    // Small N (typically 1-3 coaches); parallel getDocs is fine.
+    await Promise.all(coachIds.map(async (uid) => {
+      try {
+        const uSnap = await getDoc(doc(db, 'users', uid));
+        if (!uSnap.exists()) return;
+        const u: any = uSnap.data();
+        if (!u.email) return;
+        // Honor per-user prefs same as sendEmailBatch would.
+        if (prefKey) {
+          const pref = (u.emailPreferences || {})[prefKey];
+          if (pref === false) return;
+        }
+        out.push({ uid, email: u.email, name: u.name });
+      } catch { /* skip on individual fail */ }
+    }));
+    return out;
+  } catch (err) {
+    console.warn('[notify] getCoachEmailsForTeam failed', err);
+    return [];
+  }
+}
+
 export async function sendPushToPlayerParents(
   playerId: string,
   msg: { title: string; body: string; url?: string; path?: string },
@@ -519,6 +579,56 @@ export function tplCoachWhisper(opts: {
     ${opts.clipUrl ? `<p style="margin:0 0 16px;font-size:13px;color:#64748b;">Recent highlight${opts.clipCaption ? ` — "${opts.clipCaption}"` : ''}: <a href="${opts.clipUrl}" style="color:${BRAND_CYAN_DEEP};font-weight:600;">watch clip</a></p>` : ''}
     ${button(`${APP_BASE}/players`, `Open ${opts.playerName}'s profile`)}
   `, { signature: opts.signature || { name: opts.coachName, role: 'Coach' } });
+  return { subject, html };
+}
+
+/** Kudos email — sent to the team's coach(es) when a Circle member
+ *  drops a kudos on a player. The coach can one-tap "convert to XP"
+ *  from the deep link. Body is the sender's verbatim note.
+ *  See project_player_circle_mission memory. */
+export function tplKudosNew(opts: {
+  playerName: string;
+  senderName: string;
+  note: string;
+  presetKind?: string | null;
+  playerId: string;
+}): { subject: string; html: string } {
+  const subject = `${opts.senderName} sent a Kudos about ${opts.playerName}`;
+  const safeMsg = (opts.note || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
+  const html = wrap(`
+    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">Kudos from ${opts.senderName}</div>
+    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">About ${opts.playerName}</h2>
+    <div style="margin:14px 0 18px;padding:16px 18px;background:#f0f9ff;border-left:3px solid ${BRAND_CYAN};border-radius:8px;color:#0c4a6e;font-size:15px;line-height:1.6;">
+      ${safeMsg}
+    </div>
+    <p style="margin:0 0 16px;font-size:13px;color:#64748b;">Circle members send Kudos when they notice something worth calling out. You can leave it as a moment on ${opts.playerName}'s profile, or one-tap convert it to XP if you agree.</p>
+    ${button(`${APP_BASE}/player/${opts.playerId}?tab=whispers`, `Open ${opts.playerName}'s profile`)}
+  `);
+  return { subject, html };
+}
+
+/** Kudos → XP conversion email — sent to the player's parents (and
+ *  the original sender, if different) when the coach converts a
+ *  kudos to +N XP. Reinforces the loop: your note WAS seen, and
+ *  coach agreed enough to award XP. */
+export function tplKudosXpAwarded(opts: {
+  playerName: string;
+  senderName: string;
+  coachName: string;
+  amount: number;
+  note: string;
+  playerId: string;
+}): { subject: string; html: string } {
+  const subject = `+${opts.amount} XP for ${opts.playerName} — ${opts.coachName} agreed with ${opts.senderName}`;
+  const safeMsg = (opts.note || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
+  const html = wrap(`
+    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">+${opts.amount} XP for ${opts.playerName}</div>
+    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">${opts.coachName} agreed with ${opts.senderName}'s Kudos</h2>
+    <div style="margin:14px 0 18px;padding:16px 18px;background:#f0f9ff;border-left:3px solid ${BRAND_CYAN};border-radius:8px;color:#0c4a6e;font-size:15px;line-height:1.6;">
+      ${safeMsg}
+    </div>
+    ${button(`${APP_BASE}/player/${opts.playerId}?tab=xp`, `See ${opts.playerName}'s XP feed`)}
+  `);
   return { subject, html };
 }
 

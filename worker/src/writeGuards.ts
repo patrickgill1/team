@@ -29,6 +29,7 @@ import {
   requireUser,
   requireCoachOfTeam,
   requireClubAdmin,
+  requirePlatformAdmin,
   requireSelf,
   AuthError,
 } from './auth';
@@ -3737,6 +3738,78 @@ async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promi
 }
 
 // ────────────────────────────────────────────────────────────────
+// POST /admin/player-reset-xp — platform-admin-only. Nukes XP,
+// xpCareer, badges (all slugs), xpDailyGrantCount on a player and
+// deletes their player_xp_events audit trail. Intended for the
+// scenario where a coach entered stats manually + accidentally
+// tripped the first-stat badge crossings, and the family wants a
+// clean slate so future REAL crossings still fire.
+//
+// Does NOT touch player.stats (goals/assists/saves/etc.) — those
+// have their own Fix flow at src/pages/Stats.tsx. If the coach also
+// wants to reset raw stats, they do it separately.
+//
+// Patrick 2026-07-14: "he wants to roll that back. can you clear
+// that out for them so it is back not nothing and they can still
+// earn them?"
+// ────────────────────────────────────────────────────────────────
+async function handleAdminPlayerResetXp(req: Request, env: Env, payload: any): Promise<Response> {
+  await requirePlatformAdmin(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  const rawIds = Array.isArray(payload?.playerIds) ? payload.playerIds : [];
+  const playerIds: string[] = Array.from(new Set(
+    rawIds.map((v: any) => String(v || '')).filter((v: string) => v.length > 0)
+  ));
+  if (playerIds.length === 0) return json({ ok: false, error: 'players_required' }, 400);
+  if (playerIds.length > 20) return json({ ok: false, error: 'too_many_players', message: 'Max 20 per call.' }, 400);
+
+  const results: Array<{ playerId: string; eventsDeleted: number; ok: boolean; error?: string }> = [];
+
+  for (const playerId of playerIds) {
+    let eventsDeleted = 0;
+    try {
+      // 1) Delete every player_xp_events doc for this player.
+      // runQuery caps at 100 per page; loop until empty.
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const events = await runQuery(
+          pid,
+          'player_xp_events',
+          [{ field: 'playerId', op: 'EQUAL', value: playerId }],
+          sa,
+          100,
+        );
+        if (events.length === 0) break;
+        for (const ev of events) {
+          try {
+            await deleteAuditEventBestEffort(pid, sa, ev.id);
+            eventsDeleted++;
+          } catch { /* keep going */ }
+        }
+        if (events.length < 100) break;
+      }
+
+      // 2) Reset xp/xpCareer/badges/xpDailyGrantCount on the player doc.
+      // patchDocument replaces the specified fields; using empty map
+      // for badges/xpDailyGrantCount clears them.
+      await patchDocument(pid, `players/${playerId}`, {
+        xp: 0,
+        xpCareer: 0,
+        badges: {},
+        xpDailyGrantCount: {},
+      }, sa);
+
+      results.push({ playerId, eventsDeleted, ok: true });
+    } catch (err) {
+      results.push({ playerId, eventsDeleted, ok: false, error: (err as Error).message });
+    }
+  }
+
+  return json({ ok: true, results });
+}
+
+// ────────────────────────────────────────────────────────────────
 // Route dispatcher. index.ts calls this once for /guard/* paths
 // so we don't have to add a dozen if-blocks to the main handler.
 // Returns null when the pathname isn't a guarded-write route.
@@ -4487,6 +4560,7 @@ export async function routeWriteGuard(
     case '/xp/award-whisper':      return handleXpAwardWhisper(req, env, payload);
     case '/xp/grant-coach':        return handleXpGrantCoach(req, env, payload);
     case '/xp/convert-kudos':      return handleXpConvertKudos(req, env, payload);
+    case '/admin/player-reset-xp': return handleAdminPlayerResetXp(req, env, payload);
     case '/xp/reward-presets':     return handleXpRewardPresets(req, env, payload);
     case '/xp/backfill-preview':   return handleXpBackfillPreview(req, env, payload);
     case '/xp/backfill-commit':    return handleXpBackfillCommit(req, env, payload);

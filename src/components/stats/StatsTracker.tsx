@@ -40,8 +40,42 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // 2026-07-14: catch-up entry mode — Patrick's other coach was
+  // entering historical stats manually and accidentally triggered
+  // first-goal / first-assist badges + XP for the player. Preview
+  // below tells coach what WILL fire; checkbox lets them opt out
+  // when the entry is retroactive.
+  const [skipGrants, setSkipGrants] = useState(false);
 
   const selectedPlayerData = players.find(p => p.id === selectedPlayer);
+
+  // Preview: which badges + how much XP would land if we submitted
+  // right now. Uses the same 0→N crossing rules as
+  // src/utils/badgeGrants.ts:maybeGrantFirstStatBadges so what the
+  // coach sees here is what actually fires.
+  const xpEnabled = (selectedTeam as any)?.xpConfig?.enabled === true;
+  const previewBadges: Array<{ slug: string; label: string; xp: number }> = (() => {
+    if (!selectedPlayerData || !xpEnabled) return [];
+    const cur = selectedPlayerData.stats || ({} as any);
+    const positions: string[] = Array.isArray((selectedPlayerData as any).positions)
+      ? (selectedPlayerData as any).positions
+      : ((selectedPlayerData as any).position ? [(selectedPlayerData as any).position] : []);
+    const isKeeper = positions.includes('Goalkeeper');
+    const isKeeperOrD = isKeeper || positions.includes('Defender');
+    const out: Array<{ slug: string; label: string; xp: number }> = [];
+    const existingBadges = ((selectedPlayerData as any).badges) || {};
+    if (!existingBadges.first_goal && (cur.goals || 0) === 0 && statData.goals > 0) {
+      out.push({ slug: 'first_goal', label: 'First Goal', xp: 100 });
+    }
+    if (!existingBadges.first_assist && (cur.assists || 0) === 0 && statData.assists > 0) {
+      out.push({ slug: 'first_assist', label: 'First Assist', xp: 100 });
+    }
+    if (isKeeper && !existingBadges.first_save && (cur.saves || 0) === 0 && statData.saves > 0) {
+      out.push({ slug: 'first_save', label: 'First Save', xp: 100 });
+    }
+    return out;
+  })();
+  const previewXpTotal = previewBadges.reduce((s, b) => s + b.xp, 0);
 
   useEffect(() => {
     if (initialPlayerId) {
@@ -133,19 +167,25 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
 
       await updatePlayerStats(selectedPlayer, updatedStats);
       // Fire first-stat badges on 0→N crossings. Non-fatal.
-      try {
-        const { maybeGrantFirstStatBadges } = await import('../../utils/badgeGrants');
-        void maybeGrantFirstStatBadges(
-          selectedPlayer,
-          currentStats,
-          updatedStats,
-          {
-            existingBadges: (selectedPlayerData as any).badges,
-            context: opponent || 'Match',
-            xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
-          },
-        );
-      } catch { /* non-fatal */ }
+      // 2026-07-14: skipGrants suppresses this for catch-up / historical
+      // entries so a coach filling in past games doesn't burn the
+      // player's real "first goal" moment. Stats still land; XP+badges
+      // just don't fire.
+      if (!skipGrants) {
+        try {
+          const { maybeGrantFirstStatBadges } = await import('../../utils/badgeGrants');
+          void maybeGrantFirstStatBadges(
+            selectedPlayer,
+            currentStats,
+            updatedStats,
+            {
+              existingBadges: (selectedPlayerData as any).badges,
+              context: opponent || 'Match',
+              xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
+            },
+          );
+        } catch { /* non-fatal */ }
+      }
 
       const newGameStat: GameStat = {
         id: statId,
@@ -402,6 +442,46 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                 </button>
               )}
             </div>
+
+            {/* XP + badge preview — Patrick 2026-07-14. When manual
+                entry would trigger first-stat crossings, tell the
+                coach BEFORE they submit and give them an opt-out for
+                catch-up entries. */}
+            {xpEnabled && previewBadges.length > 0 && (
+              <div className="pt-4 border-t border-line-default/15">
+                <div className="p-3 rounded-xl bg-amber-500/10 ring-1 ring-amber-400/40">
+                  <p className="text-[11px] font-black uppercase tracking-widest text-amber-700 mb-1.5">
+                    This will award XP + {previewBadges.length === 1 ? 'a badge' : 'badges'}
+                  </p>
+                  <ul className="space-y-1">
+                    {previewBadges.map(b => (
+                      <li key={b.slug} className="text-sm text-ink-primary/90 flex items-center gap-2">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        <span className="font-bold">{b.label}</span>
+                        <span className="text-amber-700 font-black text-[11px]">+{b.xp} XP</span>
+                      </li>
+                    ))}
+                    <li className="text-[12px] text-ink-primary/60 mt-1.5 tabular-nums">
+                      Total: +{previewXpTotal} XP
+                    </li>
+                  </ul>
+                  <label className="flex items-start gap-2 mt-3 pt-3 border-t border-amber-500/20 cursor-pointer text-[13px] text-ink-primary/85">
+                    <input
+                      type="checkbox"
+                      checked={skipGrants}
+                      onChange={e => setSkipGrants(e.target.checked)}
+                      className="mt-0.5 flex-shrink-0"
+                    />
+                    <span>
+                      <span className="font-bold">This is a catch-up entry — don&rsquo;t award XP or badges.</span>
+                      <span className="block text-[11.5px] text-ink-primary/55 mt-0.5">
+                        Use when you&rsquo;re logging past games so the player&rsquo;s real &ldquo;first goal&rdquo; moment still counts when it happens live.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex space-x-4 pt-4 border-t border-gray-200">

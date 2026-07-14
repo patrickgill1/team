@@ -2210,11 +2210,16 @@ const MyPlayerCard: React.FC<{
               </div>
             )}
             {/* Jersey pill: TOP-LEFT, landing in the empty quadrant
-                the radar arcs left open. 32px charcoal disc with
-                crimson ring and bold tabular number. */}
+                the radar arcs left open. Solid CRIMSON disc + white
+                text — reads in both themes. The previous charcoal-900
+                treatment (2026-07-13) went invisible in light mode
+                because src/index.css:358 remaps bg-charcoal-900 to
+                the light surface token, so the disc became a white
+                disc with white text (Patrick 2026-07-14). Ring in
+                surface-elevated so it bezels against the card bg. */}
             {player.jerseyNumber != null && !isPotm && (
               <span
-                className="absolute top-[6px] left-[6px] z-10 w-[32px] h-[32px] rounded-full bg-charcoal-900 text-white ring-2 ring-brand-primary flex items-center justify-center text-[13px] font-black tabular-nums shadow-lg"
+                className="absolute top-[6px] left-[6px] z-10 w-[32px] h-[32px] rounded-full bg-brand-primary text-white ring-2 ring-surface-elevated flex items-center justify-center text-[13px] font-black tabular-nums shadow-lg"
                 aria-label={`Jersey number ${player.jerseyNumber}`}
               >
                 {player.jerseyNumber}

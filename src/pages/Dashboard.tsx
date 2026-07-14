@@ -2063,25 +2063,23 @@ const MyPlayerCard: React.FC<{
         </div>
       )}
 
-      {/* Giant jersey-number watermark behind the photo — reads as
-          hero splash art. Overflow-hidden on the Link clips the
-          excess bleed off the left edge. Skipped when jersey is
-          unset or on POTM (gold gradient carries the drama). */}
-      {!isPotm && player.jerseyNumber != null && (
+      {/* Subtle sports-poster backdrop — diagonal crimson streaks
+          plus a soft radial spotlight from the top-right. Replaces
+          the giant jersey-number watermark that Patrick couldn't
+          see and decided wasn't needed anyway. Reads as atmosphere,
+          never competes with the photo or the name splash. Skipped
+          on POTM since the gold gradient carries its own drama. */}
+      {!isPotm && (
         <div
           aria-hidden
-          className="absolute -left-4 top-1/2 -translate-y-1/2 pointer-events-none select-none z-[1] tabular-nums"
+          className="absolute inset-0 pointer-events-none z-[1]"
           style={{
-            fontFamily: '-apple-system, "Helvetica Neue", sans-serif',
-            fontSize: '160px',
-            fontWeight: 900,
-            lineHeight: 0.82,
-            color: 'rgba(200, 32, 44, 0.09)',
-            letterSpacing: '-0.06em',
+            backgroundImage: [
+              'radial-gradient(ellipse at 85% 10%, rgba(200,32,44,0.18), transparent 55%)',
+              'repeating-linear-gradient(115deg, transparent 0px, transparent 22px, rgba(200,32,44,0.05) 22px, rgba(200,32,44,0.05) 24px)',
+            ].join(', '),
           }}
-        >
-          {player.jerseyNumber}
-        </div>
+        />
       )}
       {/* Card content — z-[2] to sit above the giant jersey watermark
           rendered at z-[1] above. Two-part layout: identity block up
@@ -2135,29 +2133,32 @@ const MyPlayerCard: React.FC<{
           <div className="flex-1 min-w-0 pt-0.5">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <p className={`text-[22px] sm:text-[24px] font-black leading-none uppercase tracking-tight truncate ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
+                <p className={`text-[26px] sm:text-[30px] font-black leading-[0.9] uppercase tracking-tight truncate ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
                   {firstName}
                 </p>
                 {lastName && (
                   <p
-                    className={`text-[30px] sm:text-[34px] leading-[0.85] mt-0.5 uppercase truncate ${isPotm ? 'text-amber-100 drop-shadow' : 'text-brand-primary'}`}
+                    className={`text-[38px] sm:text-[44px] leading-[0.82] uppercase truncate ${isPotm ? 'text-amber-100 drop-shadow' : 'text-brand-primary'}`}
                     style={{
-                      // Marker / brush stack — iOS gets Chalkduster
-                      // (actually chalky-messy) or Marker Felt (bold
-                      // felt-tip); Android falls back through Impact /
-                      // Anton condensed heavy. All variants uppercase,
-                      // 900 weight, negative tracking, slight left
-                      // skew for motion energy. This is the "kinda
-                      // messy, big and bold" tag look Patrick asked
-                      // for after the elegant cursive didn't land.
-                      fontFamily: '"Permanent Marker", "Chalkduster", "Marker Felt", Impact, "Anton", "Bebas Neue", "Arial Black", sans-serif',
-                      fontWeight: 900,
+                      // Bangers = Google Font bundled at
+                      // public/fonts/bangers.woff2. Comic-book / sports
+                      // poster feel — bold uppercase with slightly
+                      // rough painterly edges. Falls through to
+                      // Chalkduster (iOS) or Impact (Android/Windows)
+                      // if the font hasn't loaded yet on first paint.
+                      // Overlap with the first name via negative
+                      // margin-top so the two words visually stack
+                      // like a hand-painted signature block, matching
+                      // Patrick's 2026-07-13 reference.
+                      fontFamily: '"Bangers", "Chalkduster", "Marker Felt", Impact, "Anton", "Bebas Neue", "Arial Black", sans-serif',
+                      fontWeight: 400,
                       fontStyle: 'italic',
-                      letterSpacing: '-0.015em',
-                      transform: 'skewX(-6deg)',
+                      letterSpacing: '0.005em',
+                      transform: 'skewX(-4deg)',
                       transformOrigin: 'left bottom',
                       display: 'inline-block',
-                      filter: isPotm ? undefined : 'drop-shadow(0 2px 6px rgba(200,32,44,0.45))',
+                      marginTop: '-6px',
+                      filter: isPotm ? undefined : 'drop-shadow(0 2px 8px rgba(200,32,44,0.5))',
                     }}
                   >
                     {lastName}

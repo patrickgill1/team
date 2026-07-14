@@ -3754,7 +3754,16 @@ async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promi
 // earn them?"
 // ────────────────────────────────────────────────────────────────
 async function handleAdminPlayerResetXp(req: Request, env: Env, payload: any): Promise<Response> {
-  await requirePlatformAdmin(req, env);
+  // Dual auth: accept EITHER a Firebase platform-admin ID token
+  // (direct curl/browser-console path) OR the shared x-api-key
+  // (goalkickr-admin Next.js portal path, which proxies through
+  // its own session cookie). Matches the /generate-drill-diagram
+  // pattern in worker/src/index.ts:762.
+  const providedKey = req.headers.get('x-api-key') || '';
+  const keyOk = !!(env as any).ADMIN_API_KEY && providedKey && providedKey === (env as any).ADMIN_API_KEY;
+  if (!keyOk) {
+    await requirePlatformAdmin(req, env);
+  }
   const { pid, sa } = projectAndSA(env);
 
   const rawIds = Array.isArray(payload?.playerIds) ? payload.playerIds : [];

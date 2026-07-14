@@ -351,7 +351,15 @@ const Stats: React.FC = () => {
                 redCards:    (next.redCards    || 0) - (cur.redCards    || 0),
               };
               const hasChange = Object.values(delta).some(v => v !== 0);
-              if (!hasChange) { setAdjustingPlayerId(null); return; }
+              if (!hasChange) {
+                // 2026-07-14: was silently closing. If the coach hit
+                // Save but the numbers matched what's already stored
+                // (visual bug on the input meant they thought they
+                // had changed values but hadn't), the modal just
+                // closed and looked broken. Now tells them.
+                alert('No changes to save — the numbers match what\'s already on this player.');
+                return;
+              }
               try {
                 // Write a correction record so the per-team aggregator picks
                 // up the change for shared players. The 'adjust_' gameId
@@ -835,7 +843,14 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
                 min={0}
                 value={values[f.key]}
                 onChange={e => set(String(f.key), parseInt(e.target.value || '0', 10))}
-                className="w-16 text-center font-bold text-ink-primary border border-line-default/10 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+                /* 2026-07-14: input needed an explicit bg + strong
+                   text color. Prior className had no bg-*, so iOS
+                   Safari + browsers default to white. In dark mode
+                   text-ink-primary is light → light text on white
+                   input = invisible ("2" barely readable in Patrick's
+                   screenshot). Explicit surface-input bg + strong
+                   text-ink-primary reads clean in both themes. */
+                className="w-16 text-center font-bold text-ink-primary tabular-nums bg-surface-input ring-1 ring-line-default/20 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-primary"
               />
               <button onClick={() => set(String(f.key), values[f.key] + 1)} className="w-9 h-9 rounded-full bg-surface-elevated ring-1 ring-line-default/10 text-lg font-bold text-ink-primary/65 hover:bg-line-default/[0.08]">+</button>
             </div>

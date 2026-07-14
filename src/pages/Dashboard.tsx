@@ -1215,12 +1215,14 @@ const Dashboard: React.FC = () => {
               player={myPlayers[0]}
               latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
               isPotm={isPotmThisWeek}
+              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
             />
           ) : (
             <SiblingCarousel
               players={myPlayers}
               latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
               isPotmForPrimary={isPotmThisWeek}
+              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
             />
           )
         )}
@@ -1914,7 +1916,8 @@ const SiblingCarousel: React.FC<{
   players: Player[];
   latestThumb?: string;
   isPotmForPrimary: boolean;
-}> = ({ players, latestThumb, isPotmForPrimary }) => {
+  xpEnabled?: boolean;
+}> = ({ players, latestThumb, isPotmForPrimary, xpEnabled = false }) => {
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
 
@@ -1950,6 +1953,7 @@ const SiblingCarousel: React.FC<{
               // through for the first card.
               latestThumb={i === 0 ? latestThumb : undefined}
               isPotm={i === 0 ? isPotmForPrimary : false}
+              xpEnabled={xpEnabled}
             />
           </div>
         ))}
@@ -1978,7 +1982,13 @@ const MyPlayerCard: React.FC<{
   player: Player;
   latestThumb?: string;
   isPotm: boolean;
-}> = ({ player, isPotm }) => {
+  /** Team has team.xpConfig.enabled === true. When false we swap the
+   *  Level+XP row and the badge chip for a plain stats row (goals /
+   *  assists / games), so the card still feels substantial for
+   *  teams that haven't opted into XP. Streak still shows either
+   *  way — practice streaks are dev-plan-driven, not XP-driven. */
+  xpEnabled?: boolean;
+}> = ({ player, isPotm, xpEnabled = false }) => {
   const p: any = player;
   const position = p.positions?.[0] || p.position || 'Player';
   const streakDays: number = p.currentStreakDays || 0;
@@ -2097,47 +2107,102 @@ const MyPlayerCard: React.FC<{
             {position}
           </span>
 
-          {/* Row: LEVEL badge + XP progress bar + count. Compact. */}
-          <div className="flex items-center gap-2 mt-2">
-            <div className={`inline-flex items-center gap-1 flex-shrink-0 ${isPotm ? 'text-amber-100' : 'text-brand-primary-soft'}`}>
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9 12 2" />
-              </svg>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Lvl {level.level}</span>
-            </div>
-            <div className={`flex-1 h-1.5 rounded-full overflow-hidden min-w-[40px] ${isPotm ? 'bg-amber-900/40' : 'bg-line-default/15'}`}>
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${isPotm ? 'bg-amber-100' : 'bg-gradient-to-r from-brand-primary to-brand-primary-soft'}`}
-                style={{ width: `${xpPct}%` }}
-                aria-hidden
-              />
-            </div>
-            <span className={`text-[9.5px] font-bold tabular-nums flex-shrink-0 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>
-              {level.xpIntoLevel}/{level.nextLevelThreshold - level.currentLevelThreshold}
-              <span className={`ml-0.5 ${isPotm ? 'text-amber-100/55' : 'text-ink-primary/35'}`}>XP</span>
-            </span>
-          </div>
+          {xpEnabled ? (
+            <>
+              {/* Row: LEVEL badge + XP progress bar + count. Compact. */}
+              <div className="flex items-center gap-2 mt-2">
+                <div className={`inline-flex items-center gap-1 flex-shrink-0 ${isPotm ? 'text-amber-100' : 'text-brand-primary-soft'}`}>
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <polygon points="12 2 15 9 22 9 17 14 19 22 12 18 5 22 7 14 2 9 9 9 12 2" />
+                  </svg>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Lvl {level.level}</span>
+                </div>
+                <div className={`flex-1 h-1.5 rounded-full overflow-hidden min-w-[40px] ${isPotm ? 'bg-amber-900/40' : 'bg-line-default/15'}`}>
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${isPotm ? 'bg-amber-100' : 'bg-gradient-to-r from-brand-primary to-brand-primary-soft'}`}
+                    style={{ width: `${xpPct}%` }}
+                    aria-hidden
+                  />
+                </div>
+                <span className={`text-[9.5px] font-bold tabular-nums flex-shrink-0 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>
+                  {level.xpIntoLevel}/{level.nextLevelThreshold - level.currentLevelThreshold}
+                  <span className={`ml-0.5 ${isPotm ? 'text-amber-100/55' : 'text-ink-primary/35'}`}>XP</span>
+                </span>
+              </div>
 
-          {/* Row: streak + badge on ONE line. Compact icons + tabular-nums count. */}
-          {(streakDays > 0 || badgeCount > 0) && (
-            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-              {streakDays > 0 && (
-                <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] ${isPotm ? 'text-amber-100' : 'text-orange-300'}`}>
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
-                  </svg>
-                  <span className="tabular-nums">{streakDays}</span> Day Streak
-                </span>
+              {/* Row: streak + badge on ONE line. */}
+              {(streakDays > 0 || badgeCount > 0) && (
+                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                  {streakDays > 0 && (
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] ${isPotm ? 'text-amber-100' : 'text-orange-300'}`}>
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                        <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
+                      </svg>
+                      <span className="tabular-nums">{streakDays}</span> Day Streak
+                    </span>
+                  )}
+                  {badgeCount > 0 && (
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] ${isPotm ? 'text-amber-100' : 'text-amber-300'}`}>
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                        <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
+                      </svg>
+                      <span className="tabular-nums">{badgeCount}</span> {badgeCount === 1 ? 'Badge' : 'Badges'}
+                    </span>
+                  )}
+                </div>
               )}
-              {badgeCount > 0 && (
-                <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] ${isPotm ? 'text-amber-100' : 'text-amber-300'}`}>
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
-                  </svg>
-                  <span className="tabular-nums">{badgeCount}</span> {badgeCount === 1 ? 'Badge' : 'Badges'}
-                </span>
-              )}
-            </div>
+            </>
+          ) : (
+            /* XP-disabled fallback: stats row (Goals · Assists · Games)
+               + optional streak chip inline. Keeps the card informative
+               for teams that haven't opted into XP without shipping an
+               empty-looking hero. Season-starts-soon fallback preserved
+               from the pre-XP variant when every stat is zero. */
+            (() => {
+              const goals   = player.stats?.goals || 0;
+              const assists = player.stats?.assists || 0;
+              const games   = player.stats?.gamesPlayed || 0;
+              const saves   = (player as any).stats?.saves || 0;
+              const anyStat = goals > 0 || assists > 0 || games > 0 || saves > 0;
+              return (
+                <div className="mt-2 space-y-1.5">
+                  {anyStat ? (
+                    <div className={`flex items-end gap-4 sm:gap-5 ${isPotm ? 'text-white' : 'text-ink-primary'}`}>
+                      <div>
+                        <p className="text-lg font-black leading-none tabular-nums">{goals}</p>
+                        <p className={`text-[9px] font-black uppercase tracking-[0.18em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/50'}`}>Goals</p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-black leading-none tabular-nums">{assists}</p>
+                        <p className={`text-[9px] font-black uppercase tracking-[0.18em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/50'}`}>Assists</p>
+                      </div>
+                      {position === 'Goalkeeper' && (
+                        <div>
+                          <p className="text-lg font-black leading-none tabular-nums">{saves}</p>
+                          <p className={`text-[9px] font-black uppercase tracking-[0.18em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/50'}`}>Saves</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-lg font-black leading-none tabular-nums">{games}</p>
+                        <p className={`text-[9px] font-black uppercase tracking-[0.18em] mt-0.5 ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/50'}`}>Games</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isPotm ? 'text-amber-100/85' : 'text-ink-primary/55'}`}>
+                      Season starts soon
+                    </p>
+                  )}
+                  {streakDays > 0 && (
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] ${isPotm ? 'text-amber-100' : 'text-orange-300'}`}>
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                        <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
+                      </svg>
+                      <span className="tabular-nums">{streakDays}</span> Day Streak
+                    </span>
+                  )}
+                </div>
+              );
+            })()
           )}
         </div>
 

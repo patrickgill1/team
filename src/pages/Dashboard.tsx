@@ -2140,13 +2140,24 @@ const MyPlayerCard: React.FC<{
                 </p>
                 {lastName && (
                   <p
-                    className={`text-[26px] sm:text-[30px] leading-[0.9] mt-0.5 truncate ${isPotm ? 'text-amber-100 drop-shadow' : 'text-brand-primary-soft'}`}
+                    className={`text-[30px] sm:text-[34px] leading-[0.85] mt-0.5 uppercase truncate ${isPotm ? 'text-amber-100 drop-shadow' : 'text-brand-primary'}`}
                     style={{
-                      fontFamily: '"Snell Roundhand", "Bradley Hand", "Marker Felt", "Segoe Script", cursive',
+                      // Marker / brush stack — iOS gets Chalkduster
+                      // (actually chalky-messy) or Marker Felt (bold
+                      // felt-tip); Android falls back through Impact /
+                      // Anton condensed heavy. All variants uppercase,
+                      // 900 weight, negative tracking, slight left
+                      // skew for motion energy. This is the "kinda
+                      // messy, big and bold" tag look Patrick asked
+                      // for after the elegant cursive didn't land.
+                      fontFamily: '"Permanent Marker", "Chalkduster", "Marker Felt", Impact, "Anton", "Bebas Neue", "Arial Black", sans-serif',
+                      fontWeight: 900,
                       fontStyle: 'italic',
-                      fontWeight: 800,
-                      letterSpacing: '-0.01em',
-                      filter: isPotm ? undefined : 'drop-shadow(0 1px 3px rgba(200,32,44,0.35))',
+                      letterSpacing: '-0.015em',
+                      transform: 'skewX(-6deg)',
+                      transformOrigin: 'left bottom',
+                      display: 'inline-block',
+                      filter: isPotm ? undefined : 'drop-shadow(0 2px 6px rgba(200,32,44,0.45))',
                     }}
                   >
                     {lastName}

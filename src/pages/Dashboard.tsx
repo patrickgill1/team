@@ -1218,6 +1218,7 @@ const Dashboard: React.FC = () => {
               latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
               isPotm={isPotmThisWeek}
               xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
+              teamName={selectedTeam?.name}
             />
           ) : (
             <SiblingCarousel
@@ -1225,6 +1226,7 @@ const Dashboard: React.FC = () => {
               latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
               isPotmForPrimary={isPotmThisWeek}
               xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
+              teamName={selectedTeam?.name}
             />
           )
         )}
@@ -1919,7 +1921,8 @@ const SiblingCarousel: React.FC<{
   latestThumb?: string;
   isPotmForPrimary: boolean;
   xpEnabled?: boolean;
-}> = ({ players, latestThumb, isPotmForPrimary, xpEnabled = false }) => {
+  teamName?: string;
+}> = ({ players, latestThumb, isPotmForPrimary, xpEnabled = false, teamName }) => {
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
 
@@ -1956,6 +1959,7 @@ const SiblingCarousel: React.FC<{
               latestThumb={i === 0 ? latestThumb : undefined}
               isPotm={i === 0 ? isPotmForPrimary : false}
               xpEnabled={xpEnabled}
+              teamName={teamName}
             />
           </div>
         ))}
@@ -1990,7 +1994,11 @@ const MyPlayerCard: React.FC<{
    *  teams that haven't opted into XP. Streak still shows either
    *  way — practice streaks are dev-plan-driven, not XP-driven. */
   xpEnabled?: boolean;
-}> = ({ player, isPotm, xpEnabled = false }) => {
+  /** Team display name — shown in the identity subtitle
+   *  ("DEFENDER · #10 · FIRE FC U10 PG") to give the card context
+   *  without another Firestore round-trip. */
+  teamName?: string;
+}> = ({ player, isPotm, xpEnabled = false, teamName }) => {
   const p: any = player;
   const position = p.positions?.[0] || p.position || 'Player';
   const streakDays: number = p.currentStreakDays || 0;
@@ -2237,11 +2245,28 @@ const MyPlayerCard: React.FC<{
             )}
           </div>
 
-          {/* Name column — "Hunter Gill" + crimson hairline rule
-              (Patrick 2026-07-13: "the red line under hunter will
-              make it look better formatted") + DEFENDER pill. Jersey
-              number lives on the photo, so no subline here. */}
+          {/* Name column — expanded 2026-07-14 to fill the dead
+              space Patrick called out ("so much space around that
+              area and it doesn't seem symmetrical with the rest of
+              the card"). Structure now mirrors the reference mockup:
+                1) TIER chip up top (identity marker)
+                2) Big display name
+                3) Hairline rule
+                4) Subtitle: POSITION · #JERSEY · TEAM
+              Inline stats line removed — replaced by the dedicated
+              THIS SEASON row below the identity block so stats read
+              as their own row of the card, not as trailing text. */}
           <div className="flex-1 min-w-0">
+            {!isPotm && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase tracking-[0.22em] ring-1 ring-brand-primary/40 bg-brand-primary/[0.06] text-brand-primary dark:text-brand-primary-soft mb-1.5">
+                <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z" />
+                </svg>
+                {tier}
+                <span className="opacity-40">|</span>
+                <span className="tabular-nums">Lv {level.level}</span>
+              </span>
+            )}
             <p className={`text-[24px] sm:text-[26px] font-black leading-[1] tracking-tight ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
               {player.name}
             </p>
@@ -2251,41 +2276,101 @@ const MyPlayerCard: React.FC<{
                 className="block h-[2px] w-14 mt-2 rounded-full bg-gradient-to-r from-brand-primary via-brand-primary/70 to-transparent"
               />
             )}
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 mt-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
-              isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/85'
-            }`}>
+            {/* Subtitle: position dot + POSITION · #JERSEY · TEAM.
+                Uses inline flex so the position dot stays visually
+                tied to the position label. */}
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
-              {position}
-            </span>
-            {/* Inline season-stats line — fills identity-column dead
-                space (Patrick 2026-07-13). Only shows when xpEnabled
-                so we don't duplicate the xp-off fallback GOALS/ASSISTS
-                /GAMES grid below. Hidden if all stats are zero so
-                pre-season doesn't render "0 goals · 0 assists". */}
-            {xpEnabled && !isPotm && (() => {
-              const g = player.stats?.goals || 0;
-              const a = player.stats?.assists || 0;
-              const gp = player.stats?.gamesPlayed || 0;
-              const sv = (player as any).stats?.saves || 0;
-              const isGK = position === 'Goalkeeper';
-              const items: Array<[number, string]> = isGK
-                ? [[gp, gp === 1 ? 'game' : 'games'], [sv, sv === 1 ? 'save' : 'saves']]
-                : [[g, g === 1 ? 'goal' : 'goals'], [a, a === 1 ? 'assist' : 'assists'], [gp, gp === 1 ? 'game' : 'games']];
-              if (!items.some(([v]) => v > 0)) return null;
-              return (
-                <p className="mt-2 text-[10.5px] font-bold text-ink-primary/60 tracking-tight">
-                  {items.map(([v, label], i) => (
-                    <span key={label}>
-                      {i > 0 && <span className="text-ink-primary/25 mx-1.5">·</span>}
-                      <span className="tabular-nums text-ink-primary/85">{v}</span>{' '}
-                      <span className="uppercase text-[9px] tracking-wider">{label}</span>
-                    </span>
-                  ))}
-                </p>
-              );
-            })()}
+              <p className={`text-[10.5px] font-black uppercase tracking-widest ${isPotm ? 'text-amber-100/90' : 'text-ink-primary/70'}`}>
+                <span>{position}</span>
+                {player.jerseyNumber != null && (
+                  <>
+                    <span className="text-ink-primary/25 mx-1.5">·</span>
+                    <span className="tabular-nums">#{player.jerseyNumber}</span>
+                  </>
+                )}
+                {teamName && (
+                  <>
+                    <span className="text-ink-primary/25 mx-1.5">·</span>
+                    <span>{teamName}</span>
+                  </>
+                )}
+              </p>
+            </div>
           </div>
         </div>
+
+        {/* THIS SEASON row (Patrick 2026-07-14 mockup): 3 real-world
+            stats — goals / assists / games (or games / saves /
+            clean sheets for goalkeepers). Sits between identity and
+            the XP HUD, with a small header rule so it reads as
+            "these are the on-field numbers, distinct from your XP
+            journey below." Only renders when xpEnabled + non-POTM
+            + at least one stat > 0 — otherwise it would show a row
+            of 0's mid-season or on freshly-joined players. */}
+        {xpEnabled && !isPotm && (() => {
+          const g = player.stats?.goals || 0;
+          const a = player.stats?.assists || 0;
+          const gp = player.stats?.gamesPlayed || 0;
+          const sv = (player as any).stats?.saves || 0;
+          const cs = (player as any).stats?.cleanSheets || 0;
+          const isGK = position === 'Goalkeeper';
+          const cells: Array<{ value: number; label: string; icon: React.ReactNode }> = isGK
+            ? [
+                { value: gp, label: gp === 1 ? 'Game' : 'Games', icon: (
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                )},
+                { value: sv, label: sv === 1 ? 'Save' : 'Saves', icon: (
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                )},
+                { value: cs, label: cs === 1 ? 'Sheet' : 'Sheets', icon: (
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="10" /><polyline points="9 12 11 14 15 10" />
+                  </svg>
+                )},
+              ]
+            : [
+                { value: g, label: g === 1 ? 'Goal' : 'Goals', icon: (
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" strokeWidth="1.4" opacity="0.55" />
+                  </svg>
+                )},
+                { value: a, label: a === 1 ? 'Assist' : 'Assists', icon: (
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M4 20l4-16M4 20l7-4M4 20l-1-4" />
+                  </svg>
+                )},
+                { value: gp, label: gp === 1 ? 'Game' : 'Games', icon: (
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                )},
+              ];
+          if (!cells.some(c => c.value > 0)) return null;
+          return (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="h-px flex-1 bg-brand-primary/25" aria-hidden />
+                <span className="text-[9px] font-black uppercase tracking-[0.32em] text-brand-primary">This Season</span>
+                <span className="h-px flex-1 bg-brand-primary/25" aria-hidden />
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                {cells.map(({ value, label, icon }) => (
+                  <div key={label} className="flex flex-col items-center justify-center min-w-0 py-1">
+                    <span className="text-brand-primary dark:text-brand-primary-soft mb-0.5">{icon}</span>
+                    <span className="text-[20px] font-black leading-none tabular-nums text-ink-primary">{value}</span>
+                    <p className="text-[8px] font-black uppercase tracking-[0.16em] mt-1 truncate max-w-full text-ink-primary/55">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {xpEnabled ? (
           <>

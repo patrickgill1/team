@@ -2100,16 +2100,39 @@ const MyPlayerCard: React.FC<{
           never competes with the photo or the name splash. Skipped
           on POTM since the gold gradient carries its own drama. */}
       {!isPotm && (
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none z-[1]"
-          style={{
-            backgroundImage: [
-              'radial-gradient(ellipse at 85% 10%, rgba(200,32,44,0.18), transparent 55%)',
-              'repeating-linear-gradient(115deg, transparent 0px, transparent 22px, rgba(200,32,44,0.05) 22px, rgba(200,32,44,0.05) 24px)',
-            ].join(', '),
-          }}
-        />
+        <>
+          {/* Ambient crimson spotlight from the top-right — softer than
+              the previous diagonal-streaks pattern (Patrick 2026-07-13:
+              "the pattern looks off"). Carries atmosphere without the
+              repeating rhythm that read as a texture. */}
+          <div
+            aria-hidden
+            className="absolute inset-0 pointer-events-none z-[1]"
+            style={{
+              backgroundImage: 'radial-gradient(ellipse at 88% 12%, rgba(200,32,44,0.22), transparent 62%)',
+            }}
+          />
+          {/* Subtle GoalKickr crest watermark — the shield path from
+              public/images/icon-mock.svg, inlined mono so it inherits
+              currentColor + one opacity knob. Anchored right-of-center,
+              overflowing the card edge, so it fills the identity-block
+              dead space that Patrick called out. ~7% opacity: reads as
+              a texture, not a logo. */}
+          <svg
+            aria-hidden
+            className="absolute -right-6 top-1/2 -translate-y-1/2 h-[130%] w-auto pointer-events-none z-[1] text-brand-primary/[0.09]"
+            viewBox="0 0 1024 1024"
+            fill="none"
+          >
+            <path
+              d="M 268 232 L 756 232 L 756 540 Q 756 752 512 836 Q 268 752 268 540 Z"
+              stroke="currentColor"
+              strokeWidth="26"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          </svg>
+        </>
       )}
       {/* Card content — z-[2] to sit above the backdrop pattern
           at z-[1]. SEASON CARD layout (2026-07-13 reference):
@@ -2135,26 +2158,36 @@ const MyPlayerCard: React.FC<{
           </div>
         )}
 
-        {/* IDENTITY ROW: photo (target-ring framed) + name column */}
-        <div className="flex items-start gap-4">
-          {/* Photo — layered concentric dashed rings evoke a target
-              /scouting frame. Subtle crimson glow behind. */}
-          <div className="relative flex-shrink-0 w-[92px] h-[92px]">
+        {/* IDENTITY ROW: photo (target-ring framed) + name column.
+            items-center vertically balances the shorter name column
+            against the 108px photo so no residual dead space sits
+            under the DEFENDER pill (Patrick 2026-07-13). */}
+        <div className="flex items-center gap-4">
+          {/* Photo — dashed reticle CONTOURS the photo edge (Patrick
+              2026-07-13: "how the outline contours to the photo").
+              Photo is 96px inside a 108px container, so the 6px halo
+              zone hosts one crisp dashed ring immediately outside the
+              solid crimson stroke plus small crosshair ticks at NSEW.
+              No second floating ring. Subtle crimson glow behind. */}
+          <div className="relative flex-shrink-0 w-[108px] h-[108px]">
             {!isPotm && (
               <>
-                <div aria-hidden className="absolute -inset-2 rounded-full bg-brand-primary/25 blur-md pointer-events-none" />
-                {/* Concentric dashed target rings — SVG for crisp
-                    dashes at any DPR. Two rings + a subtle tick at
-                    12 o'clock so it reads as a scouting reticle
-                    without shouting. */}
+                <div aria-hidden className="absolute inset-1 rounded-full bg-brand-primary/25 blur-md pointer-events-none" />
+                {/* Contouring dashed ring — sits at radius 51.5 in a
+                    108-unit viewBox, i.e. 3.5px outside the 96px photo.
+                    Ticks at 12/3/6/9 read as a scouting reticle without
+                    the floating-outside-boundary problem the prior
+                    two-ring stack had. */}
                 <svg
                   aria-hidden
                   className="absolute inset-0 w-full h-full pointer-events-none"
-                  viewBox="0 0 100 100"
+                  viewBox="0 0 108 108"
                 >
-                  <circle cx="50" cy="50" r="49" fill="none" stroke="rgba(200,32,44,0.55)" strokeWidth="0.75" strokeDasharray="1.5 2" />
-                  <circle cx="50" cy="50" r="45.5" fill="none" stroke="rgba(200,32,44,0.28)" strokeWidth="0.5" strokeDasharray="0.75 1.5" />
-                  <line x1="50" y1="0.5" x2="50" y2="3.5" stroke="rgba(200,32,44,0.75)" strokeWidth="0.9" strokeLinecap="round" />
+                  <circle cx="54" cy="54" r="51.5" fill="none" stroke="rgba(200,32,44,0.65)" strokeWidth="0.8" strokeDasharray="1.6 1.8" />
+                  <line x1="54" y1="0.5" x2="54" y2="2.75" stroke="rgba(200,32,44,0.85)" strokeWidth="1" strokeLinecap="round" />
+                  <line x1="54" y1="105.25" x2="54" y2="107.5" stroke="rgba(200,32,44,0.85)" strokeWidth="1" strokeLinecap="round" />
+                  <line x1="0.5" y1="54" x2="2.75" y2="54" stroke="rgba(200,32,44,0.85)" strokeWidth="1" strokeLinecap="round" />
+                  <line x1="105.25" y1="54" x2="107.5" y2="54" stroke="rgba(200,32,44,0.85)" strokeWidth="1" strokeLinecap="round" />
                 </svg>
               </>
             )}
@@ -2162,17 +2195,26 @@ const MyPlayerCard: React.FC<{
               <img
                 src={p.profilePhotoUrl}
                 alt={player.name}
-                className={`relative rounded-full object-cover shadow-lg ring-[3px] ${
-                  isPotm ? 'w-[92px] h-[92px] ring-amber-300' : 'w-[76px] h-[76px] m-2 ring-brand-primary'
-                }`}
+                className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[96px] h-[96px] rounded-full object-cover shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}
                 loading="lazy"
               />
             ) : (
-              <div className={`relative rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[3px] ${
-                isPotm ? 'w-[92px] h-[92px] ring-amber-300' : 'w-[76px] h-[76px] m-2 ring-brand-primary'
-              }`}>
+              <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[96px] h-[96px] rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
                 {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
               </div>
+            )}
+            {/* Jersey number pill overlaid on photo — Patrick moved it
+                back here 2026-07-13 ("I want the jersey number more
+                prominent and probably back where it was on the photo").
+                Chunky 34px disc, bottom-right, bold tabular number so
+                double-digits sit centered. */}
+            {player.jerseyNumber != null && !isPotm && (
+              <span
+                className="absolute -bottom-0.5 -right-0.5 z-10 w-[34px] h-[34px] rounded-full bg-charcoal-900 text-white ring-2 ring-brand-primary flex items-center justify-center text-[13px] font-black tabular-nums shadow-lg"
+                aria-label={`Jersey number ${player.jerseyNumber}`}
+              >
+                {player.jerseyNumber}
+              </span>
             )}
             {isPotm && (
               <span
@@ -2186,26 +2228,20 @@ const MyPlayerCard: React.FC<{
             )}
           </div>
 
-          {/* Name column — clean bold sans "Hunter Gill" (no brush
-              split; reference goes clean), DEFENDER pill + jersey
-              subline. Profile chip lives in the kicker row above. */}
-          <div className="flex-1 min-w-0 pt-1">
-            <p className={`text-[22px] sm:text-[24px] font-black leading-[1.05] tracking-tight ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
+          {/* Name column — clean bold sans "Hunter Gill" then POSITION
+              pill directly under. Jersey number moved to a chip on the
+              photo, so no subline here. Tightened vertical rhythm to
+              kill dead space Patrick called out 2026-07-13. */}
+          <div className="flex-1 min-w-0">
+            <p className={`text-[24px] sm:text-[26px] font-black leading-[1] tracking-tight ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
               {player.name}
             </p>
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/85'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
-                {position}
-              </span>
-              {player.jerseyNumber != null && (
-                <span className={`text-[11px] font-black tabular-nums tracking-tight ${isPotm ? 'text-amber-100/85' : 'text-ink-primary/55'}`}>
-                  #{player.jerseyNumber}
-                </span>
-              )}
-            </div>
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 mt-2 rounded-full text-[10px] font-black uppercase tracking-widest ${
+              isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/85'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
+              {position}
+            </span>
           </div>
         </div>
 
@@ -2221,48 +2257,60 @@ const MyPlayerCard: React.FC<{
                 ? 'bg-amber-900/25 ring-amber-100/40'
                 : 'bg-black/30 ring-brand-primary/25'
             }`}>
+              {/* Uniform cell contract across all 4 cells:
+                    row 1: HEADER label (8px uppercase tracked)
+                    row 2: primary VALUE (22px, sometimes with inline icon)
+                    row 3: SUBTITLE / qualifier (8px, muted)
+                  Fixes Patrick's "1 of 11 what?" — header now names
+                  the metric so subtitle can be unambiguous context. */}
               {/* LEVEL */}
               <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-brand-primary/20'}`}>
                 <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Level</p>
-                <span className={`text-[22px] font-black leading-none tabular-nums mt-0.5 ${isPotm ? 'text-amber-50' : 'text-brand-primary-soft'}`}>{level.level}</span>
+                <span className={`text-[22px] font-black leading-none tabular-nums mt-1 ${isPotm ? 'text-amber-50' : 'text-brand-primary-soft'}`}>{level.level}</span>
                 <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>{tier}</p>
               </div>
-              {/* DAY STREAK */}
+              {/* STREAK */}
               <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-brand-primary/20'}`}>
-                <svg className="w-3 h-3 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248z" clipRule="evenodd" />
-                </svg>
-                <span className={`text-[22px] font-black leading-none tabular-nums mt-0.5 ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{streakDays}</span>
-                <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>Day Streak</p>
+                <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Streak</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{streakDays}</span>
+                  <svg className="w-3.5 h-3.5 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>{streakDays === 1 ? 'Day' : 'Days'}</p>
               </div>
               {/* BADGES */}
               <div className={`px-1.5 py-2 flex flex-col items-center justify-center min-w-0 ${isPotm ? 'border-r border-amber-100/25' : 'border-r border-brand-primary/20'}`}>
-                <svg className="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
-                </svg>
-                <span className={`text-[22px] font-black leading-none tabular-nums mt-0.5 ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{badgeCount}</span>
+                <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Badges</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className={`text-[22px] font-black leading-none tabular-nums ${isPotm ? 'text-amber-50' : 'text-ink-primary'}`}>{badgeCount}</span>
+                  <svg className="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
+                  </svg>
+                </div>
                 <p className={`text-[8px] font-black uppercase tracking-[0.14em] mt-1 tabular-nums ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/50'}`}>of {totalBadgeSlots}</p>
               </div>
-              {/* LATEST BADGE */}
+              {/* LATEST BADGE — 3-row contract too: label / art / name */}
               <div className="px-1.5 py-2 flex flex-col items-center justify-center min-w-0">
-                <p className={`text-[8px] font-black uppercase tracking-[0.16em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Latest</p>
+                <p className={`text-[8px] font-black uppercase tracking-[0.22em] ${isPotm ? 'text-amber-100/80' : 'text-ink-primary/55'}`}>Latest</p>
                 {latestBadge ? (
                   <>
                     <img
                       src={badgeImageSrc(latestBadge.slug, 64)}
                       alt={latestBadge.label}
-                      className="w-8 h-8 mt-0.5 object-contain drop-shadow"
+                      className="w-[26px] h-[26px] mt-0.5 object-contain drop-shadow"
                       loading="lazy"
                     />
-                    <p className={`text-[8px] font-black uppercase tracking-[0.1em] mt-0.5 truncate max-w-full ${isPotm ? 'text-amber-100/85' : 'text-ink-primary/70'}`}>{latestBadge.label}</p>
+                    <p className={`text-[8px] font-black uppercase tracking-[0.1em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/85' : 'text-ink-primary/70'}`}>{latestBadge.label}</p>
                   </>
                 ) : (
                   <>
                     {/* Empty state: dashed shield outline + label. */}
-                    <svg className={`w-8 h-8 mt-0.5 ${isPotm ? 'text-amber-100/45' : 'text-ink-primary/25'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 2" aria-hidden>
+                    <svg className={`w-[26px] h-[26px] mt-0.5 ${isPotm ? 'text-amber-100/45' : 'text-ink-primary/25'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 2" aria-hidden>
                       <path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z" />
                     </svg>
-                    <p className={`text-[8px] font-black uppercase tracking-[0.1em] mt-0.5 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/45'}`}>None yet</p>
+                    <p className={`text-[8px] font-black uppercase tracking-[0.1em] mt-1 truncate max-w-full ${isPotm ? 'text-amber-100/70' : 'text-ink-primary/45'}`}>None yet</p>
                   </>
                 )}
               </div>

@@ -639,6 +639,22 @@ const PlayerProfile: React.FC = () => {
     return null;
   })();
 
+  // Kudos gate — 2026-07-14: viewer must be in Circle AND NOT the
+  // immediate parent. Kudos are meant to be from OTHER Circle members
+  // (grandparent, aunt, guardian, etc.) cheering the kid on; a parent
+  // giving Kudos to their own kid is self-congratulatory noise.
+  //
+  // Rule: user.uid ∈ player.parentIds AND user.relationship is set to
+  // something OTHER than 'parent'. Legacy users with undefined
+  // relationship default to 'parent' semantics (per FamilyRelationship
+  // type comment) so they're also excluded — those users can update
+  // their relationship in Settings > Profile to enable the button.
+  const canGiveKudos = !!userData
+    && Array.isArray((player as any)?.parentIds)
+    && (player as any).parentIds.includes(userData.uid)
+    && !!(userData as any)?.relationship
+    && (userData as any).relationship !== 'parent';
+
   return (
     <div className="min-h-screen bg-surface-base">
       <div className="mx-auto w-full max-w-6xl sm:px-4 lg:px-6 sm:py-5">
@@ -651,7 +667,7 @@ const PlayerProfile: React.FC = () => {
         isCurrentPotm={!!(player as any).isCurrentPotm}
         onBack={() => { window.history.length > 1 ? window.history.back() : (window.location.href = '/players'); }}
         onEdit={() => setEditOpen(true)}
-        showKudos={!!userData && Array.isArray((player as any)?.parentIds) && (player as any).parentIds.includes(userData.uid)}
+        showKudos={canGiveKudos}
         onKudos={() => setShowKudos(true)}
       />
       <ProfileStatsStrip
@@ -713,10 +729,8 @@ const PlayerProfile: React.FC = () => {
               Whisper
             </button>
           )}
-          {/* Kudos — any Circle member (person in player.parentIds) can
-              send a note. Coaches also see this if they're in parentIds
-              (i.e. coaching their own kid); coaches otherwise use Whisper. */}
-          {userData && Array.isArray((player as any)?.parentIds) && (player as any).parentIds.includes(userData.uid) && (
+          {/* Kudos — see canGiveKudos gate at the top of render. */}
+          {canGiveKudos && (
             <button
               onClick={() => setShowKudos(true)}
               className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-surface-elevated hover:bg-surface-input text-ink-primary text-xs font-bold ring-1 ring-line-default/15 transition"
@@ -1547,7 +1561,7 @@ const PlayerProfile: React.FC = () => {
                 one-tap convert any un-converted kudos to +N XP via
                 worker /xp/convert-kudos. See project_player_circle
                 _mission memory. */}
-            {(kudosList.length > 0 || (userData && Array.isArray((player as any)?.parentIds) && (player as any).parentIds.includes(userData.uid))) && (
+            {(kudosList.length > 0 || canGiveKudos) && (
               <div className="space-y-3">
                 <div>
                   <h2 className="text-lg sm:text-xl font-black text-ink-primary">Kudos from your Circle</h2>

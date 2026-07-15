@@ -78,7 +78,7 @@ const FeaturedShoutCard: React.FC<Props> = ({ playerName, votings, onOpenAll }) 
             </svg>
           </span>
           <span className="text-[11px] font-black uppercase tracking-widest text-ink-primary/55 truncate">
-            Featured — Player of the Match
+            Player of the Match: Featured shout
           </span>
         </div>
         <div className="flex items-center gap-1 shrink-0">

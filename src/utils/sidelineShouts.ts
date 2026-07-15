@@ -49,6 +49,11 @@ interface Args {
   whispers: Array<{ id: string; coachName: string; coachAvatarUrl?: string | null; message: string; createdAt: Date }>;
   xpEvents: Array<{ id: string; awardedByName?: string | null; awardedBy?: string; source: string; note?: string | null; xp: number; createdAt: Date }>;
   potmVotes: Array<{ voting: any; playerVotes: Array<{ voterName: string; reason?: string }> }>;
+  /** When set, badges are filtered to only those earned inside this
+   *  season (via `badges[slug].seasonId === activeSeasonId`). Legacy
+   *  badges with no seasonId are dropped in season mode; they still
+   *  show in career mode (activeSeasonId undefined). */
+  activeSeasonId?: string;
 }
 
 /** Normalize every source into a flat SidelineShout list, sorted
@@ -97,10 +102,17 @@ export function buildSidelineShouts(args: Args): SidelineShout[] {
   }
 
   // Badges earned — walk player.badges. Each entry is
-  // `{ earnedAt, seasonId?, context? }` keyed by slug.
+  // `{ earnedAt, seasonId?, context? }` keyed by slug. When
+  // `activeSeasonId` is set, drop badges whose seasonId is present
+  // AND doesn't match. Legacy badges written before the seasonId
+  // field existed (or badges written by call sites that skipped
+  // `seasonId` in makeBadge) fall through the grace clause so they
+  // still surface in Season mode — matches the truthy-guard pattern
+  // used everywhere else in RecognitionCenter (kudos/whispers/xp).
   const badges: Record<string, any> = ((args.player as any)?.badges) || {};
   for (const slug of Object.keys(badges)) {
     const b = badges[slug];
+    if (args.activeSeasonId && b?.seasonId && b.seasonId !== args.activeSeasonId) continue;
     const at = b?.earnedAt?.toDate?.() || (b?.earnedAt instanceof Date ? b.earnedAt : null);
     if (!at) continue;
     shouts.push({

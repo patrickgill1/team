@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Player } from '../../types';
+import type { Player, Season } from '../../types';
 import { badgeImageSrc, badgeSrcSet, badgeLabel } from '../../utils/badgeMeta';
 import ProfileCard from './ProfileCard';
 
@@ -8,12 +8,18 @@ import ProfileCard from './ProfileCard';
 // jumps to the full Locker grid inside PlayerXpCard on the Stats
 // tab.
 //
-// Hidden entirely when the player has zero badges (avoids
+// Season scoping — when `activeSeason` is passed, drops badges whose
+// `seasonId` is present AND doesn't match. Legacy badges (no seasonId
+// stamped at write time) fall through the truthy-guard grace clause
+// so nothing silently vanishes. Matches the same rule used by
+// sidelineShouts so the wall below and the strip above agree on what
+// counts as "this season." (2026-07-15 verifier catch: parent read
+// the strip as "this season's badges" because the surrounding cards
+// are This-Season-scoped; unscoped strip drifted from the wall.)
+//
+// Hidden entirely when zero badges pass the filter (avoids
 // Swiss-cheese scroll on brand-new profiles). PlayerXpCard already
 // renders the empty locker slots on the Stats tab.
-//
-// Reuses badgeMeta helpers (badgeImageSrc, badgeSrcSet, badgeLabel)
-// so the visual matches the Stats-tab Locker exactly.
 //
 // See project_xp_badges memory for phase-1 badge treatment.
 
@@ -26,6 +32,9 @@ interface Props {
   /** Max tiles rendered in the preview strip. Default 6 (fits the
    *  6-col mobile grid). */
   limit?: number;
+  /** Active season used to filter the strip so it matches the
+   *  RecognitionCenter feed. Null/undefined = no scoping (career). */
+  activeSeason?: Season | null;
 }
 
 interface OwnedBadge {
@@ -35,15 +44,23 @@ interface OwnedBadge {
   context?: string;
 }
 
-const BadgeCollection: React.FC<Props> = ({ player, onSeeAll, limit = 6 }) => {
+const BadgeCollection: React.FC<Props> = ({ player, onSeeAll, limit = 6, activeSeason }) => {
   const badges: Record<string, any> = ((player as any).badges && typeof (player as any).badges === 'object')
     ? (player as any).badges
     : {};
 
   // Normalize + sort most-recent first. earnedAt can be a Firestore
-  // Timestamp OR a Date OR an ISO string depending on load path —
+  // Timestamp OR a Date OR an ISO string depending on load path,
   // defensively coerce.
+  // Season filter: truthy-guard grace clause so legacy badges
+  // (no seasonId at write time) still surface until backfill lands.
   const owned: OwnedBadge[] = Object.entries(badges)
+    .filter(([, meta]: [string, any]) => {
+      if (!activeSeason?.id) return true;
+      const sid = meta?.seasonId;
+      if (!sid) return true; // legacy, grace clause
+      return sid === activeSeason.id;
+    })
     .map(([slug, meta]: [string, any]) => {
       const raw = meta?.earnedAt;
       let earnedAt: Date;
@@ -106,7 +123,7 @@ const BadgeCollection: React.FC<Props> = ({ player, onSeeAll, limit = 6 }) => {
               type="button"
               onClick={onSeeAll}
               title={b.context || label}
-              aria-label={b.context ? `${label} — ${b.context}` : label}
+              aria-label={b.context ? `${label}: ${b.context}` : label}
               className="group flex flex-col items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 rounded-lg"
             >
               <div className="relative w-full aspect-square rounded-lg flex items-center justify-center bg-brand-primary/10 ring-1 ring-brand-primary/40 shadow-[inset_0_0_12px_rgba(200,32,44,0.15)] group-hover:ring-brand-primary/60 transition">

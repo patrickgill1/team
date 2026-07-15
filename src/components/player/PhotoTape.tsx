@@ -3,11 +3,18 @@ import { where } from 'firebase/firestore';
 import { useFirestore } from '../../hooks/useFirestore';
 import { debugWarn } from '../../utils/debug';
 import { toMillis } from '../../utils/timestamps';
+import type { Season } from '../../types';
 
 export interface Props {
   playerId: string;
   teamId: string;
   playerName: string;
+  /** Optional season window. When passed, photos are dropped if their
+   *  createdAt falls outside [startDate, endDate]. Prevents a Fall
+   *  2025 photo from shipping into the Spring 2026 "This Season"
+   *  ribbon and disagreeing with the season-scoped MediaGrid below.
+   *  Null/undefined = no window (all-time for this team). */
+  season?: Season | null;
 }
 
 type PhotoSource = 'gallery' | 'player_media';
@@ -42,12 +49,15 @@ const CameraGlyph: React.FC<{ className?: string }> = ({ className }) => (
 // Horizontal-scroll ribbon of every photo this player is tagged in.
 // First horizontal-scroll ribbon in the app; the class combo below is
 // the locked pattern that SeasonTimeline should reuse.
-const PhotoTape: React.FC<Props> = ({ playerId, playerName }) => {
+const PhotoTape: React.FC<Props> = ({ playerId, playerName, teamId, season }) => {
   const { getPlayerMediaByPlayer, getPhotosByPlayer, getDocuments } = useFirestore();
 
   const [items, setItems] = useState<RibbonItem[] | null>(null);
   const [failedIds, setFailedIds] = useState<Set<string>>(() => new Set());
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
+
+  const seasonStartMs = season?.startDate ? new Date(season.startDate).getTime() : -Infinity;
+  const seasonEndMs = season?.endDate ? new Date(season.endDate).getTime() : Infinity;
 
   useEffect(() => {
     let cancelled = false;
@@ -72,17 +82,36 @@ const PhotoTape: React.FC<Props> = ({ playerId, playerName }) => {
         const normalized: RibbonItem[] = [];
         const seen = new Set<string>();
 
+        // Team scope guard — if teamId is passed, drop items tied to a
+        // different team so cross-team clips don't leak into the ribbon
+        // when a coach is looking at a player from Team B's roster who
+        // used to be on Team A. Empty teamId (rare, e.g. adult pickup)
+        // disables the guard so nothing is silently dropped.
+        const matchesTeam = (d: any) => !teamId || !d?.teamId || d.teamId === teamId;
+        // Season scope guard — when a season is passed, drop items
+        // outside its date window. Applied to createdAt only (photos
+        // don't carry a seasonId); a photo without a createdAt is
+        // dropped from a season-scoped view since it can't be placed.
+        const matchesSeason = (createdAtMs: number) => {
+          if (!season) return true;
+          if (!createdAtMs) return false;
+          return createdAtMs >= seasonStartMs && createdAtMs <= seasonEndMs;
+        };
+
         const pushGallery = (d: any) => {
           if (!d || !d.id || seen.has(d.id)) return;
           if (d.isActive === false) return;
           if (!d.url) return;
+          if (!matchesTeam(d)) return;
+          const createdAtMs = toMillis(d.createdAt);
+          if (!matchesSeason(createdAtMs)) return;
           seen.add(d.id);
           normalized.push({
             id: d.id,
             url: d.url,
             thumbnailUrl: d.thumbnailUrl,
             caption: d.caption,
-            createdAtMs: toMillis(d.createdAt),
+            createdAtMs,
             source: 'gallery',
           });
         };
@@ -92,13 +121,16 @@ const PhotoTape: React.FC<Props> = ({ playerId, playerName }) => {
           if (d.isActive === false) return;
           if (d.type && d.type !== 'photo') return;
           if (!d.url) return;
+          if (!matchesTeam(d)) return;
+          const createdAtMs = toMillis(d.createdAt);
+          if (!matchesSeason(createdAtMs)) return;
           seen.add(d.id);
           normalized.push({
             id: d.id,
             url: d.url,
             thumbnailUrl: d.thumbnailUrl,
             caption: d.caption,
-            createdAtMs: toMillis(d.createdAt),
+            createdAtMs,
             source: 'player_media',
           });
         };
@@ -120,7 +152,8 @@ const PhotoTape: React.FC<Props> = ({ playerId, playerName }) => {
     return () => {
       cancelled = true;
     };
-  }, [playerId, getDocuments, getPlayerMediaByPlayer]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerId, teamId, season?.id, seasonStartMs, seasonEndMs, getDocuments, getPlayerMediaByPlayer, getPhotosByPlayer]);
 
   const handleImgError = useCallback((id: string) => {
     setFailedIds((prev) => {

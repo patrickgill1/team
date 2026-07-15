@@ -15,6 +15,8 @@ import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
 import ProfileCard from '../components/player/ProfileCard';
 import FeaturedShoutCard from '../components/player/FeaturedShoutCard';
 import PlayerXpCard from '../components/player/PlayerXpCard';
+import LevelProgressBar from '../components/player/LevelProgressBar';
+import BadgeCollection from '../components/player/BadgeCollection';
 import CoachGrantXpModal from '../components/coach/CoachGrantXpModal';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
 import PlayerCircleCard from '../components/player/PlayerCircleCard';
@@ -144,7 +146,10 @@ const PlayerProfile: React.FC = () => {
   );
   // Pending anchor scroll from the legacy ?tab= mapping. Cleared once
   // the section mounts and we scroll into view (see useEffect below).
-  const [pendingScrollAnchor, setPendingScrollAnchor] = useState<null | 'shouts' | 'awards' | 'devplans'>(
+  // 'xpcard' anchor is used by the top-of-Story LevelProgressBar +
+  // BadgeCollection "See all" jumps to land the eye on PlayerXpCard
+  // inside the Stats tab.
+  const [pendingScrollAnchor, setPendingScrollAnchor] = useState<null | 'shouts' | 'awards' | 'devplans' | 'xpcard'>(
     () => {
       try {
         const t = new URLSearchParams(window.location.search).get('tab');
@@ -161,6 +166,7 @@ const PlayerProfile: React.FC = () => {
   const shoutsSectionRef = useRef<HTMLElement | null>(null);
   const awardsSectionRef = useRef<HTMLElement | null>(null);
   const devPlansSectionRef = useRef<HTMLElement | null>(null);
+  const xpCardSectionRef = useRef<HTMLDivElement | null>(null);
   // Sentinel + sticky-detection for the mini-hero. When the sentinel
   // (placed just below the hero + stats strip) leaves the viewport
   // top, we stamp isHeroStuck=true and the sticky pill row grows to
@@ -258,7 +264,7 @@ const PlayerProfile: React.FC = () => {
   // is one history entry, tab switches are lateral moves within it.
   // Also handles the scroll-anchor jump from legacy ?tab= redirects
   // (?tab=whispers → story + shouts anchor).
-  const handleTabChange = useCallback((next: 'story' | 'stats' | 'media', anchor?: 'shouts' | 'awards' | 'devplans') => {
+  const handleTabChange = useCallback((next: 'story' | 'stats' | 'media', anchor?: 'shouts' | 'awards' | 'devplans' | 'xpcard') => {
     setActiveTab(next);
     if (anchor) setPendingScrollAnchor(anchor);
     try {
@@ -323,11 +329,12 @@ const PlayerProfile: React.FC = () => {
   // only try when the requested tab actually matches the anchor.
   useEffect(() => {
     if (!pendingScrollAnchor || loading) return;
-    let ref: React.RefObject<HTMLElement> | null = null;
+    let ref: React.RefObject<HTMLElement | HTMLDivElement> | null = null;
     let expectedTab: 'story' | 'stats' | 'media' | null = null;
     if (pendingScrollAnchor === 'shouts')   { ref = shoutsSectionRef;   expectedTab = 'story'; }
     if (pendingScrollAnchor === 'awards')   { ref = awardsSectionRef;   expectedTab = 'story'; }
     if (pendingScrollAnchor === 'devplans') { ref = devPlansSectionRef; expectedTab = 'stats'; }
+    if (pendingScrollAnchor === 'xpcard')   { ref = xpCardSectionRef;   expectedTab = 'stats'; }
     if (!ref || expectedTab !== activeTab) return;
     // requestAnimationFrame gives the just-rendered section a beat to
     // paint before we ask for its position. Two frames is a hedge for
@@ -1006,6 +1013,28 @@ const PlayerProfile: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
           <div className="flex flex-col gap-4 sm:gap-6">
 
+            {/* LEVEL PROGRESS BAR — compact mini-card that surfaces
+                the XP ladder without making parents discover the
+                Stats tab first. Tap → jumps to PlayerXpCard in Stats.
+                Renders null when team.xpConfig.enabled !== true so
+                non-XP teams stay clean. 2026-07-15: Patrick's
+                complaint "hidden in status" — parents open Story
+                first and never saw progression. */}
+            <LevelProgressBar
+              player={player}
+              team={selectedTeam}
+              onSeeDetails={() => handleTabChange('stats', 'xpcard')}
+            />
+
+            {/* BADGE COLLECTION — top-6 most-recent badges as a
+                preview strip. Hidden when the player has zero badges
+                (avoids Swiss-cheese scroll on brand-new profiles).
+                "See all" jumps to PlayerXpCard's Locker grid in Stats. */}
+            <BadgeCollection
+              player={player}
+              onSeeAll={() => handleTabChange('stats', 'xpcard')}
+            />
+
             {/* PLAYER CIRCLE — parents/guardians linked to this player.
                 Sits at the top of Story so a parent lands where the
                 invite-a-guardian path is discoverable. Hidden on
@@ -1294,17 +1323,21 @@ const PlayerProfile: React.FC = () => {
 
             {/* PLAYER XP CARD — private XP + badges. Renders only when
                 team.xpConfig.enabled is true (or paused w/ history).
-                Coach opt-in per team. */}
-            <PlayerXpCard
-              player={player}
-              team={selectedTeam}
-              isCoach={
-                !!userData?.uid
-                && Array.isArray((selectedTeam as any)?.coachIds)
-                && (selectedTeam as any).coachIds.includes(userData.uid)
-              }
-              onGiveXp={() => setShowGrantXp(true)}
-            />
+                Coach opt-in per team. Scroll target for the Story-tab
+                LevelProgressBar and BadgeCollection jumps (id +
+                xpCardSectionRef). */}
+            <div ref={xpCardSectionRef} id="stats-xpcard" className="scroll-mt-20">
+              <PlayerXpCard
+                player={player}
+                team={selectedTeam}
+                isCoach={
+                  !!userData?.uid
+                  && Array.isArray((selectedTeam as any)?.coachIds)
+                  && (selectedTeam as any).coachIds.includes(userData.uid)
+                }
+                onGiveXp={() => setShowGrantXp(true)}
+              />
+            </div>
 
             {/* COACH RECOGNITIONS ARCHIVE — every "I saw you do this"
                 moment a coach has written for this kid. Silent-empty

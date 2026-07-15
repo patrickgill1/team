@@ -200,6 +200,10 @@ const PlayerProfile: React.FC = () => {
   // Memberships for this player across every team/season they're on.
   // Drives the per-team / per-season stats display (no more bleed).
   const [memberships, setMemberships] = useState<any[]>([]);
+  // Team name lookup for cross-team memberships, so Career mode
+  // section headers / Past Seasons buckets read as
+  // "Fire FC U12 · Fall 2025" instead of the generic "Team · …" fallback.
+  const [teamNameById, setTeamNameById] = useState<Record<string, string>>({});
   // Which scope the Season Stats card is showing: this team this
   // season (default), this team's career, or all-time across teams.
   const [statsScope, setStatsScope] = useState<'team_season' | 'team_career' | 'all_time'>('team_season');
@@ -437,6 +441,23 @@ const PlayerProfile: React.FC = () => {
     try {
       const memDocs = await getDocuments('player_memberships', [where('playerId', '==', playerId)]);
       setMemberships(memDocs as any[]);
+      const uniqueTeamIds = Array.from(new Set(
+        (memDocs as any[])
+          .map(m => m?.teamId as string | undefined)
+          .filter((t): t is string => !!t && t !== selectedTeamId)
+      ));
+      if (uniqueTeamIds.length > 0) {
+        const teamDocs = await Promise.allSettled(
+          uniqueTeamIds.map(tid => getDocument('teams', tid) as Promise<any>)
+        );
+        const nextMap: Record<string, string> = {};
+        teamDocs.forEach((res, i) => {
+          if (res.status === 'fulfilled' && res.value?.name) {
+            nextMap[uniqueTeamIds[i]] = res.value.name;
+          }
+        });
+        if (Object.keys(nextMap).length > 0) setTeamNameById(nextMap);
+      }
     } catch (err) {
       // Memberships may not exist for this player if the migration didn't
       // run for them — fall back to the legacy player.stats behavior.
@@ -1120,6 +1141,7 @@ const PlayerProfile: React.FC = () => {
               xpEvents={xpEvents}
               allPlayerVotings={allPlayerVotings}
               memberships={memberships as any}
+              teamNameById={teamNameById}
               userData={userData}
               canGiveKudos={canGiveKudos}
               isCoach={!!userData && isCoachOfTeam(userData, selectedTeam)}
@@ -1322,6 +1344,7 @@ const PlayerProfile: React.FC = () => {
             availableSeasons={allSeasons}
             memberships={memberships}
             selectedTeam={selectedTeam}
+            teamNameById={teamNameById}
             playerId={playerId!}
             playerName={player.name}
             onOpenLightbox={setLightboxItem}
@@ -1568,6 +1591,7 @@ interface MediaSeasonViewProps {
   availableSeasons: Season[];
   memberships: any[];
   selectedTeam: any;
+  teamNameById: Record<string, string>;
   playerId: string;
   playerName: string;
   onOpenLightbox: (item: PlayerMedia) => void;
@@ -1580,6 +1604,7 @@ const MediaSeasonView: React.FC<MediaSeasonViewProps> = ({
   availableSeasons,
   memberships,
   selectedTeam,
+  teamNameById,
   playerId,
   playerName,
   onOpenLightbox,
@@ -1607,7 +1632,9 @@ const MediaSeasonView: React.FC<MediaSeasonViewProps> = ({
       const season = seasonId ? availableSeasons.find(s => s.id === seasonId) || null : null;
       const items = filterMediaForSeason(media, teamId, season);
       if (items.length === 0) continue;
-      const teamName = teamId === selectedTeamId ? (selectedTeam?.name || 'Team') : (m as any).teamName || 'Team';
+      const teamName = teamId === selectedTeamId
+        ? (selectedTeam?.name || 'Team')
+        : (teamNameById[teamId] || (m as any).teamName || 'Team');
       const label = season ? `${teamName} · ${season.name}` : `${teamName}`;
       const joinedAtRaw: any = (m as any).joinedAt;
       const joinedMs = joinedAtRaw?.toDate ? joinedAtRaw.toDate().getTime() : (joinedAtRaw ? new Date(joinedAtRaw).getTime() : 0);
@@ -1616,7 +1643,7 @@ const MediaSeasonView: React.FC<MediaSeasonViewProps> = ({
     }
     buckets.sort((a, b) => b.sortMs - a.sortMs);
     return buckets.map(({ key, label, items }) => ({ key, label, items }));
-  }, [media, memberships, availableSeasons, selectedTeamId, activeSeason?.id, selectedTeam]);
+  }, [media, memberships, availableSeasons, selectedTeamId, activeSeason?.id, selectedTeam, teamNameById]);
 
   const totalPast = pastBuckets.reduce((s, b) => s + b.items.length, 0);
 

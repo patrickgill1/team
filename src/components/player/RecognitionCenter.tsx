@@ -75,6 +75,7 @@ interface Props {
   xpEvents: XpEventEntry[];
   allPlayerVotings: PlayerVoting[];
   memberships: PlayerMembership[];
+  teamNameById?: Record<string, string>;
   userData: UserData | null;
   canGiveKudos: boolean;
   isCoach: boolean;
@@ -126,6 +127,7 @@ const RecognitionCenter: React.FC<Props> = ({
   xpEvents,
   allPlayerVotings,
   memberships,
+  teamNameById,
   userData,
   canGiveKudos,
   isCoach,
@@ -273,7 +275,7 @@ const RecognitionCenter: React.FC<Props> = ({
   const teamNameForMembership = (m: PlayerMembership | undefined): string | null => {
     if (!m) return null;
     if (m.teamId === selectedTeamId) return selectedTeam?.name || null;
-    return null; // no cross-team team lookup available client-side yet
+    return teamNameById?.[m.teamId] || null;
   };
   const bucketLabelForShout = (t: Date): string => {
     // Career-mode section headers: find the first membership whose

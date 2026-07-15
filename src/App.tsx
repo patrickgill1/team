@@ -87,6 +87,7 @@ const Highlights = React.lazy(() => import('./pages/Highlights'));
 const MentionsInbox = React.lazy(() => import('./pages/MentionsInbox'));
 const SharedMedia = React.lazy(() => import('./pages/SharedMedia'));
 const PlayerProfile = React.lazy(() => import('./pages/PlayerProfile'));
+const PlayerCircle = React.lazy(() => import('./pages/PlayerCircle'));
 const Surveys = React.lazy(() => import('./pages/Surveys'));
 const FullGames = React.lazy(() => import('./pages/FullGames'));
 const VideoUpgradePage = React.lazy(() => import('./pages/VideoUpgradePage'));
@@ -576,6 +577,20 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <PlayerProfile />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Player Circle hub — shipped 2026-07-15 per Patrick:
+                "we should put player circle as its own page or button
+                as well, so people can truly understand what it is."
+                Family-scoped page: kid picker at top, circle members
+                grid, invite flow, live Sideline Shouts feed for the
+                kid's whole family to see. */}
+            <Route path="/circle" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <PlayerCircle />
                 </AppLayout>
               </ProtectedRoute>
             } />

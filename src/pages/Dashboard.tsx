@@ -1263,6 +1263,49 @@ const Dashboard: React.FC = () => {
           )
         )}
 
+        {/* Player Circle entry tile — 2026-07-15 elevation per
+            Patrick: "put player circle as its own page or button as
+            well, so people can truly understand what it is." Compact
+            tile under MyPlayerCard that lands parents on /circle
+            with the full hub (members grid, invite flow, Sideline
+            Shouts feed). Copy uses the kid's first name to earn the
+            tap. Hidden on coach mode + adult teams (where Circle
+            isn't the model). */}
+        {isParentMode && myPlayer && !((selectedTeam as any)?.audienceType === 'adult') && (() => {
+          const circleCount = Array.isArray((myPlayer as any).parentIds) ? (myPlayer as any).parentIds.length : 0;
+          const first = (myPlayer.name || 'your player').split(' ')[0];
+          return (
+            <Link
+              to="/circle"
+              className="group relative overflow-hidden rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition p-4 flex items-center gap-4"
+            >
+              <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-brand-primary/15 text-brand-primary shrink-0">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <circle cx="9" cy="8" r="3" />
+                  <circle cx="17" cy="10" r="2.5" />
+                  <path d="M2 20a7 7 0 0 1 14 0M14 20a5 5 0 0 1 8 0" />
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary-soft">Player Circle</p>
+                <p className="text-[15px] font-bold text-ink-primary leading-tight mt-0.5 truncate">
+                  {circleCount === 0
+                    ? `Start ${first}'s Circle`
+                    : `${first}'s Circle · ${circleCount} ${circleCount === 1 ? 'person' : 'people'}`}
+                </p>
+                <p className="text-[12px] text-ink-primary/55 leading-snug truncate">
+                  {circleCount === 0
+                    ? 'Invite grandparents, aunts, and guardians to see the wins.'
+                    : 'Everyone who cheers for your player, in one place.'}
+                </p>
+              </div>
+              <svg className="w-4 h-4 text-ink-primary/35 group-hover:text-brand-primary-soft transition shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <polyline points="9 6 15 12 9 18" />
+              </svg>
+            </Link>
+          );
+        })()}
+
         {/* TodaysDevelopmentCard — sits directly under MyPlayerCard
             for parent-mode users, matching Patrick's 2026-07-13
             approved mockup order (MyPlayerCard → Today's Development

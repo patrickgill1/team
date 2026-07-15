@@ -1106,10 +1106,13 @@ const PlayerProfile: React.FC = () => {
 
             {/* WHAT PEOPLE ARE SAYING — kids love this. Always render a
                 card so the section never feels missing; show a friendly
-                placeholder when there are no POTM quotes yet. */}
+                placeholder when there are no POTM quotes yet.
+                2026-07-15: jumps to the Shouts tab with POTM filter
+                (was jumping to Awards tab) so the click flows into
+                the full shout stream, not a separate surface. */}
             <button
               type="button"
-              onClick={() => setActiveTab('awards')}
+              onClick={() => { setShoutFilter('potm_comment'); setActiveTab('whispers'); }}
               className="w-full text-left relative overflow-hidden rounded-2xl bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 p-5 hover:bg-line-default/[0.06] transition"
             >
               <div className="flex items-center gap-2 mb-2">
@@ -1127,6 +1130,79 @@ const PlayerProfile: React.FC = () => {
                 </p>
               )}
             </button>
+
+            {/* SIDELINE SHOUTS PREVIEW — 3 most recent shouts of any type
+                (Kudos, coach whispers, XP notes, badges, POTM comments)
+                so parents see the stream without a second tap.
+                Patrick 2026-07-15: "still waiting on the sideline
+                shouts to also have its own section in the profile."
+                Renders alongside the tab (belt and suspenders) — tab
+                still holds the full feed with filter chips. Hidden
+                when there are no shouts yet. */}
+            {(() => {
+              const preview = buildSidelineShouts({
+                player,
+                kudosList,
+                whispers,
+                xpEvents,
+                potmVotes: allPlayerVotings,
+              });
+              if (preview.length === 0) return null;
+              const top = preview.slice(0, 3);
+              const first = player.name?.split(' ')[0] || 'this player';
+              return (
+                <section className="rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10 overflow-hidden">
+                  <header className="flex items-center justify-between px-5 pt-4 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-brand-primary/15 text-brand-primary-soft">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" />
+                        </svg>
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary-soft">Sideline Shouts</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setShoutFilter('all'); setActiveTab('whispers'); }}
+                      className="text-[11px] font-black uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary transition px-2 py-1 rounded-md hover:bg-line-default/[0.06]"
+                    >
+                      See all {preview.length} →
+                    </button>
+                  </header>
+                  <ul className="divide-y divide-line-default/8">
+                    {top.map(s => (
+                      <li key={s.id} className={`px-5 py-3.5 flex items-start gap-3 border-l-4 ${shoutAccentClass(s.type)}`}>
+                        <div className="flex-shrink-0">
+                          {s.type === 'badge' && s.badgeImage ? (
+                            <img src={s.badgeImage} className="w-8 h-8 object-contain" alt="" />
+                          ) : s.fromAvatarUrl ? (
+                            <img src={s.fromAvatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-brand-primary/15 text-brand-primary flex items-center justify-center font-black text-xs">
+                              {(s.fromName || '?').charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[13px] font-bold text-ink-primary">{s.fromName}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-ink-primary/40">
+                              {SHOUT_TYPE_LABEL[s.type]}
+                            </span>
+                          </div>
+                          <p className="text-[13.5px] text-ink-primary/85 leading-snug mt-0.5 line-clamp-2">
+                            {s.body}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <footer className="px-5 py-2.5 border-t border-line-default/10 text-[11px] text-ink-primary/50">
+                    Everything kind {first}&rsquo;s people have said and done.
+                  </footer>
+                </section>
+              );
+            })()}
 
             {/* SEASON STATS — three-scope toggle (team-season, team-career,
                 all-time across every team this player's been on). Reads

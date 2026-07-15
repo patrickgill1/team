@@ -10,6 +10,14 @@ import { debug } from '../utils/debug';
 const SimpleAuth: React.FC = () => {
   const { signIn, signUp, signInWithGoogle, signInWithApple, currentUser, userData, loading, error } = useAuth();
   const isNativePlatform = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
+  // Apple sign-in is iOS-only. Prior gate was `isNativePlatform`
+  // (any native), which fired on Android too — @capacitor-firebase/
+  // authentication would then route Apple auth via a Custom-Tabs
+  // web flow, which works but reads as an odd UX ("Sign in with
+  // Apple" on an Android device). 2026-07-14 fix: gate on iOS
+  // specifically.
+  const isNativeIos = typeof window !== 'undefined'
+    && (window as any).Capacitor?.getPlatform?.() === 'ios';
   const navigate = useNavigate();
   // Default to register. A cold download is almost always a new user
   // setting up their first team — making them figure out "I need to
@@ -542,12 +550,14 @@ const SimpleAuth: React.FC = () => {
                 on submit if the probe was wrong. Users no longer have
                 to answer "am I signing in or up" up front. */}
 
-            {/* Sign in with Apple — native iOS only (Apple Store requirement when offering Google sign-in) */}
-            {/* Always visible now. Hiding when the email form was
-                open left Patrick with no way to get back to social
-                sign-in from the email view — he had to force-close
-                the app. Fixed by just never hiding these buttons. */}
-            {isNativePlatform && signInWithApple && (
+            {/* Sign in with Apple — iOS ONLY (Apple Store 4.8 requires
+                Apple sign-in wherever Google/Facebook sign-in is
+                offered on iOS; on Android there's no equivalent
+                requirement and the button reads as odd). Always
+                visible on iOS regardless of whether the email form
+                is open — Patrick was force-closing the app when
+                the button hid mid-flow.  */}
+            {isNativeIos && signInWithApple && (
               <div className="mb-3">
                 <button
                   onClick={async () => {
@@ -646,7 +656,7 @@ const SimpleAuth: React.FC = () => {
             {/* Divider between social sign-in and email form —
                 shown whenever the email form is expanded and there
                 is at least one social sign-in above it. */}
-            {(emailFormOpen || joinFlow) && (signInWithGoogle || (isNativePlatform && signInWithApple)) && (
+            {(emailFormOpen || joinFlow) && (signInWithGoogle || (isNativeIos && signInWithApple)) && (
               <div className="relative mb-4">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-line-default/10" />

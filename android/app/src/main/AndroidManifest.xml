@@ -69,8 +69,13 @@
     <!-- Push notifications (FCM) — required on Android 13+ (API 33+);
          ignored on older versions. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Camera / photo picker for media uploads + profile photos. -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- 2026-07-14: CAMERA / READ_MEDIA_IMAGES / READ_MEDIA_VIDEO
+         removed. @capacitor/camera is in package.json but never
+         imported at any real callsite; every media upload path
+         uses HTML <input type="file"> against R2/Stream, which on
+         modern Android goes through the system photo picker and
+         does NOT require these permissions. Declaring them triggers
+         Play Console data-safety questionnaires we can't honestly
+         answer. Re-add here + drop the plugin whenever a native
+         camera path (barcode scan, in-app capture UI, etc.) ships. -->
 </manifest>

@@ -13,8 +13,8 @@ import { buildSidelineShouts, SHOUT_TYPE_LABEL, shoutAccentClass } from '../util
 import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import ProfileHero from '../components/player/ProfileHero';
 import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
+import FeaturedShoutCard from '../components/player/FeaturedShoutCard';
 import PlayerXpCard from '../components/player/PlayerXpCard';
-import PlayerXpHistoryFeed from '../components/player/PlayerXpHistoryFeed';
 import CoachGrantXpModal from '../components/coach/CoachGrantXpModal';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
 import PlayerCircleCard from '../components/player/PlayerCircleCard';
@@ -128,6 +128,10 @@ const PlayerProfile: React.FC = () => {
       return 'overview';
     }
   );
+  // Filter for the Sideline Shouts tab. 'all' | 'kudos' | 'whisper' |
+  // 'xp_note' | 'badge' | 'potm_comment'. Kept in state (not URL) so
+  // deep-links still land on the full stream; filter is UI-only.
+  const [shoutFilter, setShoutFilter] = useState<'all' | 'kudos' | 'whisper' | 'xp_note' | 'badge' | 'potm_comment'>('all');
   // Juggle log state — anyone who can see the profile (coach OR the
   // player's parents) can record an attempt.
   const [juggleOpen, setJuggleOpen] = useState(false);
@@ -774,12 +778,29 @@ const PlayerProfile: React.FC = () => {
         onGiveXp={() => setShowGrantXp(true)}
       />
 
-      {/* Recent XP audit trail — Duolingo-style scroll of the concrete
-          grants that fed the trading-card number above. Guarded on
-          team.xpConfig so profiles on non-XP teams stay clean. */}
-      {(selectedTeam as any)?.xpConfig?.enabled === true && (
-        <PlayerXpHistoryFeed playerId={player.id} />
-      )}
+      {/* Featured POTM quote — rotating card that surfaces one
+          teammate/voter comment on the profile above the fold.
+          Patrick 2026-07-14: "i still want POTM comments to show
+          a quote in the profile for other's to see." Hidden when
+          the player has no POTM comments yet. Clicking "All N"
+          jumps to the Sideline Shouts tab (filtered to POTM). */}
+      <FeaturedShoutCard
+        playerName={player.name}
+        votings={allPlayerVotings}
+        onOpenAll={() => {
+          setShoutFilter('potm_comment');
+          setActiveTab('whispers');
+        }}
+      />
+
+      {/* PlayerXpHistoryFeed removed 2026-07-14 (Patrick:
+          "get rid of the xp section showing the comments and have
+          it live in the tab. it took me a while to find that
+          section and I was looking for it"). XP grant history with
+          notes now lives inside the Sideline Shouts tab under the
+          "From coach" filter, alongside Kudos, Whispers, POTM
+          comments, and Badges. Single home, discoverable via the
+          new pill order + filter chips. */}
 
       {/* Recruitment funnel moved to PersonAdmin (admin CRM only).
           Patrick 2026-06-25: 'I don't know if the recruitment timeline
@@ -992,7 +1013,11 @@ const PlayerProfile: React.FC = () => {
           {/* Wrap, never scroll. Sideways pill scrolling hides options
               behind the right edge and reads as "we ran out of room." */}
           <div className="flex flex-wrap gap-1.5">
-            {(['overview', 'media', 'development', 'awards', 'whispers'] as const)
+            {/* 2026-07-14: pill order updated — Sideline Shouts moved
+                right after Overview so it's the first thing scanned.
+                Patrick: "it took me a while to find that section and
+                I was looking for it." */}
+            {(['overview', 'whispers', 'media', 'development', 'awards'] as const)
               // Youth-only tabs stay youth-only on adult teams.
               // 'development' is coach-side growth planning tied to a
               // youth pathway; 'whispers' is coach → parent messaging.
@@ -1641,7 +1666,7 @@ const PlayerProfile: React.FC = () => {
             intent. Tab id stays 'whispers' for deep-link back-compat
             (existing pushes deep-link to ?tab=whispers). */}
         {activeTab === 'whispers' && (() => {
-          const shouts = buildSidelineShouts({
+          const allShouts = buildSidelineShouts({
             player,
             kudosList,
             whispers,
@@ -1649,22 +1674,76 @@ const PlayerProfile: React.FC = () => {
             potmVotes: allPlayerVotings,
           });
           const first = player.name?.split(' ')[0] || 'this player';
+          // Per-type counts for the filter chip row.
+          const countBy = (t: typeof shoutFilter) =>
+            t === 'all' ? allShouts.length : allShouts.filter(s => s.type === t).length;
+          const shouts = shoutFilter === 'all'
+            ? allShouts
+            : allShouts.filter(s => s.type === shoutFilter);
+          // Filter chip labels. Copy per feedback_copy_voice: warm,
+          // short. "From coach" bundles XP grant notes; that reads
+          // more naturally than "XP grants" to a parent scanning.
+          const FILTERS: Array<{ key: typeof shoutFilter; label: string }> = [
+            { key: 'all',           label: 'All' },
+            { key: 'kudos',         label: 'Kudos' },
+            { key: 'potm_comment',  label: 'POTM' },
+            { key: 'xp_note',       label: 'From coach' },
+            { key: 'whisper',       label: 'Whispers' },
+            { key: 'badge',         label: 'Badges' },
+          ];
           return (
             <div className="space-y-4">
               <div>
-                <h2 className="text-lg sm:text-xl font-black text-ink-primary">Sideline Shouts</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-ink-primary">Sideline Shouts</h2>
                 <p className="text-[12.5px] text-ink-primary/60 mt-1">
                   Everything kind {first}&rsquo;s people have said and done.
                 </p>
               </div>
 
+              {/* Filter chip row. Wraps, never scrolls sideways
+                  (per feedback_no_horizontal_pills). Chip shows a
+                  count when there's at least one item of that type
+                  so the row also acts as a shout inventory. Hidden
+                  when there aren't any shouts yet — no filters to
+                  offer on an empty stream. */}
+              {allShouts.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {FILTERS.map(f => {
+                    const c = countBy(f.key);
+                    if (f.key !== 'all' && c === 0) return null;
+                    const isActive = shoutFilter === f.key;
+                    return (
+                      <button
+                        key={f.key}
+                        type="button"
+                        onClick={() => setShoutFilter(f.key)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition ${
+                          isActive
+                            ? 'bg-ink-primary text-surface-base shadow-sm'
+                            : 'bg-line-default/[0.08] text-ink-primary/65 hover:bg-line-default/[0.14]'
+                        }`}
+                      >
+                        <span>{f.label}</span>
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black tabular-nums ${
+                          isActive ? 'bg-surface-base/20 text-surface-base' : 'bg-surface-elevated text-ink-primary/50'
+                        }`}>
+                          {c}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {shouts.length === 0 ? (
                 <EmptyState
                   icon={<svg className="w-5 h-5 text-brand-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" /></svg>}
-                  title="No shouts yet"
-                  description={canGiveKudos
-                    ? `Tap Give Kudos above to send ${first} the first shout.`
-                    : `When someone in ${first}'s Circle sends Kudos or Coach whispers a note, it'll show up here.`}
+                  title={shoutFilter === 'all' ? 'No shouts yet' : `No ${(FILTERS.find(f => f.key === shoutFilter)?.label || '').toLowerCase()} yet`}
+                  description={shoutFilter !== 'all'
+                    ? `Nothing in this category yet. Try All to see the full stream.`
+                    : (canGiveKudos
+                      ? `Tap Give Kudos above to send ${first} the first shout.`
+                      : `When someone in ${first}'s Circle sends Kudos or Coach whispers a note, it'll show up here.`)}
                 />
               ) : (
                 <ul className="space-y-3">

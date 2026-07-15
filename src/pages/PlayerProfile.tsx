@@ -612,12 +612,25 @@ const PlayerProfile: React.FC = () => {
       } catch { /* no events yet is fine */ }
 
 
-      // Collect all votings where this player received votes (with reasons)
-      const playerVotings = teamVotings
-        .filter(v => v.votes?.some(vote => vote.playerId === playerId))
-        .map(v => ({
-          voting: v,
-          playerVotes: v.votes.filter(vote => vote.playerId === playerId).map(vote => ({
+      // Collect all votings where this player received votes (with
+      // reasons). Deriving from votingsResult.value directly (NOT the
+      // teamVotings-scoped list) so a kid who was nominated on a
+      // renamed / recreated team, or across seasons on a different
+      // team doc, still gets credit. Same fix pattern as the 2026-07-12
+      // `allWins` treatment above — teamId drift silently dropped
+      // nominations from the count, the Vote History list, and
+      // PersonalRecords' votingNominations prop. Patrick 2026-07-15:
+      // "his son has POTM nominations that aren't showing in the
+      // trophy case" — root cause was this teamId filter.
+      const playerVotings = (votingsResult.value as any[])
+        .filter((v: any) => Array.isArray(v.votes) && v.votes.some((vote: any) => vote.playerId === playerId))
+        .map((v: any) => ({
+          voting: {
+            ...v,
+            gameDate: v.gameDate?.toDate ? v.gameDate.toDate() : new Date(v.gameDate),
+            closedAt: v.closedAt?.toDate ? v.closedAt.toDate() : undefined,
+          } as MatchVoting,
+          playerVotes: v.votes.filter((vote: any) => vote.playerId === playerId).map((vote: any) => ({
             voterName: vote.voterName,
             reason: vote.reason,
           })),
@@ -1057,7 +1070,20 @@ const PlayerProfile: React.FC = () => {
             {/* AWARDS section — 2 tiles + vote history. ?tab=awards
                 redirect scrolls here. */}
             <section ref={awardsSectionRef} id="story-awards" className="flex flex-col gap-4">
-              {(votingWins.length > 0 || votingNominations > 0) && (
+              {(votingWins.length > 0 || votingNominations > 0) && (() => {
+                // Pure nominations = games the player was voted for
+                // but did NOT win. Kept separate so the two tiles
+                // don't double-count the same game (a win is by
+                // definition also a nomination). Patrick 2026-07-15:
+                // "distinguish nomination-that-won-later from
+                // pure-nomination — don't double-count."
+                const pureNominations = allPlayerVotings.filter(({ voting }) => {
+                  const isWin =
+                    (Array.isArray(voting.winners) && voting.winners.some(w => w?.playerId === playerId))
+                    || voting.winner?.playerId === playerId;
+                  return !isWin;
+                }).length;
+                return (
                 <ProfileCard eyebrow="Awards" title="Trophy case">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 p-4">
@@ -1071,12 +1097,13 @@ const PlayerProfile: React.FC = () => {
                       <div className="flex items-center gap-2 mb-2 text-brand-primary-soft">
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                       </div>
-                      <div className="text-3xl sm:text-4xl font-black leading-none text-ink-primary tabular-nums">{votingNominations}</div>
+                      <div className="text-3xl sm:text-4xl font-black leading-none text-ink-primary tabular-nums">{pureNominations}</div>
                       <div className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/60 mt-1">Nominated</div>
                     </div>
                   </div>
                 </ProfileCard>
-              )}
+                );
+              })()}
               {allPlayerVotings.length > 0 && (
                 <ProfileCard eyebrow="Vote History" title={`${allPlayerVotings.length} ${allPlayerVotings.length === 1 ? 'game' : 'games'}`}>
                   <div className="flex flex-col gap-3">

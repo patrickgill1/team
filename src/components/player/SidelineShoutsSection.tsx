@@ -65,12 +65,16 @@ interface Props {
   sectionRef?: React.Ref<HTMLElement>;
 }
 
+// Tab labels — kept short so all 6 filters fit across the section at
+// 375px width without wrapping OR horizontal scrolling ([[no-horizontal-pills]]).
+// Long form ("From coach", "Whispers") collapsed to short form
+// ("Coach", "Whisper") to survive the flex-1 divide at narrow widths.
 const FILTERS: Array<{ key: ShoutFilter; label: string }> = [
   { key: 'all',           label: 'All' },
   { key: 'kudos',         label: 'Kudos' },
   { key: 'potm_comment',  label: 'POTM' },
-  { key: 'xp_note',       label: 'From coach' },
-  { key: 'whisper',       label: 'Whispers' },
+  { key: 'xp_note',       label: 'Coach' },
+  { key: 'whisper',       label: 'Whisper' },
   { key: 'badge',         label: 'Badges' },
 ];
 
@@ -109,34 +113,54 @@ const SidelineShoutsSection: React.FC<Props> = ({
       eyebrow="Sideline Shouts"
       title={`${allShouts.length} ${allShouts.length === 1 ? 'shout' : 'shouts'} from ${first}’s people`}
     >
-      {allShouts.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {FILTERS.map(f => {
-            const c = countBy(f.key);
-            if (f.key !== 'all' && c === 0) return null;
-            const isActive = shoutFilter === f.key;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => onFilterChange(f.key)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition ${
-                  isActive
-                    ? 'bg-ink-primary text-surface-base shadow-sm'
-                    : 'bg-line-default/[0.08] text-ink-primary/65 hover:bg-line-default/[0.14]'
-                }`}
-              >
-                <span>{f.label}</span>
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black tabular-nums ${
-                  isActive ? 'bg-surface-base/20 text-surface-base' : 'bg-surface-elevated text-ink-primary/50'
-                }`}>
-                  {c}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {allShouts.length > 0 && (() => {
+        // 2026-07-15 (per Patrick): the wrapping pill row was reading
+        // as "we ran out of room" when a kid had all 6 filter types
+        // populated (Badges dropped to row 2). Rebuilt as a compact
+        // segmented tab bar with a bottom underline on the active tab
+        // — fits across the card width at 375px, never wraps, never
+        // scrolls horizontally ([[no-horizontal-pills]]). Zero-count
+        // filters are still hidden so the tab bar tightens for kids
+        // with limited history.
+        const visible = FILTERS.filter(f => f.key === 'all' || countBy(f.key) > 0);
+        return (
+          <div className="border-b border-line-default/15" role="tablist" aria-label="Filter shouts">
+            <div className="flex items-stretch">
+              {visible.map(f => {
+                const c = countBy(f.key);
+                const isActive = shoutFilter === f.key;
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => onFilterChange(f.key)}
+                    className={
+                      'flex-1 min-w-0 py-2.5 px-1 text-center transition-colors border-b-2 -mb-px ' +
+                      (isActive
+                        ? 'border-brand-primary text-ink-primary'
+                        : 'border-transparent text-ink-primary/50 hover:text-ink-primary/85')
+                    }
+                  >
+                    <span className="block truncate text-[11px] font-black uppercase tracking-wider">
+                      {f.label}
+                      <span
+                        className={
+                          'ml-1 tabular-nums font-bold ' +
+                          (isActive ? 'text-brand-primary' : 'text-ink-primary/40')
+                        }
+                      >
+                        {c}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {shouts.length === 0 ? (
         <EmptyState

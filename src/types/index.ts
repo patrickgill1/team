@@ -2571,6 +2571,11 @@ export interface DevelopmentPlan {
   createdAt: Date;
   updatedAt?: Date;
   completedAt?: Date;
+  /** Season this plan was created for. Optional because legacy plans
+   *  predate this field; when absent, the plan is treated as "before
+   *  we tracked seasons" and surfaced in the Earlier drawer via the
+   *  grace clause in DevelopmentPlanCard. */
+  seasonId?: string;
   /** Parent ↔ coach conversation about the plan. Questions, status
    *  updates, "we tried this and Hayden hated it," coach replies, etc.
    *  Different from per-goal practiceLog (which is just dated check-

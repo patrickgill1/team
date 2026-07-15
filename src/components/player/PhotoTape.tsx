@@ -42,7 +42,7 @@ const CameraGlyph: React.FC<{ className?: string }> = ({ className }) => (
 // Horizontal-scroll ribbon of every photo this player is tagged in.
 // First horizontal-scroll ribbon in the app; the class combo below is
 // the locked pattern that SeasonTimeline should reuse.
-const PhotoTape: React.FC<Props> = ({ playerId, playerName }) => {
+const PhotoTape: React.FC<Props> = ({ playerId, playerName, teamId }) => {
   const { getPlayerMediaByPlayer, getPhotosByPlayer, getDocuments } = useFirestore();
 
   const [items, setItems] = useState<RibbonItem[] | null>(null);
@@ -72,10 +72,18 @@ const PhotoTape: React.FC<Props> = ({ playerId, playerName }) => {
         const normalized: RibbonItem[] = [];
         const seen = new Set<string>();
 
+        // Team scope guard — if teamId is passed, drop items tied to a
+        // different team so cross-team clips don't leak into the ribbon
+        // when a coach is looking at a player from Team B's roster who
+        // used to be on Team A. Empty teamId (rare, e.g. adult pickup)
+        // disables the guard so nothing is silently dropped.
+        const matchesTeam = (d: any) => !teamId || !d?.teamId || d.teamId === teamId;
+
         const pushGallery = (d: any) => {
           if (!d || !d.id || seen.has(d.id)) return;
           if (d.isActive === false) return;
           if (!d.url) return;
+          if (!matchesTeam(d)) return;
           seen.add(d.id);
           normalized.push({
             id: d.id,
@@ -92,6 +100,7 @@ const PhotoTape: React.FC<Props> = ({ playerId, playerName }) => {
           if (d.isActive === false) return;
           if (d.type && d.type !== 'photo') return;
           if (!d.url) return;
+          if (!matchesTeam(d)) return;
           seen.add(d.id);
           normalized.push({
             id: d.id,
@@ -120,7 +129,7 @@ const PhotoTape: React.FC<Props> = ({ playerId, playerName }) => {
     return () => {
       cancelled = true;
     };
-  }, [playerId, getDocuments, getPlayerMediaByPlayer]);
+  }, [playerId, teamId, getDocuments, getPlayerMediaByPlayer, getPhotosByPlayer]);
 
   const handleImgError = useCallback((id: string) => {
     setFailedIds((prev) => {

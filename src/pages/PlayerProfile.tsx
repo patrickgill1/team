@@ -5,15 +5,13 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import { Player, PlayerMedia, DevelopmentPlan, Season } from '../types';
-import { isCoachOfTeam, formatDate } from '../utils/helpers';
+import { isCoachOfTeam } from '../utils/helpers';
 import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
 import KudosComposerModal from '../components/kudos/KudosComposerModal';
-import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import ProfileHero from '../components/player/ProfileHero';
 import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
 import ProfileCard from '../components/player/ProfileCard';
-import FeaturedShoutCard from '../components/player/FeaturedShoutCard';
 import PlayerXpCard from '../components/player/PlayerXpCard';
 import LevelProgressBar from '../components/player/LevelProgressBar';
 import BadgeCollection from '../components/player/BadgeCollection';
@@ -24,13 +22,14 @@ import CoachRecognitionsArchive from '../components/player/CoachRecognitionsArch
 import PhotoTape from '../components/player/PhotoTape';
 import SeasonTimeline from '../components/player/SeasonTimeline';
 import PersonalRecords from '../components/player/PersonalRecords';
-import SidelineShoutsSection, { ShoutFilter } from '../components/player/SidelineShoutsSection';
+import RecognitionCenter from '../components/player/RecognitionCenter';
+import DevelopmentPlanCard from '../components/player/DevelopmentPlanCard';
+import { filterMediaForSeason } from '../utils/mediaFilters';
 import SeasonStatsCard from '../components/player/SeasonStatsCard';
 import AddPlayer from '../components/player/AddPlayer';
 import EmptyState from '../components/common/EmptyState';
 import DataGate from '../components/common/DataGate';
-import { computeStreakDays, coachVerifyLogEntry } from '../utils/devPlanActions';
-import CoachSawThisPill from '../components/coach/CoachSawThisPill';
+import { computeStreakDays } from '../utils/devPlanActions';
 import { computePlayerAttendance } from '../utils/attendance';
 import { getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
 import { getShareOrigin } from '../utils/origin';
@@ -76,6 +75,9 @@ const PlayerProfile: React.FC = () => {
     clipUrl?: string | null;
     clipCaption?: string | null;
     createdAt: Date;
+    /** Stamped on the whisper doc at write time; carried through so
+     *  RecognitionCenter can drop cross-team whispers in Season mode. */
+    teamId?: string;
     // Extended fields for kind-branched rendering (recognition,
     // coach_verify, did_it, level_up). Absent kind falls back to the
     // legacy bare-note render.
@@ -101,6 +103,10 @@ const PlayerProfile: React.FC = () => {
     note: string;
     presetKind?: string | null;
     createdAt: Date;
+    /** teamId at write time (worker /kudos/create stamps it). Carried
+     *  through so RecognitionCenter can scope kudos to selectedTeamId
+     *  in Season mode. */
+    teamId?: string;
     xpAwarded?: number;
     xpAwardedByName?: string;
     xpAwardedAt?: Date | null;
@@ -116,6 +122,10 @@ const PlayerProfile: React.FC = () => {
     awardedByName?: string | null;
     awardedBy?: string;
     createdAt: Date;
+    /** teamId when the event was recorded. Used by RecognitionCenter
+     *  to drop cross-team XP notes when the viewer is in Season mode
+     *  for a specific team. */
+    teamId?: string;
   }>>([]);
   const [allPlayerVotings, setAllPlayerVotings] = useState<{ voting: MatchVoting; playerVotes: { voterName: string; reason?: string }[] }[]>([]);
   const [votingNominations, setVotingNominations] = useState<number>(0);
@@ -155,6 +165,8 @@ const PlayerProfile: React.FC = () => {
         const t = new URLSearchParams(window.location.search).get('tab');
         if (t === 'whispers') return 'shouts';
         if (t === 'awards') return 'awards';
+        // 2026-07-15 Direction B: Dev Plans moved into Story; anchor
+        // still 'devplans' but expectedTab flipped to 'story' below.
         if (t === 'development') return 'devplans';
       } catch { /* SSR-safe noop */ }
       return null;
@@ -173,10 +185,9 @@ const PlayerProfile: React.FC = () => {
   // include a compact avatar + first name + team.
   const stickySentinelRef = useRef<HTMLDivElement | null>(null);
   const [isHeroStuck, setIsHeroStuck] = useState(false);
-  // Filter for the Sideline Shouts section. 'all' | 'kudos' | 'whisper' |
-  // 'xp_note' | 'badge' | 'potm_comment'. Kept in state (not URL) so
-  // deep-links still land on the full stream; filter is UI-only.
-  const [shoutFilter, setShoutFilter] = useState<ShoutFilter>('all');
+  // 2026-07-15 Direction B: shoutFilter state moved INTO
+  // RecognitionCenter (owns its own filter). Legacy deep-links land on
+  // the whole card via sectionRef; no external chip-preselect needed.
   // Juggle log state — anyone who can see the profile (coach OR the
   // player's parents) can record an attempt.
   const [juggleOpen, setJuggleOpen] = useState(false);
@@ -288,7 +299,9 @@ const PlayerProfile: React.FC = () => {
         whispers:    'story',
         awards:      'story',
         overview:    'story',
-        development: 'stats',
+        // 2026-07-15 Direction B: Dev Plans moved into Story, so this
+        // now lands on the Story tab and scrolls to DevelopmentPlanCard.
+        development: 'story',
       };
       const target = t && canonical[t];
       if (target) {
@@ -333,7 +346,10 @@ const PlayerProfile: React.FC = () => {
     let expectedTab: 'story' | 'stats' | 'media' | null = null;
     if (pendingScrollAnchor === 'shouts')   { ref = shoutsSectionRef;   expectedTab = 'story'; }
     if (pendingScrollAnchor === 'awards')   { ref = awardsSectionRef;   expectedTab = 'story'; }
-    if (pendingScrollAnchor === 'devplans') { ref = devPlansSectionRef; expectedTab = 'stats'; }
+    // 2026-07-15 Direction B: DevelopmentPlanCard moved from Stats to
+    // Story, so the ?tab=development redirect now lands on Story with
+    // the devplans anchor.
+    if (pendingScrollAnchor === 'devplans') { ref = devPlansSectionRef; expectedTab = 'story'; }
     if (pendingScrollAnchor === 'xpcard')   { ref = xpCardSectionRef;   expectedTab = 'stats'; }
     if (!ref || expectedTab !== activeTab) return;
     // requestAnimationFrame gives the just-rendered section a beat to
@@ -464,19 +480,21 @@ const PlayerProfile: React.FC = () => {
         ...p,
         createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt),
         completedAt: p.completedAt?.toDate ? p.completedAt.toDate() : undefined,
+        // seasonId is optional per DevelopmentPlan interface; carry
+        // through when present so DevelopmentPlanCard can filter
+        // Earlier plans by the active season with a null grace clause.
+        seasonId: (p as any).seasonId || undefined,
       })) as DevelopmentPlan[]);
     } else {
       console.error('Error loading development plans:', plansResult.reason);
     }
 
     if (votingsResult.status === 'fulfilled') {
-      const teamVotings = votingsResult.value
-        .filter((v: any) => v.teamId === selectedTeamId)
-        .map((v: any) => ({
-          ...v,
-          gameDate: v.gameDate?.toDate ? v.gameDate.toDate() : new Date(v.gameDate),
-          closedAt: v.closedAt?.toDate ? v.closedAt.toDate() : undefined,
-        })) as MatchVoting[];
+      // 2026-07-15 Direction B: the old `teamVotings` local was dead
+      // (only powered a votingWins count derived below), so it's gone.
+      // RecognitionCenter builds its own team+season scoped views from
+      // `allPlayerVotings` via useMemo, and career surfaces read from
+      // the same source unfiltered.
 
       // Career POTM wins — NOT scoped by selectedTeamId so a kid who
       // played on a renamed / recreated team, or was moved between
@@ -521,6 +539,7 @@ const PlayerProfile: React.FC = () => {
             clipUrl: data.clipUrl || null,
             clipCaption: data.clipCaption || null,
             createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
+            teamId: data.teamId || undefined,
             kind: data.kind,
             xp: data.xp,
             badgeSlug: data.badgeSlug,
@@ -553,6 +572,7 @@ const PlayerProfile: React.FC = () => {
               clipUrl: data.clipUrl || null,
               clipCaption: data.clipCaption || null,
               createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
+              teamId: data.teamId || undefined,
             };
           });
           list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -580,6 +600,7 @@ const PlayerProfile: React.FC = () => {
             note: data.note || '',
             presetKind: data.presetKind || null,
             createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
+            teamId: data.teamId || undefined,
             xpAwarded: typeof data.xpAwarded === 'number' ? data.xpAwarded : undefined,
             xpAwardedByName: data.xpAwardedByName || null,
             xpAwardedAt: data.xpAwardedAt?.toDate?.() || null,
@@ -613,6 +634,7 @@ const PlayerProfile: React.FC = () => {
             awardedByName: data.awardedByName || null,
             awardedBy: data.awardedBy || undefined,
             createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
+            teamId: data.teamId || undefined,
           };
         });
         setXpEvents(eList);
@@ -673,36 +695,11 @@ const PlayerProfile: React.FC = () => {
     })();
   };
 
-  const getProgressPercent = (plan: DevelopmentPlan) => {
-    if (!plan.goals.length) return 0;
-    return Math.round((plan.goals.filter(g => g.coachVerified).length / plan.goals.length) * 100);
-  };
-
-  // Development-plan category chips. All stay inside the brand palette
-  // (fire/cyan/navy + emerald for "growth"). No more violet/orange.
-  const getCategoryColor = (cat: string) => {
-    switch (cat) {
-      case 'technical': return 'bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft';
-      case 'tactical': return 'bg-surface-raised/10 text-charcoal-800 ring-1 ring-charcoal-700/10';
-      case 'physical': return 'bg-brand-primary/15 text-charcoal-800 ring-1 ring-brand-primary-soft';
-      case 'mental': return 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-100';
-      default: return 'bg-line-default/[0.04] text-ink-primary/85 ring-1 ring-gray-100';
-    }
-  };
-
-  // Position dot — kept colorful for at-a-glance scanning but stays
-  // away from the most off-brand tones (amber, orange) where possible.
-  const positionDot = (pos?: string): string => {
-    switch (pos) {
-      case 'Goalkeeper': return 'bg-brand-primary-soft';
-      case 'Defender': return 'bg-surface-raised';
-      case 'Midfielder': return 'bg-emerald-500';
-      case 'Forward':
-      case 'Striker': return 'bg-rose-500';
-      case 'Winger': return 'bg-brand-primary';
-      default: return 'bg-line-default/40';
-    }
-  };
+  // 2026-07-15 Direction B: getProgressPercent/getCategoryColor/
+  // getCategoryIcon and the local PlanDetail component were dropped
+  // when Dev Plans moved out of the Stats tab into
+  // DevelopmentPlanCard on Story. Per-goal practice log detail is
+  // reachable from the "Open plan" button in the Story card.
 
   const handleShareProfile = async () => {
     if (!player) return;
@@ -768,16 +765,6 @@ const PlayerProfile: React.FC = () => {
     } catch (err) {
       console.error('publicShare disable failed', err);
       alert("Couldn't turn off sharing. Try again.");
-    }
-  };
-
-  const getCategoryIcon = (cat: string) => {
-    switch (cat) {
-      case 'technical': return '⚽';
-      case 'tactical': return '🧠';
-      case 'physical': return '💪';
-      case 'mental': return '🎯';
-      default: return '📋';
     }
   };
 
@@ -1057,31 +1044,53 @@ const PlayerProfile: React.FC = () => {
               onUpdated={loadProfile}
             />
 
-            {/* FEATURED POTM QUOTE — rotating first item of the
-                Sideline Shouts section. Renders only when the player
-                has POTM quotes; the shouts section below still holds
-                the full feed. */}
-            <FeaturedShoutCard
-              playerName={player.name}
-              votings={allPlayerVotings}
-              onOpenAll={() => setShoutFilter('potm_comment')}
-            />
+            {/* DEVELOPMENT PLAN — promoted out of Stats into Story
+                so a plan-in-motion reads as narrative, not a metric.
+                Youth-only render gate (adult teams have no coach-
+                driven dev plans). Grace clause on completedPlans:
+                legacy plans with no seasonId still surface in the
+                Earlier drawer so nothing silently drops. */}
+            {!isAdultTeam && (
+              <section ref={devPlansSectionRef} id="story-devplans" className="scroll-mt-32">
+                <DevelopmentPlanCard
+                  activePlans={activePlans}
+                  completedPlans={completedPlans}
+                  activeSeason={activeSeason}
+                  playerId={playerId!}
+                  teamId={selectedTeamId}
+                  player={player}
+                  isCoach={!!userData && isCoachOfTeam(userData, selectedTeam)}
+                  actor={userData ? { uid: userData.uid, name: userData.name || 'Family' } : null}
+                  onUpdated={loadProfile}
+                />
+              </section>
+            )}
 
-            {/* SIDELINE SHOUTS — full filterable feed. The anchor id
-                is used by the ?tab=whispers redirect to scroll here. */}
-            <SidelineShoutsSection
+            {/* RECOGNITION CENTER — one card that unifies the featured
+                POTM quote, the Sideline Shouts feed with filter tabs,
+                the trophy tiles, and the vote history drawer. Season
+                vs Career toggle scopes every source client-side.
+                sectionRef preserves the ?tab=whispers scroll anchor;
+                awardsRef preserves the ?tab=awards scroll anchor
+                (both land inside this card now). */}
+            <RecognitionCenter
               sectionRef={shoutsSectionRef}
+              awardsRef={awardsSectionRef}
+              playerId={playerId!}
               player={player}
+              selectedTeamId={selectedTeamId}
               selectedTeam={selectedTeam}
-              userData={userData}
-              canGiveKudos={canGiveKudos}
-              kudosList={kudosList}
-              setKudosList={setKudosList}
+              activeSeason={activeSeason}
+              availableSeasons={allSeasons}
+              kudos={kudosList}
               whispers={whispers}
               xpEvents={xpEvents}
               allPlayerVotings={allPlayerVotings}
-              shoutFilter={shoutFilter}
-              onFilterChange={setShoutFilter}
+              memberships={memberships as any}
+              userData={userData}
+              canGiveKudos={canGiveKudos}
+              isCoach={!!userData && isCoachOfTeam(userData, selectedTeam)}
+              setKudosList={setKudosList}
             />
 
             {/* SEASON TIMELINE — narrative ribbon of every timestamped
@@ -1096,114 +1105,11 @@ const PlayerProfile: React.FC = () => {
               xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
             />
 
-            {/* AWARDS section — 2 tiles + vote history. ?tab=awards
-                redirect scrolls here. */}
-            <section ref={awardsSectionRef} id="story-awards" className="flex flex-col gap-4">
-              {(votingWins.length > 0 || votingNominations > 0) && (() => {
-                // Pure nominations = games the player was voted for
-                // but did NOT win. Kept separate so the two tiles
-                // don't double-count the same game (a win is by
-                // definition also a nomination). Patrick 2026-07-15:
-                // "distinguish nomination-that-won-later from
-                // pure-nomination — don't double-count."
-                const pureNominations = allPlayerVotings.filter(({ voting }) => {
-                  const isWin =
-                    (Array.isArray(voting.winners) && voting.winners.some(w => w?.playerId === playerId))
-                    || voting.winner?.playerId === playerId;
-                  return !isWin;
-                }).length;
-                // 2026-07-15: hide the Nominated tile when count = 0
-                // and collapse to a single centered POTM tile.
-                // Verifier flagged "POTM: 2 / Nominated: 0" reading
-                // as a bug to a parent scanning the case.
-                const showNominated = pureNominations > 0;
-                return (
-                <ProfileCard eyebrow="Awards" title="Trophy case">
-                  <div className={showNominated ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}>
-                    <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 p-4">
-                      <div className="flex items-center gap-2 mb-2 text-amber-500">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 4h14v2h2v4a4 4 0 0 1-4 4h-.55A6 6 0 0 1 13 18v2h2v2H9v-2h2v-2a6 6 0 0 1-3.45-4H7a4 4 0 0 1-4-4V6h2zm0 4v2a2 2 0 0 0 2 2V8zm14 0v4a2 2 0 0 0 2-2V8z" /></svg>
-                      </div>
-                      <div className="text-3xl sm:text-4xl font-black leading-none text-ink-primary tabular-nums">{votingWins.length}</div>
-                      <div className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/60 mt-1">POTM Wins</div>
-                    </div>
-                    {showNominated && (
-                      <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 p-4">
-                        <div className="flex items-center gap-2 mb-2 text-brand-primary-soft">
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                        </div>
-                        <div className="text-3xl sm:text-4xl font-black leading-none text-ink-primary tabular-nums">{pureNominations}</div>
-                        <div className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/60 mt-1">Also nominated</div>
-                      </div>
-                    )}
-                  </div>
-                </ProfileCard>
-                );
-              })()}
-              {allPlayerVotings.length > 0 && (
-                <ProfileCard eyebrow="Vote History" title={`${allPlayerVotings.length} ${allPlayerVotings.length === 1 ? 'game' : 'games'}`}>
-                  <div className="flex flex-col gap-3">
-                    {allPlayerVotings.map(({ voting, playerVotes }) => {
-                      const isWin = voting.winners?.some(w => w.playerId === playerId) || voting.winner?.playerId === playerId;
-                      const isCoWin = isWin && (voting.winners?.length || 0) > 1;
-                      const reasons = playerVotes.filter(v => v.reason);
-                      return (
-                        <div
-                          key={voting.id}
-                          className={`rounded-xl overflow-hidden ${isWin ? 'bg-amber-500/[0.06] ring-1 ring-amber-400/40' : 'bg-surface-input/60 ring-1 ring-line-default/15'}`}
-                        >
-                          <div className="p-3 sm:p-4">
-                            <div className="flex items-start gap-3">
-                              <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${isWin ? 'bg-amber-500 text-white' : 'bg-line-default/[0.1] text-ink-primary/70'}`}>
-                                {isWin ? (
-                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 4h14v2h2v4a4 4 0 0 1-4 4h-.55A6 6 0 0 1 13 18v2h2v2H9v-2h2v-2a6 6 0 0 1-3.45-4H7a4 4 0 0 1-4-4V6h2zm0 4v2a2 2 0 0 0 2 2V8zm14 0v4a2 2 0 0 0 2-2V8z" /></svg>
-                                ) : (
-                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <p className="font-bold text-ink-primary truncate">{voting.gameTitle}</p>
-                                  {isWin && (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500 text-white">
-                                      {isCoWin ? `Co-Winner ×${voting.winners!.length}` : 'Winner'}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-ink-primary/55 font-medium mt-0.5">
-                                  {voting.gameDate instanceof Date ? formatDate(voting.gameDate) : ''}
-                                  {' · '}
-                                  {playerVotes.length} vote{playerVotes.length !== 1 ? 's' : ''}
-                                </p>
-                              </div>
-                            </div>
-                            {reasons.length > 0 && (
-                              <div className="mt-3 flex flex-col gap-2">
-                                {reasons.map((v, i) => (
-                                  <div key={i} className="rounded-lg px-3 py-2 bg-surface-elevated ring-1 ring-line-default/10">
-                                    <p className="text-sm text-ink-primary/90 italic font-medium">&ldquo;{v.reason}&rdquo;</p>
-                                    <p className="text-[11px] text-ink-primary/50 mt-1 font-semibold">— {v.voterName}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ProfileCard>
-              )}
-              {votingWins.length === 0 && votingNominations === 0 && (
-                <ProfileCard eyebrow="Awards" title="No POTM wins yet" centered>
-                  <p className="text-sm text-ink-primary/60 leading-snug">
-                    Player of the Match wins land here once teammates vote.
-                  </p>
-                </ProfileCard>
-              )}
-            </section>
-
-            {/* EMPTY STATE */}
+            {/* EMPTY STATE — kept as a warm hint when the profile is
+                genuinely blank across every Story surface. Preserved
+                per feedback_atomic_render_over_skeletons + the
+                design contract's "keep only if none of the three
+                cards render" clause. */}
             {plans.length === 0 && recentMedia.length === 0 && votingWins.length === 0 && (
               <ProfileCard eyebrow="Starting line" title={`${player.name.split(' ')[0]}'s journey starts here`} centered>
                 <p className="text-sm text-ink-primary/60 leading-snug">
@@ -1360,123 +1266,33 @@ const PlayerProfile: React.FC = () => {
               xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
             />
 
-            {/* DEVELOPMENT PLANS — active plans list with expandable
-                practice logs. Youth-only (adult teams don't do
-                coach-driven dev plans). ?tab=development redirect
-                scrolls here. */}
-            {!isAdultTeam && (
-              <section ref={devPlansSectionRef} id="stats-devplans" className="flex flex-col gap-4">
-                {plans.length > 0 && (
-                  <InlineDevPlanCard
-                    plans={plans}
-                    playerId={player.id}
-                    actor={userData ? { uid: userData.uid, name: userData.name || 'Family' } : null}
-                    currentStreakDays={(player as any).currentStreakDays || 0}
-                    onUpdated={() => { void loadProfile(); }}
-                  />
-                )}
-                {plans.length > 0 && (
-                  <ProfileCard eyebrow="Development" title="Plan detail">
-                    <div className="flex flex-col gap-3">
-                      {activePlans.length > 0 && (
-                        <>
-                          <p className="text-[11px] font-black uppercase tracking-widest text-ink-primary/55">In motion</p>
-                          {activePlans.map(plan => (
-                            <PlanDetail key={plan.id} plan={plan} getCategoryColor={getCategoryColor} getCategoryIcon={getCategoryIcon} getProgressPercent={getProgressPercent} />
-                          ))}
-                        </>
-                      )}
-                      {completedPlans.length > 0 && (
-                        <>
-                          <p className="text-[11px] font-black uppercase tracking-widest text-ink-primary/55 mt-2">Done &amp; Dusted</p>
-                          {completedPlans.map(plan => (
-                            <PlanDetail key={plan.id} plan={plan} getCategoryColor={getCategoryColor} getCategoryIcon={getCategoryIcon} getProgressPercent={getProgressPercent} />
-                          ))}
-                        </>
-                      )}
-                    </div>
-                  </ProfileCard>
-                )}
-                {plans.length === 0 && (
-                  <ProfileCard eyebrow="Development" title="No plans yet" centered>
-                    <p className="text-sm text-ink-primary/60 leading-snug">
-                      Plans from coaches will show up here.
-                    </p>
-                    <Link to="/development" className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-primary/10 ring-1 ring-brand-primary/30 text-brand-primary-soft text-xs font-bold hover:bg-brand-primary/15 transition">
-                      Open Development
-                    </Link>
-                  </ProfileCard>
-                )}
-              </section>
-            )}
+            {/* 2026-07-15 Direction B: Dev Plans section relocated to
+                the Story tab as DevelopmentPlanCard so a plan-in-
+                motion reads as narrative, not a metric. The
+                ?tab=development legacy redirect now lands on Story
+                (see the pending-anchor mapping in useEffect above). */}
           </div>
         </div>
       )}
 
-        {/* ─── MEDIA TAB — unchanged from the previous surface ──── */}
+        {/* ─── MEDIA TAB ──────────────────────────────────────────
+            2026-07-15 Direction B: This Season / Past Seasons pill
+            row + per-membership buckets. The bare `media` grid was
+            leaking cross-team clips into a team-scoped view (design
+            contract's line 1428 fix). */}
       {activeTab === 'media' && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-4 sm:gap-6">
-          {/* Photo ribbon at the top — horizontal scroll of every
-              photo the player's been tagged in. Restored 2026-07-15
-              per the Direction B plan's Media contract (the impl
-              agent flagged this as unresolved, verifier confirmed).
-              Hidden when there's no media. */}
-          {media.length > 0 && (
-            <PhotoTape playerId={playerId!} playerName={player.name} teamId={selectedTeamId} />
-          )}
-          <div>
-            {media.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
-                {media.map(item => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setLightboxItem(item)}
-                    className="group relative aspect-square bg-surface-elevated rounded-2xl overflow-hidden text-left shadow-sm ring-1 ring-line-default/10 hover:shadow-lg hover:-translate-y-0.5 transition"
-                  >
-                    {item.type === 'video' ? (
-                      <>
-                        {item.streamUid ? (
-                          <img src={streamThumbnailUrl(item.streamUid, { height: 360, time: item.posterTimeSeconds != null ? `${item.posterTimeSeconds}s` : undefined })} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
-                        ) : item.thumbnailUrl ? (
-                          <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
-                        ) : (
-                          <video src={`${item.url}#t=0.5`} className="w-full h-full object-cover" preload="metadata" muted playsInline />
-                        )}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="w-11 h-11 bg-black/60 rounded-full flex items-center justify-center backdrop-blur shadow-lg">
-                            <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <img src={item.url} alt={item.caption || ''} className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
-                    )}
-                    {item.likeCount && item.likeCount > 0 ? (
-                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[10px] font-bold backdrop-blur">❤ {item.likeCount}</div>
-                    ) : null}
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pt-8 pb-2.5 px-2.5">
-                      {item.caption && <p className="text-white text-xs font-semibold truncate">{item.caption}</p>}
-                      {item.tags && item.tags.length > 0 && (
-                        <div className="flex gap-1 mt-1 flex-wrap">
-                          {item.tags.slice(0, 2).map(tag => (
-                            <span key={tag} className="px-1.5 py-0.5 bg-line-default/20 text-white rounded text-[9px] font-bold uppercase tracking-wider backdrop-blur">{tag}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>}
-                title="No highlights yet"
-                description="Photos and videos will live here."
-                cta={{ label: 'Go to Gallery', to: '/player-media' }}
-              />
-            )}
-          </div>
+          <MediaSeasonView
+            media={media}
+            selectedTeamId={selectedTeamId}
+            activeSeason={activeSeason}
+            availableSeasons={allSeasons}
+            memberships={memberships}
+            selectedTeam={selectedTeam}
+            playerId={playerId!}
+            playerName={player.name}
+            onOpenLightbox={setLightboxItem}
+          />
         </div>
       )}
 
@@ -1701,181 +1517,195 @@ const PlayerProfile: React.FC = () => {
   );
 };
 
-// ─── Plan Detail Card ──────────────────────────────────────────────────────
-interface PlanDetailProps {
-  plan: DevelopmentPlan;
-  getCategoryColor: (cat: string) => string;
-  getCategoryIcon: (cat: string) => string;
-  getProgressPercent: (plan: DevelopmentPlan) => number;
+// 2026-07-15 Direction B: the local PlanDetail card (expandable
+// per-goal practice log) was deleted when Dev Plans moved from the
+// Stats tab into DevelopmentPlanCard on Story. Per-goal detail is
+// now reachable via the "Open plan" button that opens /development.
+// See git log for the prior implementation if a reader wants the
+// expandable-log affordance back.
+
+// ─── Media Season View ─────────────────────────────────────────────
+// Media tab body — This Season / Past Seasons pill row + per-season
+// buckets. Extracted from the Media tab render so the season logic
+// stays testable and the JSX inside PlayerProfile stays flat.
+interface MediaSeasonViewProps {
+  media: PlayerMedia[];
+  selectedTeamId: string;
+  activeSeason: Season | null;
+  availableSeasons: Season[];
+  memberships: any[];
+  selectedTeam: any;
+  playerId: string;
+  playerName: string;
+  onOpenLightbox: (item: PlayerMedia) => void;
 }
 
-const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCategoryIcon, getProgressPercent }) => {
-  const [expanded, setExpanded] = useState(false);
-  const [logGoalId, setLogGoalId] = useState<string | null>(null);
-  const [logNote, setLogNote] = useState('');
-  const [logMinutes, setLogMinutes] = useState('');
-  const [showAllLogs, setShowAllLogs] = useState<string | null>(null);
-  // Optimistic verified-by cache. Bridges the gap between the worker
-  // ack landing and the plan reload — coach taps "Saw this", we stamp
-  // the entry locally so the pill flips state instantly, and the next
-  // profile refresh replaces the optimistic value with the truthful
-  // one from Firestore.
-  const [verifiedOptimistic, setVerifiedOptimistic] = useState<Record<string, { uid: string; name: string; at: Date }>>({});
-  const { userData } = useAuth();
-  const { selectedTeam } = useTeam();
-  const { updateDevelopmentPlan } = useFirestore();
-  const progress = getProgressPercent(plan);
-  const canVerifyLogs = isCoachOfTeam(userData, selectedTeam);
+const MediaSeasonView: React.FC<MediaSeasonViewProps> = ({
+  media,
+  selectedTeamId,
+  activeSeason,
+  availableSeasons,
+  memberships,
+  selectedTeam,
+  playerId,
+  playerName,
+  onOpenLightbox,
+}) => {
+  const [scope, setScope] = React.useState<'season' | 'past'>('season');
 
-  const handleVerifyLog = async (goalId: string, logId: string) => {
-    try {
-      const result = await coachVerifyLogEntry({ plan, goalId, logId });
-      setVerifiedOptimistic(prev => ({ ...prev, [logId]: result.verifiedBy }));
-    } catch (err) {
-      console.warn('[plan-detail] verify log failed', err);
-      alert('Could not save. Try again.');
+  const thisSeason = React.useMemo(
+    () => filterMediaForSeason(media, selectedTeamId, activeSeason),
+    [media, selectedTeamId, activeSeason],
+  );
+
+  // Past-Seasons buckets — one section per membership (newest first).
+  // We resolve the season doc from availableSeasons; if it isn't
+  // present (legacy row) we fall back to a "membership window" bucket
+  // labeled with just the team name and the joinedAt year.
+  const pastBuckets = React.useMemo(() => {
+    if (!memberships || memberships.length === 0) return [] as Array<{ key: string; label: string; items: PlayerMedia[] }>;
+    const currentSeasonKey = `${selectedTeamId}:${activeSeason?.id || ''}`;
+    const buckets: Array<{ key: string; label: string; items: PlayerMedia[]; sortMs: number }> = [];
+    for (const m of memberships) {
+      const teamId = (m as any).teamId;
+      const seasonId = (m as any).seasonId;
+      const key = `${teamId}:${seasonId || ''}`;
+      if (key === currentSeasonKey) continue; // skip current view
+      const season = seasonId ? availableSeasons.find(s => s.id === seasonId) || null : null;
+      const items = filterMediaForSeason(media, teamId, season);
+      if (items.length === 0) continue;
+      const teamName = teamId === selectedTeamId ? (selectedTeam?.name || 'Team') : (m as any).teamName || 'Team';
+      const label = season ? `${teamName} · ${season.name}` : `${teamName}`;
+      const joinedAtRaw: any = (m as any).joinedAt;
+      const joinedMs = joinedAtRaw?.toDate ? joinedAtRaw.toDate().getTime() : (joinedAtRaw ? new Date(joinedAtRaw).getTime() : 0);
+      const sortMs = season?.startDate ? new Date(season.startDate).getTime() : joinedMs;
+      buckets.push({ key, label, items, sortMs });
     }
-  };
+    buckets.sort((a, b) => b.sortMs - a.sortMs);
+    return buckets.map(({ key, label, items }) => ({ key, label, items }));
+  }, [media, memberships, availableSeasons, selectedTeamId, activeSeason?.id, selectedTeam]);
 
-  const handleSubmitLog = async () => {
-    if (!logGoalId || !logNote.trim() || !userData) return;
-    const entry = {
-      id: `log_${Date.now()}`,
-      date: new Date(),
-      note: logNote.trim(),
-      minutes: logMinutes ? parseInt(logMinutes) : undefined,
-      loggedBy: userData.uid,
-      loggedByName: userData.name,
-    };
-    const updatedGoals = plan.goals.map(g =>
-      g.id === logGoalId ? { ...g, practiceLog: [...(g.practiceLog || []), entry] } : g
-    );
-    await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
-    // Update local state
-    const goal = plan.goals.find(g => g.id === logGoalId);
-    if (goal) goal.practiceLog = [...(goal.practiceLog || []), entry];
-    setLogGoalId(null);
-    setLogNote('');
-    setLogMinutes('');
-  };
+  const totalPast = pastBuckets.reduce((s, b) => s + b.items.length, 0);
 
   return (
-    <div className="bg-surface-elevated rounded-xl border border-line-default/10 overflow-hidden">
-      <button onClick={() => setExpanded(!expanded)} className="w-full p-4 text-left">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span>{getCategoryIcon(plan.category)}</span>
-            <span className="font-medium text-ink-primary">{plan.title}</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs ${getCategoryColor(plan.category)}`}>{plan.category}</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <span className="text-sm font-medium text-ink-primary/65">{progress}%</span>
-            <svg className={`w-4 h-4 text-ink-primary/40 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
-          </div>
-        </div>
-        <div className="w-full bg-line-default/15 rounded-full h-1.5 mt-3">
-          <div className={`h-1.5 rounded-full transition-all ${plan.status === 'completed' ? 'bg-emerald-500' : 'bg-brand-primary'}`} style={{ width: `${progress}%` }} />
-        </div>
-      </button>
-      {expanded && (
-        <div className="border-t border-line-default/5 px-4 pb-4">
-          {plan.description && <p className="text-sm text-ink-primary/65 mt-3 mb-3">{plan.description}</p>}
-          <div className="space-y-2">
-            {plan.goals.map(goal => {
-              const logs = goal.practiceLog || [];
-              const totalMins = logs.reduce((s: number, e: any) => s + (e.minutes || 0), 0);
-              const hours = Math.floor(totalMins / 60);
-              const mins = totalMins % 60;
-              return (
-              <div key={goal.id} className="p-2 rounded-lg bg-line-default/[0.04]">
-                <div className="flex items-start space-x-3">
-                <div className="mt-0.5">
-                  {goal.coachVerified ? (
-                    <span className="text-green-500 text-lg">✅</span>
-                  ) : goal.playerCompleted ? (
-                    <span className="text-yellow-500 text-lg">⏳</span>
-                  ) : (
-                    <span className="text-ink-primary/35 text-lg">○</span>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between flex-wrap gap-1">
-                    <p className={`text-sm font-medium ${goal.coachVerified ? 'text-emerald-300 line-through' : 'text-ink-primary'}`}>{goal.title}</p>
-                    {totalMins > 0 && (
-                      <span className="text-xs font-medium text-brand-primary bg-brand-primary/15 px-2 py-0.5 rounded-full">
-                        ⏱️ {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`}
-                      </span>
-                    )}
-                  </div>
-                  {goal.description && <p className="text-xs text-ink-primary/50 mt-0.5">{goal.description}</p>}
-                  {goal.notes && <p className="text-xs text-brand-primary mt-1 italic">Coach: {goal.notes}</p>}
-                  <div className="flex gap-2 mt-1">
-                    {goal.playerCompleted && <span className="text-[10px] text-ink-primary/40">Marked done by player</span>}
-                    {goal.coachVerified && goal.coachVerifiedByName && <span className="text-[10px] text-emerald-600">Verified by {goal.coachVerifiedByName}</span>}
-                  </div>
+    <>
+      {/* Scope pills — wrap, never scroll ([[no-horizontal-pills]]). */}
+      <div className="flex flex-wrap gap-1.5">
+        {([
+          { key: 'season' as const, label: 'This Season', count: thisSeason.length },
+          { key: 'past' as const,   label: 'Past Seasons', count: totalPast },
+        ]).map(p => {
+          const isActive = scope === p.key;
+          return (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => setScope(p.key)}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition ${
+                isActive
+                  ? 'bg-ink-primary text-surface-base shadow'
+                  : 'bg-line-default/[0.08] text-ink-primary/65 hover:bg-line-default/[0.1]'
+              }`}
+            >
+              <span>{p.label}</span>
+              {p.count > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                  isActive ? 'bg-surface-base/20 text-surface-base' : 'bg-surface-elevated text-ink-primary/50'
+                }`}>
+                  {p.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-                  {/* Practice Log entries */}
-                  {logs.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      <p className="text-xs font-semibold text-ink-primary/50 uppercase tracking-wide">Practice Log</p>
-                      {logs.slice().reverse().slice(0, showAllLogs === goal.id ? undefined : 3).map((entry: any) => {
-                        // Merge server-truth with optimistic ack so
-                        // the pill flips state instantly on coach tap.
-                        const opt = verifiedOptimistic[entry.id];
-                        const mergedEntry = opt ? { ...entry, verifiedBy: entry.verifiedBy || opt } : entry;
-                        return (
-                          <div key={entry.id} className="text-xs text-ink-primary/65 bg-surface-elevated rounded px-2 py-1.5 border border-line-default/5">
-                            <div className="flex flex-wrap items-baseline gap-x-1.5">
-                              <span className="text-ink-primary/40">
-                                {entry.date?.toDate ? entry.date.toDate().toLocaleDateString() : new Date(entry.date).toLocaleDateString()}
-                              </span>
-                              {entry.minutes && <span className="text-brand-primary font-medium">({entry.minutes} min)</span>}
-                              <span>: {entry.note}</span>
-                              {entry.loggedByName && <span className="text-ink-primary/40">by {entry.loggedByName}</span>}
-                            </div>
-                            <div className="mt-1">
-                              <CoachSawThisPill
-                                entry={mergedEntry}
-                                canVerify={canVerifyLogs}
-                                onVerify={() => handleVerifyLog(goal.id, entry.id)}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {logs.length > 3 && showAllLogs !== goal.id && (
-                        <button onClick={() => setShowAllLogs(goal.id)} className="text-xs text-brand-primary hover:text-brand-primary-soft">
-                          Show all {logs.length} entries
-                        </button>
-                      )}
-                      {showAllLogs === goal.id && logs.length > 3 && (
-                        <button onClick={() => setShowAllLogs(null)} className="text-xs text-ink-primary/50 hover:text-ink-primary/85">
-                          Show less
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 'Log Practice' expanded form removed in v3.2.57
-                      per Patrick: "we don't need [both] 'I did it' AND
-                      'log practice.' The 'I did it' assumes they did
-                      what they were supposed to do for as long as
-                      they were supposed to do it." The 'I did it'
-                      button on the InlineDevPlanCard already covers
-                      the one-tap log path; the longer form with
-                      duration + free-text note added friction without
-                      collecting data anyone consumed. */}
-                </div>
-                </div>
-              </div>
-              );
-            })}
-          </div>
-          <p className="text-xs text-ink-primary/40 mt-3">Created by {plan.createdByName} • {formatDate(plan.createdAt)}</p>
-        </div>
+      {scope === 'season' && (
+        <>
+          {/* Photo tape at the top — same team scope. Hidden empty. */}
+          {thisSeason.length > 0 && (
+            <PhotoTape playerId={playerId} playerName={playerName} teamId={selectedTeamId} />
+          )}
+          {thisSeason.length > 0 ? (
+            <MediaGrid items={thisSeason} onOpen={onOpenLightbox} />
+          ) : (
+            <EmptyState
+              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>}
+              title="No photos or clips yet this season"
+              description="Coaches and Circle can add them from the Match Center."
+              cta={{ label: 'Go to Gallery', to: '/player-media' }}
+            />
+          )}
+        </>
       )}
-    </div>
+
+      {scope === 'past' && (
+        pastBuckets.length === 0 ? (
+          <EmptyState
+            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>}
+            title="Nothing archived from earlier seasons"
+            description="Older photos will land here as seasons wrap."
+          />
+        ) : (
+          <div className="flex flex-col gap-6">
+            {pastBuckets.map(b => (
+              <section key={b.key} className="flex flex-col gap-3">
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-ink-primary/55">{b.label}</h3>
+                <MediaGrid items={b.items} onOpen={onOpenLightbox} />
+              </section>
+            ))}
+          </div>
+        )
+      )}
+    </>
   );
 };
+
+// Reusable media grid — same visual as the original inline grid, no
+// behavior drift.
+const MediaGrid: React.FC<{ items: PlayerMedia[]; onOpen: (i: PlayerMedia) => void }> = ({ items, onOpen }) => (
+  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
+    {items.map(item => (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => onOpen(item)}
+        className="group relative aspect-square bg-surface-elevated rounded-2xl overflow-hidden text-left shadow-sm ring-1 ring-line-default/10 hover:shadow-lg hover:-translate-y-0.5 transition"
+      >
+        {item.type === 'video' ? (
+          <>
+            {item.streamUid ? (
+              <img src={streamThumbnailUrl(item.streamUid, { height: 360, time: item.posterTimeSeconds != null ? `${item.posterTimeSeconds}s` : undefined })} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
+            ) : item.thumbnailUrl ? (
+              <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
+            ) : (
+              <video src={`${item.url}#t=0.5`} className="w-full h-full object-cover" preload="metadata" muted playsInline />
+            )}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-11 h-11 bg-black/60 rounded-full flex items-center justify-center backdrop-blur shadow-lg">
+                <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+            </div>
+          </>
+        ) : (
+          <img src={item.url} alt={item.caption || ''} className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
+        )}
+        {item.likeCount && item.likeCount > 0 ? (
+          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[10px] font-bold backdrop-blur">{item.likeCount}</div>
+        ) : null}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pt-8 pb-2.5 px-2.5">
+          {item.caption && <p className="text-white text-xs font-semibold truncate">{item.caption}</p>}
+          {item.tags && item.tags.length > 0 && (
+            <div className="flex gap-1 mt-1 flex-wrap">
+              {item.tags.slice(0, 2).map(tag => (
+                <span key={tag} className="px-1.5 py-0.5 bg-line-default/20 text-white rounded text-[9px] font-bold uppercase tracking-wider backdrop-blur">{tag}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </button>
+    ))}
+  </div>
+);
 
 export default PlayerProfile;

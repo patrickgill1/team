@@ -571,6 +571,13 @@ export interface Player {
   preferredFoot?: 'Left' | 'Right' | 'Both';
   favoritePosition?: string;
   favoritePlayer?: string;
+  /** Personalization fields added 2026-07-15 alongside the profile
+   *  Direction B redesign. All optional strings; render as PlayerInfo
+   *  rows + trigger the "Personalize" pill when ≥3 of the
+   *  personalization slots are empty on an editable profile. */
+  nickname?: string;
+  favoriteTeam?: string;
+  favoriteNumber?: number;
   /** Adult-team roster fields. Used on adult / semi-pro rosters
    *  where players self-manage and coaches need standard scouting
    *  info. Hidden entirely on youth teams. */

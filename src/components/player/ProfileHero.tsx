@@ -6,6 +6,12 @@ import type { Player } from '../../types';
 // PlayerProfile hero. Uses the same semantic surface/ink treatment as
 // the rest of the app so the profile does not become a separate dark
 // microsite on web.
+//
+// 2026-07-15 (Direction B): the whole action-row cluster that used to
+// live between the hero and the tab bar collapses INTO this hero's
+// top-nav row: Whisper (coach → parent private note) and Share sit
+// alongside Back / Kudos / Edit. Stop-share becomes an overflow item
+// inside PlayerCircleCard. Nickname renders under the name in quotes.
 
 interface Props {
   player: Player;
@@ -18,13 +24,38 @@ interface Props {
    *  when the viewer is in player.parentIds (a Circle member). */
   showKudos?: boolean;
   onKudos?: () => void;
+  /** Coach → parent private note. Only surfaced to coaches of youth
+   *  teams (adult-team parents don't need coach whispers). Prior to
+   *  2026-07-15 this lived in the deleted action row. */
+  showWhisper?: boolean;
+  onWhisper?: () => void;
+  /** Share the player card. Everyone with view access can share. When
+   *  publicShare is on, the button shows a subtle "live" state. */
+  onShare?: () => void;
+  /** True when publicShare.enabled is currently true — swaps the
+   *  Share icon for a "share on" affordance. */
+  publicShareEnabled?: boolean;
 }
 
-const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm, onEdit, onBack, showKudos, onKudos }) => {
+const ProfileHero: React.FC<Props> = ({
+  player,
+  teamName,
+  canEdit,
+  isCurrentPotm,
+  onEdit,
+  onBack,
+  showKudos,
+  onKudos,
+  showWhisper,
+  onWhisper,
+  onShare,
+  publicShareEnabled,
+}) => {
   const dob = coerceDob(player.dateOfBirth);
   const age = computeDobAge(player.dateOfBirth);
   const dobLabel = formatDobShort(player.dateOfBirth);
   const positionLabel = getPlayerPositionsLabel(player) || (player as any).position;
+  const nickname = (player.nickname || '').trim();
 
   return (
     <section className="relative bg-surface-elevated overflow-hidden border-b border-line-default/10">
@@ -41,6 +72,38 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
           </button>
         ) : <span />}
         <div className="flex items-center gap-2">
+          {/* Whisper — coach's private note to parents. Icon-only to
+              keep the top nav compact; the tooltip carries the label
+              for anyone hovering. */}
+          {showWhisper && onWhisper && (
+            <button
+              type="button"
+              onClick={onWhisper}
+              className="w-10 h-10 rounded-full bg-surface-input hover:bg-surface-raised ring-1 ring-line-default/15 flex items-center justify-center text-ink-primary"
+              aria-label="Send a private note to this player's parents"
+              title="Whisper — private note to parents"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+            </button>
+          )}
+          {/* Share — icon-only. Emerald tint when public share is
+              already on so the viewer knows a live link exists. Stop
+              share (once enabled) lives in PlayerCircleCard overflow. */}
+          {onShare && (
+            <button
+              type="button"
+              onClick={onShare}
+              className={`w-10 h-10 rounded-full flex items-center justify-center ring-1 transition ${
+                publicShareEnabled
+                  ? 'bg-emerald-500/20 ring-emerald-400/40 text-emerald-300 hover:bg-emerald-500/30'
+                  : 'bg-surface-input hover:bg-surface-raised ring-line-default/15 text-ink-primary'
+              }`}
+              aria-label={publicShareEnabled ? 'Share profile — public link is live' : 'Share profile'}
+              title={publicShareEnabled ? 'Public link is live — tap to share again' : 'Share profile'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.4} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+            </button>
+          )}
           {/* Kudos — Circle-member action. Sits alongside Edit at the
               top-right so Circle members can drop a note without
               scrolling. See project_player_circle_mission memory. */}
@@ -107,6 +170,14 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-none text-ink-primary truncate uppercase">
             {player.name}
           </h1>
+          {nickname && (
+            <p
+              className="mt-1 text-sm sm:text-base font-semibold italic text-ink-primary/60 truncate"
+              title={`Nickname: ${nickname}`}
+            >
+              &ldquo;{nickname}&rdquo;
+            </p>
+          )}
           {(positionLabel || teamName) && (
             <p className="mt-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-widest">
               {positionLabel && <span className="text-brand-primary-soft">{positionLabel}</span>}
@@ -158,13 +229,5 @@ const FootIcon: React.FC = () => (
     <path d="M12 2c2 0 3 2 3 4s-1 4-3 4-3-2-3-4 1-4 3-4zm-3 9c1 0 2 1 2 2s-1 2-2 2-2-1-2-2 1-2 2-2zm6 0c1 0 2 1 2 2s-1 2-2 2-2-1-2-2 1-2 2-2zM8 16h8v6H8z" />
   </svg>
 );
-
-function computeAge(dob: Date): number {
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-  return age;
-}
 
 export default ProfileHero;

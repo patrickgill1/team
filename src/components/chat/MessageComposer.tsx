@@ -505,7 +505,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <button
           onClick={doSend}
           disabled={uploading || (!text.trim() && pending.length === 0)}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary hover:from-brand-primary hover:to-brand-primary active:scale-95 disabled:from-white/10 disabled:to-white/10 disabled:text-ink-primary/30 text-white flex items-center justify-center shadow-sm disabled:shadow-none disabled:cursor-not-allowed transition"
+          className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-primary hover:brightness-110 active:scale-95 disabled:bg-line-default/10 disabled:text-ink-primary/30 text-white flex items-center justify-center shadow-sm disabled:shadow-none disabled:cursor-not-allowed transition"
           aria-label="Send"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

@@ -666,7 +666,7 @@ const PlayerOfMatch: React.FC = () => {
         {/* Active Voting */}
         {activeVoting && (
           <div className="card-modern mb-6 overflow-hidden">
-            <div className="px-6 py-4 border-b border-brand-primary-soft/20 bg-gradient-to-r from-brand-primary-soft to-white">
+            <div className="px-6 py-4 border-b border-brand-primary-soft/20 bg-surface-elevated">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-start gap-3 min-w-0">
                   <span className="w-10 h-10 rounded-xl bg-brand-primary/20 text-brand-primary-soft flex items-center justify-center shrink-0">

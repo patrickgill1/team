@@ -283,7 +283,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events, dataLoading }) =
       {/* Progress bar */}
       <div className="h-1.5 rounded-full bg-line-default/5 overflow-hidden mb-5">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-brand-primary to-amber-400 transition-all"
+          className="h-full rounded-full bg-brand-primary transition-all"
           style={{ width: `${(completedCount / steps.length) * 100}%` }}
         />
       </div>

@@ -385,8 +385,13 @@ const FixtureCell: React.FC<{ cell: DayCell; isNextEvent: boolean }> = ({ cell, 
           0%   { background-position: 0% 0%; }
           100% { background-position: 0% 100%; }
         }
+        /* 2026-07-15: swapped the Fire FC crimson survivor
+           (#c8202c → #f17282 → #c8202c) for a same-family
+           amber-brand ceremony shimmer that reads at the
+           reminder-bell moment without shipping the legacy
+           pre-rebrand red. */
         .wa-shimmer {
-          background-image: linear-gradient(180deg, #c8202c 0%, #f17282 50%, #c8202c 100%);
+          background-image: linear-gradient(180deg, rgb(217 119 6) 0%, rgb(251 191 36) 50%, rgb(217 119 6) 100%);
           background-size: 100% 200%;
           animation: wa-shimmer 2s linear infinite;
         }

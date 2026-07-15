@@ -204,7 +204,7 @@ const PlayerJoin: React.FC = () => {
 
   if (loading || currentUser === undefined) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-brand-primary-soft to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-charcoal-600 mx-auto mb-4"></div>
           <p className="text-ink-primary/65">Loading player profile...</p>
@@ -215,7 +215,7 @@ const PlayerJoin: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-brand-primary-soft to-indigo-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center p-4">
         <div className="bg-surface-elevated rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
           <div className="text-5xl mb-4">⚠️</div>
           <h1 className="text-xl font-bold text-ink-primary mb-2">Invalid Invite Link</h1>
@@ -233,10 +233,10 @@ const PlayerJoin: React.FC = () => {
 
   // Player loaded, now show the appropriate state
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-primary-soft to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-surface-base flex items-center justify-center p-4">
       <div className="bg-surface-elevated rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
         {/* Player header */}
-        <div className="bg-gradient-to-r from-surface-tint to-indigo-600 p-6 text-white text-center">
+        <div className="bg-brand-primary p-6 text-white text-center">
           {player?.profilePhotoUrl ? (
             <img
               src={player.profilePhotoUrl}

@@ -1410,7 +1410,7 @@ const Dashboard: React.FC = () => {
               <Link
                 key={k.id}
                 to={`/player/${k.id}`}
-                className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500/25 to-pink-500/20 ring-1 ring-amber-300/40 text-amber-100 px-3 py-1 rounded-full text-xs font-bold shadow hover:shadow-md transition active:scale-95"
+                className="inline-flex items-center gap-1.5 bg-amber-500/20 ring-1 ring-amber-400/40 text-amber-100 px-3 py-1 rounded-full text-xs font-bold shadow hover:shadow-md transition active:scale-95"
               >
                 <span className="text-base leading-none">🎂</span>
                 <span>{k.name.split(' ')[0]} turns {k.turning} today</span>
@@ -1620,10 +1620,14 @@ const NextEventHero: React.FC<{
   const dow = date.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase();
   const time = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   const fullDate = `${date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · ${time}`;
+  // 2026-07-15: killed the violet-fuchsia rainbow default for
+  // "other" events. Kept the on-brand rose/brand tones per-type
+  // (single-family texture) and defaulted to a neutral slate for
+  // the catch-all so non-game/non-practice events don't clash.
   const tileGradient =
     event.type === 'game' ? 'from-rose-500 to-orange-600' :
     event.type === 'practice' ? 'from-brand-primary to-surface-tint' :
-    'from-violet-500 to-fuchsia-600';
+    'from-slate-500 to-slate-600';
   return (
     <section
       onClick={goToCalendar}
@@ -2593,7 +2597,7 @@ const TeamPulseCard: React.FC<{
         to={`/game-day/quick_${Date.now()}`}
         className="mx-4 mt-4 p-3 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-400/30 flex items-center gap-3 hover:bg-emerald-500/20 transition active:scale-[0.99]"
       >
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-brand-primary text-white flex items-center justify-center shadow flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow flex-shrink-0">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" />
             <circle cx="12" cy="12" r="6" />

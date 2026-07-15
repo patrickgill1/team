@@ -51,7 +51,7 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
   const fillActive = ownTheme ? 'bg-line-default/35' : 'bg-brand-primary-soft/80';
 
   return (
-    <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${ownTheme ? 'bg-gradient-to-br from-brand-primary to-brand-primary text-white' : 'bg-gray-100 text-gray-900'}`}>
+    <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${ownTheme ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-900'}`}>
       <div className="flex items-center gap-1.5 mb-2">
         <span className="text-base">📊</span>
         <span className={`text-[10px] font-bold uppercase tracking-wider ${labelColor}`}>Poll</span>

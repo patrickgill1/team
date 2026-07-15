@@ -1413,7 +1413,7 @@ const PlayerProfile: React.FC = () => {
                   const planMins = plan.goals.reduce((s, g) => s + (g.practiceLog || []).reduce((m, l) => m + (l.minutes || 0), 0), 0);
                   const planTarget = plan.goals.reduce((s, g) => s + (g.targetMinutes || 0), 0);
                   return (
-                    <div key={plan.id} className="rounded-xl ring-1 ring-gray-100 p-3 mb-2 bg-gradient-to-br from-gray-50/50 to-white">
+                    <div key={plan.id} className="rounded-xl ring-1 ring-line-default/10 p-3 mb-2 bg-surface-elevated">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <span>{getCategoryIcon(plan.category)}</span>
@@ -1664,7 +1664,7 @@ const PlayerProfile: React.FC = () => {
                   <div className="text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-90 mt-1.5">POTM Wins</div>
                 </div>
               </div>
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-primary to-sky-600 text-white p-5 sm:p-6 text-center shadow-xl">
+              <div className="relative overflow-hidden rounded-2xl bg-amber-600 text-white p-5 sm:p-6 text-center shadow-xl">
                 <div className="absolute -top-6 -right-6 w-32 h-32 bg-line-default/20 rounded-full blur-2xl pointer-events-none" />
                 <div className="relative flex flex-col items-center">
                   <svg className="w-12 h-12 sm:w-14 sm:h-14 mb-2 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
@@ -1686,8 +1686,8 @@ const PlayerProfile: React.FC = () => {
                       key={voting.id}
                       className={`relative overflow-hidden rounded-2xl shadow-sm ${
                         isWin
-                          ? 'bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 ring-2 ring-amber-300'
-                          : 'bg-surface-elevated ring-1 ring-gray-100'
+                          ? 'bg-amber-500/[0.08] ring-2 ring-amber-400/50'
+                          : 'bg-surface-elevated ring-1 ring-line-default/10'
                       }`}
                     >
                       {isWin && (

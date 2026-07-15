@@ -310,15 +310,15 @@ const senderColor = (name: string): string => {
   // staying readable on small avatars.
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  // 2026-07-15: matches RosterAvatar.tsx PALETTE — 4 solid on-brand
+  // tones instead of the 8-color rainbow. Chat is where the rainbow
+  // was most visible; unifying with RosterAvatar means the same
+  // person's avatar looks the same wherever they appear.
   const palette = [
-    'bg-gradient-to-br from-rose-400 to-rose-600',
-    'bg-gradient-to-br from-amber-400 to-orange-600',
-    'bg-gradient-to-br from-emerald-400 to-emerald-600',
-    'bg-gradient-to-br from-brand-primary-soft to-brand-primary',
-    'bg-gradient-to-br from-violet-400 to-violet-600',
-    'bg-gradient-to-br from-fuchsia-400 to-pink-600',
-    'bg-gradient-to-br from-brand-primary-soft to-surface-tint',
-    'bg-gradient-to-br from-teal-400 to-teal-600',
+    'bg-brand-primary',
+    'bg-amber-500',
+    'bg-emerald-600',
+    'bg-slate-500',
   ];
   return palette[h % palette.length];
 };
@@ -454,7 +454,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // gray on incoming. No shadow ring — looks dated. The colors are
   // calibrated to look like Apple's Messages app on iOS 17+.
   const bubbleBg = isOwn
-    ? 'bg-gradient-to-b from-brand-primary to-brand-primary text-white'
+    ? 'bg-brand-primary text-white'
     : 'bg-[#E9E9EB] text-[#0B0B0F]';
 
   // Swipe-gesture state. We resolve each touch into ONE of three modes:

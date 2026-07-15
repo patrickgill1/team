@@ -638,7 +638,7 @@ const Surveys: React.FC = () => {
           surveys.map(s => (
             <div key={s.id} className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm overflow-hidden">
               {/* Type stripe — active = cyan, closed = slate */}
-              <div className={`h-[3px] ${s.isActive ? 'bg-gradient-to-r from-emerald-500 to-brand-primary' : 'bg-line-default/15'}`} />
+              <div className={`h-[3px] ${s.isActive ? 'bg-brand-primary' : 'bg-line-default/15'}`} />
               <div className="px-4 py-3">
                 <div className="flex items-start gap-2 flex-wrap mb-1">
                   <h3 className="font-bold text-ink-primary text-base truncate flex-1">{s.title}</h3>

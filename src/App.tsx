@@ -1127,7 +1127,7 @@ const UpdateStorySplash: React.FC<{ percent: number; mode: UpdateStoryMode }> = 
           </div>
           <div className="h-1 rounded-full bg-line-default/10 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-brand-primary-soft to-fuchsia-400 transition-[width] duration-300 ease-out"
+              className="h-full bg-brand-primary transition-[width] duration-300 ease-out"
               style={{ width: `${Math.max(2, pct)}%` }}
             />
           </div>

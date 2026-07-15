@@ -455,7 +455,7 @@ const Navigation: React.FC = () => {
             <Link
               to="/settings"
               aria-label="Settings"
-              className="h-9 w-9 rounded-full overflow-hidden bg-gradient-to-br from-brand-primary-soft to-brand-primary-soft flex items-center justify-center text-charcoal-950 font-bold text-sm flex-shrink-0"
+              className="h-9 w-9 rounded-full overflow-hidden bg-brand-primary-soft flex items-center justify-center text-charcoal-950 font-bold text-sm flex-shrink-0"
             >
               {userData?.photoURL ? (
                 <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />
@@ -563,7 +563,7 @@ const Navigation: React.FC = () => {
               type="button"
               onClick={() => setIsProfileSheetOpen(true)}
               aria-label="Profile menu"
-              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-gradient-to-br from-brand-primary-soft to-brand-primary-soft ring-1 ring-line-default/20 hover:ring-line-default/40 transition"
+              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-brand-primary-soft ring-1 ring-line-default/20 hover:ring-line-default/40 transition"
             >
               {userData?.photoURL ? (
                 <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />

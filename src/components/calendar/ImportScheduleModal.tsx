@@ -241,7 +241,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
         className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-full flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-brand-primary-soft to-white">
+        <div className="px-6 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated">
           <div>
             <h3 className="text-lg font-bold text-gray-900">Import Schedule</h3>
             <p className="text-xs text-gray-500">Upload an .ics file exported from GotSoccer, Demosphere, TeamSnap, Google Calendar, etc.</p>

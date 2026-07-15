@@ -852,7 +852,7 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-line-default/5 flex items-center justify-between bg-gradient-to-r from-brand-primary-soft to-white sticky top-0">
+        <div className="px-6 py-4 border-b border-line-default/5 flex items-center justify-between bg-surface-elevated sticky top-0">
           <div>
             <h3 className="text-lg font-bold text-ink-primary">Fix Stats</h3>
             <p className="text-xs text-ink-primary/50">{player.name}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</p>

@@ -101,7 +101,7 @@ const NotificationsBanner: React.FC = () => {
   const platform = Capacitor.getPlatform();
 
   return (
-    <div className="bg-gradient-to-r from-brand-primary-soft to-brand-primary-soft border border-brand-primary-soft rounded-xl p-3 shadow-sm">
+    <div className="bg-brand-primary-soft border border-brand-primary-soft rounded-xl p-3 shadow-sm">
       <div className="flex items-start gap-3">
         <div className="w-9 h-9 rounded-full bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
           <svg className="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">

@@ -57,7 +57,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
         className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-full flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-brand-primary-soft to-white">
+        <div className="px-5 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated">
           <div>
             <h3 className="text-lg font-bold text-gray-900">📊 New poll</h3>
             <p className="text-xs text-gray-500">Ask the thread a quick question.</p>
@@ -140,7 +140,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="bg-gradient-to-br from-brand-primary to-brand-primary hover:from-brand-primary hover:to-brand-primary disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition active:scale-95"
+            className="bg-brand-primary hover:brightness-110 disabled:bg-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition active:scale-95"
           >
             Send poll
           </button>

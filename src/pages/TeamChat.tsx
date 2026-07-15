@@ -2438,7 +2438,7 @@ const TeamChat: React.FC = () => {
             type="button"
             onClick={startSelectedChat}
             disabled={selectedDmUids.size === 0 || dmStarting !== null}
-            className="w-full bg-gradient-to-br from-brand-primary to-brand-primary hover:from-brand-primary-soft hover:to-brand-primary text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md transition disabled:opacity-40 flex items-center justify-center"
+            className="w-full bg-brand-primary hover:brightness-110 text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md transition disabled:opacity-40 flex items-center justify-center"
           >
             {dmStarting !== null ? (
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-line-default/40 border-t-white" />

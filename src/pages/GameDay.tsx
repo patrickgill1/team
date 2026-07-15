@@ -1495,7 +1495,7 @@ const GameDay: React.FC = () => {
                         <button onClick={acknowledgeBell} className="text-brand-primary-soft hover:text-ink-primary">Reset</button>
                       </div>
                       <div className="h-1.5 bg-line-default/10 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-emerald-500 to-amber-500" style={{ width: `${pct}%` }} />
+                        <div className="h-full bg-brand-primary" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   );

@@ -19,18 +19,24 @@ function hashName(name: string): number {
   return h;
 }
 
-// Same palette as event-detail's rsvpAvatarColor + chat avatar
-// palette, lifted up so every avatar in the app picks from the same
-// pot and the look stays consistent.
+// 2026-07-15: swapped the 8-color rainbow palette (fuchsia, violet,
+// pink, sky) for a 4-color solid palette drawn from on-brand tokens.
+// Patrick's design rule: subtle + purposeful + same-family = keep;
+// opposite ends of the color wheel = kill. The rainbow palette was
+// the highest-surface-area rainbow in the app (touches Chat, ReadBy,
+// People, Roster, MessageBubble). The replacement uses solid brand
+// hues that flip cleanly per theme:
+//   brand-primary  = product accent (cyan in the default theme)
+//   amber-500      = award family, warm
+//   emerald-600    = pitch family, fresh
+//   slate-500      = muted default, neutral
+// Solid colors instead of gradients; white initials on all four
+// have enough contrast in both light and dark themes.
 const PALETTE = [
-  'from-rose-400 to-rose-600',
-  'from-amber-400 to-orange-600',
-  'from-emerald-400 to-emerald-600',
-  'from-brand-primary-soft to-brand-primary',
-  'from-violet-400 to-violet-600',
-  'from-fuchsia-400 to-pink-600',
-  'from-brand-primary-soft to-surface-tint',
-  'from-sky-400 to-sky-600',
+  'bg-brand-primary',
+  'bg-amber-500',
+  'bg-emerald-600',
+  'bg-slate-500',
 ];
 
 export function avatarGradientFor(name: string): string {
@@ -54,7 +60,7 @@ const RosterAvatar: React.FC<Props> = ({ name, photoUrl, size = 28, className = 
 
   return (
     <span
-      className={`relative inline-flex items-center justify-center rounded-full shrink-0 overflow-hidden bg-gradient-to-br ${gradient} ${className}`}
+      className={`relative inline-flex items-center justify-center rounded-full shrink-0 overflow-hidden ${gradient} ${className}`}
       style={{ width: size, height: size }}
       aria-label={name}
     >

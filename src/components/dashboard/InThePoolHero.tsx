@@ -113,7 +113,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
             {overallVibe === 'offer_action' ? (
               <>You've got an <span className="text-brand-primary-soft">offer</span> waiting, {firstName}.</>
             ) : overallVibe === 'all_rostered' ? (
-              <>You're <span className="bg-gradient-to-r from-emerald-300 to-brand-primary-soft bg-clip-text text-transparent">in</span>, {firstName}.</>
+              <>You're <span className="text-emerald-400">in</span>, {firstName}.</>
             ) : overallVibe === 'just_registered' ? (
               <>Welcome to <span className="text-brand-primary-soft">GoalKickr</span>, {firstName}.</>
             ) : (

@@ -115,7 +115,7 @@ const InstallAppBanner: React.FC = () => {
     : 'Google Play';
 
   return (
-    <div className="lg:hidden bg-gradient-to-r from-brand-primary to-surface-raised text-white shadow">
+    <div className="lg:hidden bg-brand-primary text-white shadow">
       <div className="max-w-7xl mx-auto px-3 py-2 flex items-center gap-3">
         <img
           src="/images/logo.png"

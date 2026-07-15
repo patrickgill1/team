@@ -524,7 +524,7 @@ const Calendar: React.FC<CalendarProps> = ({
           onClick={() => handleDateClick(date)}
           className={`h-24 sm:h-28 border border-slate-200/70 p-1.5 cursor-pointer transition-all duration-150 ${
             isToday
-              ? 'bg-gradient-to-br from-brand-primary-soft to-white ring-1 ring-brand-primary-soft/60'
+              ? 'bg-brand-primary/10 ring-1 ring-brand-primary/40'
               : isPast
                 ? 'bg-slate-50/40 hover:bg-slate-50'
                 : 'bg-white hover:bg-brand-primary-soft/40'
@@ -1126,7 +1126,7 @@ const EventCard: React.FC<EventCardProps> = ({
             {event.type === 'game' && (
               <a
                 href={`/game-day/${event.id}`}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-white bg-gradient-to-r from-emerald-600 to-brand-primary hover:from-emerald-500 hover:to-brand-primary rounded-full shadow-sm transition-colors"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-white bg-brand-primary hover:brightness-110 rounded-full shadow-sm transition"
                 title="Open Game Day live tracker"
               >
                 <AppIcon name="whistle" className="w-3.5 h-3.5" />
@@ -1386,7 +1386,7 @@ const RsvpBar: React.FC<{
             className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-full overflow-hidden flex flex-col"
             onClick={e => e.stopPropagation()}
           >
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+            <div className="px-5 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated">
               <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
                 <StatusBadge status={showList} size="md" />
                 <span>

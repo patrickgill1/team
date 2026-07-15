@@ -113,7 +113,11 @@ const TodaysDevelopmentCard: React.FC<Props> = ({ goal, playerId, teamId, onLogg
 
   return (
     <section className="relative overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 shadow-lg shadow-black/5">
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-primary via-brand-primary-soft to-transparent pointer-events-none" aria-hidden />
+      {/* 2026-07-15: killed the red-fade top accent bar. Patrick's
+          screenshot flagged it as fighting the solid red "I DID IT"
+          button below (ambient chrome vs solid CTA = visual
+          inconsistency). The card body already has enough presence
+          from the ring + shadow. */}
 
       <div className="relative px-3 pt-2.5 pb-3">
         {/* Row 1: kicker + streak chip inline (compact), so the focus

@@ -166,9 +166,6 @@ const PlayerProfile: React.FC = () => {
   // include a compact avatar + first name + team.
   const stickySentinelRef = useRef<HTMLDivElement | null>(null);
   const [isHeroStuck, setIsHeroStuck] = useState(false);
-  // Tab-body ref for the scroll-anchor effect below — we wait for the
-  // active tab body to mount before scrolling to the anchored section.
-  const tabBodyRef = useRef<HTMLDivElement | null>(null);
   // Filter for the Sideline Shouts section. 'all' | 'kudos' | 'whisper' |
   // 'xp_note' | 'badge' | 'potm_comment'. Kept in state (not URL) so
   // deep-links still land on the full stream; filter is UI-only.
@@ -958,7 +955,7 @@ const PlayerProfile: React.FC = () => {
             to. */}
       </div>
 
-      <div ref={activeTab === 'story' ? tabBodyRef : undefined} className="bg-surface-base">
+      <div className="bg-surface-base">
       {activeTab === 'story' && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
           <div className="flex flex-col gap-4 sm:gap-6">

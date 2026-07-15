@@ -715,6 +715,24 @@ const PlayerProfile: React.FC = () => {
         showKudos={canGiveKudos}
         onKudos={() => setShowKudos(true)}
       />
+
+      {/* Featured POTM quote — moved 2026-07-14 to sit directly
+          below the hero. Patrick: "the sideline is completely
+          hidden." Second elevation pass. Prior placement (below
+          stats + XP card) meant a parent had to scroll to see any
+          Sideline Shouts signal; now the rotating POTM quote is
+          the FIRST thing under the identity block, so the concept
+          announces itself before stats. "All N" jumps into the
+          full Sideline Shouts tab with POTM filter pre-applied. */}
+      <FeaturedShoutCard
+        playerName={player.name}
+        votings={allPlayerVotings}
+        onOpenAll={() => {
+          setShoutFilter('potm_comment');
+          setActiveTab('whispers');
+        }}
+      />
+
       {/* 2026-07-14 scoping rule ([[stats-scoping-model]]): hero cells
           show THIS team + THIS season. Career surfaces (Awards tab,
           Career section) still get the unscoped counts.
@@ -778,20 +796,9 @@ const PlayerProfile: React.FC = () => {
         onGiveXp={() => setShowGrantXp(true)}
       />
 
-      {/* Featured POTM quote — rotating card that surfaces one
-          teammate/voter comment on the profile above the fold.
-          Patrick 2026-07-14: "i still want POTM comments to show
-          a quote in the profile for other's to see." Hidden when
-          the player has no POTM comments yet. Clicking "All N"
-          jumps to the Sideline Shouts tab (filtered to POTM). */}
-      <FeaturedShoutCard
-        playerName={player.name}
-        votings={allPlayerVotings}
-        onOpenAll={() => {
-          setShoutFilter('potm_comment');
-          setActiveTab('whispers');
-        }}
-      />
+      {/* FeaturedShoutCard moved above (right under ProfileHero) —
+          see the block up there. Sideline Shouts prominence pass
+          2026-07-14. */}
 
       {/* PlayerXpHistoryFeed removed 2026-07-14 (Patrick:
           "get rid of the xp section showing the comments and have

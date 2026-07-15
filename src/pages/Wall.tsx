@@ -14,6 +14,7 @@ import WallPollCard from '../components/wall/WallPollCard';
 import WallEditor from '../components/wall/WallEditor';
 import GameRecapCard from '../components/wall/GameRecapCard';
 import PotmWinnerCard from '../components/wall/PotmWinnerCard';
+import PotmVotingCard from '../components/wall/PotmVotingCard';
 import TrialGateModal from '../components/common/TrialGateModal';
 import { useTrialGate } from '../hooks/useTrialGate';
 import { marked } from 'marked';
@@ -1568,9 +1569,10 @@ const Wall: React.FC = () => {
 
                   {/* Hero cards — swap in when the post carries a
                       structured payload:
-                        recap       → GameRecapCard (game auto-posts)
-                        potmResult  → PotmWinnerCard (POTM close)
-                      Absent both → fall through to markdown body so
+                        recap            → GameRecapCard (game auto-posts)
+                        potmResult       → PotmWinnerCard (POTM close)
+                        potmVotingOpen   → PotmVotingCard (POTM open, 2026-07-14)
+                      Absent all three → fall through to markdown body so
                       legacy posts still render.  */}
                   {(p as any).recap ? (
                     <div className="px-3 pb-3">
@@ -1579,6 +1581,10 @@ const Wall: React.FC = () => {
                   ) : (p as any).potmResult ? (
                     <div className="px-3 pb-3">
                       <PotmWinnerCard potm={(p as any).potmResult} timestamp={p.timestamp} />
+                    </div>
+                  ) : (p as any).potmVotingOpen ? (
+                    <div className="px-3 pb-3">
+                      <PotmVotingCard post={p as any} currentUserId={userData?.uid} timestamp={p.timestamp} />
                     </div>
                   ) : p.content ? (
                     <article className="px-4 pb-3 text-ink-primary/90 break-words text-[15.5px] leading-relaxed">

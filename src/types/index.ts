@@ -2398,6 +2398,19 @@ export interface WallPost {
     isCoWin?: boolean;
     gameDate?: any;
   };
+  /** Structured OPEN-VOTING payload. Present on posts written by
+   *  autoPostPotmVotingOpenToWall (2026-07-14 rework): the wall
+   *  now renders an inline "Vote for POTM" card with a "Vote now"
+   *  button that opens the ballot sheet in-app. The old markdown
+   *  link to /vote/{votingId} was removed as part of Patrick's
+   *  kill-public-share ask; voting is app-only now. */
+  potmVotingOpen?: {
+    votingId: string;
+    gameTitle: string;
+    /** Copied at post time so the wall card can render an
+     *  "N candidates" hint without touching match_votings. */
+    eligibleCount?: number;
+  };
 }
 
 export interface WallComment {

@@ -40,6 +40,7 @@ async function postToWall(
     // card (GameRecapCard for recap, PotmWinnerCard for potmResult).
     recap?: any;
     potmResult?: any;
+    potmVotingOpen?: any;
   } = {}
 ): Promise<string | null> {
   try {
@@ -57,6 +58,7 @@ async function postToWall(
     };
     if (opts.recap) doc.recap = opts.recap;
     if (opts.potmResult) doc.potmResult = opts.potmResult;
+    if (opts.potmVotingOpen) doc.potmVotingOpen = opts.potmVotingOpen;
     const ref = await addDoc(collection(db, 'wall_posts'), doc);
     return ref.id;
   } catch (err) {
@@ -228,17 +230,20 @@ export async function autoPostGoalOfTheMatchToWall(
   }
 }
 
-/** Auto-post when POTM voting OPENS. Big CTA, no spoilers — voting
- *  results are hidden until the coach closes the session, so this
- *  post is a persistent nudge on the wall rather than a live tally.
- *  Replaces the old flow where coaches shared a link to Ollie
- *  manually. */
+/** Auto-post when POTM voting OPENS. Renders as an interactive
+ *  "Vote for POTM" card on the Wall via PotmVotingCard (2026-07-14
+ *  rework). Voting is app-only now — Patrick killed the public
+ *  /vote/:votingId share link because families are 100% in the
+ *  app; the old link was a legacy Ollie-era workaround. Wall
+ *  renderer uses the structured potmVotingOpen payload to render
+ *  the ballot card; the markdown fallback below only surfaces in
+ *  email digests and other text-only surfaces. */
 export async function autoPostPotmVotingOpenToWall(
   teamId: string,
   votingId: string,
   gameTitle: string,
   actor: Actor,
-  opts?: { audience?: 'youth' | 'adult' },
+  opts?: { audience?: 'youth' | 'adult'; eligibleCount?: number },
 ): Promise<void> {
   if (!teamId || !votingId) return;
   const isAdult = opts?.audience === 'adult';
@@ -246,13 +251,18 @@ export async function autoPostPotmVotingOpenToWall(
     '## Vote for Player of the Match',
     `**${gameTitle}**`,
     '',
-    `[Cast your vote →](/vote/${votingId})`,
-    '',
     isAdult
-      ? '_Results reveal when voting closes. Vote for anyone but yourself._'
-      : '_Results reveal when voting closes. Vote for anyone but your own kid._',
+      ? '_Open the app to cast your vote. Results reveal when voting closes; vote for anyone but yourself._'
+      : '_Open the app to cast your vote. Results reveal when voting closes; vote for anyone but your own kid._',
   ];
-  await postToWall(teamId, actor, lines.join('\n'), { postedFrom: 'potm' });
+  await postToWall(teamId, actor, lines.join('\n'), {
+    postedFrom: 'potm',
+    potmVotingOpen: {
+      votingId,
+      gameTitle,
+      eligibleCount: opts?.eligibleCount,
+    },
+  });
 }
 
 /** Auto-post a Player of the Match win. Writes a structured

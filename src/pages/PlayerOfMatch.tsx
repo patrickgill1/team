@@ -6,7 +6,6 @@ import { Player, CalendarEvent } from '../types';
 import { formatDate, isCoachOfTeam } from '../utils/helpers';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../utils/firebase';
-import { getShareOrigin } from '../utils/origin';
 import Header from '../components/common/Header';
 import { Link } from 'react-router-dom';
 import AppIcon from '../components/common/AppIcon';
@@ -64,7 +63,6 @@ const PlayerOfMatch: React.FC = () => {
   const [selectedPlayer, setSelectedPlayer] = useState('');
   const [voteReason, setVoteReason] = useState('');
   const [selectedCalendarEvent, setSelectedCalendarEvent] = useState('');
-  const [linkCopied, setLinkCopied] = useState(false);
   const [newVotingId, setNewVotingId] = useState<string | null>(null);
   const [expandedVoters, setExpandedVoters] = useState<Set<string>>(new Set());
 
@@ -73,27 +71,6 @@ const PlayerOfMatch: React.FC = () => {
   const [attendancePlayerIds, setAttendancePlayerIds] = useState<Set<string>>(new Set());
   const [pendingVotingData, setPendingVotingData] = useState<Omit<MatchVoting, 'id' | 'eligiblePlayerIds'> | null>(null);
   const [editingVotingId, setEditingVotingId] = useState<string | null>(null);
-
-  const getVoteLink = (votingId: string) =>
-    `${getShareOrigin()}/vote/${votingId}`;
-
-  const copyVoteLink = async (votingId: string) => {
-    try {
-      await navigator.clipboard.writeText(getVoteLink(votingId));
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 3000);
-    } catch {
-      // Fallback
-      const input = document.createElement('input');
-      input.value = getVoteLink(votingId);
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand('copy');
-      document.body.removeChild(input);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 3000);
-    }
-  };
 
   const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
@@ -140,10 +117,19 @@ const PlayerOfMatch: React.FC = () => {
         .sort((a: any, b: any) => b.gameDate.getTime() - a.gameDate.getTime());
       
       setVotings(teamVotings);
-      
-      // Set active voting
-      const active = teamVotings.find((v: any) => v.isActive);
-      setActiveVoting(active || null);
+
+      // Set active voting. 2026-07-14: honor ?voting=<id> deep-link
+      // from the Wall's Vote-now button (PotmVotingCard) — the
+      // wall card jumps here with the voting id in the query, so
+      // parents land on the exact ballot instead of the coach's
+      // history list. Falls back to isActive if no query param.
+      let targetVoting: any = null;
+      try {
+        const q = new URLSearchParams(window.location.search).get('voting');
+        if (q) targetVoting = teamVotings.find((v: any) => v.id === q) || null;
+      } catch { /* SSR-safe noop */ }
+      if (!targetVoting) targetVoting = teamVotings.find((v: any) => v.isActive) || null;
+      setActiveVoting(targetVoting);
     } catch (error) {
       console.error('Error loading voting data:', error);
     } finally {
@@ -275,7 +261,10 @@ const PlayerOfMatch: React.FC = () => {
               newId,
               (voting as any).gameTitle || 'Match',
               { uid: userData.uid, name: userData.name || 'Coach', role: userData.role || 'coach' },
-              { audience: (selectedTeam as any)?.audienceType === 'adult' ? 'adult' : 'youth' },
+              {
+                audience: (selectedTeam as any)?.audienceType === 'adult' ? 'adult' : 'youth',
+                eligibleCount: Array.from(attendancePlayerIds).length,
+              },
             );
           } catch (e) {
             console.warn('POTM auto-post to wall failed', e);
@@ -697,31 +686,11 @@ const PlayerOfMatch: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => copyVoteLink(activeVoting.id)}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 border ${
-                      linkCopied
-                        ? 'bg-emerald-500/15 border-emerald-400/30 text-emerald-300'
-                        : 'bg-surface-elevated border-brand-primary-soft/30 text-brand-primary-soft hover:bg-brand-primary/15'
-                    }`}
-                    title="Copy vote link to share with parents"
-                  >
-                    {linkCopied ? (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>Link copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                        </svg>
-                        <span>Share Vote Link</span>
-                      </>
-                    )}
-                  </button>
+                  {/* 2026-07-14: "Share Vote Link" removed — voting is
+                      app-only now (see [[project_sideline_shouts]] +
+                      Patrick's kill-public-share ask). Wall post
+                      renders the interactive ballot inline; no need
+                      for a shareable URL. */}
                   {isUserCoach && (
                     <>
                       <button
@@ -754,22 +723,17 @@ const PlayerOfMatch: React.FC = () => {
                   )}
                 </div>
               </div>
-              {/* Share link banner */}
+              {/* "Voting created" banner — 2026-07-14 pointed at the
+                  Wall now that the ballot lives there. Copy-link
+                  affordance removed (public /vote/:id sunset). */}
               {newVotingId === activeVoting.id && (
-                <div className="mt-3 p-3 bg-emerald-500/15 border border-emerald-400/30 rounded-lg flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-green-800 text-sm min-w-0">
-                    <svg className="w-4 h-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="font-medium">Voting created!</span>
-                    <span className="text-emerald-600 truncate hidden sm:block">{getVoteLink(activeVoting.id)}</span>
-                  </div>
-                  <button
-                    onClick={() => copyVoteLink(activeVoting.id)}
-                    className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
-                  >
-                    {linkCopied ? '✓ Copied' : 'Copy Link'}
-                  </button>
+                <div className="mt-3 p-3 bg-emerald-500/15 border border-emerald-400/30 rounded-lg flex items-center gap-3">
+                  <svg className="w-4 h-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm text-emerald-800 font-medium">
+                    Voting created! Parents will see the ballot on the Team Wall.
+                  </span>
                 </div>
               )}
 

@@ -664,9 +664,9 @@ const RegisterForm: React.FC = () => {
               >
                 Register
               </button>
-              <p className="text-center text-[11px] text-slate-500">
+              <p className="text-center text-[11px] text-ink-primary/55">
                 By continuing you agree to our{' '}
-                <Link to="/privacy" className="underline hover:text-slate-300">Privacy Policy</Link>.
+                <Link to="/privacy" className="underline hover:text-ink-primary/70">Privacy Policy</Link>.
               </p>
             </div>
           </div>
@@ -895,9 +895,9 @@ const RegisterForm: React.FC = () => {
                 {submitting ? 'Submitting…' : effectiveFee > 0 ? 'Submit & pay' : 'Submit registration'}
               </button>
             </NavRow>
-            <p className="text-center text-[11px] text-slate-500">
+            <p className="text-center text-[11px] text-ink-primary/55">
               By submitting you agree to our{' '}
-              <Link to="/privacy" className="underline hover:text-slate-300">Privacy Policy</Link>.
+              <Link to="/privacy" className="underline hover:text-ink-primary/70">Privacy Policy</Link>.
             </p>
           </div>
         )}
@@ -951,7 +951,7 @@ const Row: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 const Input: React.FC<{ label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean; placeholder?: string }> = ({ label, value, onChange, type = 'text', required, placeholder }) => (
   <label className="block">
-    <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+    <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink-primary/45 mb-1">
       {label}{required && <span className="text-rose-300 ml-0.5">*</span>}
     </span>
     <input
@@ -960,7 +960,7 @@ const Input: React.FC<{ label: string; value: string; onChange: (v: string) => v
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       required={required}
-      className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+      className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-ink-primary placeholder-ink-primary/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
       style={{ fontSize: '16px' }}
     />
   </label>
@@ -968,13 +968,13 @@ const Input: React.FC<{ label: string; value: string; onChange: (v: string) => v
 
 const TextArea: React.FC<{ label: string; value: string; onChange: (v: string) => void; placeholder?: string }> = ({ label, value, onChange, placeholder }) => (
   <label className="block">
-    <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</span>
+    <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink-primary/45 mb-1">{label}</span>
     <textarea
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={3}
-      className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+      className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-ink-primary placeholder-ink-primary/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
       style={{ fontSize: '16px' }}
     />
   </label>
@@ -982,13 +982,13 @@ const TextArea: React.FC<{ label: string; value: string; onChange: (v: string) =
 
 const Select: React.FC<{ label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; required?: boolean }> = ({ label, value, onChange, options, required }) => (
   <label className="block">
-    <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+    <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink-primary/45 mb-1">
       {label}{required && <span className="text-rose-300 ml-0.5">*</span>}
     </span>
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+      className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-ink-primary ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
       style={{ fontSize: '16px' }}
     >
       {options.map(o => <option key={o.value} value={o.value} className="bg-surface-elevated">{o.label}</option>)}
@@ -1004,11 +1004,11 @@ const CustomQuestion: React.FC<{
   const required = !!question.required;
   const helpId = question.help ? `${question.id}-help` : undefined;
   const help = question.help ? (
-    <p id={helpId} className="text-[11px] text-slate-500 mt-1">{question.help}</p>
+    <p id={helpId} className="text-[11px] text-ink-primary/55 mt-1">{question.help}</p>
   ) : null;
 
   const labelEl = (
-    <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+    <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink-primary/45 mb-1">
       {question.label}{required && <span className="text-rose-300 ml-0.5">*</span>}
     </span>
   );
@@ -1023,7 +1023,7 @@ const CustomQuestion: React.FC<{
             onChange={(e) => onChange(e.target.value)}
             rows={3}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-ink-primary placeholder-ink-primary/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -1037,7 +1037,7 @@ const CustomQuestion: React.FC<{
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-ink-primary ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           >
             <option value="" className="bg-surface-elevated">— Select —</option>
@@ -1063,7 +1063,7 @@ const CustomQuestion: React.FC<{
                   className={`flex-1 py-2 rounded-lg text-sm font-bold ring-1 transition ${
                     selected
                       ? 'bg-brand-primary text-white ring-brand-primary'
-                      : 'bg-line-default/5 text-slate-300 ring-line-default/10 hover:ring-brand-primary-soft/40'
+                      : 'bg-line-default/5 text-ink-primary/70 ring-line-default/10 hover:ring-brand-primary-soft/40'
                   }`}
                 >
                   {opt}
@@ -1083,7 +1083,7 @@ const CustomQuestion: React.FC<{
             value={value == null ? '' : String(value)}
             onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-ink-primary placeholder-ink-primary/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -1099,7 +1099,7 @@ const CustomQuestion: React.FC<{
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-ink-primary placeholder-ink-primary/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -1116,7 +1116,7 @@ const Checkbox: React.FC<{ label: string; checked: boolean; onChange: (v: boolea
       onChange={(e) => onChange(e.target.checked)}
       className="w-4 h-4 rounded bg-line-default/10 border-line-default/20 text-brand-primary"
     />
-    <span className="text-sm text-slate-300">{label}</span>
+    <span className="text-sm text-ink-primary/70">{label}</span>
   </label>
 );
 
@@ -1132,8 +1132,8 @@ const CenterMessage: React.FC<{ title: string; body?: string; success?: boolean 
           <svg className="w-6 h-6 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         )}
       </div>
-      <h1 className="text-xl font-black text-white mb-2">{title}</h1>
-      {body && <p className="text-sm text-slate-400 leading-relaxed">{body}</p>}
+      <h1 className="text-xl font-black text-ink-primary mb-2">{title}</h1>
+      {body && <p className="text-sm text-ink-primary/45 leading-relaxed">{body}</p>}
     </div>
   </div>
 );

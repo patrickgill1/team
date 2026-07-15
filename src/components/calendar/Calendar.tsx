@@ -462,7 +462,7 @@ const Calendar: React.FC<CalendarProps> = ({
       case 'game': return 'bg-rose-500/10 text-rose-700 border-rose-300/50';
       case 'practice': return 'bg-brand-primary/10 text-brand-primary-soft border-brand-primary-soft/50';
       case 'event': return 'bg-emerald-500/10 text-emerald-700 border-emerald-300/50';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+      default: return 'bg-surface-input text-ink-primary border-line-default';
     }
   };
 
@@ -508,7 +508,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
     // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="h-24 sm:h-28 bg-slate-50/60"></div>);
+      days.push(<div key={`empty-${i}`} className="h-24 sm:h-28 bg-surface-input/60"></div>);
     }
 
     // Days of the month
@@ -522,18 +522,18 @@ const Calendar: React.FC<CalendarProps> = ({
         <div
           key={day}
           onClick={() => handleDateClick(date)}
-          className={`h-24 sm:h-28 border border-slate-200/70 p-1.5 cursor-pointer transition-all duration-150 ${
+          className={`h-24 sm:h-28 border border-line-default/40 p-1.5 cursor-pointer transition-all duration-150 ${
             isToday
               ? 'bg-brand-primary/10 ring-1 ring-brand-primary/40'
               : isPast
-                ? 'bg-slate-50/40 hover:bg-slate-50'
-                : 'bg-white hover:bg-brand-primary-soft/40'
+                ? 'bg-surface-input/40 hover:bg-surface-input'
+                : 'bg-surface-elevated hover:bg-brand-primary/10'
           }`}
         >
           <div className={`text-xs font-semibold mb-1 inline-flex items-center justify-center ${
             isToday
               ? 'w-6 h-6 rounded-full bg-surface-tint text-white shadow-sm'
-              : isPast ? 'text-slate-400' : 'text-slate-700'
+              : isPast ? 'text-ink-primary/40' : 'text-ink-primary'
           }`}>
             {day}
           </div>
@@ -554,7 +554,7 @@ const Calendar: React.FC<CalendarProps> = ({
               </div>
             ))}
             {dayEvents.length > 2 && (
-              <div className="text-[10px] text-slate-500 px-1 font-medium">
+              <div className="text-[10px] text-ink-primary/55 px-1 font-medium">
                 +{dayEvents.length - 2} more
               </div>
             )}
@@ -564,7 +564,7 @@ const Calendar: React.FC<CalendarProps> = ({
     }
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 overflow-hidden">
+      <div className="bg-surface-elevated rounded-2xl shadow-sm ring-1 ring-line-default/40 overflow-hidden">
         {/* Calendar Header */}
         <div className="bg-gradient-to-r from-surface-raised via-surface-tint to-surface-raised px-5 sm:px-6 py-4">
           <div className="flex items-center justify-between">
@@ -601,9 +601,9 @@ const Calendar: React.FC<CalendarProps> = ({
         </div>
 
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200/70">
+        <div className="grid grid-cols-7 bg-surface-input border-b border-line-default/40">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="py-2 px-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            <div key={day} className="py-2 px-3 text-center text-[11px] font-bold uppercase tracking-wider text-ink-primary/55">
               {day}
             </div>
           ))}
@@ -1002,7 +1002,7 @@ const EventCard: React.FC<EventCardProps> = ({
   const typeIcon: 'soccer' | 'running' | 'flag' = event.type === 'game' ? 'soccer' : event.type === 'practice' ? 'running' : 'flag';
 
   return (
-    <div className={`rounded-2xl ring-1 overflow-hidden bg-white shadow-sm transition-all ${
+    <div className={`rounded-2xl ring-1 overflow-hidden bg-surface-elevated shadow-sm transition-all ${
       isPast ? 'ring-gray-300 opacity-90' : 'ring-gray-300 hover:shadow-md'
     }`}>
       <div className="flex items-stretch min-h-[120px]">
@@ -1023,7 +1023,7 @@ const EventCard: React.FC<EventCardProps> = ({
           {/* Header row: title + type pill + recurring + coach actions */}
           <div className="flex items-start gap-2">
             <div className="flex-1 min-w-0">
-              <h4 className={`font-bold text-[15px] leading-snug break-words ${isPast ? 'text-gray-700' : 'text-gray-900'}`}>
+              <h4 className={`font-bold text-[15px] leading-snug break-words ${isPast ? 'text-ink-primary/80' : 'text-ink-primary'}`}>
                 {event.title}
               </h4>
               <div className="flex flex-wrap items-center gap-1.5 mt-1">
@@ -1031,7 +1031,7 @@ const EventCard: React.FC<EventCardProps> = ({
                   {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
                 </span>
                 {(event as any).seriesId && (
-                  <span className="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-gray-100 text-gray-700" title="Recurring">
+                  <span className="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-surface-input text-ink-primary" title="Recurring">
                     {(event as any).recurrence || 'recurring'}
                   </span>
                 )}
@@ -1042,7 +1042,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 <button
                   onClick={() => onEdit(event)}
                   disabled={isDeleting}
-                  className="p-1.5 text-gray-400 hover:text-brand-primary hover:bg-brand-primary-soft rounded-lg transition disabled:opacity-50"
+                  className="p-1.5 text-ink-primary/40 hover:text-brand-primary hover:bg-brand-primary-soft rounded-lg transition disabled:opacity-50"
                   title="Edit"
                 >
                   <AppIcon name="edit" className="w-4 h-4" />
@@ -1050,7 +1050,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 <button
                   onClick={() => onDelete(event.id)}
                   disabled={isDeleting}
-                  className="p-1.5 text-gray-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition disabled:opacity-50"
+                  className="p-1.5 text-ink-primary/40 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition disabled:opacity-50"
                   title="Delete"
                 >
                   {isDeleting ? (
@@ -1064,7 +1064,7 @@ const EventCard: React.FC<EventCardProps> = ({
           </div>
 
           {/* Meta rows — single consistent icon set, single text color */}
-          <div className={`mt-2 text-sm space-y-1 ${isPast ? 'text-gray-500' : 'text-gray-600'}`}>
+          <div className={`mt-2 text-sm space-y-1 ${isPast ? 'text-ink-primary/55' : 'text-ink-primary/65'}`}>
             <div className="flex items-center gap-1.5 min-w-0">
               <AppIcon name="clock" className="w-4 h-4 shrink-0" />
               <span className="truncate">
@@ -1072,7 +1072,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 {(event as any).arriveOffsetMinutes > 0 && (() => {
                   const arrive = new Date(dt.getTime() - (event as any).arriveOffsetMinutes * 60_000);
                   const arriveLabel = arrive.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-                  return <span className="ml-1 text-gray-500">(arrive {arriveLabel})</span>;
+                  return <span className="ml-1 text-ink-primary/55">(arrive {arriveLabel})</span>;
                 })()}
               </span>
             </div>
@@ -1091,7 +1091,7 @@ const EventCard: React.FC<EventCardProps> = ({
           </div>
 
           {event.description && (
-            <p className={`text-sm mt-2 break-words ${isPast ? 'text-gray-500' : 'text-gray-600'}`}>
+            <p className={`text-sm mt-2 break-words ${isPast ? 'text-ink-primary/55' : 'text-ink-primary/65'}`}>
               {event.description}
             </p>
           )}
@@ -1108,7 +1108,7 @@ const EventCard: React.FC<EventCardProps> = ({
             {!isPast && (
               <button
                 onClick={() => downloadEventIcs(event)}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-ink-primary/80 bg-surface-input hover:bg-line-default/20 rounded-full transition-colors"
                 title="Add to my phone calendar"
               >
                 <AppIcon name="calendar" className="w-3.5 h-3.5" />
@@ -1117,7 +1117,7 @@ const EventCard: React.FC<EventCardProps> = ({
             )}
             <button
               onClick={handleShare}
-              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-ink-primary/80 bg-surface-input hover:bg-line-default/20 rounded-full transition-colors"
               title="Share event link"
             >
               <AppIcon name="arrow-right" className="w-3.5 h-3.5" />
@@ -1257,7 +1257,7 @@ const RsvpBar: React.FC<{
       className={`flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
         my === status
           ? `${color} ${activeText} border-transparent shadow-sm`
-          : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+          : 'bg-surface-elevated text-ink-primary border-line-default hover:border-line-default/60'
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       <StatusBadge status={status} size="sm" />
@@ -1271,9 +1271,9 @@ const RsvpBar: React.FC<{
     entries.filter(e => e.status === status).length;
 
   return (
-    <div className="mt-3 pt-3 border-t border-gray-100">
+    <div className="mt-3 pt-3 border-t border-line-default/10">
       <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+        <span className="text-xs font-medium text-ink-primary/55 uppercase tracking-wide">
           {isPast ? 'Final RSVPs' : 'Who’s coming?'}
         </span>
         {/* Tap any status to see the full breakdown (players, coaches,
@@ -1308,7 +1308,7 @@ const RsvpBar: React.FC<{
       </div>
       {/* Player + coach headline (the planning numbers) sits just under
           the tappable status pills so both signals are visible. */}
-      <div className="flex items-center gap-3 text-[11px] text-gray-500 mb-2">
+      <div className="flex items-center gap-3 text-[11px] text-ink-primary/55 mb-2">
         <span className="inline-flex items-center gap-1">
           <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-[9px] font-bold">P</span>
           {playerCounts.going} player{playerCounts.going === 1 ? '' : 's'} going
@@ -1333,7 +1333,7 @@ const RsvpBar: React.FC<{
                 className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
                   current === status
                     ? `${color} text-white border-transparent shadow-sm`
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                    : 'bg-surface-elevated text-ink-primary border-line-default hover:border-line-default/60'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <StatusBadge status={status} size="sm" />
@@ -1342,7 +1342,7 @@ const RsvpBar: React.FC<{
             );
             return (
               <div key={p.id} className="flex items-center gap-2">
-                <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-gray-800 truncate" title={p.name}>{p.name}</div>
+                <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-ink-primary/90 truncate" title={p.name}>{p.name}</div>
                 <div className="flex-1 flex gap-1.5">
                   {pBtn('going', 'Going', 'bg-emerald-600')}
                   {pBtn('maybe', 'Maybe', 'bg-amber-500')}
@@ -1357,7 +1357,7 @@ const RsvpBar: React.FC<{
               numbers — coaches just want player + coach counts. */}
           {showSelfRow && (
             <div className="flex items-center gap-2">
-              <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-gray-500 truncate">
+              <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-ink-primary/55 truncate">
                 {userName ? `Me · ${userName.split(' ')[0]}` : 'Me'}
               </div>
               <div className="flex-1 flex gap-1.5">
@@ -1383,11 +1383,11 @@ const RsvpBar: React.FC<{
           onClick={() => setShowList(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-full overflow-hidden flex flex-col"
+            className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-md max-h-full overflow-hidden flex flex-col"
             onClick={e => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated">
-              <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+              <h3 className="font-bold text-ink-primary text-base flex items-center gap-2">
                 <StatusBadge status={showList} size="md" />
                 <span>
                   {(() => {
@@ -1401,7 +1401,7 @@ const RsvpBar: React.FC<{
                   })()}
                 </span>
               </h3>
-              <button onClick={() => setShowList(null)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" aria-label="Close">
+              <button onClick={() => setShowList(null)} className="p-2 rounded-lg hover:bg-line-default/10 text-ink-primary/55" aria-label="Close">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1409,14 +1409,14 @@ const RsvpBar: React.FC<{
             </div>
             <div className="overflow-y-auto flex-1">
               {entries.filter(e => e.status === showList).length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-gray-500">No one yet.</p>
+                <p className="px-4 py-6 text-center text-sm text-ink-primary/55">No one yet.</p>
               ) : (
                 <>
                   {/* Players first — coaches read this section to know
                       who's on the field. */}
                   {entries.some(e => e.status === showList && e.isPlayer) && (
                     <>
-                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Squad</div>
+                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-ink-primary/40">Squad</div>
                       <ul className="divide-y divide-gray-100">
                         {entries.filter(e => e.status === showList && e.isPlayer).map(e => {
                           const photo = e.playerId ? playerPhotoMap[e.playerId] : undefined;
@@ -1430,7 +1430,7 @@ const RsvpBar: React.FC<{
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}
-                              <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Player'}</span>
+                              <span className="text-sm text-ink-primary/90 flex-1 min-w-0 break-words">{e.name || 'Player'}</span>
                             </li>
                           );
                         })}
@@ -1440,7 +1440,7 @@ const RsvpBar: React.FC<{
                   {/* Coaches & staff. */}
                   {entries.some(e => e.status === showList && e.isStaff) && (
                     <>
-                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Coaches & staff</div>
+                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-ink-primary/40">Coaches & staff</div>
                       <ul className="divide-y divide-gray-100">
                         {entries.filter(e => e.status === showList && e.isStaff).map(e => {
                           const photo = e.uid ? userPhotoMap[e.uid] : undefined;
@@ -1454,7 +1454,7 @@ const RsvpBar: React.FC<{
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}
-                              <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Unknown'}</span>
+                              <span className="text-sm text-ink-primary/90 flex-1 min-w-0 break-words">{e.name || 'Unknown'}</span>
                               {e.isGuest && (
                                 <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-brand-primary-soft text-brand-primary border border-brand-primary-soft shrink-0">
                                   via link
@@ -1473,7 +1473,7 @@ const RsvpBar: React.FC<{
                       see who declined or who RSVP'd from the link. */}
                   {entries.some(e => e.status === showList && !e.isPlayer && !e.isStaff) && (
                     <>
-                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Parents & guests</div>
+                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-ink-primary/40">Parents & guests</div>
                       <ul className="divide-y divide-gray-100">
                         {entries.filter(e => e.status === showList && !e.isPlayer && !e.isStaff).map(e => {
                           const photo = e.uid ? userPhotoMap[e.uid] : undefined;
@@ -1487,7 +1487,7 @@ const RsvpBar: React.FC<{
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}
-                              <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Guest'}</span>
+                              <span className="text-sm text-ink-primary/90 flex-1 min-w-0 break-words">{e.name || 'Guest'}</span>
                               {e.isGuest && (
                                 <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-brand-primary-soft text-brand-primary border border-brand-primary-soft shrink-0">
                                   via link
@@ -1548,22 +1548,22 @@ const CarpoolBar: React.FC<{
     setSeats(''); setLocation(''); setNote('');
   };
   return (
-    <div className="mt-2 pt-2 border-t border-dashed border-gray-100">
+    <div className="mt-2 pt-2 border-t border-dashed border-line-default/20">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between text-xs font-medium text-gray-600 hover:text-gray-800"
+        className="w-full flex items-center justify-between text-xs font-medium text-ink-primary/65 hover:text-ink-primary/90"
       >
         <span className="uppercase tracking-wide">Carpool board</span>
         <span className="flex items-center gap-2 text-[11px]">
           <span className="text-emerald-700">{offerCount} offer{offerCount !== 1 ? 's' : ''}</span>
           <span className="text-amber-700">{requestCount} request{requestCount !== 1 ? 's' : ''}</span>
-          <span className="text-gray-400">{open ? '▲' : '▼'}</span>
+          <span className="text-ink-primary/40">{open ? '▲' : '▼'}</span>
         </span>
       </button>
       {open && (
         <div className="mt-2 space-y-2">
           {posts.length === 0 && (
-            <p className="text-xs text-gray-400 italic">No posts yet — be the first.</p>
+            <p className="text-xs text-ink-primary/40 italic">No posts yet — be the first.</p>
           )}
           {posts.map(p => {
             const photo = userPhotoMap[p.uid];
@@ -1587,20 +1587,20 @@ const CarpoolBar: React.FC<{
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-800">
+                  <div className="font-semibold text-ink-primary/90">
                     {p.type === 'offer' ? 'Offering ride' : 'Need ride'} — {p.name}
                   </div>
-                  <div className="text-gray-700 mt-0.5">
+                  <div className="text-ink-primary/80 mt-0.5">
                     {p.seats ? `${p.seats} seat${p.seats !== 1 ? 's' : ''}` : ''}
                     {p.seats && p.location ? ' · ' : ''}
                     {p.location || ''}
                   </div>
-                  {p.note && <div className="text-gray-600 mt-0.5">{p.note}</div>}
+                  {p.note && <div className="text-ink-primary/65 mt-0.5">{p.note}</div>}
                 </div>
                 {userUid === p.uid && onDelete && (
                   <button
                     onClick={() => onDelete(event.id, p.id)}
-                    className="text-gray-400 hover:text-red-600 text-sm leading-none"
+                    className="text-ink-primary/40 hover:text-red-600 text-sm leading-none"
                     title="Delete"
                   >✕</button>
                 )}
@@ -1608,18 +1608,18 @@ const CarpoolBar: React.FC<{
             );
           })}
           {!isPast && userUid && onAdd && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 space-y-2">
+            <div className="bg-surface-input border border-line-default rounded-lg p-2 space-y-2">
               <div className="flex gap-1">
                 <button
                   onClick={() => setType('offer')}
                   className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
-                    type === 'offer' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-200'
+                    type === 'offer' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-surface-elevated text-ink-primary/80 border-line-default'
                   }`}
                 >Offer</button>
                 <button
                   onClick={() => setType('request')}
                   className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
-                    type === 'request' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-700 border-gray-200'
+                    type === 'request' ? 'bg-amber-500 text-white border-amber-500' : 'bg-surface-elevated text-ink-primary/80 border-line-default'
                   }`}
                 >Request</button>
               </div>
@@ -1629,14 +1629,14 @@ const CarpoolBar: React.FC<{
                   placeholder={type === 'offer' ? 'Seats' : 'Riders'}
                   value={seats}
                   onChange={e => setSeats(e.target.value)}
-                  className="px-2 py-1 text-xs border border-gray-200 rounded"
+                  className="px-2 py-1 text-xs border border-line-default rounded"
                 />
                 <input
                   type="text"
                   placeholder="Pickup area"
                   value={location}
                   onChange={e => setLocation(e.target.value)}
-                  className="px-2 py-1 text-xs border border-gray-200 rounded"
+                  className="px-2 py-1 text-xs border border-line-default rounded"
                 />
               </div>
               <input
@@ -1644,7 +1644,7 @@ const CarpoolBar: React.FC<{
                 placeholder="Optional note (e.g. leaving at 8:30)"
                 value={note}
                 onChange={e => setNote(e.target.value)}
-                className="w-full px-2 py-1 text-xs border border-gray-200 rounded"
+                className="w-full px-2 py-1 text-xs border border-line-default rounded"
               />
               <button
                 onClick={submit}

@@ -123,14 +123,14 @@ const UserProfileModal: React.FC<Props> = ({ uid, onClose, onStartDm }) => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden"
+        className="bg-surface-elevated w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden"
       >
         {/* Branded navy header — same chrome as the new chat action sheet
             so the two surfaces feel like siblings. */}
         <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between">
           <button
             onClick={onClose}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white px-1"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 hover:text-ink-primary px-1"
           >
             Close
           </button>
@@ -144,7 +144,7 @@ const UserProfileModal: React.FC<Props> = ({ uid, onClose, onStartDm }) => {
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-primary-soft border-t-cyan-500" />
             </div>
           ) : !profile ? (
-            <div className="px-4 py-12 text-center text-sm text-slate-500">Profile not found.</div>
+            <div className="px-4 py-12 text-center text-sm text-ink-primary/55">Profile not found.</div>
           ) : (
             <>
               {/* Identity card */}
@@ -157,7 +157,7 @@ const UserProfileModal: React.FC<Props> = ({ uid, onClose, onStartDm }) => {
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-lg font-extrabold text-slate-900 leading-tight">{profile.name}</div>
+                  <div className="text-lg font-extrabold text-ink-primary leading-tight">{profile.name}</div>
                   <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
                     {profile.role === 'coach' && (
                       <span className="text-[10px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-brand-primary-soft text-brand-primary border border-brand-primary-soft">
@@ -170,7 +170,7 @@ const UserProfileModal: React.FC<Props> = ({ uid, onClose, onStartDm }) => {
                       </span>
                     )}
                     {profile.role === 'parent' && (
-                      <span className="text-[10px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-slate-50 text-slate-700 border border-slate-200">
+                      <span className="text-[10px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-surface-input text-ink-primary/80 border border-line-default">
                         Guardian
                       </span>
                     )}
@@ -217,14 +217,14 @@ const UserProfileModal: React.FC<Props> = ({ uid, onClose, onStartDm }) => {
               {/* Teams */}
               {teams.length > 0 && (
                 <div>
-                  <div className="px-4 pt-2 pb-1 text-[10px] font-extrabold tracking-widest uppercase text-slate-500 bg-slate-50 border-y border-slate-100">
+                  <div className="px-4 pt-2 pb-1 text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 bg-surface-input border-y border-line-default/10">
                     Teams
                   </div>
                   <ul className="divide-y divide-slate-100">
                     {teams.map(t => (
                       <li key={t.id} className="px-4 py-3">
-                        <div className="text-sm font-semibold text-slate-900">{t.name}</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">{t.role}</div>
+                        <div className="text-sm font-semibold text-ink-primary">{t.name}</div>
+                        <div className="text-[11px] text-ink-primary/55 mt-0.5">{t.role}</div>
                       </li>
                     ))}
                   </ul>
@@ -234,15 +234,15 @@ const UserProfileModal: React.FC<Props> = ({ uid, onClose, onStartDm }) => {
               {/* Linked players (when this is a parent) */}
               {players.length > 0 && (
                 <div>
-                  <div className="px-4 pt-2 pb-1 text-[10px] font-extrabold tracking-widest uppercase text-slate-500 bg-slate-50 border-y border-slate-100">
+                  <div className="px-4 pt-2 pb-1 text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 bg-surface-input border-y border-line-default/10">
                     Players
                   </div>
                   <ul className="divide-y divide-slate-100">
                     {players.map(p => (
                       <li key={p.id} className="px-4 py-3">
-                        <div className="text-sm font-semibold text-slate-900">{p.name}</div>
+                        <div className="text-sm font-semibold text-ink-primary">{p.name}</div>
                         {p.teamIds.length > 0 && (
-                          <div className="text-[11px] text-slate-500 mt-0.5">
+                          <div className="text-[11px] text-ink-primary/55 mt-0.5">
                             {p.teamIds.map(tid => teamNameById[tid] || 'Team').join(' · ')}
                           </div>
                         )}
@@ -253,7 +253,7 @@ const UserProfileModal: React.FC<Props> = ({ uid, onClose, onStartDm }) => {
               )}
 
               {!showEmail && !showPhone && players.length === 0 && (
-                <div className="px-4 py-6 text-center text-[11px] text-slate-400 italic">
+                <div className="px-4 py-6 text-center text-[11px] text-ink-primary/45 italic">
                   This member's contact info is private.
                 </div>
               )}

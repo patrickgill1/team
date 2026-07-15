@@ -36,7 +36,7 @@ const Spinner: React.FC = () => (
 
 const Page: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex items-start justify-center p-4 pt-12 pb-16">
-    <div className="bg-surface-elevated/60 backdrop-blur ring-1 ring-line-default/10 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-white">
+    <div className="bg-surface-elevated/60 backdrop-blur ring-1 ring-line-default/10 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-ink-primary">
       {children}
     </div>
   </div>
@@ -288,7 +288,7 @@ const InviteJoin: React.FC = () => {
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <h1 className="text-xl font-bold">Invite unavailable</h1>
-          <p className="text-white/70 text-sm mt-2">{error}</p>
+          <p className="text-ink-primary/70 text-sm mt-2">{error}</p>
           <Link to="/auth" className="mt-6 inline-block px-4 py-2 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-sm font-semibold">Go to sign-in</Link>
         </div>
       </Page>
@@ -305,7 +305,7 @@ const InviteJoin: React.FC = () => {
             <polyline points="12 6 12 12 16 14" />
           </svg>
           <h1 className="text-xl font-bold">This invite {reason}</h1>
-          <p className="text-white/70 text-sm mt-2">Ask the coach to send you a fresh link.</p>
+          <p className="text-ink-primary/70 text-sm mt-2">Ask the coach to send you a fresh link.</p>
         </div>
       </Page>
     );
@@ -320,7 +320,7 @@ const InviteJoin: React.FC = () => {
             <polyline points="22 4 12 14.01 9 11.01" />
           </svg>
           <h1 className="text-2xl font-black">You're in!</h1>
-          <p className="text-white/70 text-sm mt-2">Opening your Team HQ...</p>
+          <p className="text-ink-primary/70 text-sm mt-2">Opening your Team HQ...</p>
         </div>
       </Page>
     );
@@ -338,16 +338,16 @@ const InviteJoin: React.FC = () => {
           </div>
         )}
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-ink-primary/60">
             {(player as any).isAdultPlayer ? 'Claim your spot' : 'Joining as parent'}
           </p>
           <h1 className="text-2xl font-black leading-tight">{player.name}</h1>
-          <p className="text-white/70 text-sm">
+          <p className="text-ink-primary/70 text-sm">
             {player.jerseyNumber ? `#${player.jerseyNumber}` : ''}{player.jerseyNumber && player.position ? ' · ' : ''}{player.position}
           </p>
         </div>
       </div>
-      <p className="text-white/80 text-sm">
+      <p className="text-ink-primary/80 text-sm">
         {(player as any).isAdultPlayer
           ? `Sign in below to lock in your roster spot on ${teamName || 'the team'} — RSVPs, tagged clips, and team splits will land on your device.`
           : `Are you ${player.name.split(' ')[0]}'s parent? Create an account or sign in below to follow their stats, clips, and team updates.`}
@@ -355,18 +355,18 @@ const InviteJoin: React.FC = () => {
     </>
   ) : invite?.type === 'coach' ? (
     <>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-2">Coach invite</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-ink-primary/60 mb-2">Coach invite</p>
       <h1 className="text-2xl font-black mb-2">Join {teamName}</h1>
-      <p className="text-white/80 text-sm">You're being added as <b>{invite.role === 'head_coach' ? 'Head Coach' : 'Assistant Coach'}</b>. Sign in or create an account to accept.</p>
+      <p className="text-ink-primary/80 text-sm">You're being added as <b>{invite.role === 'head_coach' ? 'Head Coach' : 'Assistant Coach'}</b>. Sign in or create an account to accept.</p>
     </>
   ) : invite?.type === 'team_manager' ? (
     <>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-2">Team manager invite</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-ink-primary/60 mb-2">Team manager invite</p>
       <h1 className="text-2xl font-black mb-2">Manage {teamName}</h1>
-      <p className="text-white/80 text-sm">You're being added as <b>Team Manager</b>. Sign in or create an account to accept.</p>
+      <p className="text-ink-primary/80 text-sm">You're being added as <b>Team Manager</b>. Sign in or create an account to accept.</p>
     </>
   ) : (
-    <p className="text-white/70 text-sm">Loading invite details…</p>
+    <p className="text-ink-primary/70 text-sm">Loading invite details…</p>
   );
 
   return (
@@ -397,7 +397,7 @@ const InviteJoin: React.FC = () => {
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/55">Invited by</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/55">Invited by</p>
             <p className="text-ink-primary font-bold text-sm leading-tight truncate">{clubBrand.name || 'your club'}</p>
           </div>
         </div>
@@ -419,7 +419,7 @@ const InviteJoin: React.FC = () => {
       {/* Already signed in shortcut */}
       {currentUser ? (
         <div className="p-6 space-y-3">
-          <p className="text-sm text-white/85">
+          <p className="text-sm text-ink-primary/85">
             Signed in as <b>{currentUser.email}</b>. Tap below to link this account to {invite?.type === 'player' && player ? player.name : teamName}.
           </p>
           {error && <p className="text-rose-300 text-sm">{error}</p>}
@@ -431,7 +431,7 @@ const InviteJoin: React.FC = () => {
           </button>
           <button
             onClick={async () => { await auth.signOut(); }}
-            className="w-full py-2 text-xs font-semibold text-white/60 hover:text-white"
+            className="w-full py-2 text-xs font-semibold text-ink-primary/60 hover:text-ink-primary"
           >
             Use a different account
           </button>
@@ -443,7 +443,7 @@ const InviteJoin: React.FC = () => {
             type="button"
             onClick={handleGoogle}
             disabled={submitting}
-            className="w-full py-3 rounded-xl bg-white text-slate-900 font-bold text-sm flex items-center justify-center gap-3 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="w-full py-3 rounded-xl bg-brand-primary text-white font-bold text-sm flex items-center justify-center gap-3 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -454,7 +454,7 @@ const InviteJoin: React.FC = () => {
             Continue with Google
           </button>
 
-          <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-white/40">
+          <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-ink-primary/40">
             <div className="flex-1 h-px bg-line-default/10" />
             <span>or with email</span>
             <div className="flex-1 h-px bg-line-default/10" />
@@ -464,14 +464,14 @@ const InviteJoin: React.FC = () => {
             <button
               type="button"
               onClick={() => setMode('sign-up')}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${mode === 'sign-up' ? 'bg-white text-slate-900' : 'bg-line-default/10 text-white/70'}`}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${mode === 'sign-up' ? 'bg-brand-primary text-white' : 'bg-line-default/10 text-ink-primary/70'}`}
             >
               Create account
             </button>
             <button
               type="button"
               onClick={() => setMode('sign-in')}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${mode === 'sign-in' ? 'bg-white text-slate-900' : 'bg-line-default/10 text-white/70'}`}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${mode === 'sign-in' ? 'bg-brand-primary text-white' : 'bg-line-default/10 text-ink-primary/70'}`}
             >
               I already have one
             </button>
@@ -484,7 +484,7 @@ const InviteJoin: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
-              className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+              className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
             />
           )}
           <input
@@ -494,7 +494,7 @@ const InviteJoin: React.FC = () => {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
-            className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+            className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
           />
           <input
             type="password"
@@ -503,7 +503,7 @@ const InviteJoin: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
             autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
-            className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+            className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
           />
 
           {error && <p className="text-rose-300 text-sm">{error}</p>}
@@ -516,14 +516,14 @@ const InviteJoin: React.FC = () => {
             {submitting ? 'Working...' : mode === 'sign-up' ? 'Create account & join' : 'Sign in & join'}
           </button>
 
-          <p className="text-white/45 text-[11px] text-center leading-snug">
+          <p className="text-ink-primary/45 text-[11px] text-center leading-snug">
             Nothing to install. You'll be inside your team hub in this browser the moment this finishes.
           </p>
         </form>
       )}
 
       {/* Footer */}
-      <div className="border-t border-line-default/10 px-6 py-3 text-center text-[11px] text-white/40 font-semibold tracking-wider uppercase">
+      <div className="border-t border-line-default/10 px-6 py-3 text-center text-[11px] text-ink-primary/40 font-semibold tracking-wider uppercase">
         GoalKickr
       </div>
     </Page>

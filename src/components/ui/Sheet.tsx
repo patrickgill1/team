@@ -149,7 +149,7 @@ const Sheet: React.FC<Props> = ({
                 <h3 className="text-ink-primary text-lg sm:text-xl font-bold leading-tight">{title}</h3>
               )}
               {subtitle && (
-                <p className="text-charcoal-300 text-sm mt-2 leading-snug">{subtitle}</p>
+                <p className="text-ink-primary/65 text-sm mt-2 leading-snug">{subtitle}</p>
               )}
             </div>
             {!hideCloseButton && (

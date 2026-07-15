@@ -69,7 +69,7 @@ const VideoQuotaModal: React.FC<Props> = ({ open, quota, onClose, teamId }) => {
           <button
             type="button"
             onClick={onClose}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-ink-primary"
           >
             Close
           </button>

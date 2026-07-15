@@ -49,14 +49,20 @@ interface Props {
 // Tone -> tailwind triplet (text color / bg fill / ring). Soft-fill
 // look (semi-transparent bg + matching ring) — same pattern that
 // already shows up most often in the existing codebase.
+// 2026-07-15: split the text color per theme. Prior single-token
+// text-<hue>-200 rendered as light-yellow / light-green / etc — fine
+// on dark bg, invisible on light bg. Dark:200 stays, light:700 is
+// the readable equivalent on a light card. Same shift for every
+// tone. bg-<hue>-500/15 works in both themes because it's semi-
+// transparent tint over the theme surface.
 const TONES: Record<PillTone, string> = {
   neutral: 'text-ink-primary/65 bg-line-default/[0.08] ring-1 ring-line-default/10',
   crimson: 'text-brand-primary-soft bg-brand-primary/15 ring-1 ring-brand-primary/30',
-  amber:   'text-amber-200   bg-amber-500/15   ring-1 ring-amber-400/30',
-  emerald: 'text-emerald-200 bg-emerald-500/15 ring-1 ring-emerald-400/30',
-  rose:    'text-rose-200    bg-rose-500/15    ring-1 ring-rose-400/30',
-  sky:     'text-sky-200     bg-sky-500/15     ring-1 ring-sky-400/30',
-  violet:  'text-violet-200  bg-violet-500/15  ring-1 ring-violet-400/30',
+  amber:   'text-amber-700 dark:text-amber-200 bg-amber-500/15 ring-1 ring-amber-400/30',
+  emerald: 'text-emerald-700 dark:text-emerald-200 bg-emerald-500/15 ring-1 ring-emerald-400/30',
+  rose:    'text-rose-700 dark:text-rose-200 bg-rose-500/15 ring-1 ring-rose-400/30',
+  sky:     'text-sky-700 dark:text-sky-200 bg-sky-500/15 ring-1 ring-sky-400/30',
+  violet:  'text-violet-700 dark:text-violet-200 bg-violet-500/15 ring-1 ring-violet-400/30',
 };
 
 const DOT_TONES: Record<PillTone, string> = {

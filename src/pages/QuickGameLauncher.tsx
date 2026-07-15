@@ -16,13 +16,13 @@ const QuickGameLauncher: React.FC = () => {
 
   if (!isCoachOfTeam(userData, selectedTeam)) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base text-ink-primary flex items-center justify-center p-6">
         <div className="text-center">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 mx-auto mb-3 text-white/40">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 mx-auto mb-3 text-ink-primary/40">
             <rect x="3" y="11" width="18" height="11" rx="2" />
             <path d="M7 11V7a5 5 0 0110 0v4" />
           </svg>
-          <p className="text-white/70">Coaches only — kickoff is a coach-side action.</p>
+          <p className="text-ink-primary/70">Coaches only — kickoff is a coach-side action.</p>
           <Link to="/dashboard" className="mt-4 inline-block text-brand-primary-soft hover:text-ink-primary text-sm">← Team HQ</Link>
         </div>
       </div>
@@ -59,39 +59,39 @@ const QuickGameLauncher: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base text-white">
+    <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base text-ink-primary">
       <header className="px-4 py-4 border-b border-line-default/10 flex items-center justify-between">
-        <Link to="/dashboard" className="text-white/60 hover:text-white text-sm">← Back</Link>
+        <Link to="/dashboard" className="text-ink-primary/60 hover:text-ink-primary text-sm">← Back</Link>
         <h1 className="text-lg font-bold">⚡ Quick Game</h1>
         <div className="w-12" />
       </header>
       <main className="max-w-md mx-auto px-4 pt-8 space-y-5">
         <div className="rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 p-5 space-y-4">
-          <p className="text-sm text-white/70">
+          <p className="text-sm text-ink-primary/70">
             Start Game Day right now without putting it on the calendar. Useful for scrimmages, friendlies, or anything you forgot to schedule.
           </p>
           {selectedTeam?.name && (
-            <div className="text-xs text-white/50">Team: <span className="text-white/80 font-semibold">{selectedTeam.name}</span></div>
+            <div className="text-xs text-ink-primary/50">Team: <span className="text-ink-primary/80 font-semibold">{selectedTeam.name}</span></div>
           )}
           <div>
-            <label className="text-xs uppercase tracking-wider text-white/60 font-bold">Opponent</label>
+            <label className="text-xs uppercase tracking-wider text-ink-primary/60 font-bold">Opponent</label>
             <input
               type="text"
               value={opponent}
               onChange={e => setOpponent(e.target.value)}
               placeholder="e.g. Lightning FC"
-              className="mt-1 w-full px-3 py-2 bg-line-default/10 border border-line-default/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              className="mt-1 w-full px-3 py-2 bg-line-default/10 border border-line-default/10 rounded-lg text-sm text-ink-primary placeholder-ink-primary/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
               autoFocus
             />
           </div>
           <div>
-            <label className="text-xs uppercase tracking-wider text-white/60 font-bold">Home / Away</label>
+            <label className="text-xs uppercase tracking-wider text-ink-primary/60 font-bold">Home / Away</label>
             <div className="mt-1 grid grid-cols-2 gap-2">
               {(['home', 'away'] as const).map(v => (
                 <button
                   key={v}
                   onClick={() => setHomeAway(v)}
-                  className={`py-2 rounded-lg text-sm font-semibold ring-1 ${homeAway === v ? 'bg-brand-primary ring-brand-primary-soft text-white' : 'bg-line-default/5 ring-line-default/10 text-white/70 hover:bg-line-default/10'}`}
+                  className={`py-2 rounded-lg text-sm font-semibold ring-1 ${homeAway === v ? 'bg-brand-primary ring-brand-primary-soft text-white' : 'bg-line-default/5 ring-line-default/10 text-ink-primary/70 hover:bg-line-default/10'}`}
                 >{v === 'home' ? '🏠 Home' : '✈️ Away'}</button>
               ))}
             </div>
@@ -101,7 +101,7 @@ const QuickGameLauncher: React.FC = () => {
             disabled={busy}
             className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-lg font-bold"
           >{busy ? 'Starting…' : '⚡ Start Game'}</button>
-          <p className="text-[11px] text-white/40">
+          <p className="text-[11px] text-ink-primary/40">
             Stats finalize the same way as a calendar game when you tap End Game. No event will be created on the calendar.
           </p>
         </div>

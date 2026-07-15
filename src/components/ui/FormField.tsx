@@ -72,7 +72,7 @@ const FormField: React.FC<Props> = ({
     )}
     {children}
     {error && (
-      <p className="text-[11px] text-rose-300 mt-1.5 leading-snug">{error}</p>
+      <p className="text-[11px] text-rose-600 dark:text-rose-300 mt-1.5 leading-snug">{error}</p>
     )}
   </label>
 );

@@ -1917,7 +1917,7 @@ const PlayerMediaPage: React.FC = () => {
                           onClick={() => toggleUploadTag(tag)}
                           className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                             uploadTags.includes(tag)
-                              ? 'bg-surface-tint text-white'
+                              ? 'bg-brand-primary text-white'
                               : 'bg-line-default/[0.08] text-ink-primary/65 hover:bg-line-default/[0.1]'
                           }`}
                         >
@@ -1945,7 +1945,7 @@ const PlayerMediaPage: React.FC = () => {
                                   type="button"
                                   onClick={() => setUploadGoalScorerId(p.id)}
                                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                                    isSel ? 'bg-surface-tint text-white' : 'bg-surface-elevated text-ink-primary/65 border border-line-default/10 hover:bg-line-default/[0.05]'
+                                    isSel ? 'bg-brand-primary text-white' : 'bg-surface-elevated text-ink-primary/65 border border-line-default/10 hover:bg-line-default/[0.05]'
                                   }`}
                                 >
                                   {p.name}
@@ -2096,7 +2096,7 @@ const PlayerMediaPage: React.FC = () => {
                   <button
                     onClick={handleUpload}
                     disabled={uploading || !uploadPlayerId || uploadFiles.length === 0}
-                    className="px-4 py-2 bg-surface-tint text-white rounded-lg hover:bg-surface-raised disabled:opacity-50"
+                    className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-surface-raised disabled:opacity-50"
                   >
                     {uploading ? 'Uploading...' : 'Upload'}
                   </button>

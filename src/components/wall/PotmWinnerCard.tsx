@@ -35,7 +35,7 @@ const PotmWinnerCard: React.FC<Props> = ({ potm, timestamp }) => {
   const showPhoto = !!potm.playerPhotoUrl && !photoFailed;
 
   return (
-    <article className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400/40 via-amber-600/15 to-charcoal-950 ring-1 ring-amber-300/50 shadow-2xl shadow-amber-900/40">
+    <article className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400/40 via-amber-600/15 to-surface-elevated ring-1 ring-amber-300/50 shadow-2xl shadow-amber-900/40">
       {/* Three-layer bloom: dominant top-right amber sun, secondary
           bottom-left warm gold, and a large center vignette that
           picks up the highlight around the portrait. */}

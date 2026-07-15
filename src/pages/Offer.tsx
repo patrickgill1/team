@@ -328,7 +328,7 @@ const Offer: React.FC = () => {
             <Logo size="lg" variant="full" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white">{offer.teamName}</h1>
-          <p className="text-slate-300 mt-1">offers <b className="text-white">{offer.playerName}</b> a roster spot</p>
+          <p className="text-ink-secondary mt-1">offers <b className="text-white">{offer.playerName}</b> a roster spot</p>
         </div>
 
         <div className="bg-line-default/[0.04] backdrop-blur-2xl ring-1 ring-line-default/10 rounded-3xl p-6 sm:p-8 space-y-5">
@@ -343,7 +343,7 @@ const Offer: React.FC = () => {
               />
             </div>
           )}
-          <div className="whitespace-pre-wrap text-slate-200 leading-relaxed text-[15px]">
+          <div className="whitespace-pre-wrap text-ink-primary leading-relaxed text-[15px]">
             {offer.message}
           </div>
 
@@ -368,7 +368,7 @@ const Offer: React.FC = () => {
               <div>
                 <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Sign to finish</div>
                 <h2 className="text-lg font-black text-ink-primary">{waivers.length === 1 ? 'One quick release' : `${waivers.length} releases`} before {offer.playerName} is rostered</h2>
-                <p className="text-[12px] text-slate-400 mt-1">Tap each to read, then type your name to sign.</p>
+                <p className="text-[12px] text-ink-primary/60 mt-1">Tap each to read, then type your name to sign.</p>
               </div>
 
               <ul className="space-y-2">
@@ -432,7 +432,7 @@ const Offer: React.FC = () => {
                   type="button"
                   onClick={() => { setShowingWaivers(false); setWaiverAck({}); setSignedByName(''); }}
                   disabled={submitting}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-slate-300 hover:text-white hover:ring-line-default/30 disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-ink-secondary hover:text-white hover:ring-line-default/30 disabled:opacity-50"
                 >
                   Back
                 </button>
@@ -456,7 +456,7 @@ const Offer: React.FC = () => {
                 type="button"
                 onClick={() => setShowingDecline(true)}
                 disabled={submitting}
-                className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-slate-300 hover:text-white hover:ring-line-default/30 disabled:opacity-50"
+                className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-ink-secondary hover:text-white hover:ring-line-default/30 disabled:opacity-50"
               >
                 Decline
               </button>
@@ -484,7 +484,7 @@ const Offer: React.FC = () => {
                   type="button"
                   onClick={() => setShowingDecline(false)}
                   disabled={submitting}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-slate-300 hover:text-white hover:ring-line-default/30"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-ink-secondary hover:text-white hover:ring-line-default/30"
                 >
                   Back
                 </button>

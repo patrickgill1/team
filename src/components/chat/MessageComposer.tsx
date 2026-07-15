@@ -404,7 +404,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
               />
               <button
                 onClick={() => removePending(i)}
-                className="absolute -top-1.5 -right-1.5 bg-black hover:bg-surface-base text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow ring-1 ring-line-default/20"
+                className="absolute -top-1.5 -right-1.5 bg-black hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow ring-1 ring-line-default/20"
                 aria-label="Remove"
               >
                 ×

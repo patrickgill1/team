@@ -108,7 +108,7 @@ const PublicGame: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-vignette-deep text-white">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-vignette-deep text-ink-primary">
       {/* Ambient glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-brand-primary/20 rounded-full blur-3xl" />

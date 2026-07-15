@@ -906,7 +906,7 @@ const Navigation: React.FC = () => {
           onClick={() => !deletingAccount && setShowDeleteAccount(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+            className="bg-surface-elevated rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="bg-red-50 border-b border-red-100 px-5 py-4">
@@ -951,7 +951,7 @@ const Navigation: React.FC = () => {
               <button
                 onClick={() => setShowDeleteAccount(false)}
                 disabled={deletingAccount}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-ink-primary bg-surface-elevated border border-line-default hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancel
               </button>

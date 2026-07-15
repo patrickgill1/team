@@ -126,7 +126,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+      <div onClick={e => e.stopPropagation()} className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <div>
             <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Active invites</div>
@@ -145,7 +145,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
               className={`px-3 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 filter === k
                   ? 'bg-brand-primary-soft text-brand-primary border-brand-primary-soft'
-                  : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                  : 'bg-surface-elevated text-ink-secondary border-line-default hover:text-slate-800'
               }`}
             >
               {k === 'active' ? `Active ${counts.active}` : `All ${counts.all}`}
@@ -198,7 +198,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
                           <button
                             onClick={() => handleCopy(r.id)}
                             disabled={busyId === r.id}
-                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-slate-700 border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-surface-elevated text-ink-primary border-line-default hover:bg-slate-50 disabled:opacity-50"
                           >
                             Copy link
                           </button>

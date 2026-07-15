@@ -238,7 +238,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-full flex flex-col"
+        className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-2xl max-h-full flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated">
@@ -364,7 +364,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                       // is in dark mode — otherwise the input renders dark-on-
                       // darker against our white card and is unreadable.
                       style={{ colorScheme: 'light' }}
-                      className="w-full px-3 py-2 text-sm text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40 bg-white"
+                      className="w-full px-3 py-2 text-sm text-ink-primary border border-line-default rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40 bg-surface-input"
                     />
                   </div>
                   <div>
@@ -404,7 +404,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                   </button>
                 )}
               </div>
-              <ul className="divide-y divide-gray-100 ring-1 ring-gray-200 rounded-xl overflow-hidden bg-white">
+              <ul className="divide-y divide-gray-100 ring-1 ring-line-default rounded-xl overflow-hidden bg-surface-elevated">
                 {rows.map((row, i) => {
                   if (!isInRange(row)) return null;
                   const cls = classifyEvent(row.raw.title, selectedTeam?.name || '');

@@ -62,7 +62,7 @@ const Modal: React.FC<Props> = ({ open, onClose, title, size = 'md', footer, bus
       <div
         onClick={(e) => e.stopPropagation()}
         className={[
-          'bg-white shadow-2xl flex flex-col w-full',
+          'bg-surface-elevated shadow-2xl flex flex-col w-full',
           'rounded-t-2xl sm:rounded-2xl',
           // Mobile: takes full width, max 90vh; on tablet+ scaled down.
           'max-h-[92vh] sm:max-h-[85vh]',
@@ -97,7 +97,7 @@ const Modal: React.FC<Props> = ({ open, onClose, title, size = 'md', footer, bus
 
         {/* Optional sticky footer — keeps Save/Cancel reachable. */}
         {footer && (
-          <div className="px-4 py-3 border-t border-slate-100 flex-shrink-0 bg-white">
+          <div className="px-4 py-3 border-t border-line-default flex-shrink-0 bg-surface-elevated">
             {footer}
           </div>
         )}

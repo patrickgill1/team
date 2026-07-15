@@ -133,7 +133,7 @@ const Tasks: React.FC = () => {
                 key={s}
                 type="button"
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${statusFilter === s ? 'bg-surface-elevated text-white' : 'bg-surface-elevated text-ink-primary/65 hover:bg-line-default/[0.05]'}`}
+                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${statusFilter === s ? 'bg-surface-elevated text-ink-primary' : 'bg-surface-elevated text-ink-primary/65 hover:bg-line-default/[0.05]'}`}
               >
                 {s === 'in_progress' ? 'In progress' : s}
               </button>

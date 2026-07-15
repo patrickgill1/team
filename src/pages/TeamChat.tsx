@@ -2399,7 +2399,7 @@ const TeamChat: React.FC = () => {
                     checked ? 'bg-violet-500/20 ring-1 ring-violet-300' : 'hover:bg-violet-500/15'
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold ${m.role === 'coach' ? 'bg-surface-tint' : 'bg-emerald-600'}`}>
+                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-ink-primary text-base font-bold ${m.role === 'coach' ? 'bg-surface-tint' : 'bg-emerald-600'}`}>
                     {m.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -2464,7 +2464,7 @@ const TeamChat: React.FC = () => {
     >
       <button
         onClick={(e) => { e.stopPropagation(); setLightboxUrl(null); }}
-        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white flex items-center justify-center"
+        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-ink-primary flex items-center justify-center"
         style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}
         aria-label="Close"
       >

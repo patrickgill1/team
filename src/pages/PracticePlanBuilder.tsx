@@ -199,7 +199,7 @@ const PracticePlanBuilder: React.FC = () => {
           </svg>
           <h2 className="font-bold text-amber-100">Coaches only</h2>
           <p className="text-sm text-amber-300 mt-1">Training Sessions are coach-side. Parents see what their kid does, not the playbook.</p>
-          <Link to="/dashboard" className="inline-block mt-4 px-4 py-2 bg-surface-raised text-white rounded-lg">Back to Team HQ</Link>
+          <Link to="/dashboard" className="inline-block mt-4 px-4 py-2 bg-surface-raised text-ink-primary rounded-lg">Back to Team HQ</Link>
         </div>
       </div>
     );

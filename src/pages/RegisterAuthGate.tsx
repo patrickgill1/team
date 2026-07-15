@@ -91,7 +91,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
             You're a few clicks from the<br />
             <span className="text-brand-primary-soft">GoalKickr family.</span>
           </h1>
-          <p className="text-slate-300 mt-3 text-sm leading-relaxed">
+          <p className="text-ink-secondary mt-3 text-sm leading-relaxed">
             Sign in or create your account to start your registration. One login covers every kid in your family — past, present, and future seasons.
           </p>
         </div>
@@ -150,7 +150,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
             <>
               {mode === 'email-signup' && (
                 <label className="block">
-                  <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Your name</span>
+                  <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink-primary/60 mb-1">Your name</span>
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -161,7 +161,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                 </label>
               )}
               <label className="block">
-                <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Email</span>
+                <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink-primary/60 mb-1">Email</span>
                 <input
                   type="email"
                   value={email}
@@ -172,7 +172,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                 />
               </label>
               <label className="block">
-                <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Password</span>
+                <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink-primary/60 mb-1">Password</span>
                 <input
                   type="password"
                   value={password}
@@ -193,7 +193,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
               <button
                 type="button"
                 onClick={() => setMode('choose')}
-                className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-200"
+                className="w-full py-2 text-xs font-bold text-ink-secondary hover:text-ink-primary"
               >
                 ← Other sign-in options
               </button>
@@ -204,7 +204,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
             <div className="rounded-lg bg-rose-500/10 ring-1 ring-rose-500/40 px-3 py-2 text-sm text-rose-200">{error}</div>
           )}
 
-          <p className="text-[10px] text-slate-500 text-center pt-2">
+          <p className="text-[10px] text-ink-primary/60 text-center pt-2">
             By signing in you agree to our Privacy Policy. We use your account so you can manage your kids, RSVP events, chat with coaches, and get updates.
           </p>
         </div>

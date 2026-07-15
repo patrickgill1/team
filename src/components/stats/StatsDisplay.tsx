@@ -152,7 +152,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                 onClick={() => setViewMode('overview')}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                   viewMode === 'overview'
-                    ? 'bg-white text-charcoal-600 shadow-sm'
+                    ? 'bg-surface-elevated text-ink-primary shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -162,7 +162,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                 onClick={() => setViewMode('detailed')}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                   viewMode === 'detailed'
-                    ? 'bg-white text-charcoal-600 shadow-sm'
+                    ? 'bg-surface-elevated text-ink-primary shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -178,7 +178,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
         /* Team Overview */
         <div className="space-y-6">
           {/* Top Performers */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-surface-elevated rounded-lg shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performers</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-yellow-50 rounded-lg">
@@ -205,7 +205,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
           {/* Team Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {players.map(player => (
-              <div key={player.id} className="bg-white rounded-lg shadow-md p-4">
+              <div key={player.id} className="bg-surface-elevated rounded-lg shadow-md p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h4 className="font-semibold text-gray-900">{player.name}</h4>
@@ -262,7 +262,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
             /* Overview Mode */
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Season Totals */}
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="bg-surface-elevated rounded-lg shadow-md p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Season Totals</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
@@ -285,7 +285,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
               </div>
 
               {/* Averages */}
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="bg-surface-elevated rounded-lg shadow-md p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Per Game Averages</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
@@ -309,7 +309,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
             </div>
           ) : (
             /* Detailed Game-by-Game */
-            <div className="bg-white rounded-lg shadow-md">
+            <div className="bg-surface-elevated rounded-lg shadow-md">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Game-by-Game Performance</h3>
               </div>

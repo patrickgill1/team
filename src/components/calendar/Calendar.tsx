@@ -532,7 +532,7 @@ const Calendar: React.FC<CalendarProps> = ({
         >
           <div className={`text-xs font-semibold mb-1 inline-flex items-center justify-center ${
             isToday
-              ? 'w-6 h-6 rounded-full bg-surface-tint text-white shadow-sm'
+              ? 'w-6 h-6 rounded-full bg-surface-tint text-ink-primary shadow-sm'
               : isPast ? 'text-ink-primary/40' : 'text-ink-primary'
           }`}>
             {day}
@@ -929,11 +929,11 @@ interface EventCardProps {
 const eventColors = (type: string) => {
   switch (type) {
     case 'game':
-      return { stripe: 'bg-surface-raised', stripeText: 'text-white', pill: 'bg-surface-raised/10 text-ink-primary' };
+      return { stripe: 'bg-surface-raised', stripeText: 'text-ink-primary', pill: 'bg-surface-raised/10 text-ink-primary' };
     case 'practice':
       return { stripe: 'bg-brand-primary', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
     case 'event':
-      return { stripe: 'bg-surface-raised', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
+      return { stripe: 'bg-surface-raised', stripeText: 'text-ink-primary', pill: 'bg-brand-primary-soft text-charcoal-800' };
     default:
       return { stripe: 'bg-brand-primary', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
   }
@@ -1648,7 +1648,7 @@ const CarpoolBar: React.FC<{
               />
               <button
                 onClick={submit}
-                className="w-full px-2 py-1.5 bg-surface-tint hover:bg-surface-raised text-white text-xs font-semibold rounded"
+                className="w-full px-2 py-1.5 bg-surface-tint hover:bg-surface-raised text-ink-primary text-xs font-semibold rounded"
               >Post</button>
             </div>
           )}

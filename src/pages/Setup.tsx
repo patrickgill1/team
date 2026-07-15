@@ -263,7 +263,7 @@ const Setup: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-surface-tint hover:bg-surface-raised text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+              className="w-full bg-surface-tint hover:bg-surface-raised text-ink-primary font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
             >
               {isSubmitting ? (
                 <>

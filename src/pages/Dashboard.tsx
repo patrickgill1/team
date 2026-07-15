@@ -1150,7 +1150,7 @@ const Dashboard: React.FC = () => {
   const eventGradient = (t: string) =>
     t === 'game' ? 'from-rose-500 to-orange-500'
       : t === 'practice' ? 'from-brand-primary to-surface-tint'
-      : 'from-violet-500 to-fuchsia-500';
+      : 'from-slate-500 to-slate-600';
 
   // Atomic-render gate: render nothing for the first ~400ms of the
   // load (per atomic-render rule), then a subtle progress hint, then
@@ -2679,7 +2679,7 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
   return (
     <Link
       to={`/player-media?clip=${clip.id}`}
-      className="block relative overflow-hidden rounded-2xl ring-1 ring-gray-200 bg-gray-900 group shadow-sm"
+      className="block relative overflow-hidden rounded-2xl ring-1 ring-line-default bg-surface-elevated group shadow-sm"
     >
       <div className="aspect-[16/9] sm:aspect-[16/8]">
         {thumb ? (

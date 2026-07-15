@@ -162,7 +162,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => setViewMode('grid')}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                 viewMode === 'grid'
-                  ? 'bg-white text-charcoal-600 shadow-sm'
+                  ? 'bg-surface-elevated text-ink-primary shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -172,7 +172,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => setViewMode('masonry')}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                 viewMode === 'masonry'
-                  ? 'bg-white text-charcoal-600 shadow-sm'
+                  ? 'bg-surface-elevated text-ink-primary shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -195,7 +195,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
         {showUploadButton && canManageMedia && (
           <button
             onClick={() => setIsUploadOpen(true)}
-            className="bg-surface-tint hover:bg-surface-raised text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2"
+            className="bg-surface-tint hover:bg-surface-raised text-ink-primary font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -252,7 +252,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
           {!searchTerm && !tagFilter && showUploadButton && canManageMedia && (
             <button
               onClick={() => setIsUploadOpen(true)}
-              className="bg-surface-tint hover:bg-surface-raised text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+              className="bg-surface-tint hover:bg-surface-raised text-ink-primary font-medium py-2 px-4 rounded-lg transition duration-200"
             >
               Upload First Photos
             </button>
@@ -318,7 +318,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
   viewMode
 }) => {
   return (
-    <div className={`group relative bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 ${
+    <div className={`group relative bg-surface-elevated rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 ${
       viewMode === 'masonry' ? 'break-inside-avoid mb-4' : ''
     }`}>
       <div className="relative">
@@ -457,7 +457,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
         </div>
 
         {/* Photo Details */}
-        <div className="bg-white rounded-lg p-4">
+        <div className="bg-surface-elevated rounded-lg p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
               <div className="flex items-center space-x-2 text-sm text-gray-600 mb-2">

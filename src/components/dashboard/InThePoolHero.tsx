@@ -120,7 +120,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
               <>You're in the <span className="text-brand-primary-soft">pool</span>, {firstName}.</>
             )}
           </h1>
-          <p className="text-slate-300 mt-3 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
+          <p className="text-ink-secondary mt-3 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
             {overallVibe === 'offer_action'
               ? 'Check your email and tap the link to accept. We hope you say yes.'
               : overallVibe === 'all_rostered'
@@ -136,7 +136,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
           <div className="bg-line-default/[0.04] ring-1 ring-line-default/10 rounded-2xl p-6 text-center text-sm text-slate-300">Loading your registrations…</div>
         ) : kids.length === 0 ? (
           <div className="bg-line-default/[0.04] ring-1 ring-line-default/10 rounded-2xl p-6 text-center">
-            <p className="text-sm text-slate-300 mb-4">We don't see a registration on file under <b className="text-white">{email}</b> yet.</p>
+            <p className="text-sm text-ink-secondary mb-4">We don't see a registration on file under <b className="text-white">{email}</b> yet.</p>
             <Link to="/register" className="inline-block px-5 py-2.5 rounded-xl bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold">
               Start registration
             </Link>
@@ -180,7 +180,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
         {overallVibe === 'in_pool' && (
           <div className="mt-6 bg-line-default/[0.03] ring-1 ring-line-default/10 rounded-2xl p-5">
             <div className="text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-soft mb-2">What happens next</div>
-            <ul className="space-y-2 text-sm text-slate-300">
+            <ul className="space-y-2 text-sm text-ink-secondary">
               <li className="flex items-start gap-2"><span className="text-brand-primary-soft mt-0.5">①</span> Coaches review the pool every Sunday.</li>
               <li className="flex items-start gap-2"><span className="text-brand-primary-soft mt-0.5">②</span> If a team wants your kid, you'll get an email with an offer link.</li>
               <li className="flex items-start gap-2"><span className="text-brand-primary-soft mt-0.5">③</span> You tap Accept — your kid is on the team and this dashboard becomes their team home.</li>

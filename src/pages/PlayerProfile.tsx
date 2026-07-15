@@ -497,22 +497,15 @@ const PlayerProfile: React.FC = () => {
 
     // Practice attendance — separate (slower) query so the rest of
     // the page lights up first. No big deal if this lags behind.
+    // 2026-07-14 scoping rule ([[stats-scoping-model]]): scope
+    // attendance to the CURRENTLY VIEWED team only. Prior code
+    // passed every teamId the player was on, which polluted the
+    // hero "PRACTICE ATTENDANCE" cell with old-team events for
+    // transferred/shared players.
     void (async () => {
       try {
-        const playerSnap = player ? null : null;
-        void playerSnap;
-        const teamIds: string[] = (player as any)?.teamIds || (player as any)?.teamId ? [(player as any)?.teamId].filter(Boolean) : [];
-        // The just-set player isn't in scope here yet — use a fresh
-        // read off the players collection. Cheap (one doc).
-        const { doc, getDoc } = await import('firebase/firestore');
-        const { db } = await import('../utils/firebase');
-        const ps = await getDoc(doc(db, 'players', playerId));
-        const pdata: any = ps.exists() ? ps.data() : {};
-        const tids: string[] = (Array.isArray(pdata.teamIds) && pdata.teamIds.length > 0)
-          ? pdata.teamIds
-          : (pdata.teamId ? [pdata.teamId] : teamIds);
-        if (tids.length === 0) return;
-        const r = await computePlayerAttendance(playerId, tids, { lookback: 10 });
+        if (!selectedTeamId) return;
+        const r = await computePlayerAttendance(playerId, [selectedTeamId], { lookback: 10 });
         setAttendance(r);
       } catch (err) {
         console.warn('attendance load failed', err);
@@ -718,12 +711,51 @@ const PlayerProfile: React.FC = () => {
         showKudos={canGiveKudos}
         onKudos={() => setShowKudos(true)}
       />
-      <ProfileStatsStrip
-        potmWins={votingWins.length}
-        streakDays={(player as any).currentStreakDays || 0}
-        attendancePct={attendance.percent}
-        jugglesBest={(player as any).juggles?.best || 0}
-      />
+      {/* 2026-07-14 scoping rule ([[stats-scoping-model]]): hero cells
+          show THIS team + THIS season. Career surfaces (Awards tab,
+          Career section) still get the unscoped counts.
+            - POTM: filter votingWins by seasonId equality OR closedAt
+              inside the active season's window (legacy no-seasonId
+              votings), AND teamId === selectedTeamId.
+            - Streak: recompute from the team-scoped `plans` array
+              instead of reading the possibly-stale
+              player.currentStreakDays cache (that field self-heals
+              on Dashboard mount, but PlayerProfile shouldn't rely on
+              the parent having opened the Dashboard first).
+            - Attendance: driven by the effect above; it's now scoped
+              to [selectedTeamId] only, not player.teamIds.
+            - Juggle: kept as lifetime PR — it's a self-set record,
+              not a per-game stat, so cross-season is defensible. */}
+      {(() => {
+        // Season-scoped POTM count for this team.
+        let heroPotmCount = 0;
+        if (selectedTeamId) {
+          const seasonObj = activeSeason || null;
+          const startMs = seasonObj?.startDate ? new Date(seasonObj.startDate).getTime() : 0;
+          const endMs = seasonObj?.endDate ? new Date(seasonObj.endDate).getTime() : Infinity;
+          heroPotmCount = votingWins.filter((v: any) => {
+            if (v?.teamId && v.teamId !== selectedTeamId) return false;
+            if (!seasonObj) return true;
+            if (v.seasonId === seasonObj.id) return true;
+            if (!v.seasonId) {
+              const closedMs = v.closedAt ? new Date(v.closedAt).getTime() : 0;
+              return closedMs >= startMs && closedMs <= endMs;
+            }
+            return false;
+          }).length;
+        }
+        const heroStreak = plans.length > 0
+          ? computeStreakDays(plans as any)
+          : ((player as any).currentStreakDays || 0);
+        return (
+          <ProfileStatsStrip
+            potmWins={heroPotmCount}
+            streakDays={heroStreak}
+            attendancePct={attendance.percent}
+            jugglesBest={(player as any).juggles?.best || 0}
+          />
+        );
+      })()}
 
       {/* Private XP + badges — renders only when team.xpConfig.enabled
           is true. Coach opt-in per team. See goalkickr-xp memo.

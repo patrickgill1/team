@@ -35,6 +35,11 @@ interface Props {
   /** True when publicShare.enabled is currently true — swaps the
    *  Share icon for a "share on" affordance. */
   publicShareEnabled?: boolean;
+  /** Turn OFF public sharing. Rendered as a small companion "stop"
+   *  button next to Share when the link is live. Ensures adult-team
+   *  coaches (whose PlayerCircleCard is hidden) have a reachable
+   *  way to disable the public link. 2026-07-15 fix. */
+  onStopShare?: () => void;
 }
 
 const ProfileHero: React.FC<Props> = ({
@@ -50,6 +55,7 @@ const ProfileHero: React.FC<Props> = ({
   onWhisper,
   onShare,
   publicShareEnabled,
+  onStopShare,
 }) => {
   const dob = coerceDob(player.dateOfBirth);
   const age = computeDobAge(player.dateOfBirth);
@@ -102,6 +108,26 @@ const ProfileHero: React.FC<Props> = ({
               title={publicShareEnabled ? 'Public link is live — tap to share again' : 'Share profile'}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.4} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+            </button>
+          )}
+          {/* Companion "stop share" button — renders ONLY when the
+              public link is live AND onStopShare is provided. Small
+              rose-tinted x so it doesn't compete with the emerald
+              Share button visually. Sits right next to Share so
+              adult-team coaches (whose PlayerCircleCard is hidden,
+              hiding the original stop-share overflow entry) still
+              have a reachable off switch. */}
+          {publicShareEnabled && onStopShare && (
+            <button
+              type="button"
+              onClick={onStopShare}
+              className="w-8 h-8 rounded-full flex items-center justify-center ring-1 bg-rose-500/15 ring-rose-400/40 text-rose-300 hover:bg-rose-500/25 transition"
+              aria-label="Stop public sharing"
+              title="Stop public sharing — the link will 404 immediately"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M6 6l12 12M6 18L18 6" />
+              </svg>
             </button>
           )}
           {/* Kudos — Circle-member action. Sits alongside Edit at the

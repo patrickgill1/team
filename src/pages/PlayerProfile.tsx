@@ -19,6 +19,7 @@ import CoachGrantXpModal from '../components/coach/CoachGrantXpModal';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
 import PlayerCircleCard from '../components/player/PlayerCircleCard';
 import CoachRecognitionsArchive from '../components/player/CoachRecognitionsArchive';
+import PhotoTape from '../components/player/PhotoTape';
 import SeasonTimeline from '../components/player/SeasonTimeline';
 import PersonalRecords from '../components/player/PersonalRecords';
 import SidelineShoutsSection, { ShoutFilter } from '../components/player/SidelineShoutsSection';
@@ -265,6 +266,31 @@ const PlayerProfile: React.FC = () => {
       url.searchParams.set('tab', next);
       window.history.replaceState(window.history.state, '', url.toString());
     } catch { /* SSR-safe noop */ }
+  }, []);
+
+  // 2026-07-15 fix: normalize legacy ?tab= URLs on mount. If a
+  // parent lands from an old push notification with ?tab=whispers,
+  // we've already remapped to the story tab in state above, but
+  // the URL bar still says ?tab=whispers. Rewrite via replaceState
+  // so hard-reload and any URL scraper sees the canonical value.
+  // Scroll anchor is preserved separately via pendingScrollAnchor.
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      const t = url.searchParams.get('tab');
+      const canonical: Record<string, 'story' | 'stats' | 'media'> = {
+        whispers:    'story',
+        awards:      'story',
+        overview:    'story',
+        development: 'stats',
+      };
+      const target = t && canonical[t];
+      if (target) {
+        url.searchParams.set('tab', target);
+        window.history.replaceState(window.history.state, '', url.toString());
+      }
+    } catch { /* SSR-safe noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sticky-hero sentinel: an IntersectionObserver watches an invisible
@@ -798,6 +824,7 @@ const PlayerProfile: React.FC = () => {
         onWhisper={() => setShowWhisper(true)}
         onShare={handleShareProfile}
         publicShareEnabled={!!(player as any)?.publicShare?.enabled}
+        onStopShare={disablePublicShare}
       />
 
       {/* 2026-07-14 scoping rule ([[stats-scoping-model]]): hero cells
@@ -953,9 +980,15 @@ const PlayerProfile: React.FC = () => {
             tiles + vote history). Section anchors let ?tab=whispers
             and ?tab=awards land on the same visual spot they used
             to. */}
-      </div>
 
-      <div className="bg-surface-base">
+      {/* 2026-07-15 fix: merged the previously-separate hero-card
+          wrapper (line 786) and tab-body wrapper (was line 958) into
+          one shared parent so `position: sticky` on the pill bar
+          actually sticks through the tab bodies. Prior structure
+          closed the parent right before the tab bodies opened,
+          which capped sticky's stick-range at ~380px (hero + stats).
+          The core UX promise ("can't get out of the pill") depends
+          on sticky working, so this is a structural bug fix. */}
       {activeTab === 'story' && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
           <div className="flex flex-col gap-4 sm:gap-6">
@@ -1310,7 +1343,15 @@ const PlayerProfile: React.FC = () => {
 
         {/* ─── MEDIA TAB — unchanged from the previous surface ──── */}
       {activeTab === 'media' && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-4 sm:gap-6">
+          {/* Photo ribbon at the top — horizontal scroll of every
+              photo the player's been tagged in. Restored 2026-07-15
+              per the Direction B plan's Media contract (the impl
+              agent flagged this as unresolved, verifier confirmed).
+              Hidden when there's no media. */}
+          {media.length > 0 && (
+            <PhotoTape playerId={playerId!} playerName={player.name} teamId={selectedTeamId} />
+          )}
           <div>
             {media.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">

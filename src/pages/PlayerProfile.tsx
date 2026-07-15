@@ -1237,21 +1237,21 @@ const PlayerProfile: React.FC = () => {
                   )}
                 >
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 px-3 py-2.5">
+                    <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 px-3 py-4 sm:py-5">
                       <div className="text-[10px] font-extrabold tracking-widest uppercase text-amber-500">PR</div>
-                      <div className="text-2xl font-black text-ink-primary tabular-nums leading-tight">{best}</div>
+                      <div className="text-2xl font-black text-ink-primary tabular-nums leading-tight mt-1">{best}</div>
                     </div>
-                    <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 px-3 py-2.5">
+                    <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 px-3 py-4 sm:py-5">
                       <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">7-day attempts</div>
-                      <div className="text-2xl font-black text-ink-primary tabular-nums leading-tight">{lastWeek.length}</div>
+                      <div className="text-2xl font-black text-ink-primary tabular-nums leading-tight mt-1">{lastWeek.length}</div>
                     </div>
-                    <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 px-3 py-2.5">
+                    <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 px-3 py-4 sm:py-5">
                       <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">Last</div>
-                      <div className="text-2xl font-black text-ink-primary tabular-nums leading-tight">{last?.count ?? '—'}</div>
+                      <div className="text-2xl font-black text-ink-primary tabular-nums leading-tight mt-1">{last?.count ?? '-'}</div>
                     </div>
                   </div>
                   {history.length === 0 && (
-                    <p className="text-xs text-ink-primary/50">No attempts yet. Tap "+ Log" to record one.</p>
+                    <p className="mt-2 text-xs text-ink-primary/50">No attempts yet. Tap "+ Log" to record one.</p>
                   )}
                 </ProfileCard>
               );

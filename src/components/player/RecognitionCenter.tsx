@@ -452,7 +452,7 @@ const RecognitionCenter: React.FC<Props> = ({
 
       {/* ─── Filter tabs (wrap, never scroll) ─────────────────────── */}
       {allShouts.length > 0 && (
-        <div className="border-b border-line-default/15" role="tablist" aria-label="Filter recognition">
+        <div className="mt-2 border-b border-line-default/15" role="tablist" aria-label="Filter recognition">
           <div className="flex flex-wrap items-stretch gap-x-1 gap-y-0.5">
             {visibleFilters.map(f => {
               const c = countByFilter(f.key);
@@ -486,7 +486,7 @@ const RecognitionCenter: React.FC<Props> = ({
 
       {/* ─── Feed ────────────────────────────────────────────────── */}
       {filteredShouts.length === 0 ? (
-        <div className="rounded-xl bg-surface-input/40 ring-1 ring-line-default/10 p-6 text-center flex flex-col items-center gap-2">
+        <div className="mt-2 rounded-xl bg-surface-input/40 ring-1 ring-line-default/10 p-6 text-center flex flex-col items-center gap-2">
           <div className="w-9 h-9 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z" /></svg>
           </div>
@@ -500,7 +500,7 @@ const RecognitionCenter: React.FC<Props> = ({
           )}
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="mt-2 space-y-3">
           {(() => {
             // Career mode: emit "Season · Team" section headers when
             // the bucket label changes between adjacent shouts.
@@ -531,7 +531,7 @@ const RecognitionCenter: React.FC<Props> = ({
                 && isCoachOfTeam(userData, selectedTeam)
                 && (selectedTeam as any)?.xpConfig?.enabled === true;
               nodes.push(
-                <li key={s.id} className={`p-3 sm:p-4 rounded-xl bg-surface-elevated ring-1 ring-line-default/15 border-l-4 ${shoutAccentClass(s.type)}`}>
+                <li key={s.id} className={`py-3 sm:py-4 pr-3 sm:pr-4 pl-4 sm:pl-5 rounded-xl bg-surface-elevated ring-1 ring-line-default/15 border-l-4 ${shoutAccentClass(s.type)}`}>
                   <div className="flex items-start gap-3">
                     {s.type === 'badge' && s.badgeImage ? (
                       <img src={s.badgeImage} className="w-9 h-9 object-contain flex-shrink-0" alt="" />

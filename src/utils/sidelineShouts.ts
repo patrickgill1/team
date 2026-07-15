@@ -103,13 +103,16 @@ export function buildSidelineShouts(args: Args): SidelineShout[] {
 
   // Badges earned — walk player.badges. Each entry is
   // `{ earnedAt, seasonId?, context? }` keyed by slug. When
-  // `activeSeasonId` is set, drop badges outside that season so the
-  // season-scoped view of RecognitionCenter matches the rest of the
-  // Story tab.
+  // `activeSeasonId` is set, drop badges whose seasonId is present
+  // AND doesn't match. Legacy badges written before the seasonId
+  // field existed (or badges written by call sites that skipped
+  // `seasonId` in makeBadge) fall through the grace clause so they
+  // still surface in Season mode — matches the truthy-guard pattern
+  // used everywhere else in RecognitionCenter (kudos/whispers/xp).
   const badges: Record<string, any> = ((args.player as any)?.badges) || {};
   for (const slug of Object.keys(badges)) {
     const b = badges[slug];
-    if (args.activeSeasonId && b?.seasonId !== args.activeSeasonId) continue;
+    if (args.activeSeasonId && b?.seasonId && b.seasonId !== args.activeSeasonId) continue;
     const at = b?.earnedAt?.toDate?.() || (b?.earnedAt instanceof Date ? b.earnedAt : null);
     if (!at) continue;
     shouts.push({

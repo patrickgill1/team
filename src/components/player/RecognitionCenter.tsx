@@ -99,8 +99,14 @@ const FILTERS: Array<{ key: RecognitionFilter; label: string }> = [
 ];
 
 // Season window helpers — used to filter every source in Season mode.
+// A null season legitimately means "team has no active season doc"
+// (brand-new team, between-season gap, or the fetch racing loadProfile).
+// Fail closed: return false so Season mode reads as empty instead of
+// silently promoting itself to Career-mode. The wall renders its empty
+// state and the parent isn't tricked into thinking cross-season history
+// happened "this season."
 function inSeasonWindow(t: Date | undefined, season: Season | null): boolean {
-  if (!season) return true;
+  if (!season) return false;
   if (!t) return false;
   const ms = t instanceof Date ? t.getTime() : new Date(t as any).getTime();
   const start = season.startDate ? new Date(season.startDate).getTime() : -Infinity;
@@ -134,8 +140,12 @@ const RecognitionCenter: React.FC<Props> = ({
   const first = player.name?.split(' ')[0] || 'this player';
 
   // ─── Season-scoped source arrays (memoized) ─────────────────────
+  // Note: no early return when selectedTeamId is empty — the season
+  // window is still the right cut and dropping the filter here would
+  // leak career-scale history into "This Season" for adult-pickup
+  // profiles (bug caught by verifier 2026-07-15). The truthy-guard on
+  // teamId already handles the empty-selectedTeamId case correctly.
   const seasonKudos = useMemo(() => {
-    if (!selectedTeamId) return kudos;
     return kudos.filter(k => {
       if ((k as any).teamId && (k as any).teamId !== selectedTeamId) return false;
       return inSeasonWindow(k.createdAt, activeSeason);
@@ -222,9 +232,13 @@ const RecognitionCenter: React.FC<Props> = ({
     return out.sort((a, b) => b.when.getTime() - a.when.getTime());
   }, [scopeMode, seasonPotmVotings, allPlayerVotings]);
   const [featuredIdx, setFeaturedIdx] = useState<number>(0);
+  // Depend on the array identity (not just length) so a scope swap
+  // that happens to produce the same-length array still resets the
+  // index. Otherwise Career → Season with matching lengths keeps the
+  // old career-sourced quote pointing at a season-source quote.
   React.useEffect(() => {
     setFeaturedIdx(featuredQuotes.length > 0 ? Math.floor(Math.random() * featuredQuotes.length) : 0);
-  }, [featuredQuotes.length]);
+  }, [featuredQuotes]);
   const featured = featuredQuotes[featuredIdx % Math.max(1, featuredQuotes.length)];
 
   // ─── Tile: POTM count ───────────────────────────────────────────
@@ -577,7 +591,7 @@ const RecognitionCenter: React.FC<Props> = ({
       {/* ─── Vote History drawer ─────────────────────────────────── */}
       {voteHistoryRows.length > 0 && (
         <details ref={awardsRef as any} id="story-awards" className="rounded-xl bg-surface-input/40 ring-1 ring-line-default/10">
-          <summary className="cursor-pointer list-none p-3 flex items-center justify-between gap-3">
+          <summary className="group cursor-pointer list-none p-3 flex items-center justify-between gap-3">
             <span className="text-[11px] font-black uppercase tracking-widest text-ink-primary/60">
               Every game they were named ({voteHistoryRows.length})
             </span>

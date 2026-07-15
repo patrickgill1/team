@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
@@ -139,14 +139,17 @@ const PlayerProfile: React.FC = () => {
   //   ?tab=overview    → story (top)
   //   ?tab=whispers    → story  + scroll to Sideline Shouts section
   //   ?tab=awards      → story  + scroll to Awards section
-  //   ?tab=development → stats  + scroll to Dev Plans section
+  //   ?tab=development → story  + scroll to Dev Plans section
+  //     (2026-07-15 Direction B moved DevelopmentPlanCard from Stats to
+  //      Story; the initial-tab map has to follow or push notifications
+  //      linking to ?tab=development land on Stats with no dev card.)
   //   ?tab=media       → media
   const [activeTab, setActiveTab] = useState<'story' | 'stats' | 'media'>(
     () => {
       try {
         const t = new URLSearchParams(window.location.search).get('tab');
         if (t === 'media') return 'media';
-        if (t === 'development') return 'stats';
+        if (t === 'development') return 'story';
         if (t === 'stats') return 'stats';
         if (t === 'story') return 'story';
         // Legacy: 'whispers', 'awards', 'overview' → story.
@@ -768,6 +771,37 @@ const PlayerProfile: React.FC = () => {
     }
   };
 
+  // Story-tab pill count — season+team scoped so it matches the
+  // Recognition wall the parent will actually see. Prior to this,
+  // the pill summed raw kudosList/whispers/xpEvents (all-team, all-
+  // time), which then contradicted the visible feed after the tab
+  // opened. Uses the same truthy-guard grace clause that
+  // RecognitionCenter applies so legacy no-teamId docs stay in.
+  const storyPillCount = useMemo(() => {
+    const seasonStart = activeSeason?.startDate ? new Date(activeSeason.startDate).getTime() : -Infinity;
+    const seasonEnd = activeSeason?.endDate ? new Date(activeSeason.endDate).getTime() : Infinity;
+    const inWindow = (t: Date | undefined): boolean => {
+      if (!activeSeason) return true;
+      if (!t) return false;
+      const ms = t instanceof Date ? t.getTime() : new Date(t as any).getTime();
+      return ms >= seasonStart && ms <= seasonEnd;
+    };
+    const k = kudosList.filter(x => {
+      if ((x as any).teamId && (x as any).teamId !== selectedTeamId) return false;
+      return inWindow(x.createdAt);
+    }).length;
+    const w = whispers.filter(x => {
+      if ((x as any).teamId && (x as any).teamId !== selectedTeamId) return false;
+      return inWindow(x.createdAt);
+    }).length;
+    const x = xpEvents.filter(e => {
+      if (!e.note) return false;
+      if ((e as any).teamId && (e as any).teamId !== selectedTeamId) return false;
+      return inWindow(e.createdAt);
+    }).length;
+    return k + w + x;
+  }, [kudosList, whispers, xpEvents, selectedTeamId, activeSeason]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-surface-base">
@@ -947,7 +981,7 @@ const PlayerProfile: React.FC = () => {
               // adult-hidden in the 3-tab structure.
               const count =
                 tab === 'media' ? media.length :
-                tab === 'story' ? (kudosList.length + whispers.length + xpEvents.filter(e => e.note).length) :
+                tab === 'story' ? storyPillCount :
                 tab === 'stats' ? (isAdultTeam ? 0 : activePlans.length) :
                 null;
               const label =
@@ -1019,6 +1053,7 @@ const PlayerProfile: React.FC = () => {
                 "See all" jumps to PlayerXpCard's Locker grid in Stats. */}
             <BadgeCollection
               player={player}
+              activeSeason={activeSeason}
               onSeeAll={() => handleTabChange('stats', 'xpcard')}
             />
 
@@ -1057,9 +1092,7 @@ const PlayerProfile: React.FC = () => {
                   completedPlans={completedPlans}
                   activeSeason={activeSeason}
                   playerId={playerId!}
-                  teamId={selectedTeamId}
                   player={player}
-                  isCoach={!!userData && isCoachOfTeam(userData, selectedTeam)}
                   actor={userData ? { uid: userData.uid, name: userData.name || 'Family' } : null}
                   onUpdated={loadProfile}
                 />
@@ -1624,7 +1657,7 @@ const MediaSeasonView: React.FC<MediaSeasonViewProps> = ({
         <>
           {/* Photo tape at the top — same team scope. Hidden empty. */}
           {thisSeason.length > 0 && (
-            <PhotoTape playerId={playerId} playerName={playerName} teamId={selectedTeamId} />
+            <PhotoTape playerId={playerId} playerName={playerName} teamId={selectedTeamId} season={activeSeason} />
           )}
           {thisSeason.length > 0 ? (
             <MediaGrid items={thisSeason} onOpen={onOpenLightbox} />

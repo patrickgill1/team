@@ -29,17 +29,6 @@ interface Props {
    *  2026-07-15 this lived in the deleted action row. */
   showWhisper?: boolean;
   onWhisper?: () => void;
-  /** Share the player card. Everyone with view access can share. When
-   *  publicShare is on, the button shows a subtle "live" state. */
-  onShare?: () => void;
-  /** True when publicShare.enabled is currently true — swaps the
-   *  Share icon for a "share on" affordance. */
-  publicShareEnabled?: boolean;
-  /** Turn OFF public sharing. Rendered as a small companion "stop"
-   *  button next to Share when the link is live. Ensures adult-team
-   *  coaches (whose PlayerCircleCard is hidden) have a reachable
-   *  way to disable the public link. 2026-07-15 fix. */
-  onStopShare?: () => void;
 }
 
 const ProfileHero: React.FC<Props> = ({
@@ -53,9 +42,6 @@ const ProfileHero: React.FC<Props> = ({
   onKudos,
   showWhisper,
   onWhisper,
-  onShare,
-  publicShareEnabled,
-  onStopShare,
 }) => {
   const dob = coerceDob(player.dateOfBirth);
   const age = computeDobAge(player.dateOfBirth);
@@ -90,44 +76,6 @@ const ProfileHero: React.FC<Props> = ({
               title="Whisper — private note to parents"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-            </button>
-          )}
-          {/* Share — icon-only. Emerald tint when public share is
-              already on so the viewer knows a live link exists. Stop
-              share (once enabled) lives in PlayerCircleCard overflow. */}
-          {onShare && (
-            <button
-              type="button"
-              onClick={onShare}
-              className={`w-10 h-10 rounded-full flex items-center justify-center ring-1 transition ${
-                publicShareEnabled
-                  ? 'bg-emerald-500/20 ring-emerald-400/40 text-emerald-300 hover:bg-emerald-500/30'
-                  : 'bg-surface-input hover:bg-surface-raised ring-line-default/15 text-ink-primary'
-              }`}
-              aria-label={publicShareEnabled ? 'Share profile — public link is live' : 'Share profile'}
-              title={publicShareEnabled ? 'Public link is live — tap to share again' : 'Share profile'}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.4} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-            </button>
-          )}
-          {/* Companion "stop share" button — renders ONLY when the
-              public link is live AND onStopShare is provided. Small
-              rose-tinted x so it doesn't compete with the emerald
-              Share button visually. Sits right next to Share so
-              adult-team coaches (whose PlayerCircleCard is hidden,
-              hiding the original stop-share overflow entry) still
-              have a reachable off switch. */}
-          {publicShareEnabled && onStopShare && (
-            <button
-              type="button"
-              onClick={onStopShare}
-              className="w-8 h-8 rounded-full flex items-center justify-center ring-1 bg-rose-500/15 ring-rose-400/40 text-rose-300 hover:bg-rose-500/25 transition"
-              aria-label="Stop public sharing"
-              title="Stop public sharing — the link will 404 immediately"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M6 6l12 12M6 18L18 6" />
-              </svg>
             </button>
           )}
           {/* Kudos — Circle-member action. Sits alongside Edit at the

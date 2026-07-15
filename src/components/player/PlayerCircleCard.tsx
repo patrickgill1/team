@@ -30,13 +30,6 @@ interface Props {
   viewerUid: string;
   viewerEmail: string;
   viewerRole: string;
-  /** Public-share is toggled from the ProfileHero share button. When
-   *  it's ON, this card exposes a "Stop sharing" overflow item so the
-   *  affordance stays reachable but doesn't pollute the header row.
-   *  2026-07-15: previously lived in the deleted action row between
-   *  hero and tab bar. */
-  publicShareEnabled?: boolean;
-  onStopPublicShare?: () => void;
 }
 
 interface CircleMember {
@@ -46,7 +39,7 @@ interface CircleMember {
   isViewer: boolean;
 }
 
-const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, viewerRole, publicShareEnabled, onStopPublicShare }) => {
+const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, viewerRole }) => {
   const [members, setMembers] = useState<CircleMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingInvite, setGeneratingInvite] = useState(false);
@@ -57,10 +50,6 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
   const [dedicatedHere, setDedicatedHere] = useState<string | null>(() => getDedicatedKidPlayerId());
   const [confirmingDedicated, setConfirmingDedicated] = useState(false);
   const [busyDisable, setBusyDisable] = useState(false);
-  // Overflow menu open state. Kept minimal — we only hang one item
-  // there today (Stop sharing) but the shape scales if the Circle
-  // gets more housekeeping actions later.
-  const [overflowOpen, setOverflowOpen] = useState(false);
 
   const parentIds: string[] = Array.isArray(player.parentIds) ? player.parentIds : [];
   const viewerIsInCircle = parentIds.includes(viewerUid);
@@ -155,47 +144,6 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
             <span className="text-[10px] uppercase tracking-widest font-black text-ink-primary/45">
               {parentIds.length}
             </span>
-          )}
-          {/* Overflow — surfaces the Stop-share affordance when a
-              public link is live. The action row above the tabs used
-              to carry this; Direction B moved it here so the header
-              stays uncluttered. */}
-          {publicShareEnabled && onStopPublicShare && (
-            <div className="relative ml-auto">
-              <button
-                type="button"
-                onClick={() => setOverflowOpen((v) => !v)}
-                className="w-7 h-7 rounded-full text-ink-primary/60 hover:text-ink-primary hover:bg-line-default/[0.08] flex items-center justify-center"
-                aria-label="More Circle actions"
-                title="More Circle actions"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.75" /><circle cx="12" cy="12" r="1.75" /><circle cx="19" cy="12" r="1.75" /></svg>
-              </button>
-              {overflowOpen && (
-                <>
-                  {/* Click-outside catcher. Keeps the menu behavior
-                      predictable without a global click listener. */}
-                  <button
-                    type="button"
-                    onClick={() => setOverflowOpen(false)}
-                    aria-hidden
-                    className="fixed inset-0 z-40 cursor-default"
-                  />
-                  <div className="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-xl bg-surface-elevated ring-1 ring-line-default/20 shadow-xl py-1">
-                    <button
-                      type="button"
-                      onClick={() => { setOverflowOpen(false); onStopPublicShare(); }}
-                      className="w-full text-left px-4 py-2 text-sm text-ink-primary hover:bg-line-default/[0.06] flex items-center gap-2"
-                    >
-                      <svg className="w-3.5 h-3.5 text-ink-primary/70" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
-                      </svg>
-                      Stop sharing publicly
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
           )}
         </div>
 

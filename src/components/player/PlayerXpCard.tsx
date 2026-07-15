@@ -184,27 +184,19 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onGiveXp }) => {
   const showTip = pct > 2 && pct < 100;
 
   return (
-    <section className="px-4 sm:px-6 pt-2">
-      <div className="max-w-3xl mx-auto">
-        {/* Outer stroke = the collectible-card border. Gradient
-            padding gives us a metallic 2px edge that survives both
-            themes without hardcoding gray/black. */}
-        <div className={`relative rounded-[22px] p-[2px] ${rarityStyle.frame} ${rarityStyle.glow}`}>
-          {rarity === 'legend' && (
-            <div
-              className="pointer-events-none absolute -inset-1 rounded-[26px] bg-brand-primary-soft/10 blur-md"
-              aria-hidden
-            />
-          )}
-
-          <div className="relative rounded-[20px] bg-surface-elevated overflow-hidden">
-            {/* Backdrop wash: soft crimson diagonal so the card
-                doesn't read flat, but stays subtle so the power
-                number is the eye anchor. */}
-            <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-primary/10 via-transparent to-brand-primary-soft/5"
-              aria-hidden
-            />
+    // 2026-07-15 (Direction B): dropped the trading-card gradient
+    // frame + crimson wash per the Card Contract. The card now lives
+    // inside a plain shell like every other Story/Stats card; rarity
+    // still shows through the header chip color, power-number color,
+    // and progress bar fill. If the trading-card treatment is missed
+    // it can come back as a dedicated /kid-mode surface.
+    <div className="relative rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 overflow-hidden">
+      {rarity === 'legend' && (
+        <div
+          className="pointer-events-none absolute inset-0 bg-brand-primary-soft/5"
+          aria-hidden
+        />
+      )}
 
             {/* HEADER: chip left (rarity when live, "TROPHY CABINET"
                 when paused), Give XP right (coach-only + XP-on).
@@ -431,10 +423,7 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onGiveXp }) => {
                 </p>
               ) : null}
             </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    </div>
   );
 };
 

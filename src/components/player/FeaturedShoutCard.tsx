@@ -65,63 +65,64 @@ const FeaturedShoutCard: React.FC<Props> = ({ playerName, votings, onOpenAll }) 
   const first = (playerName || '').split(' ')[0] || 'this player';
 
   return (
-    <section className="bg-surface-base px-4 sm:px-6 pb-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="relative rounded-2xl bg-gradient-to-br from-amber-500/[0.08] via-surface-elevated to-surface-elevated ring-1 ring-amber-500/20 p-4 sm:p-5">
-          {/* Trophy dot + type chip */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-400 text-slate-950">
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M5 4h14v2h2v4a4 4 0 0 1-4 4h-.55A6 6 0 0 1 13 18v2h2v2H9v-2h2v-2a6 6 0 0 1-3.45-4H7a4 4 0 0 1-4-4V6h2zm0 4v2a2 2 0 0 0 2 2V8zm14 0v4a2 2 0 0 0 2-2V8z" />
-                </svg>
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-300/90">Player of the Match</span>
-            </div>
-            <div className="flex items-center gap-1">
-              {quotes.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setIdx(i => (i + 1) % quotes.length)}
-                  className="p-1.5 rounded-full text-ink-primary/50 hover:text-ink-primary hover:bg-line-default/[0.08] transition"
-                  aria-label="Show another quote"
-                  title="Show another quote"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                    <polyline points="23 4 23 10 17 10" />
-                    <polyline points="1 20 1 14 7 14" />
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                  </svg>
-                </button>
-              )}
-              {onOpenAll && quotes.length > 1 && (
-                <button
-                  type="button"
-                  onClick={onOpenAll}
-                  className="text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary transition px-2 py-1 rounded-md hover:bg-line-default/[0.06]"
-                >
-                  All {quotes.length}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* The quote */}
-          <blockquote className="text-[15px] sm:text-base leading-snug text-ink-primary font-medium">
-            <span className="text-amber-400/70 mr-0.5">&ldquo;</span>
-            {q.reason}
-            <span className="text-amber-400/70 ml-0.5">&rdquo;</span>
-          </blockquote>
-
-          {/* Attribution */}
-          <div className="mt-3 flex items-center gap-2 text-[11px]">
-            <span className="text-ink-primary/85 font-bold">{q.voterName}</span>
-            <span className="text-ink-primary/25">·</span>
-            <span className="text-ink-primary/50">on {first}</span>
-          </div>
+    // 2026-07-15 (Direction B): plain-shell treatment per the Card
+    // Contract — gold tint is dropped so this reads as the same
+    // system as every other Story card. Color lives only in the
+    // trophy icon + eyebrow now.
+    <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5 flex flex-col gap-3">
+      <header className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-400/90 text-slate-950 shrink-0">
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M5 4h14v2h2v4a4 4 0 0 1-4 4h-.55A6 6 0 0 1 13 18v2h2v2H9v-2h2v-2a6 6 0 0 1-3.45-4H7a4 4 0 0 1-4-4V6h2zm0 4v2a2 2 0 0 0 2 2V8zm14 0v4a2 2 0 0 0 2-2V8z" />
+            </svg>
+          </span>
+          <span className="text-[11px] font-black uppercase tracking-widest text-ink-primary/55 truncate">
+            Featured — Player of the Match
+          </span>
         </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {quotes.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setIdx(i => (i + 1) % quotes.length)}
+              className="p-1.5 rounded-full text-ink-primary/50 hover:text-ink-primary hover:bg-line-default/[0.08] transition"
+              aria-label="Show another quote"
+              title="Show another quote"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <polyline points="23 4 23 10 17 10" />
+                <polyline points="1 20 1 14 7 14" />
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+              </svg>
+            </button>
+          )}
+          {onOpenAll && quotes.length > 1 && (
+            <button
+              type="button"
+              onClick={onOpenAll}
+              className="text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary transition px-2 py-1 rounded-md hover:bg-line-default/[0.06]"
+            >
+              All {quotes.length}
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* The quote */}
+      <blockquote className="text-[15px] sm:text-base leading-snug text-ink-primary font-medium">
+        <span className="text-ink-primary/40 mr-0.5">&ldquo;</span>
+        {q.reason}
+        <span className="text-ink-primary/40 ml-0.5">&rdquo;</span>
+      </blockquote>
+
+      {/* Attribution */}
+      <div className="flex items-center gap-2 text-[11px]">
+        <span className="text-ink-primary/85 font-bold">{q.voterName}</span>
+        <span className="text-ink-primary/25">·</span>
+        <span className="text-ink-primary/50">on {first}</span>
       </div>
-    </section>
+    </div>
   );
 };
 

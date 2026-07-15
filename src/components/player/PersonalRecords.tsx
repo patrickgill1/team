@@ -180,7 +180,7 @@ const PersonalRecords: React.FC<Props> = ({ playerId, player, seasonId, votingWi
   if (records.length === 0) return null;
 
   return (
-    <section className="relative overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-line-default/20 shadow-lg animate-in fade-in duration-300">
+    <section className="relative overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 animate-in fade-in duration-300">
       <div className="px-4 py-4 sm:px-5 sm:py-5">
         <div className="text-[10px] font-black tracking-[0.3em] uppercase text-ink-primary/60 mb-3">
           PERSONAL RECORDS

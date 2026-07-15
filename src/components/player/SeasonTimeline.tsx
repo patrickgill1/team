@@ -247,7 +247,7 @@ const SeasonTimeline: React.FC<Props> = ({
   if (merged.length === 0) return null;
 
   return (
-    <section className="relative overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-line-default/20 shadow-lg animate-in fade-in duration-300">
+    <section className="relative overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 animate-in fade-in duration-300">
       <div className="px-4 py-4 sm:px-5 sm:py-5">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-[10px] font-black tracking-[0.3em] uppercase text-ink-primary/60">

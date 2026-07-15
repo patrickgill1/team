@@ -97,7 +97,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
 
   if (activePlans.length === 0) {
     return (
-      <div className="bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-2xl p-5 sm:p-6">
+      <div className="bg-surface-elevated ring-1 ring-line-default/15 rounded-2xl p-4 sm:p-5">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-extrabold uppercase tracking-widest text-ink-primary/55">Development Plan</h2>
           <button
@@ -115,7 +115,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
   }
 
   return (
-    <div className="bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-2xl p-5 sm:p-6">
+    <div className="bg-surface-elevated ring-1 ring-line-default/15 rounded-2xl p-4 sm:p-5">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-extrabold uppercase tracking-widest text-ink-primary/55">Development Plan</h2>
         <div className="flex items-center gap-2">

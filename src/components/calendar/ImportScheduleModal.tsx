@@ -238,7 +238,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
       onClick={handleClose}
     >
       <div
-        className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-2xl max-h-full flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-full flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated">
@@ -404,7 +404,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                   </button>
                 )}
               </div>
-              <ul className="divide-y divide-gray-100 ring-1 ring-line-default rounded-xl overflow-hidden bg-surface-elevated">
+              <ul className="divide-y divide-gray-100 ring-1 ring-gray-200 rounded-xl overflow-hidden bg-white">
                 {rows.map((row, i) => {
                   if (!isInRange(row)) return null;
                   const cls = classifyEvent(row.raw.title, selectedTeam?.name || '');

@@ -133,10 +133,10 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
         </div>
 
         {loading ? (
-          <div className="bg-line-default/[0.04] ring-1 ring-line-default/10 rounded-2xl p-6 text-center text-sm text-slate-300">Loading your registrations…</div>
+          <div className="bg-line-default/[0.04] ring-1 ring-line-default/10 rounded-2xl p-6 text-center text-sm text-ink-secondary">Loading your registrations…</div>
         ) : kids.length === 0 ? (
           <div className="bg-line-default/[0.04] ring-1 ring-line-default/10 rounded-2xl p-6 text-center">
-            <p className="text-sm text-ink-secondary mb-4">We don't see a registration on file under <b className="text-white">{email}</b> yet.</p>
+            <p className="text-sm text-ink-secondary mb-4">We don't see a registration on file under <b className="text-ink-primary">{email}</b> yet.</p>
             <Link to="/register" className="inline-block px-5 py-2.5 rounded-xl bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold">
               Start registration
             </Link>

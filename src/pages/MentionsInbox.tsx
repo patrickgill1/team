@@ -105,7 +105,7 @@ const MentionsInbox: React.FC = () => {
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Team HQ
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-black text-ink-primary leading-tight flex items-center gap-2">
             <svg className="w-6 h-6 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="4" />
               <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />

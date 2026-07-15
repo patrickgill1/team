@@ -1150,7 +1150,7 @@ const Dashboard: React.FC = () => {
   const eventGradient = (t: string) =>
     t === 'game' ? 'from-rose-500 to-orange-500'
       : t === 'practice' ? 'from-brand-primary to-surface-tint'
-      : 'from-slate-500 to-slate-600';
+      : 'from-violet-500 to-fuchsia-500';
 
   // Atomic-render gate: render nothing for the first ~400ms of the
   // load (per atomic-render rule), then a subtle progress hint, then

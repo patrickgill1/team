@@ -135,7 +135,7 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-surface-elevated w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-slate-900">Pick from drill library</h3>
@@ -157,7 +157,7 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
           <select
             value={filterTopic}
             onChange={(e) => setFilterTopic(e.target.value as any)}
-            className="bg-surface-input border border-line-default rounded-lg px-3 py-2 text-sm"
+            className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm"
           >
             <option value="all">All topics</option>
             {Object.entries(TOPIC_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}

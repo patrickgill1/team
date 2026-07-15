@@ -142,7 +142,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
-              <button onClick={() => setVotersOpen(false)} className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white">
+              <button onClick={() => setVotersOpen(false)} className="text-[11px] font-extrabold tracking-widest uppercase text-slate-500 hover:text-slate-900">
                 Close
               </button>
               <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">Voters</div>

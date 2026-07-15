@@ -117,27 +117,27 @@ const EmailVerifyBanner: React.FC = () => {
   return (
     <div className="bg-amber-500/15 border-y border-amber-400/30 px-4 py-2.5">
       <div className="max-w-4xl mx-auto flex items-center gap-3 text-sm">
-        <svg className="w-4 h-4 text-amber-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <rect x="3" y="5" width="18" height="14" rx="2" />
           <path d="M3 7l9 6 9-6" />
         </svg>
-        <p className="text-amber-100 flex-1 min-w-0 truncate">
+        <p className="text-amber-800 flex-1 min-w-0 truncate">
           {sentAt
-            ? <>Sent again to <span className="font-mono text-amber-200">{user.email}</span>. Check your inbox.</>
-            : <>Verification email sent to <span className="font-mono text-amber-200">{user.email}</span>. Just tap the link.</>}
+            ? <>Sent again to <span className="font-mono text-amber-900">{user.email}</span>. Check your inbox.</>
+            : <>Verification email sent to <span className="font-mono text-amber-900">{user.email}</span>. Just tap the link.</>}
         </p>
         <button
           type="button"
           onClick={handleResend}
           disabled={sending || !canResend}
-          className="text-amber-100 hover:text-white text-xs font-bold underline disabled:opacity-50 whitespace-nowrap"
+          className="text-amber-800 hover:text-amber-900 text-xs font-bold underline disabled:opacity-50 whitespace-nowrap"
         >
           {sending ? 'Sending…' : 'Resend'}
         </button>
         <button
           type="button"
           onClick={handleDismiss}
-          className="text-amber-200/65 hover:text-amber-100 text-xs font-bold whitespace-nowrap"
+          className="text-amber-700/70 hover:text-amber-900 text-xs font-bold whitespace-nowrap"
           aria-label="Dismiss"
         >
           ✕

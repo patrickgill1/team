@@ -39,7 +39,7 @@ const GameRecapCard: React.FC<Props> = ({ recap, timestamp }) => {
   const oppKit = isHome ? recap.awayKitColor : recap.homeKitColor;
 
   return (
-    <article className="relative overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 shadow-xl shadow-black/40">
+    <article className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-charcoal-900 via-charcoal-800 to-charcoal-900 ring-1 ring-line-default/15 shadow-xl shadow-black/40">
       {/* subtle stadium-light bloom top-right */}
       <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-brand-primary/20 blur-3xl pointer-events-none" aria-hidden />
       <div className="absolute -bottom-20 -left-20 w-48 h-48 rounded-full bg-brand-primary-soft/10 blur-3xl pointer-events-none" aria-hidden />

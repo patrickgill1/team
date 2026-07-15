@@ -746,7 +746,7 @@ const EventForm: React.FC<EventFormProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/50 hover:text-white px-1"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/50 hover:text-ink-primary px-1"
           >
             Cancel
           </button>

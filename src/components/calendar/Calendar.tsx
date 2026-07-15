@@ -1450,7 +1450,7 @@ const RsvpBar: React.FC<{
                                 <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-surface-raised flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-dim flex items-center justify-center text-white text-xs font-bold shrink-0">
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}

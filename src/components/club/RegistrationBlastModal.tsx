@@ -176,7 +176,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
-      <div className="bg-surface-elevated w-full sm:max-w-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
+      <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-black text-charcoal-950">Push registration email</h2>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
@@ -216,7 +216,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
                           className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${
                             on
                               ? 'bg-brand-primary text-white ring-brand-primary'
-                              : 'bg-surface-elevated text-ink-secondary ring-line-default hover:ring-brand-primary-soft'
+                              : 'bg-white text-slate-600 ring-slate-200 hover:ring-brand-primary-soft'
                           }`}
                         >
                           {ag}

@@ -87,7 +87,7 @@ const SharedMedia: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface-base flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
       </div>
     );
@@ -111,7 +111,7 @@ const SharedMedia: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col">
       {/* Header */}
-      <div className="bg-surface-elevated border-b border-line-default px-4 py-3">
+      <div className="bg-gray-800 border-b border-gray-700 px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <span className="text-2xl">⚽</span>
@@ -127,7 +127,7 @@ const SharedMedia: React.FC = () => {
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="flex items-center space-x-1.5 bg-surface-tint hover:bg-surface-raised disabled:bg-surface-tint/70 disabled:cursor-wait text-ink-primary text-sm px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center space-x-1.5 bg-surface-tint hover:bg-surface-raised disabled:bg-surface-tint/70 disabled:cursor-wait text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
           >
             {downloading ? (
               <>
@@ -201,7 +201,7 @@ const SharedMedia: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className="bg-surface-elevated border-t border-line-default px-4 py-3 text-center">
+      <div className="bg-gray-800 border-t border-gray-700 px-4 py-3 text-center">
         <a
           href="/"
           className="text-gray-400 hover:text-white text-xs transition-colors"

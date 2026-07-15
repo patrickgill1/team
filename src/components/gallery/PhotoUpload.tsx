@@ -162,9 +162,9 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-surface-elevated rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-surface-elevated border-b border-line-default px-6 py-4">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900">Upload Photos</h2>
             <button
@@ -317,7 +317,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                   />
                   <label
                     htmlFor="add-more-photos"
-                    className="inline-flex items-center px-4 py-2 border border-line-default rounded-lg text-sm font-medium text-ink-primary bg-surface-elevated hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -366,7 +366,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
               <button
                 onClick={handleUpload}
                 disabled={isUploading || uploadLoading || selectedFiles.length === 0}
-                className="flex-1 bg-surface-tint hover:bg-surface-raised text-ink-primary font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+                className="flex-1 bg-surface-tint hover:bg-surface-raised text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
               >
                 {(isUploading || uploadLoading) ? (
                   <>

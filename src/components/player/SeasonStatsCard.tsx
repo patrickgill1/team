@@ -85,26 +85,26 @@ const SeasonStatsCard: React.FC<Props> = ({ player, memberships, selectedTeamId,
         ))}
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
-        <div className="rounded-xl bg-surface-input/70 ring-1 ring-line-default/15 p-2.5 text-center">
+      <div className="mt-2 grid grid-cols-4 gap-2">
+        <div className="rounded-xl bg-surface-input/70 ring-1 ring-line-default/15 py-5 sm:py-6 px-2 text-center">
           <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft tabular-nums">{scoped.gamesPlayed || 0}</div>
           <div className="text-[9px] uppercase tracking-widest text-ink-primary/60 font-bold mt-0.5">Games</div>
         </div>
-        <div className="rounded-xl bg-surface-input/70 ring-1 ring-line-default/15 p-2.5 text-center">
+        <div className="rounded-xl bg-surface-input/70 ring-1 ring-line-default/15 py-5 sm:py-6 px-2 text-center">
           <div className="text-2xl sm:text-3xl font-black text-emerald-500 tabular-nums">{scoped.goals || 0}</div>
           <div className="text-[9px] uppercase tracking-widest text-ink-primary/60 font-bold mt-0.5">Goals</div>
         </div>
-        <div className="rounded-xl bg-surface-input/70 ring-1 ring-line-default/15 p-2.5 text-center">
+        <div className="rounded-xl bg-surface-input/70 ring-1 ring-line-default/15 py-5 sm:py-6 px-2 text-center">
           <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft tabular-nums">{scoped.assists || 0}</div>
           <div className="text-[9px] uppercase tracking-widest text-ink-primary/60 font-bold mt-0.5">Assists</div>
         </div>
         {isGoalkeeper(player) ? (
-          <div className="rounded-xl bg-surface-input/70 ring-1 ring-line-default/15 p-2.5 text-center">
+          <div className="rounded-xl bg-surface-input/70 ring-1 ring-line-default/15 py-5 sm:py-6 px-2 text-center">
             <div className="text-2xl sm:text-3xl font-black text-amber-500 tabular-nums">{scoped.saves || 0}</div>
             <div className="text-[9px] uppercase tracking-widest text-ink-primary/60 font-bold mt-0.5">Saves</div>
           </div>
         ) : (
-          <div className="rounded-xl bg-surface-input/70 ring-1 ring-line-default/15 p-2.5 text-center">
+          <div className="rounded-xl bg-surface-input/70 ring-1 ring-line-default/15 py-5 sm:py-6 px-2 text-center">
             <div className="text-2xl sm:text-3xl font-black text-amber-500 tabular-nums">{(scoped.goals || 0) + (scoped.assists || 0)}</div>
             <div className="text-[9px] uppercase tracking-widest text-ink-primary/60 font-bold mt-0.5">G+A</div>
           </div>

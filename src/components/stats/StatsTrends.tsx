@@ -93,7 +93,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
       bg = 'bg-emerald-500 text-white';
       label = `${g}G ${a}A`;
     } else if (g > 0) {
-      bg = 'bg-surface-tint text-white';
+      bg = 'bg-surface-tint text-ink-primary';
       label = `${g}G`;
     } else if (a > 0) {
       bg = 'bg-amber-500 text-white';

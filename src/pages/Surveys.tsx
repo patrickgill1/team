@@ -663,9 +663,9 @@ const Surveys: React.FC = () => {
                 )}
                 <div className="mt-2 flex items-center gap-2 text-[11px] text-ink-primary/50">
                   <span><span className="font-bold text-ink-primary/85">{s.questions.length}</span> question{s.questions.length !== 1 ? 's' : ''}</span>
-                  <span className="text-slate-300">·</span>
+                  <span className="text-ink-primary/40">·</span>
                   <span><span className="font-bold text-ink-primary/85">{s.responseCount}</span> response{s.responseCount !== 1 ? 's' : ''}</span>
-                  <span className="text-slate-300">·</span>
+                  <span className="text-ink-primary/40">·</span>
                   <span>{formatDate(s.createdAt)}</span>
                 </div>
 

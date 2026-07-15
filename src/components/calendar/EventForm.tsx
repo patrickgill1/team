@@ -746,7 +746,7 @@ const EventForm: React.FC<EventFormProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/50 hover:text-white px-1"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/50 hover:text-ink-primary px-1"
           >
             Cancel
           </button>
@@ -1151,7 +1151,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   onClick={() => setFormData({ ...formData, homeAway: formData.homeAway === 'home' ? '' : 'home' })}
                   className={`flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-lg border-2 text-sm font-bold transition ${
                     formData.homeAway === 'home'
-                      ? 'bg-surface-base text-white border-brand-primary/40 ring-2 ring-brand-primary/30'
+                      ? 'bg-surface-base text-ink-primary border-brand-primary/40 ring-2 ring-brand-primary/30'
                       : 'bg-surface-elevated text-ink-primary border-line-default/10 hover:border-line-default/20'
                   }`}
                 >

@@ -941,7 +941,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 className={`text-[11px] px-2 py-0.5 rounded-full transition-colors flex items-center gap-1 ${
                   info.mine
                     ? 'bg-brand-primary-soft ring-1 ring-brand-primary-soft text-brand-primary-dim'
-                    : 'bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50'
+                    : 'bg-surface-elevated ring-1 ring-line-default text-ink-primary hover:bg-slate-50'
                 }`}
               >
                 <span className="text-sm leading-none">{emoji}</span>

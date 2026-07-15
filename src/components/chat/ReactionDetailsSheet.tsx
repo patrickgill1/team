@@ -56,7 +56,7 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
         <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
           <button
             onClick={onClose}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white px-1"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-ink-primary px-1"
           >
             Close
           </button>

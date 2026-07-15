@@ -146,7 +146,7 @@ const TeamStore: React.FC = () => {
                 className={`flex-shrink-0 w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-sm tracking-wider uppercase transition-all ${
                   copied
                     ? 'bg-emerald-500/150 text-white'
-                    : 'bg-surface-elevated text-white hover:bg-surface-input active:scale-95'
+                    : 'bg-surface-elevated text-ink-primary hover:bg-surface-input active:scale-95'
                 }`}
               >
                 {copied ? 'Copied!' : 'Copy code'}

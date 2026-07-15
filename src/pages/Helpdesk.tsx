@@ -203,7 +203,7 @@ const Helpdesk: React.FC = () => {
                   onClick={() => setTeamFilter('all')}
                   className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     teamFilter === 'all'
-                      ? 'bg-surface-elevated text-white border-slate-900'
+                      ? 'bg-surface-elevated text-ink-primary border-slate-900'
                       : 'bg-surface-elevated text-ink-primary/50 border-line-default/10 hover:text-ink-primary/90'
                   }`}
                 >
@@ -213,7 +213,7 @@ const Helpdesk: React.FC = () => {
                   onClick={() => setTeamFilter('unassigned')}
                   className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     teamFilter === 'unassigned'
-                      ? 'bg-surface-elevated text-white border-slate-900'
+                      ? 'bg-surface-elevated text-ink-primary border-slate-900'
                       : 'bg-surface-elevated text-ink-primary/50 border-line-default/10 hover:text-ink-primary/90'
                   }`}
                 >
@@ -225,7 +225,7 @@ const Helpdesk: React.FC = () => {
                     onClick={() => setTeamFilter(t.id)}
                     className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                       teamFilter === t.id
-                        ? 'bg-surface-elevated text-white border-slate-900'
+                        ? 'bg-surface-elevated text-ink-primary border-slate-900'
                         : 'bg-surface-elevated text-ink-primary/50 border-line-default/10 hover:text-ink-primary/90'
                     }`}
                   >

@@ -16,7 +16,7 @@ const InAppSurveyBackBar: React.FC = () => {
   const { userData } = useAuth();
   if (!userData) return null;
   return (
-    <div className="sticky top-0 z-40 bg-surface-base text-white px-4 py-2.5 flex items-center justify-between shadow">
+    <div className="sticky top-0 z-40 bg-surface-base text-ink-primary px-4 py-2.5 flex items-center justify-between shadow">
       <Link
         to="/dashboard"
         className="inline-flex items-center gap-1.5 text-[12px] font-extrabold uppercase tracking-widest text-brand-primary-soft hover:text-white"

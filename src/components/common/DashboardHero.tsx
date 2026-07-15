@@ -149,7 +149,7 @@ const DashboardHero: React.FC<Props> = ({
         <h1 className="text-base sm:text-lg lg:text-2xl xl:text-3xl font-bold text-white">
           {greeting}, {firstName}!
         </h1>
-        <p className="text-[11px] sm:text-xs lg:text-sm text-slate-300">
+        <p className="text-[11px] sm:text-xs lg:text-sm text-ink-secondary">
           Here's what's happening with your team.
         </p>
 
@@ -163,7 +163,7 @@ const DashboardHero: React.FC<Props> = ({
             >
               <span className="text-[10px] font-bold tracking-wider text-brand-primary-soft">{eventMonth}</span>
               <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{eventDay}</span>
-              <span className="text-[9px] font-semibold tracking-wider text-slate-300 mt-0.5">{eventDow}</span>
+              <span className="text-[9px] font-semibold tracking-wider text-ink-secondary mt-0.5">{eventDow}</span>
             </Link>
 
             {/* Event title + metadata (when · weather · going count) */}
@@ -171,10 +171,10 @@ const DashboardHero: React.FC<Props> = ({
               <p className="text-base sm:text-lg font-bold text-brand-primary-soft group-hover:underline leading-tight truncate">
                 {nextEvent.title}
               </p>
-              <p className="mt-0.5 text-xs sm:text-sm text-slate-200 truncate">
+              <p className="mt-0.5 text-xs sm:text-sm text-ink-primary truncate">
                 {whenText}
                 {weather && (
-                  <span className="text-slate-300">
+                  <span className="text-ink-secondary">
                     {' · '}
                     <span aria-hidden>{weather.icon}</span> {weather.tempMaxF}°/{weather.tempMinF}°
                   </span>
@@ -200,7 +200,7 @@ const DashboardHero: React.FC<Props> = ({
                 </span>
                 <div className="leading-tight">
                   <div className="text-base sm:text-lg font-bold text-white">{newMessagesCount}</div>
-                  <div className="text-[10px] sm:text-xs text-slate-300 -mt-0.5">new messages</div>
+                  <div className="text-[10px] sm:text-xs text-ink-secondary -mt-0.5">new messages</div>
                 </div>
               </Link>
 
@@ -216,7 +216,7 @@ const DashboardHero: React.FC<Props> = ({
                 </span>
                 <div className="leading-tight">
                   <div className="text-base sm:text-lg font-bold text-white">{pendingRsvpCount}</div>
-                  <div className="text-[10px] sm:text-xs text-slate-300 -mt-0.5">awaiting RSVP</div>
+                  <div className="text-[10px] sm:text-xs text-ink-secondary -mt-0.5">awaiting RSVP</div>
                 </div>
               </Link>
             </div>
@@ -233,13 +233,13 @@ const DashboardHero: React.FC<Props> = ({
               className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-surface-elevated/55 ring-1 ring-brand-primary-soft/40 shadow-lg shadow-brand-primary/10"
             >
               <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{playerCount}</span>
-              <span className="text-[9px] font-semibold tracking-wider text-slate-300 mt-1">ROSTER</span>
+              <span className="text-[9px] font-semibold tracking-wider text-ink-secondary mt-1">ROSTER</span>
             </Link>
 
             {/* Middle: friendly empty state + CTA */}
             <div className="min-w-0">
               <p className="text-base sm:text-lg font-bold text-brand-primary-soft leading-tight">All quiet for now</p>
-              <p className="mt-0.5 text-xs sm:text-sm text-slate-300">
+              <p className="mt-0.5 text-xs sm:text-sm text-ink-secondary">
                 No upcoming events on the calendar.
               </p>
               {isCoach && (
@@ -266,7 +266,7 @@ const DashboardHero: React.FC<Props> = ({
                 </span>
                 <div className="leading-tight">
                   <div className="text-base sm:text-lg font-bold text-white">{newMessagesCount}</div>
-                  <div className="text-[10px] sm:text-xs text-slate-300 -mt-0.5">new messages</div>
+                  <div className="text-[10px] sm:text-xs text-ink-secondary -mt-0.5">new messages</div>
                 </div>
               </Link>
             </div>

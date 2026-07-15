@@ -414,7 +414,7 @@ const Registrations: React.FC = () => {
         </div>
       </div>
       {selected.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-surface-elevated text-white rounded-2xl shadow-2xl ring-1 ring-brand-primary/20 px-3 py-2 flex items-center gap-2 max-w-[95vw] overflow-x-auto">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-surface-elevated text-ink-primary rounded-2xl shadow-2xl ring-1 ring-brand-primary/20 px-3 py-2 flex items-center gap-2 max-w-[95vw] overflow-x-auto">
           <span className="text-[11px] font-extrabold uppercase tracking-widest text-brand-primary-soft px-2">{selected.size} selected</span>
           <span className="text-ink-primary/85">|</span>
           <button

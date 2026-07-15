@@ -2679,7 +2679,7 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
   return (
     <Link
       to={`/player-media?clip=${clip.id}`}
-      className="block relative overflow-hidden rounded-2xl ring-1 ring-gray-200 bg-gray-900 group shadow-sm"
+      className="block relative overflow-hidden rounded-2xl ring-1 ring-line-default bg-surface-elevated group shadow-sm"
     >
       <div className="aspect-[16/9] sm:aspect-[16/8]">
         {thumb ? (

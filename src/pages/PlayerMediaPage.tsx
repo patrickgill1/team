@@ -2096,7 +2096,7 @@ const PlayerMediaPage: React.FC = () => {
                   <button
                     onClick={handleUpload}
                     disabled={uploading || !uploadPlayerId || uploadFiles.length === 0}
-                    className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-surface-raised disabled:opacity-50"
+                    className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dim disabled:opacity-50"
                   >
                     {uploading ? 'Uploading...' : 'Upload'}
                   </button>
@@ -2404,7 +2404,7 @@ const PlayerMediaPage: React.FC = () => {
                   )}
                   <div className="flex justify-center gap-2">
                     <button onClick={() => { setEditingTags(null); setEditingGoalScorerId(''); setEditingAssistByIds([]); setEditingGameId(''); }} className="px-3 py-1 text-xs text-white/60 hover:text-white">Cancel</button>
-                    <button onClick={handleSaveTags} className="px-3 py-1 bg-brand-primary text-white text-xs rounded-full hover:bg-surface-tint">Save Tags</button>
+                    <button onClick={handleSaveTags} className="px-3 py-1 bg-brand-primary text-white text-xs rounded-full hover:bg-brand-primary-dim">Save Tags</button>
                   </div>
                 </div>
               ) : (
@@ -2533,7 +2533,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ items, onView, onDelete, onLike, 
               onClick={() => onView(item)}
             >
               {item.type === 'video' ? (
-                <div className="w-full h-full flex items-center justify-center bg-surface-input text-white text-2xl">▶</div>
+                <div className="w-full h-full flex items-center justify-center bg-surface-input text-ink-primary text-2xl">▶</div>
               ) : (
                 <img src={item.url} alt={item.caption || ''} className="w-full h-full object-cover" loading="lazy" />
               )}

@@ -145,7 +145,7 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-ink-primary/40 hover:text-white hover:bg-line-default/10"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-ink-primary/40 hover:text-ink-primary hover:bg-line-default/10"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>

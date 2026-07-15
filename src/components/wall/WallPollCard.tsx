@@ -98,7 +98,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
               onClick={() => onVote(opt.id)}
               className={`relative w-full text-left rounded-xl px-3 py-2 ring-1 transition overflow-hidden ${
                 mine
-                  ? 'bg-white text-brand-primary-dim ring-brand-primary-soft'
+                  ? 'bg-surface-elevated text-ink-primary ring-brand-primary-soft'
                   : 'bg-white text-slate-800 ring-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -138,11 +138,11 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
           onClick={() => setVotersOpen(false)}
         >
           <div
-            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+            className="bg-surface-elevated w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
-              <button onClick={() => setVotersOpen(false)} className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white">
+              <button onClick={() => setVotersOpen(false)} className="text-[11px] font-extrabold tracking-widest uppercase text-slate-500 hover:text-slate-900">
                 Close
               </button>
               <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">Voters</div>

@@ -105,20 +105,20 @@ const MentionsInbox: React.FC = () => {
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Team HQ
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-black text-ink-primary leading-tight flex items-center gap-2">
             <svg className="w-6 h-6 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="4" />
               <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
             </svg>
             Mentions
           </h1>
-          <p className="text-sm text-slate-400 mt-0.5">Every @ you've gotten across every chat.</p>
+          <p className="text-sm text-ink-primary/60 mt-0.5">Every @ you've gotten across every chat.</p>
         </div>
       </header>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5">
         {loading ? (
-          <div className="text-center text-sm text-slate-400 py-12">Loading mentions…</div>
+          <div className="text-center text-sm text-ink-primary/60 py-12">Loading mentions…</div>
         ) : messages.length === 0 ? (
           <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-10 text-center">
             <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary-soft ring-1 ring-brand-primary-soft flex items-center justify-center text-brand-primary mb-3">
@@ -149,7 +149,7 @@ const MentionsInbox: React.FC = () => {
                           {threadTitles[m.threadId] && (
                             <span className="text-[11px] text-brand-primary font-semibold">in {threadTitles[m.threadId]}</span>
                           )}
-                          <span className="text-[10px] text-slate-400 ml-auto">
+                          <span className="text-[10px] text-ink-primary/60 ml-auto">
                             {m.timestamp.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                           </span>
                         </div>

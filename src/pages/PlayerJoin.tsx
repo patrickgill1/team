@@ -270,7 +270,7 @@ const PlayerJoin: React.FC = () => {
               </p>
               <button
                 onClick={() => navigate('/dashboard')}
-                className="w-full bg-surface-tint hover:bg-surface-raised text-white font-bold py-3 rounded-xl transition-colors"
+                className="w-full bg-surface-tint hover:bg-surface-raised text-ink-primary font-bold py-3 rounded-xl transition-colors"
               >
                 Go to Team HQ →
               </button>
@@ -350,7 +350,7 @@ const PlayerJoin: React.FC = () => {
                 <button
                   type="submit"
                   disabled={authSubmitting}
-                  className="w-full bg-surface-tint hover:bg-surface-raised text-white font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50"
+                  className="w-full bg-surface-tint hover:bg-surface-raised text-ink-primary font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50"
                 >
                   {authSubmitting
                     ? 'Please wait...'

@@ -81,11 +81,19 @@ function eventTitle(event: CalendarEvent): { primary: string; icon: 'game' | 'pr
 
 // ── Icons ────────────────────────────────────────────────────────
 
+// Classic soccer ball: outer sphere + center pentagon + five spokes
+// out to where neighboring hexagons meet the edge. Patrick 2026-07-15:
+// prior draw read as a rose/flower to him — the petal-only path with
+// no pentagon didn't say "soccer ball" at a glance.
 const BallGlyph: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
     <circle cx="12" cy="12" r="9" />
-    <path d="M12 6l3 2-1 4-4 0-1-4z" />
-    <path d="M12 22l-3-5M12 22l3-5M6 10l2 4M18 10l-2 4" />
+    <polygon points="12,8 15.5,10.6 14.15,14.85 9.85,14.85 8.5,10.6" />
+    <line x1="12" y1="8" x2="12" y2="3.2" />
+    <line x1="15.5" y1="10.6" x2="20.4" y2="9" />
+    <line x1="14.15" y1="14.85" x2="17.1" y2="19" />
+    <line x1="9.85" y1="14.85" x2="6.9" y2="19" />
+    <line x1="8.5" y1="10.6" x2="3.6" y2="9" />
   </svg>
 );
 
@@ -259,7 +267,12 @@ const UpcomingEventsList: React.FC<Props> = ({ events, max = 3, myLinkedPlayers,
           return (
             <li key={r.event.id}>
               <Link
-                to={`/event/${r.event.id}`}
+                // 2026-07-15: app's route is /events/:eventId (plural).
+                // Old `/event/${id}` (singular) fell through to the
+                // catch-all Navigate-to-dashboard, which is what made
+                // parents see the "flash and stay on home" behavior
+                // when tapping this week's rows.
+                to={`/events/${r.event.id}`}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-line-default/[0.03] transition group"
               >
                 {/* Left icon */}

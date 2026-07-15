@@ -173,7 +173,14 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-gradient-to-br from-surface-elevated via-surface-base to-vignette-deep ring-1 ring-brand-primary/15 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-white"
+        // 2026-07-15: swapped `text-white` default off the container
+        // (broke every light-mode viewer — hardcoded white text on
+        // the light-mode gradient == invisible copy per Patrick's
+        // screenshot). Every child that needed white in dark mode
+        // now uses text-ink-primary tokens that flip per theme. The
+        // gradient itself is preserved pending the gradient audit;
+        // Patrick called keep-vs-kill on the whole family separately.
+        className="bg-gradient-to-br from-surface-elevated via-surface-base to-vignette-deep ring-1 ring-brand-primary/15 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-ink-primary"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative overflow-hidden p-6 border-b border-brand-primary/15">
@@ -184,18 +191,18 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
               Invite ready
             </div>
             <h2 className="text-2xl font-black leading-tight">{labelByType[invite.type] || 'Invite'}</h2>
-            <p className="text-white/70 text-sm mt-1">
+            <p className="text-ink-primary/70 text-sm mt-1">
               {invite.type === 'player'
                 ? "Text or AirDrop this link. The first parent that taps it gets auto-linked. No email collection on your end."
                 : 'Anyone with this link can join the team in the named role. Reusable up to the limit shown below.'}
             </p>
             {!PLAY_STORE_LIVE && (
-              <div className="mt-3 rounded-xl bg-amber-500/8 ring-1 ring-amber-400/25 p-3 space-y-1.5 text-white/80 text-[12px] leading-snug">
-                <p><b className="text-amber-200">iPhone parents:</b> tap the link. Opens the App Store, then completes the join.</p>
+              <div className="mt-3 rounded-xl bg-amber-500/8 ring-1 ring-amber-400/25 p-3 space-y-1.5 text-ink-primary/80 text-[12px] leading-snug">
+                <p><b className="text-amber-500">iPhone parents:</b> tap the link. Opens the App Store, then completes the join.</p>
                 {ANDROID_BETA_OPEN ? (
-                  <p><b className="text-amber-200">Android parents:</b> tap the link on their phone (opens goalkickr.com in Chrome, works the same as the app), OR install the app in one tap via <a href={ANDROID_BETA_OPTIN_URL} target="_blank" rel="noopener noreferrer" className="underline decoration-amber-400/60 hover:text-white">early access</a>. Either path works, no email allowlist step on either.</p>
+                  <p><b className="text-amber-500">Android parents:</b> tap the link on their phone (opens goalkickr.com in Chrome, works the same as the app), OR install the app in one tap via <a href={ANDROID_BETA_OPTIN_URL} target="_blank" rel="noopener noreferrer" className="underline decoration-amber-400/60 hover:text-ink-primary">early access</a>. Either path works, no email allowlist step on either.</p>
                 ) : (
-                  <p><b className="text-amber-200">Android parents:</b> tap the link on their phone. Opens goalkickr.com in Chrome and works the same. Do not point them at the Play Store; the Android app is still closed beta and I have to add each email by hand.</p>
+                  <p><b className="text-amber-500">Android parents:</b> tap the link on their phone. Opens goalkickr.com in Chrome and works the same. Do not point them at the Play Store; the Android app is still closed beta and I have to add each email by hand.</p>
                 )}
               </div>
             )}
@@ -204,21 +211,21 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
 
         <div className="p-6 space-y-4">
           <div className="rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 p-3">
-            <p className="text-[10px] uppercase tracking-widest font-bold text-white/50 mb-1">Share link</p>
+            <p className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/50 mb-1">Share link</p>
             <p className="text-sm font-mono break-all text-ink-primary">{url}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={handleCopy}
-              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white text-charcoal-800 font-bold text-sm shadow hover:scale-[1.02] transition"
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-brand-primary text-white font-bold text-sm shadow hover:scale-[1.02] transition"
             >
               {copied ? <CheckGlyph className="w-4 h-4" /> : <CopyGlyph className="w-4 h-4" />}
               <span>{copied ? 'Copied' : 'Copy link'}</span>
             </button>
             <button
               onClick={handleSms}
-              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-line-default/15 ring-1 ring-line-default/20 text-white font-semibold text-sm hover:bg-line-default/25 transition backdrop-blur"
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-line-default/15 ring-1 ring-line-default/20 text-ink-primary font-semibold text-sm hover:bg-line-default/25 transition backdrop-blur"
             >
               <MessageGlyph className="w-4 h-4" />
               <span>Text</span>
@@ -242,7 +249,7 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
                 <span>{codeCopied ? 'Copied' : 'Copy'}</span>
               </button>
             </div>
-            <p className="text-[11px] text-white/55 mt-1.5 leading-snug">
+            <p className="text-[11px] text-ink-primary/55 mt-1.5 leading-snug">
               Parents type this into the sign-in screen after tapping "Have an invite code?"
             </p>
           </div>
@@ -250,7 +257,7 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
           {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
             <button
               onClick={handleNativeShare}
-              className="w-full px-4 py-3 rounded-xl bg-line-default/10 ring-1 ring-line-default/15 text-white font-semibold text-sm hover:bg-line-default/20 transition inline-flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 rounded-xl bg-line-default/10 ring-1 ring-line-default/15 text-ink-primary font-semibold text-sm hover:bg-line-default/20 transition inline-flex items-center justify-center gap-2"
             >
               <ShareGlyph className="w-4 h-4" />
               <span>Share</span>
@@ -269,13 +276,13 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
                 <button
                   type="button"
                   onClick={() => setFastTrackOpen(true)}
-                  className="w-full text-center text-[12px] font-semibold text-brand-primary-soft hover:text-white transition py-1"
+                  className="w-full text-center text-[12px] font-semibold text-brand-primary-soft hover:text-ink-primary transition py-1"
                 >
                   Fast-track this parent for the Android app
                 </button>
               ) : (
                 <div className="rounded-xl bg-brand-primary/8 ring-1 ring-brand-primary/25 p-3 space-y-2">
-                  <p className="text-[11px] text-white/70 leading-snug">
+                  <p className="text-[11px] text-ink-primary/70 leading-snug">
                     Send Patrick this parent's email so he can add them to the Play Store tester list. They will not be able to install the Android app until he does.
                   </p>
                   {fastTrackSubmitted ? (
@@ -316,7 +323,7 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
                           type="button"
                           onClick={() => { setFastTrackOpen(false); setFastTrackEmail(''); setFastTrackNote(''); }}
                           disabled={fastTrackBusy}
-                          className="px-3 py-2 rounded-lg text-white/60 hover:text-white text-[12px] font-semibold transition disabled:opacity-50"
+                          className="px-3 py-2 rounded-lg text-ink-primary/60 hover:text-ink-primary text-[12px] font-semibold transition disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -328,14 +335,14 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
             </div>
           )}
 
-          <div className="pt-2 border-t border-line-default/10 text-xs text-white/55 space-y-0.5">
+          <div className="pt-2 border-t border-line-default/10 text-xs text-ink-primary/55 space-y-0.5">
             <p>Expires {invite.expiresAt instanceof Date ? invite.expiresAt.toLocaleDateString() : new Date(invite.expiresAt).toLocaleDateString()}</p>
             <p>{invite.maxUses == null ? 'Unlimited uses' : `${(invite as any).usedCount || 0} of ${invite.maxUses} uses`}</p>
           </div>
 
           <button
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl text-white/70 hover:text-white text-sm font-semibold transition"
+            className="w-full py-2.5 rounded-xl text-ink-primary/70 hover:text-ink-primary text-sm font-semibold transition"
           >
             Done
           </button>

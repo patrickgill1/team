@@ -143,11 +143,18 @@ const SidelineShoutsSection: React.FC<Props> = ({
                         : 'border-transparent text-ink-primary/50 hover:text-ink-primary/85')
                     }
                   >
-                    <span className="block truncate text-[11px] font-black uppercase tracking-wider">
+                    {/* 2026-07-15: dropped `tracking-wider` and shrank
+                        the count text so all 6 tabs + counts fit at
+                        375px (iPhone SE) without truncating the
+                        label. Verifier flagged the tight math:
+                        "WHISPER 5" at 11px tracking-wider ate ~65px
+                        of ~44px per-tab budget. This gives back
+                        ~6-8px per tab. */}
+                    <span className="block truncate text-[11px] font-black uppercase">
                       {f.label}
                       <span
                         className={
-                          'ml-1 tabular-nums font-bold ' +
+                          'ml-0.5 tabular-nums font-bold text-[10px] ' +
                           (isActive ? 'text-brand-primary' : 'text-ink-primary/40')
                         }
                       >

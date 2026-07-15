@@ -1112,9 +1112,14 @@ const PlayerProfile: React.FC = () => {
                     || voting.winner?.playerId === playerId;
                   return !isWin;
                 }).length;
+                // 2026-07-15: hide the Nominated tile when count = 0
+                // and collapse to a single centered POTM tile.
+                // Verifier flagged "POTM: 2 / Nominated: 0" reading
+                // as a bug to a parent scanning the case.
+                const showNominated = pureNominations > 0;
                 return (
                 <ProfileCard eyebrow="Awards" title="Trophy case">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className={showNominated ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}>
                     <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 p-4">
                       <div className="flex items-center gap-2 mb-2 text-amber-500">
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 4h14v2h2v4a4 4 0 0 1-4 4h-.55A6 6 0 0 1 13 18v2h2v2H9v-2h2v-2a6 6 0 0 1-3.45-4H7a4 4 0 0 1-4-4V6h2zm0 4v2a2 2 0 0 0 2 2V8zm14 0v4a2 2 0 0 0 2-2V8z" /></svg>
@@ -1122,13 +1127,15 @@ const PlayerProfile: React.FC = () => {
                       <div className="text-3xl sm:text-4xl font-black leading-none text-ink-primary tabular-nums">{votingWins.length}</div>
                       <div className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/60 mt-1">POTM Wins</div>
                     </div>
-                    <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 p-4">
-                      <div className="flex items-center gap-2 mb-2 text-brand-primary-soft">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                    {showNominated && (
+                      <div className="rounded-xl bg-surface-input/60 ring-1 ring-line-default/15 p-4">
+                        <div className="flex items-center gap-2 mb-2 text-brand-primary-soft">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                        </div>
+                        <div className="text-3xl sm:text-4xl font-black leading-none text-ink-primary tabular-nums">{pureNominations}</div>
+                        <div className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/60 mt-1">Also nominated</div>
                       </div>
-                      <div className="text-3xl sm:text-4xl font-black leading-none text-ink-primary tabular-nums">{pureNominations}</div>
-                      <div className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/60 mt-1">Nominated</div>
-                    </div>
+                    )}
                   </div>
                 </ProfileCard>
                 );
@@ -1326,7 +1333,12 @@ const PlayerProfile: React.FC = () => {
                 Coach opt-in per team. Scroll target for the Story-tab
                 LevelProgressBar and BadgeCollection jumps (id +
                 xpCardSectionRef). */}
-            <div ref={xpCardSectionRef} id="stats-xpcard" className="scroll-mt-20">
+            {/* 2026-07-15: scroll-mt bumped from -20 (80px) to -32
+                (128px) so the jump from LevelProgressBar/
+                BadgeCollection lands cleanly BELOW the sticky
+                header (mini-hero ~56 + pill row ~54 = ~110px).
+                Verifier caught the eyebrow being clipped. */}
+            <div ref={xpCardSectionRef} id="stats-xpcard" className="scroll-mt-32">
               <PlayerXpCard
                 player={player}
                 team={selectedTeam}

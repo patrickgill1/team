@@ -438,14 +438,15 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
           {filteredDirectory.map((entry) => {
             const isCoachRole = entry.user.role === 'coach';
             const dotColor = isCoachRole ? 'bg-violet-400' : 'bg-emerald-400';
-            // Only claim "Parent" when the user actually declared it in their
-            // profile. Everyone else on the family side gets the neutral
-            // "Family" chip (grandparent, aunt, guardian, unlabeled, etc.).
-            const roleLabel = isCoachRole
-              ? 'Coach'
-              : (entry.user as any).relationship === 'parent'
-                ? 'Parent'
-                : 'Family';
+            // 2026-07-16 Ship 1: relationship='parent' is ambiguous
+            // because every legacy user was stamped with the fake
+            // default by the old worker. Treat 'parent' as unlabeled
+            // ("Family") to stop lying about siblings/grandparents.
+            // Real self-declared relationships (grandparent, sibling,
+            // aunt_uncle, guardian) still show their true chip via the
+            // subtitle branch below. Ship 2's self-ID prompt will need
+            // a separate signal to reintroduce a real 'Parent' chip.
+            const roleLabel = isCoachRole ? 'Coach' : 'Family';
             const initials = entry.user.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?';
             return (
               <div
@@ -506,15 +507,21 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight truncate">{entry.user.name || 'Unknown'}</h3>
                       <p className="text-ink-primary/70 text-sm font-medium mt-0.5 truncate">
-                        {isCoachRole
-                          ? 'Team Coach'
-                          : entry.players.length > 0
-                            ? (entry.user as any).relationship === 'parent'
-                              ? `Parent of ${entry.players.map(p => p.name.split(' ')[0]).join(', ')}`
-                              : (entry.user as any).relationship && RELATIONSHIP_LABELS[(entry.user as any).relationship as FamilyRelationship]
-                                ? `${RELATIONSHIP_LABELS[(entry.user as any).relationship as FamilyRelationship]} of ${entry.players.map(p => p.name.split(' ')[0]).join(', ')}`
-                                : `In ${entry.players.map(p => p.name.split(' ')[0]).join(', ')}'s Circle`
-                            : 'Team Member'}
+                        {(() => {
+                          if (isCoachRole) return 'Team Coach';
+                          if (entry.players.length === 0) return 'Team Member';
+                          const rel = (entry.user as any).relationship as FamilyRelationship | undefined;
+                          const firstNames = entry.players.map(p => p.name.split(' ')[0]).join(', ');
+                          // Same Ship 1 ambiguity treatment as roleLabel above:
+                          // 'parent' is the legacy fake default from the old
+                          // worker, so fall through to the neutral "In X's
+                          // Circle" copy. Real self-declared relationships
+                          // (grandparent/sibling/etc) still render their label.
+                          if (rel && rel !== 'parent' && RELATIONSHIP_LABELS[rel]) {
+                            return `${RELATIONSHIP_LABELS[rel]} of ${firstNames}`;
+                          }
+                          return `In ${firstNames}'s Circle`;
+                        })()}
                       </p>
                     </div>
                   </div>

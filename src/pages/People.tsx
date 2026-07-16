@@ -61,8 +61,17 @@ const ROLE_LABEL: Record<Role, string> = {
 function personRoleLabel(person: { role: Role; relationship?: string }): string {
   if (person.role !== 'parent') return ROLE_LABEL[person.role];
   const rel = person.relationship;
-  if (rel === 'parent') return 'Parent';
-  if (rel && RELATIONSHIP_LABELS[rel]) return RELATIONSHIP_LABELS[rel];
+  // 2026-07-16 Circle Ship 1: relationship='parent' is treated as
+  // AMBIGUOUS because every legacy user was stamped that way by the
+  // old worker default (writeGuards.ts handleClaimInvite), so
+  // rendering 'Parent' would keep lying about siblings/grandparents/
+  // guardians who accepted a Circle invite. Real self-declared
+  // relationships (sibling / grandparent / aunt_uncle / guardian /
+  // other) still show their true label. When Ship 2 adds the self-ID
+  // prompt in Settings, users who actually pick 'Parent' will need a
+  // separate signal (e.g. relationshipDeclaredAt) to reintroduce the
+  // 'Parent' chip without resurfacing the legacy lie.
+  if (rel && rel !== 'parent' && RELATIONSHIP_LABELS[rel]) return RELATIONSHIP_LABELS[rel];
   return 'Family';
 }
 // Role chips use SOLID colored pills, not opacity-tinted ones.

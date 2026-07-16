@@ -185,7 +185,12 @@ export async function getParentEmailsForPlayer(
  */
 export async function sendPushToUsers(
   userIds: string[],
-  msg: { title: string; body: string; url?: string; badge?: number },
+  // Deep-link accepts either `url` or `path` — historically some
+  // callers passed `path` (following the sendPushToPlayerParents
+  // shape) but this function only read `url`, silently dropping
+  // the link. Normalize below so path takes precedence when both
+  // are present. Prefer `url` in new callers.
+  msg: { title: string; body: string; url?: string; path?: string; badge?: number },
   opts?: { prefKey?: EmailPrefKey; pushPrefKey?: PushPrefKey; fromUid?: string }
 ): Promise<boolean> {
   if (!configured()) return false;
@@ -227,10 +232,14 @@ export async function sendPushToUsers(
       console.warn('[notify] push: no FCM tokens registered for any recipient');
       return false;
     }
+    // `path` wins over `url` — a path is app-relative and always
+    // deep-linkable, a url may point somewhere external. Either
+    // way the worker just receives a `url` string.
+    const deepLink = msg.path || msg.url;
     const res = await workerFetch('/send-push', {
       method: 'POST',
       body: JSON.stringify({
-        tokens, title: msg.title, body: msg.body, url: msg.url,
+        tokens, title: msg.title, body: msg.body, url: deepLink,
         // Absolute app-icon badge count (iOS + Android). Callers pass
         // this only when the notification should light up the badge —
         // chat message pushes do, informational broadcasts don't.
@@ -408,18 +417,43 @@ export async function getCoachEmailsForTeam(
 export async function sendPushToPlayerParents(
   playerId: string,
   msg: { title: string; body: string; url?: string; path?: string },
-  opts?: EmailPrefKey | { prefKey?: EmailPrefKey; pushPrefKey?: PushPrefKey },
+  opts?: EmailPrefKey | {
+    prefKey?: EmailPrefKey;
+    pushPrefKey?: PushPrefKey;
+    fromUid?: string;
+    // When provided, also union team.coachIds into the recipient
+    // set. Used by dev-plan comments (and similar) so every coach
+    // on the team gets pinged, not just parents. Coaches can mute
+    // via their own push preferences (pushPrefKey).
+    coachTeamId?: string;
+  },
 ): Promise<boolean> {
   try {
     const playerSnap = await getDoc(doc(db, 'players', playerId));
     if (!playerSnap.exists()) return false;
     const player: any = playerSnap.data();
-    const candidateUids: string[] = Array.isArray(player.parentIds) ? [...player.parentIds] : [];
-    if (player.parentId && !candidateUids.includes(player.parentId)) candidateUids.push(player.parentId);
-    if (candidateUids.length === 0) return false;
+    const uidSet = new Set<string>();
+    (Array.isArray(player.parentIds) ? player.parentIds : []).forEach((u: string) => u && uidSet.add(u));
+    if (player.parentId) uidSet.add(player.parentId);
     // Back-compat: callers used to pass just a string EmailPrefKey.
     const normalized = typeof opts === 'string' ? { prefKey: opts } : (opts || {});
-    return await sendPushToUsers(candidateUids, msg, normalized);
+    // Coach fan-out: fetch the team doc once and merge its
+    // coachIds. Dedupes automatically via the Set. Silent no-op on
+    // fetch failure — we still push whatever parents we already
+    // have.
+    if (normalized.coachTeamId) {
+      try {
+        const teamSnap = await getDoc(doc(db, 'teams', normalized.coachTeamId));
+        if (teamSnap.exists()) {
+          const t: any = teamSnap.data();
+          (Array.isArray(t.coachIds) ? t.coachIds : []).forEach((u: string) => u && uidSet.add(u));
+        }
+      } catch (e) { console.warn('[notify] coachTeamId fetch failed', e); }
+    }
+    // Self-guard: never push the actor about their own comment.
+    if (normalized.fromUid) uidSet.delete(normalized.fromUid);
+    if (uidSet.size === 0) return false;
+    return await sendPushToUsers(Array.from(uidSet), msg, normalized);
   } catch (err) {
     console.warn('[notify] sendPushToPlayerParents failed', err);
     return false;

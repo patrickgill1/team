@@ -498,18 +498,74 @@ async function applyMembership(
 ): Promise<void> {
   const now = new Date();
 
-  // Step 1 — team.coachIds fanout for coach roles with an attach
-  // team. Guard-drift closure #1. Runs BEFORE the user grant so
-  // that requireCoachOfTeam sees the coach on team.coachIds by the
-  // time the user grant lands.
-  if (op.attachToTeamCoachIds && op.role === 'coach') {
+  // Step 1 — team.coachIds fanout for coach/team_manager roles with
+  // an attach team. Guard-drift closure #1. Runs BEFORE the user
+  // grant so that requireCoachOfTeam sees the coach on
+  // team.coachIds by the time the user grant lands.
+  //
+  // Historically we only mirrored to team.coachIds, but the Staff
+  // page (src/pages/StaffManagement.tsx) reads ONLY headCoachId /
+  // assistantCoachIds / managerIds — never coachIds. That produced
+  // "ghost coaches": real for security-rule purposes (they're on
+  // coachIds) but invisible on the Staff page for the head coach to
+  // adjust permissions or remove. Every /claim/invite +
+  // /claim/coach-invite promotion silently landed one.
+  //
+  // Fix: mirror into the role-specific list the Staff page reads,
+  // so the moment the invite is consumed the new coach shows up in
+  // the head coach's staff panel. arrayUnion is idempotent, so
+  // re-runs against an already-promoted uid are safe.
+  //   - role='coach' + coachLevel='head_coach' → set headCoachId
+  //   - role='coach' (assistant / unset)      → arrayUnion into assistantCoachIds
+  //   - role='team_manager'                    → arrayUnion into managerIds
+  if (op.attachToTeamCoachIds && (op.role === 'coach' || op.role === 'team_manager')) {
+    const teamPath = `teams/${op.attachToTeamCoachIds}`;
+    const teamTransforms: any[] = [];
+    let teamPatch: Record<string, any> | null = null;
+    let effectiveCoachLevel = op.coachLevel;
+
+    if (op.role === 'coach') {
+      teamTransforms.push({ fieldPath: 'coachIds', kind: 'arrayUnion', value: op.targetUid });
+      if (op.coachLevel === 'head_coach') {
+        // Head coach is a scalar pointer, not an array. Only crown
+        // when the seat is vacant or already held by this uid — a
+        // legacy invite doc with a stale head_coach shape must never
+        // silently displace the current head. Head transfers must go
+        // through /teams/transfer-head. If a head is already seated,
+        // downgrade this promotion to assistant so the coach still
+        // lands on the team, just not as head.
+        const teamSnap = await getDocument(pid, teamPath, sa).catch(() => null);
+        const currentHead = String(teamSnap?.data?.headCoachId || '');
+        if (!currentHead || currentHead === op.targetUid) {
+          teamPatch = { headCoachId: op.targetUid };
+        } else {
+          effectiveCoachLevel = 'assistant';
+          teamTransforms.push({ fieldPath: 'assistantCoachIds', kind: 'arrayUnion', value: op.targetUid });
+        }
+      } else {
+        teamTransforms.push({ fieldPath: 'assistantCoachIds', kind: 'arrayUnion', value: op.targetUid });
+      }
+    } else if (op.role === 'team_manager') {
+      // Team managers don't live on coachIds (they're not coaches
+      // for security rules), only on managerIds.
+      teamTransforms.push({ fieldPath: 'managerIds', kind: 'arrayUnion', value: op.targetUid });
+    }
+
     await commitDocumentTransforms(
       pid,
-      `teams/${op.attachToTeamCoachIds}`,
-      [{ fieldPath: 'coachIds', kind: 'arrayUnion', value: op.targetUid }],
-      null,
+      teamPath,
+      teamTransforms,
+      teamPatch,
       sa,
     );
+
+    // Reflect the downgrade into the user grant below so
+    // users/{uid}.coachLevel matches team.assistantCoachIds. Otherwise
+    // team.coachIds sees the uid as assistant but the user doc claims
+    // head_coach — the exact drift class this whole section closes.
+    if (effectiveCoachLevel !== op.coachLevel) {
+      op.coachLevel = effectiveCoachLevel;
+    }
   }
 
   // Step 2 — player link. Adds targetUid to players.parentIds and
@@ -714,13 +770,24 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
     op.playerLink = { playerId, isAdultPlayer: invite.isAdultPlayer === true };
   } else if (inviteType === 'coach') {
     op.role = 'coach';
-    op.coachLevel = String(invite.role || 'assistant_coach');
+    // Generic /claim/invite never crowns a head coach. Head-coach
+    // promotion goes through /claim/coach-invite (which itself gates
+    // an existing head via applyMembership). Any legacy invites doc
+    // shaped with role='head_coach' would otherwise silently displace
+    // the current head via the scalar headCoachId overwrite.
+    op.coachLevel = 'assistant';
     // Guard-drift closure #1: previously omitted. Coach claiming a
     // legacy invite must also land on team.coachIds so
     // requireCoachOfTeam works after the grant.
     op.attachToTeamCoachIds = teamId;
   } else {
     op.role = 'team_manager';
+    // Guard-drift closure: team_manager promotions must land on
+    // team.managerIds so the Staff page (which reads managerIds, not
+    // any generic membership list) shows them to the head coach.
+    // applyMembership routes attachToTeamCoachIds through the
+    // managerIds branch when role === 'team_manager'.
+    op.attachToTeamCoachIds = teamId;
   }
 
   await applyMembership(op, pid, sa);
@@ -749,7 +816,14 @@ async function handleClaimCoachInvite(req: Request, env: Env, payload: any): Pro
 
   const teamId = String(invite.teamId || '');
   if (!teamId) return json({ ok: false, error: 'invite_missing_team' }, 400);
-  const coachLevel = invite.coachLevel === 'assistant' ? 'assistant' : 'head_coach';
+  // Default to assistant unless the invite explicitly says head_coach.
+  // Legacy invites with missing / non-canonical coachLevel (e.g.
+  // 'assistant_coach', null, absent) previously fell through to
+  // head_coach, which combined with applyMembership's scalar
+  // headCoachId write would silently displace the current head. Safe
+  // default is assistant; applyMembership additionally guards the
+  // headCoachId scalar so an existing head is never overwritten.
+  const coachLevel = invite.coachLevel === 'head_coach' ? 'head_coach' : 'assistant';
 
   // Idempotent retry by the same uid: they already claimed this
   // invite and are hitting the endpoint again (double-tap, retry

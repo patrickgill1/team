@@ -72,6 +72,11 @@ const StaffManagement: React.FC = () => {
     if (team.headCoachId) uids.add(team.headCoachId);
     (team.assistantCoachIds || []).forEach((u) => uids.add(u));
     (team.managerIds || []).forEach((u) => uids.add(u));
+    // Defensive: pick up any legacy coachIds entries that never
+    // mirrored to assistantCoachIds so the head coach can still see
+    // and manage them from this page. See staffRows below for the
+    // full rationale.
+    ((team as any).coachIds || []).forEach((u: string) => uids.add(u));
     const missing = [...uids].filter((u) => !users[u]);
     if (missing.length === 0) return;
     let cancelled = false;
@@ -95,18 +100,41 @@ const StaffManagement: React.FC = () => {
     return () => { cancelled = true; };
     // Only trigger when the staff-uid set actually changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team?.headCoachId, (team?.assistantCoachIds || []).join(','), (team?.managerIds || []).join(',')]);
+  }, [team?.headCoachId, (team?.assistantCoachIds || []).join(','), (team?.managerIds || []).join(','), ((team as any)?.coachIds || []).join(',')]);
 
   const staffRows: Array<{ uid: string; role: StaffRole; user: UserLite }> = useMemo(() => {
     if (!team) return [];
     const rows: Array<{ uid: string; role: StaffRole; user: UserLite }> = [];
     const fallback = (uid: string): UserLite => users[uid] || { uid, name: uid.slice(0, 8) + '…', email: '' };
-    if (team.headCoachId) rows.push({ uid: team.headCoachId, role: 'head', user: fallback(team.headCoachId) });
+    const accounted = new Set<string>();
+    if (team.headCoachId) {
+      rows.push({ uid: team.headCoachId, role: 'head', user: fallback(team.headCoachId) });
+      accounted.add(team.headCoachId);
+    }
     (team.assistantCoachIds || []).forEach((uid) => {
-      if (uid !== team.headCoachId) rows.push({ uid, role: 'assistant', user: fallback(uid) });
+      if (accounted.has(uid)) return;
+      rows.push({ uid, role: 'assistant', user: fallback(uid) });
+      accounted.add(uid);
     });
     (team.managerIds || []).forEach((uid) => {
-      if (uid !== team.headCoachId) rows.push({ uid, role: 'manager', user: fallback(uid) });
+      if (accounted.has(uid)) return;
+      rows.push({ uid, role: 'manager', user: fallback(uid) });
+      accounted.add(uid);
+    });
+    // Belt-and-suspenders: any uid on team.coachIds that hasn't
+    // already been placed by the buckets above is a "ghost coach"
+    // — real for security rules (Firestore reads/writes gated on
+    // coachIds check out) but never mirrored to the role-specific
+    // arrays that this page reads. Render them as assistant so
+    // the head coach can adjust or remove them via the normal UI.
+    // Once applyMembership() writes both arrays and the backfill
+    // migration runs, this path becomes a no-op; keeping it makes
+    // future drift regressions self-heal instead of silently
+    // hiding staff members.
+    ((team as any).coachIds || []).forEach((uid: string) => {
+      if (accounted.has(uid)) return;
+      rows.push({ uid, role: 'assistant', user: fallback(uid) });
+      accounted.add(uid);
     });
     return rows;
   }, [team, users]);

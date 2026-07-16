@@ -498,16 +498,51 @@ async function applyMembership(
 ): Promise<void> {
   const now = new Date();
 
-  // Step 1 — team.coachIds fanout for coach roles with an attach
-  // team. Guard-drift closure #1. Runs BEFORE the user grant so
-  // that requireCoachOfTeam sees the coach on team.coachIds by the
-  // time the user grant lands.
-  if (op.attachToTeamCoachIds && op.role === 'coach') {
+  // Step 1 — team.coachIds fanout for coach/team_manager roles with
+  // an attach team. Guard-drift closure #1. Runs BEFORE the user
+  // grant so that requireCoachOfTeam sees the coach on
+  // team.coachIds by the time the user grant lands.
+  //
+  // Historically we only mirrored to team.coachIds, but the Staff
+  // page (src/pages/StaffManagement.tsx) reads ONLY headCoachId /
+  // assistantCoachIds / managerIds — never coachIds. That produced
+  // "ghost coaches": real for security-rule purposes (they're on
+  // coachIds) but invisible on the Staff page for the head coach to
+  // adjust permissions or remove. Every /claim/invite +
+  // /claim/coach-invite promotion silently landed one.
+  //
+  // Fix: mirror into the role-specific list the Staff page reads,
+  // so the moment the invite is consumed the new coach shows up in
+  // the head coach's staff panel. arrayUnion is idempotent, so
+  // re-runs against an already-promoted uid are safe.
+  //   - role='coach' + coachLevel='head_coach' → set headCoachId
+  //   - role='coach' (assistant / unset)      → arrayUnion into assistantCoachIds
+  //   - role='team_manager'                    → arrayUnion into managerIds
+  if (op.attachToTeamCoachIds && (op.role === 'coach' || op.role === 'team_manager')) {
+    const teamPath = `teams/${op.attachToTeamCoachIds}`;
+    const teamTransforms: any[] = [];
+    let teamPatch: Record<string, any> | null = null;
+
+    if (op.role === 'coach') {
+      teamTransforms.push({ fieldPath: 'coachIds', kind: 'arrayUnion', value: op.targetUid });
+      if (op.coachLevel === 'head_coach') {
+        // Head coach is a scalar pointer, not an array. Overwrite
+        // it directly — there is at most one head per team.
+        teamPatch = { headCoachId: op.targetUid };
+      } else {
+        teamTransforms.push({ fieldPath: 'assistantCoachIds', kind: 'arrayUnion', value: op.targetUid });
+      }
+    } else if (op.role === 'team_manager') {
+      // Team managers don't live on coachIds (they're not coaches
+      // for security rules) — only on managerIds.
+      teamTransforms.push({ fieldPath: 'managerIds', kind: 'arrayUnion', value: op.targetUid });
+    }
+
     await commitDocumentTransforms(
       pid,
-      `teams/${op.attachToTeamCoachIds}`,
-      [{ fieldPath: 'coachIds', kind: 'arrayUnion', value: op.targetUid }],
-      null,
+      teamPath,
+      teamTransforms,
+      teamPatch,
       sa,
     );
   }

@@ -582,12 +582,18 @@ const PlayerDevelopment: React.FC = () => {
         const { sendPushToUsers, sendPushToPlayerParents } = await import('../utils/notify');
         const fromUid = userData.uid;
         if (isUserCoach) {
-          // Coach commented → push the parents of this plan's player.
+          // Coach commented → push the parents of this plan's player
+          // AND every other coach on the team, so assistants and
+          // co-heads see the exchange without having to open the
+          // plan. Any coach who doesn't want these can mute via
+          // their own push preferences. Self-guard drops the
+          // commenter from the fanout so the coach who typed doesn't
+          // buzz their own phone.
           sendPushToPlayerParents(plan.playerId, {
             title: `Coach ${userData.name?.split(' ')[0] || ''} on ${plan.playerName}'s plan`,
             body: comment.text.length > 140 ? `${comment.text.slice(0, 137)}…` : comment.text,
             path: `/development?expand=${plan.id}`,
-          });
+          }, { coachTeamId: plan.teamId, fromUid });
         } else {
           // Parent commented → push the coach who created the plan.
           if (plan.createdBy && plan.createdBy !== fromUid) {

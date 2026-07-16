@@ -420,7 +420,7 @@ const PublicSurvey: React.FC = () => {
                   type="date"
                   value={(answers[q.id] as string) || ''}
                   onChange={e => setAnswer(q.id, e.target.value)}
-                  className="w-full bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/15 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none mt-3"
+                  className="w-full bg-surface-base text-ink-primary [color-scheme:dark] placeholder:text-ink-primary/40 border border-line-default/15 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none mt-3"
                 />
               )}
             </div>

@@ -414,9 +414,14 @@ const Surveys: React.FC = () => {
                     {q.type === 'multiple_choice' && (() => {
                       const counts = getChoiceCounts(q.id);
                       const max = Math.max(...Object.values(counts), 1);
+                      const currentOptions = q.options || [];
+                      // Options the coach removed after responses came in.
+                      // Show them muted + struck-through so historical picks
+                      // don't silently vanish from the chart.
+                      const removedOptions = Object.keys(counts).filter(k => !currentOptions.includes(k));
                       return (
                         <div className="space-y-2">
-                          {(q.options || []).map(opt => (
+                          {currentOptions.map(opt => (
                             <div key={opt} className="flex items-center gap-3">
                               <span className="text-sm text-ink-primary/85 w-40 truncate">{opt}</span>
                               {/* Track is dim charcoal so the cyan fill
@@ -431,6 +436,17 @@ const Surveys: React.FC = () => {
                                   {counts[opt] ? <span className="text-xs font-bold text-charcoal-950">{counts[opt]}</span> : null}
                                 </div>
                               </div>
+                            </div>
+                          ))}
+                          {removedOptions.map(opt => (
+                            <div key={`removed-${opt}`} className="flex items-center gap-3">
+                              <span className="text-sm text-ink-primary/50 line-through w-40 truncate" title="Option removed after responses collected">{opt}</span>
+                              <div className="flex-1 h-6 bg-line-default/10 rounded-full overflow-hidden">
+                                <div className="h-6 bg-line-default/25 rounded-full transition-all flex items-center pl-2" style={{ width: `${((counts[opt] || 0) / max) * 100}%`, minWidth: counts[opt] ? '28px' : '0' }}>
+                                  {counts[opt] ? <span className="text-xs font-bold text-ink-primary/70">{counts[opt]}</span> : null}
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-semibold text-ink-primary/50 uppercase tracking-wide shrink-0">removed</span>
                             </div>
                           ))}
                         </div>

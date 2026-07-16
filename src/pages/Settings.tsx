@@ -74,10 +74,15 @@ const Settings: React.FC = () => {
     : null;
   const handleSwitchRole = async (next: 'coach' | 'parent') => {
     if (!currentGlobalRole || currentGlobalRole === next || roleBusy) return;
-    const label = next === 'coach' ? 'coach' : 'parent';
-    const other = currentGlobalRole === 'coach' ? 'parent' : 'coach';
+    // Display strings use Ship 1's Family naming; the underlying
+    // /users/set-self-role call still writes role: 'parent'. Confirm
+    // dialog was reading 'parent' verbatim even though the button
+    // above it said 'Switch to Family' — same lie the ship is trying
+    // to stop telling elsewhere.
+    const label = next === 'coach' ? 'Coach' : 'Family';
+    const other = currentGlobalRole === 'coach' ? 'Coach' : 'Family';
     const ok = window.confirm(
-      `Switch your account from ${other} to ${label}?\n\n` +
+      `Switch your account from ${other} mode to ${label} mode?\n\n` +
       (next === 'coach'
         ? 'Coach mode gives you the tools to build a team, run practices, and post to the wall. You still see any players linked to your email.'
         : 'Family mode focuses on RSVPs, chats, and your linked players. You can switch back to coach any time.')

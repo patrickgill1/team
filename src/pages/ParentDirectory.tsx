@@ -438,7 +438,14 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
           {filteredDirectory.map((entry) => {
             const isCoachRole = entry.user.role === 'coach';
             const dotColor = isCoachRole ? 'bg-violet-400' : 'bg-emerald-400';
-            const roleLabel = isCoachRole ? 'Coach' : 'Parent';
+            // Only claim "Parent" when the user actually declared it in their
+            // profile. Everyone else on the family side gets the neutral
+            // "Family" chip (grandparent, aunt, guardian, unlabeled, etc.).
+            const roleLabel = isCoachRole
+              ? 'Coach'
+              : (entry.user as any).relationship === 'parent'
+                ? 'Parent'
+                : 'Family';
             const initials = entry.user.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?';
             return (
               <div
@@ -502,7 +509,11 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         {isCoachRole
                           ? 'Team Coach'
                           : entry.players.length > 0
-                            ? `${RELATIONSHIP_LABELS[(entry.user as any).relationship as FamilyRelationship] || 'Parent'} of ${entry.players.map(p => p.name.split(' ')[0]).join(', ')}`
+                            ? (entry.user as any).relationship === 'parent'
+                              ? `Parent of ${entry.players.map(p => p.name.split(' ')[0]).join(', ')}`
+                              : (entry.user as any).relationship && RELATIONSHIP_LABELS[(entry.user as any).relationship as FamilyRelationship]
+                                ? `${RELATIONSHIP_LABELS[(entry.user as any).relationship as FamilyRelationship]} of ${entry.players.map(p => p.name.split(' ')[0]).join(', ')}`
+                                : `In ${entry.players.map(p => p.name.split(' ')[0]).join(', ')}'s Circle`
                             : 'Team Member'}
                       </p>
                     </div>

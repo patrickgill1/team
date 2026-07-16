@@ -74,13 +74,18 @@ const Settings: React.FC = () => {
     : null;
   const handleSwitchRole = async (next: 'coach' | 'parent') => {
     if (!currentGlobalRole || currentGlobalRole === next || roleBusy) return;
-    const label = next === 'coach' ? 'coach' : 'parent';
-    const other = currentGlobalRole === 'coach' ? 'parent' : 'coach';
+    // Display strings use Ship 1's Family naming; the underlying
+    // /users/set-self-role call still writes role: 'parent'. Confirm
+    // dialog was reading 'parent' verbatim even though the button
+    // above it said 'Switch to Family' — same lie the ship is trying
+    // to stop telling elsewhere.
+    const label = next === 'coach' ? 'Coach' : 'Family';
+    const other = currentGlobalRole === 'coach' ? 'Coach' : 'Family';
     const ok = window.confirm(
-      `Switch your account from ${other} to ${label}?\n\n` +
+      `Switch your account from ${other} mode to ${label} mode?\n\n` +
       (next === 'coach'
         ? 'Coach mode gives you the tools to build a team, run practices, and post to the wall. You still see any players linked to your email.'
-        : 'Parent mode focuses on RSVPs, chats, and your linked players. You can switch back to coach any time.')
+        : 'Family mode focuses on RSVPs, chats, and your linked players. You can switch back to coach any time.')
     );
     if (!ok) return;
     setRoleBusy(next);
@@ -458,7 +463,7 @@ const Settings: React.FC = () => {
             <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4 space-y-3">
               <p className="text-sm text-ink-primary/70 leading-snug">
                 You&apos;re signed in as a <span className="font-black text-ink-primary">Coach</span>.
-                Switch to parent mode if you&apos;re joining a team as a family member instead of running one. Switching back to coach later needs an admin.
+                Switch to family mode if you&apos;re joining a team as a family member instead of running one. Switching back to coach later needs an admin.
               </p>
               <button
                 type="button"
@@ -466,7 +471,7 @@ const Settings: React.FC = () => {
                 disabled={!!roleBusy}
                 className={`w-full py-2.5 rounded-lg text-sm font-black tracking-wider uppercase transition bg-line-default/5 text-ink-primary/70 ring-1 ring-line-default/15 hover:bg-line-default/10 hover:text-ink-primary ${roleBusy === 'parent' ? 'opacity-70' : ''}`}
               >
-                {roleBusy === 'parent' ? 'Switching…' : 'Switch to Parent'}
+                {roleBusy === 'parent' ? 'Switching…' : 'Switch to Family'}
               </button>
               {roleError && (
                 <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/25 rounded-lg p-2">
@@ -770,7 +775,7 @@ function roleLabel(role?: string, coachLevel?: string, isClubAdmin?: boolean): s
   if (isClubAdmin) return 'Club Admin';
   if (role === 'coach') return coachLevel === 'head_coach' ? 'Head Coach' : coachLevel === 'assistant_coach' ? 'Assistant Coach' : 'Coach';
   if (role === 'team_manager') return 'Team Manager';
-  if (role === 'parent') return 'Parent';
+  if (role === 'parent') return 'Family';
   if (role === 'player') return 'Player';
   return role || '';
 }

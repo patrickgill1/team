@@ -185,7 +185,7 @@ const MediaAccessModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
       onClose={() => { if (!saving) onClose(); }}
       kicker="Media access"
       title="Who can upload clips for this team"
-      subtitle="Coaches and team managers can always upload. Add parents here only when you want them to (e.g. a tracking-cam parent)."
+      subtitle="Coaches and team managers can always upload. Add Circle members here only when you want them to (e.g. a tracking-cam volunteer)."
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
@@ -195,9 +195,9 @@ const MediaAccessModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
     >
       <div className="space-y-2">
         {loading ? (
-          <p className="text-sm text-ink-primary/55 text-center py-6">Loading parents…</p>
+          <p className="text-sm text-ink-primary/55 text-center py-6">Loading Circle…</p>
         ) : parents.length === 0 ? (
-          <p className="text-sm text-ink-primary/55 text-center py-6">No parents linked to players on this team yet.</p>
+          <p className="text-sm text-ink-primary/55 text-center py-6">No Circle members linked to this team's players yet.</p>
         ) : (
           parents.map((p) => {
             const isOn = granted.has(p.uid);
@@ -211,7 +211,7 @@ const MediaAccessModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-ink-primary truncate">{p.name}</p>
                   {p.childNames.length > 0 && (
-                    <p className="text-[11px] text-ink-primary/55 truncate">Parent of {p.childNames.join(', ')}</p>
+                    <p className="text-[11px] text-ink-primary/55 truncate">In {p.childNames.join(', ')}'s Circle</p>
                   )}
                   {p.email && (
                     <p className="text-[11px] text-ink-primary/40 truncate">{p.email}</p>

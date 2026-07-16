@@ -704,7 +704,13 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
   };
   if (inviteType === 'player') {
     op.role = 'parent';
-    op.relationship = String(invite.relationship || 'parent');
+    // Only stamp a relationship if the invite carried a real one (not the
+    // legacy 'parent' fallback). Leave undefined otherwise so the accepter
+    // can set their own relationship later in Settings.
+    const inviteRel = invite.relationship ? String(invite.relationship) : '';
+    if (inviteRel && inviteRel !== 'parent') {
+      op.relationship = inviteRel;
+    }
     op.playerLink = { playerId, isAdultPlayer: invite.isAdultPlayer === true };
   } else if (inviteType === 'coach') {
     op.role = 'coach';
@@ -947,25 +953,36 @@ async function handleClaimOfferAccept(req: Request, env: Env, payload: any): Pro
     );
   }
 
-  // 3. Grant the accepting parent team + player-link membership.
+  // 3. Grant the accepting Circle member team + player-link membership.
   //    Uses applyMembership so parentIds arrayUnion, user.teamIds
   //    arrayUnion, user.children arrayUnion, role='parent',
   //    approvalStatus='auto', stampStageFor all fire in one shot.
   //    Previously omitted — parent accepted the offer but never got
   //    the team in their switcher, chat, RSVPs, etc. Silent breakage
   //    of the tryout happy path for every family who accepted.
+  //
+  //    Only stamp a relationship if the offer carried a real one
+  //    (not the legacy 'parent' fallback). Offers today don't set
+  //    relationship at send time, so this branch effectively leaves
+  //    it undefined and the accepter can declare their own in
+  //    Settings later (grandparent, guardian, etc). Matches the
+  //    Ship 1 invite-path fix at handleClaimInvite.
   if (playerId && teamId) {
-    await applyMembership({
+    const offerRel = offer.relationship ? String(offer.relationship) : '';
+    const membershipOp: any = {
       operationSource: 'claim_offer_accept',
       targetUid: claims.uid,
       teamIds: [teamId],
       legacyTeamId: teamId,
       role: 'parent',
-      relationship: 'parent',
       approvalStatus: 'auto',
       invitedVia: `offer:${offerId}`,
       playerLink: { playerId },
-    }, pid, sa);
+    };
+    if (offerRel && offerRel !== 'parent') {
+      membershipOp.relationship = offerRel;
+    }
+    await applyMembership(membershipOp, pid, sa);
   } else {
     // Offer without a linked player+team can still fire stage
     // recompute (edge case: pre-Phase-1 offers).

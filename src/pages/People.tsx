@@ -50,6 +50,21 @@ const ROLE_LABEL: Record<Role, string> = {
   team_manager: 'Manager',
   admin: 'Admin',
 };
+
+// Ship 1: honest label for a person's role. If they're role='parent'
+// but never declared a specific relationship, fall back to the
+// neutral 'Family' rather than lying about 'Parent'. If they
+// explicitly declared relationship='parent', keep 'Parent'. Extracted
+// so the row chip and the edit-teams Sheet kicker can't drift out of
+// sync again (the kicker used to just render ROLE_LABEL[role] and
+// showed 'Parent' for every parent user regardless of relationship).
+function personRoleLabel(person: { role: Role; relationship?: string }): string {
+  if (person.role !== 'parent') return ROLE_LABEL[person.role];
+  const rel = person.relationship;
+  if (rel === 'parent') return 'Parent';
+  if (rel && RELATIONSHIP_LABELS[rel]) return RELATIONSHIP_LABELS[rel];
+  return 'Family';
+}
 // Role chips use SOLID colored pills, not opacity-tinted ones.
 // The previous translucent treatment (bg-{color}-500/15-25 +
 // text-{color}-100-300) kept failing — Patrick had to flag it
@@ -535,7 +550,7 @@ const People: React.FC = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-semibold text-ink-primary truncate">{p.name}</span>
                       <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded border ${ROLE_CHIP[p.role]}`}>
-                        {p.role === 'parent' ? RELATIONSHIP_LABELS[p.relationship || 'parent'] : ROLE_LABEL[p.role]}
+                        {personRoleLabel(p)}
                       </span>
                       {!p.isActive && (
                         <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-surface-base text-ink-primary/40 border-line-default/10">
@@ -881,7 +896,7 @@ const ManagePersonModal: React.FC<{
       open={true}
       onClose={onClose}
       size="sm"
-      kicker={ROLE_LABEL[person.role]}
+      kicker={personRoleLabel(person)}
       title={person.name}
       subtitle={person.email || undefined}
       footer={

@@ -59,7 +59,10 @@ interface RawWhisper {
 }
 
 const relationshipLabel = (r?: string) => {
-  if (!r || r === 'parent') return 'Parent';
+  // Only render a chip when the accepter has explicitly declared a
+  // relationship. Missing OR the legacy 'parent' default is ambiguous, so
+  // return empty and let the caller skip the chip entirely.
+  if (!r || r === 'parent') return '';
   if (r === 'grandparent') return 'Grandparent';
   if (r === 'aunt_uncle') return 'Aunt/Uncle';
   if (r === 'guardian') return 'Guardian';
@@ -273,12 +276,14 @@ const PlayerCircle: React.FC = () => {
   const [generating, setGenerating] = useState(false);
   const [activeInvite, setActiveInvite] = useState<Invite | null>(null);
   const [showKudos, setShowKudos] = useState(false);
+  // Kudos gate — 2026-07-16: any Circle member can cheer, except the
+  // player themselves (adult-player self-praise guard). See PlayerProfile
+  // for the full rationale.
   const canGiveKudos = !!userData
     && !!activePlayer
     && Array.isArray((activePlayer as any)?.parentIds)
     && (activePlayer as any).parentIds.includes(userData.uid)
-    && !!(userData as any)?.relationship
-    && (userData as any).relationship !== 'parent';
+    && (userData as any)?.selfPlayerId !== activePlayer.id;
 
   const handleInvite = async () => {
     if (!userData || !activePlayer || !selectedTeamId || generating) return;
@@ -439,9 +444,11 @@ const PlayerCircle: React.FC = () => {
                     <p className="text-[13.5px] font-bold text-ink-primary truncate">
                       {m.isViewer ? `You (${m.name.split(' ')[0]})` : m.name}
                     </p>
-                    <p className="text-[10.5px] uppercase tracking-widest text-ink-primary/50 font-black">
-                      {relationshipLabel(m.relationship)}
-                    </p>
+                    {relationshipLabel(m.relationship) && (
+                      <p className="text-[10.5px] uppercase tracking-widest text-ink-primary/50 font-black">
+                        {relationshipLabel(m.relationship)}
+                      </p>
+                    )}
                   </div>
                 </li>
               ))}
@@ -449,7 +456,7 @@ const PlayerCircle: React.FC = () => {
           )}
         </section>
 
-        {/* Kudos composer entry — only Circle members who aren't 'parent' */}
+        {/* Kudos composer entry — any Circle member except the player themselves */}
         {canGiveKudos && (
           <section className="rounded-2xl bg-brand-primary/[0.06] ring-1 ring-brand-primary/20 p-5">
             <div className="flex items-center gap-3">

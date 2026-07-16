@@ -9,6 +9,12 @@ import AppIcon from '../components/common/AppIcon';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { getShareOrigin } from '../utils/origin';
+import {
+  eligibleSourcesFor,
+  possibleAnswersFor,
+  validateShowIf,
+  isVisible,
+} from '../utils/surveyConditions';
 
 // ─── Question Builder Helpers ─────────────────────────────────────────────────
 
@@ -35,6 +41,140 @@ const HOW_AM_I_DOING_TEMPLATE: Omit<Survey, 'id' | 'teamId' | 'createdBy' | 'cre
 };
 
 const makeId = () => `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+// ─── Show-Only-If editor row ──────────────────────────────────────────────────
+// Rendered inside each question card except the first. Collapsed by default
+// (no rule) so it stays out of the way for simple surveys. Once a rule is set
+// or the coach expands the row, it shows the two dropdowns + a Remove link.
+const ShowIfEditor: React.FC<{
+  question: SurveyQuestion;
+  index: number;
+  allQuestions: SurveyQuestion[];
+  errorMessage?: string;
+  onChange: (patch: Partial<SurveyQuestion>) => void;
+}> = ({ question, index, allQuestions, errorMessage, onChange }) => {
+  const hasRule = !!question.showIf;
+  const [expanded, setExpanded] = useState(hasRule);
+  const sources = eligibleSourcesFor(allQuestions, index);
+  const currentSource = sources.find(s => s.id === question.showIf?.questionId)
+    // Also allow lookup of a source that got moved below this question so the
+    // dropdown can still display it while the coach fixes the order.
+    || allQuestions.find(s => s.id === question.showIf?.questionId);
+  const answers = possibleAnswersFor(currentSource);
+  // Live validation catches broken rules (deleted source, forward reference,
+  // renamed MC option) BEFORE the coach hits Save. errorMessage prop is the
+  // save-time echo; either source triggers the amber warning.
+  const liveError = validateShowIf(question, allQuestions);
+  const warning = errorMessage || liveError?.message;
+  const showWarning = hasRule && !!warning;
+
+  // Auto-open if we detect an error so the coach sees the amber warning.
+  React.useEffect(() => {
+    if (showWarning) setExpanded(true);
+  }, [showWarning]);
+
+  const isClosed = !expanded && !hasRule;
+
+  return (
+    <div className="mt-3 pt-3 border-t border-line-default/10">
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        className="flex items-center justify-between w-full text-left text-xs font-semibold uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary"
+      >
+        <span className="inline-flex items-center gap-1.5">
+          <svg className={`w-3 h-3 transition-transform ${expanded ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+          Show only if
+          {hasRule && !showWarning && (
+            <span className="ml-1 normal-case tracking-normal text-[10px] text-ink-primary/50">On</span>
+          )}
+        </span>
+      </button>
+
+      {isClosed && sources.length === 0 && expanded === false && null}
+
+      {expanded && (
+        <div className="mt-2 space-y-2">
+          {sources.length === 0 ? (
+            <p className="text-xs text-ink-primary/50">
+              Add a Yes/No or Multiple Choice question above first.
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1">
+                  <label className="block text-[11px] font-medium text-ink-primary/65 mb-1">Based on</label>
+                  <select
+                    value={question.showIf?.questionId || ''}
+                    onChange={e => {
+                      const id = e.target.value;
+                      if (!id) {
+                        onChange({ showIf: undefined });
+                        return;
+                      }
+                      const src = allQuestions.find(q => q.id === id);
+                      const first = possibleAnswersFor(src)[0] || '';
+                      onChange({ showIf: { questionId: id, equals: first } });
+                    }}
+                    className="w-full border border-brand-primary-soft/30 rounded-lg px-2 py-1.5 text-sm text-charcoal-900 bg-surface-base focus:ring-2 focus:ring-brand-primary-soft outline-none"
+                  >
+                    <option value="">Choose a question</option>
+                    {sources.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.order}. {(s.text || 'Untitled question').slice(0, 60)}
+                      </option>
+                    ))}
+                    {/* If the currently-selected source is no longer eligible
+                        (deleted, moved below, or type changed) still list it
+                        so the coach can see what's broken. */}
+                    {question.showIf?.questionId && !sources.find(s => s.id === question.showIf!.questionId) && currentSource && (
+                      <option value={currentSource.id}>
+                        {currentSource.order}. {(currentSource.text || 'Untitled question').slice(0, 60)} (broken)
+                      </option>
+                    )}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[11px] font-medium text-ink-primary/65 mb-1">When answer is</label>
+                  <select
+                    value={question.showIf?.equals || ''}
+                    disabled={!question.showIf?.questionId || answers.length === 0}
+                    onChange={e => {
+                      if (!question.showIf) return;
+                      onChange({ showIf: { ...question.showIf, equals: e.target.value } });
+                    }}
+                    className="w-full border border-brand-primary-soft/30 rounded-lg px-2 py-1.5 text-sm text-charcoal-900 bg-surface-base focus:ring-2 focus:ring-brand-primary-soft outline-none disabled:opacity-50"
+                  >
+                    <option value="">Pick an answer</option>
+                    {answers.map(a => (
+                      <option key={a} value={a}>{a === 'yes' ? 'Yes' : a === 'no' ? 'No' : a}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {hasRule && (
+                <button
+                  type="button"
+                  onClick={() => { onChange({ showIf: undefined }); setExpanded(false); }}
+                  className="text-[11px] text-ink-primary/50 hover:text-rose-400 underline-offset-2 hover:underline"
+                >
+                  Remove condition
+                </button>
+              )}
+            </>
+          )}
+          {showWarning && (
+            <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+              {warning}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -111,9 +251,25 @@ const Surveys: React.FC = () => {
     }
   };
 
+  // Save-time validation errors for `showIf` rules, keyed by question id.
+  const [showIfErrors, setShowIfErrors] = useState<Record<string, string>>({});
+
   // ─── Create / Update survey ─────────────────────────────────────────────
   const handleSave = async () => {
     if (!selectedTeamId || !userData || !title.trim() || questions.length === 0) return;
+
+    // Enforce conditional-logic rules before persisting: no forward refs,
+    // no dangling sources, `equals` still in the source's option set.
+    const ruleErrors: Record<string, string> = {};
+    questions.forEach(q => {
+      const err = validateShowIf(q, questions);
+      if (err) ruleErrors[q.id] = err.message;
+    });
+    if (Object.keys(ruleErrors).length > 0) {
+      setShowIfErrors(ruleErrors);
+      return;
+    }
+    setShowIfErrors({});
 
     const surveyData: any = {
       title: title.trim(),
@@ -240,6 +396,28 @@ const Surveys: React.FC = () => {
     return counts;
   };
 
+  // For conditional questions ("Show only if…"), how many respondents actually
+  // saw the question. A respondent "saw it" when their answers satisfy the
+  // isVisible predicate. Used to render "Shown to N of M respondents" so the
+  // coach understands why the sample size is smaller than the total.
+  const getShownCount = (question: SurveyQuestion): number => {
+    if (!selectedSurvey || !question.showIf) return responses.length;
+    return responses.filter(r => {
+      const answersMap: Record<string, string | number> = {};
+      r.answers.forEach(a => { answersMap[a.questionId] = a.value; });
+      return isVisible(question, selectedSurvey.questions, answersMap);
+    }).length;
+  };
+
+  // A respondent was NOT asked a conditional question if their answers hide
+  // it. Distinguished in the Individual view from "answered nothing."
+  const wasNotAsked = (question: SurveyQuestion, response: SurveyResponse): boolean => {
+    if (!selectedSurvey || !question.showIf) return false;
+    const answersMap: Record<string, string | number> = {};
+    response.answers.forEach(a => { answersMap[a.questionId] = a.value; });
+    return !isVisible(question, selectedSurvey.questions, answersMap);
+  };
+
   // ─── Render ─────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -313,7 +491,17 @@ const Surveys: React.FC = () => {
               <div className="space-y-4">
                 {selectedSurvey.questions.map(q => (
                   <div key={q.id} className="card-modern p-5">
-                    <h3 className="font-semibold text-ink-primary mb-3">{q.order}. {q.text}</h3>
+                    <h3 className="font-semibold text-ink-primary mb-1">{q.order}. {q.text}</h3>
+                    {q.showIf && responses.length > 0 && (
+                      // Conditional questions have a smaller sample size than
+                      // the total response count. This caption tells the coach
+                      // why, so the ratings/counts below aren't misread as
+                      // low engagement.
+                      <p className="text-xs text-brand-primary-soft mb-3">
+                        Shown to {getShownCount(q)} of {responses.length} respondent{responses.length !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                    {!q.showIf && <div className="mb-3" />}
 
                     {q.type === 'rating' && (
                       <div className="space-y-2">
@@ -437,11 +625,19 @@ const Surveys: React.FC = () => {
                 {/* Answers */}
                 {selectedSurvey.questions.map(q => {
                   const ans = currentResp.answers.find(a => a.questionId === q.id);
+                  const notAsked = wasNotAsked(q, currentResp);
                   return (
                     <div key={q.id} className="card-modern p-5">
                       <div className="text-xs font-medium text-brand-primary-soft uppercase tracking-wide mb-1">{QUESTION_TYPE_LABELS[q.type]}</div>
                       <h3 className="font-semibold text-ink-primary mb-3">{q.order}. {q.text}</h3>
-                      {!ans || ans.value === undefined || ans.value === '' ? (
+                      {notAsked ? (
+                        // Distinguish "hidden by a conditional rule" from "saw
+                        // it but left blank" so coaches don't misread it as
+                        // non-response.
+                        <span className="inline-block bg-line-default/10 text-ink-primary/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                          Not asked
+                        </span>
+                      ) : !ans || ans.value === undefined || ans.value === '' ? (
                         <span className="text-brand-primary-soft italic text-sm">No answer</span>
                       ) : q.type === 'rating' ? (
                         <div className="flex items-center gap-2">
@@ -571,6 +767,22 @@ const Surveys: React.FC = () => {
                   ))}
                   <button onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `Option ${(q.options || []).length + 1}`] })} className="text-brand-primary hover:text-brand-primary text-sm font-medium">+ Add option</button>
                 </div>
+              )}
+
+              {/* Show only if… — conditional-visibility rule editor.
+                  Hidden for the first question (nothing to reference).
+                  Sources are limited to prior Yes/No + Multiple Choice
+                  questions so we never end up with a cycle or a
+                  non-enumerable predicate. Copy voice per design:
+                  "Show only if", never "conditional logic" / "branching". */}
+              {idx > 0 && (
+                <ShowIfEditor
+                  question={q}
+                  index={idx}
+                  allQuestions={questions}
+                  errorMessage={showIfErrors[q.id]}
+                  onChange={patch => updateQuestion(q.id, patch)}
+                />
               )}
 
               <label className="flex items-center gap-2 mt-2 text-sm text-brand-primary cursor-pointer">

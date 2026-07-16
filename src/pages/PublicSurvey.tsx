@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { doc, onSnapshot, collection, addDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { Survey, SurveyQuestion, SurveyAnswer } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { visibleQuestionIds, pruneHiddenAnswers } from '../utils/surveyConditions';
 
 // Compact "Back to app" bar shown when an authed user is viewing the
 // public-survey route from inside the app shell. Without it, parents
@@ -88,6 +89,26 @@ const PublicSurvey: React.FC = () => {
   // Already submitted check
   const alreadySubmitted = surveyId ? hasSubmitted(surveyId) : false;
 
+  // Which questions are currently visible given the answers so far. Conditional
+  // rules (see src/utils/surveyConditions.ts) let a coach hide follow-ups
+  // behind a Yes/No or Multiple Choice parent. Recomputed on every answer
+  // change; also drives the required-field guard, the progress caption, and
+  // the submitted payload.
+  const visibleIds = useMemo(() => {
+    if (!survey) return new Set<string>();
+    return visibleQuestionIds(survey.questions, answers);
+  }, [survey, answers]);
+  const visibleQuestions = useMemo(
+    () => (survey ? survey.questions.filter(q => visibleIds.has(q.id)) : []),
+    [survey, visibleIds],
+  );
+  // Answered count is scoped to currently-visible questions so flipping a
+  // parent Y/N doesn't cause the "N of M" caption to jump around.
+  const answeredCount = useMemo(
+    () => visibleQuestions.filter(q => answers[q.id] !== undefined && answers[q.id] !== '').length,
+    [visibleQuestions, answers],
+  );
+
   // ─── Load survey (real-time) ─────────────────────────────────────────
   useEffect(() => {
     if (!surveyId) return;
@@ -108,9 +129,11 @@ const PublicSurvey: React.FC = () => {
   const handleSubmit = async () => {
     if (!survey || !surveyId) return;
 
-    // Validate required questions
+    // Only currently-visible questions can be required. Hidden branches (e.g.
+    // "which restaurant" when the parent said No to dinner) should never
+    // block submission.
     const errors: Record<string, boolean> = {};
-    survey.questions.forEach(q => {
+    visibleQuestions.forEach(q => {
       if (q.required && (answers[q.id] === undefined || answers[q.id] === '')) {
         errors[q.id] = true;
       }
@@ -122,7 +145,10 @@ const PublicSurvey: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const answerArray: SurveyAnswer[] = survey.questions
+      // Only submit answers to visible questions. Answers to previously-visible
+      // but now-hidden questions were already pruned by pruneHiddenAnswers on
+      // parent-answer change; this filter is belt-and-suspenders.
+      const answerArray: SurveyAnswer[] = visibleQuestions
         .filter(q => answers[q.id] !== undefined && answers[q.id] !== '')
         .map(q => ({ questionId: q.id, value: answers[q.id] }));
 
@@ -149,8 +175,30 @@ const PublicSurvey: React.FC = () => {
   };
 
   const setAnswer = (questionId: string, value: string | number) => {
-    setAnswers(prev => ({ ...prev, [questionId]: value }));
-    setValidationErrors(prev => { const n = { ...prev }; delete n[questionId]; return n; });
+    setAnswers(prev => {
+      const next = { ...prev, [questionId]: value };
+      // If this question is a source for any conditional child, changing its
+      // answer might now hide previously-visible children. Prune any orphan
+      // answers so we don't submit responses the parent never intended.
+      const pruned = survey ? pruneHiddenAnswers(survey.questions, next) : next;
+      // Also drop stale required-field errors for questions that are now
+      // hidden. Otherwise a respondent who saw a red "This is required"
+      // highlight, then flipped the parent to hide the child, then flipped
+      // back to show the child again, would see the stale red highlight
+      // even though they haven't tried to submit since.
+      if (survey) {
+        const visible = visibleQuestionIds(survey.questions, pruned);
+        setValidationErrors(errs => {
+          const n = { ...errs };
+          delete n[questionId];
+          Object.keys(n).forEach(qid => { if (!visible.has(qid)) delete n[qid]; });
+          return n;
+        });
+      } else {
+        setValidationErrors(errs => { const n = { ...errs }; delete n[questionId]; return n; });
+      }
+      return pruned;
+    });
   };
 
   // ─── Loading ─────────────────────────────────────────────────────────
@@ -257,12 +305,22 @@ const PublicSurvey: React.FC = () => {
           )}
         </div>
 
+        {/* Progress caption — scoped to currently-visible questions so a
+            conditional branch flip doesn't make the denominator jump. */}
+        {visibleQuestions.length > 0 && (
+          <p className="text-center text-xs text-ink-primary/50 mb-3">
+            {answeredCount} of {visibleQuestions.length} answered
+          </p>
+        )}
+
         {/* Questions */}
         <div className="space-y-4">
-          {survey.questions.map(q => (
+          {visibleQuestions.map((q, visibleIdx) => (
             <div key={q.id} className={`bg-surface-elevated rounded-2xl shadow-sm border p-5 transition-colors ${validationErrors[q.id] ? 'border-rose-400/40 bg-rose-500/10' : 'border-line-default/10'}`}>
               <h3 className="font-medium text-ink-primary mb-1">
-                {q.order}. {q.text}
+                {/* Number by visible index — hidden branches shouldn't leave
+                    gaps like "1, 3, 5" for the respondent. */}
+                {visibleIdx + 1}. {q.text}
                 {q.required && <span className="text-rose-400 ml-1">*</span>}
               </h3>
               {validationErrors[q.id] && <p className="text-xs text-rose-300 mb-2">This question is required</p>}

@@ -2961,6 +2961,18 @@ export interface SurveyQuestion {
   options?: string[]; // For multiple_choice
   maxRating?: number; // For rating (default 5)
   order: number;
+  /**
+   * Conditional visibility. If present, this question is only shown to a
+   * respondent when the referenced question's answer equals the given value.
+   * Absent = always show (default behavior).
+   *
+   * Constraints (enforced in builder + validated on save):
+   * - Source question must appear earlier in the survey (backward-only ref).
+   * - Source must be a Yes/No or Multiple Choice question.
+   * - `equals` must match one of the source's possible answers.
+   * See `src/utils/surveyConditions.ts` for the helpers.
+   */
+  showIf?: { questionId: string; equals: string };
 }
 
 export interface Survey {

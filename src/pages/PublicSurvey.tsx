@@ -19,7 +19,7 @@ const InAppSurveyBackBar: React.FC = () => {
     <div className="sticky top-0 z-40 bg-surface-base text-ink-primary px-4 py-2.5 flex items-center justify-between shadow">
       <Link
         to="/dashboard"
-        className="inline-flex items-center gap-1.5 text-[12px] font-extrabold uppercase tracking-widest text-brand-primary-soft hover:text-white"
+        className="inline-flex items-center gap-1.5 text-[12px] font-extrabold uppercase tracking-widest text-brand-primary-soft hover:text-ink-primary"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <line x1="19" y1="12" x2="5" y2="12" />
@@ -27,7 +27,7 @@ const InAppSurveyBackBar: React.FC = () => {
         </svg>
         Back to GoalKickr
       </Link>
-      <span className="text-[10px] text-white/40 uppercase tracking-widest">Survey</span>
+      <span className="text-[10px] text-ink-primary/40 uppercase tracking-widest">Survey</span>
     </div>
   );
 };

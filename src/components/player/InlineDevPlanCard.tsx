@@ -107,7 +107,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
             Open plan →
           </button>
         </div>
-        <p className="text-sm text-white/70">
+        <p className="text-sm text-ink-primary/70">
           No active plan yet — coach can build one from <button onClick={() => navigate('/development')} className="text-brand-primary-soft underline">Development</button>.
         </p>
       </div>
@@ -145,14 +145,14 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-bold text-white">{goal.title}</span>
+                    <span className="text-sm font-bold text-ink-primary">{goal.title}</span>
                     {sessions > 0 && (
                       <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-brand-primary/15 text-ink-primary ring-1 ring-brand-primary-soft/30">
                         {sessions} session{sessions === 1 ? '' : 's'}
                       </span>
                     )}
                   </div>
-                  {goal.focus && <p className="text-[11px] text-white/60 mt-0.5 italic">{goal.focus}</p>}
+                  {goal.focus && <p className="text-[11px] text-ink-primary/60 mt-0.5 italic">{goal.focus}</p>}
                 </div>
                 <button
                   type="button"
@@ -178,7 +178,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
         })}
       </ul>
 
-      <p className="text-[10px] text-white/40 mt-3 text-center">
+      <p className="text-[10px] text-ink-primary/40 mt-3 text-center">
         One tap = one practice day. Streak survives missing today by tapping tomorrow.
       </p>
     </div>

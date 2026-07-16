@@ -2951,7 +2951,7 @@ export interface FullGame {
 // SURVEY SYSTEM
 // ================================
 
-export type SurveyQuestionType = 'rating' | 'text' | 'multiple_choice' | 'yes_no';
+export type SurveyQuestionType = 'rating' | 'text' | 'multiple_choice' | 'yes_no' | 'date';
 
 export interface SurveyQuestion {
   id: string;
@@ -2960,6 +2960,15 @@ export interface SurveyQuestion {
   required: boolean;
   options?: string[]; // For multiple_choice
   maxRating?: number; // For rating (default 5)
+  /**
+   * Only meaningful for multiple_choice. When true, the response is a
+   * string[] (checkboxes). Absent or false = single-select (radio, string).
+   * Backwards-compatible: legacy MC questions have no field and behave as
+   * single-select. Every result/consumer branches on Array.isArray(value)
+   * so a source flipped mid-stream (single → multi or back) keeps existing
+   * response data usable.
+   */
+  allowMultiple?: boolean;
   order: number;
 }
 
@@ -2991,7 +3000,10 @@ export interface SurveyResponse {
 
 export interface SurveyAnswer {
   questionId: string;
-  value: string | number; // text/choice → string, rating/yes_no → number
+  // text/single-choice → string, rating/yes_no → number, date → 'YYYY-MM-DD'
+  // string, multi-select MC → string[]. Consumers must branch on shape
+  // (Array.isArray) rather than trust the source question's current type.
+  value: string | number | string[];
 }
 
 // ================================

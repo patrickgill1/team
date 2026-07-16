@@ -32,7 +32,10 @@ const CONDITIONABLE_TYPES: SurveyQuestionType[] = ['yes_no', 'multiple_choice'];
 export const possibleAnswersFor = (q: SurveyQuestion | undefined): string[] => {
   if (!q) return [];
   if (q.type === 'yes_no') return ['yes', 'no'];
-  if (q.type === 'multiple_choice') return q.options || [];
+  // De-dupe MC options: nothing prevents a coach from typing the same option
+  // twice in the builder, and duplicates would produce duplicate React keys
+  // in the value dropdown + ambiguous selection.
+  if (q.type === 'multiple_choice') return Array.from(new Set(q.options || []));
   return [];
 };
 

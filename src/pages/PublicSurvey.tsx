@@ -180,9 +180,25 @@ const PublicSurvey: React.FC = () => {
       // If this question is a source for any conditional child, changing its
       // answer might now hide previously-visible children. Prune any orphan
       // answers so we don't submit responses the parent never intended.
-      return survey ? pruneHiddenAnswers(survey.questions, next) : next;
+      const pruned = survey ? pruneHiddenAnswers(survey.questions, next) : next;
+      // Also drop stale required-field errors for questions that are now
+      // hidden. Otherwise a respondent who saw a red "This is required"
+      // highlight, then flipped the parent to hide the child, then flipped
+      // back to show the child again, would see the stale red highlight
+      // even though they haven't tried to submit since.
+      if (survey) {
+        const visible = visibleQuestionIds(survey.questions, pruned);
+        setValidationErrors(errs => {
+          const n = { ...errs };
+          delete n[questionId];
+          Object.keys(n).forEach(qid => { if (!visible.has(qid)) delete n[qid]; });
+          return n;
+        });
+      } else {
+        setValidationErrors(errs => { const n = { ...errs }; delete n[questionId]; return n; });
+      }
+      return pruned;
     });
-    setValidationErrors(prev => { const n = { ...prev }; delete n[questionId]; return n; });
   };
 
   // ─── Loading ─────────────────────────────────────────────────────────

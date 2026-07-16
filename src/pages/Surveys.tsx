@@ -166,7 +166,7 @@ const ShowIfEditor: React.FC<{
             </>
           )}
           {showWarning && (
-            <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 dark:text-amber-300 dark:bg-amber-500/10 dark:border-amber-400/30">
               {warning}
             </p>
           )}
@@ -253,6 +253,14 @@ const Surveys: React.FC = () => {
 
   // Save-time validation errors for `showIf` rules, keyed by question id.
   const [showIfErrors, setShowIfErrors] = useState<Record<string, string>>({});
+
+  // Live rule errors recomputed on every questions change. Feeds the Save
+  // button's disabled state (so a click never silently no-ops when a rule is
+  // broken) and the top-of-form banner that tells the coach where to look.
+  const liveRuleErrorCount = React.useMemo(
+    () => questions.reduce((n, q) => n + (validateShowIf(q, questions) ? 1 : 0), 0),
+    [questions],
+  );
 
   // ─── Create / Update survey ─────────────────────────────────────────────
   const handleSave = async () => {
@@ -398,11 +406,16 @@ const Surveys: React.FC = () => {
 
   // For conditional questions ("Show only if…"), how many respondents actually
   // saw the question. A respondent "saw it" when their answers satisfy the
-  // isVisible predicate. Used to render "Shown to N of M respondents" so the
-  // coach understands why the sample size is smaller than the total.
+  // isVisible predicate — OR when they already have an answer on file (which
+  // covers the retroactive case: a coach adds a showIf rule AFTER responses
+  // exist, and the old respondents genuinely saw + answered the question
+  // under the previous ruleset). Without the has-answer branch, the "Shown
+  // to N of M" caption's denominator disagrees with the aggregate bar counts.
   const getShownCount = (question: SurveyQuestion): number => {
     if (!selectedSurvey || !question.showIf) return responses.length;
     return responses.filter(r => {
+      const hasAnswer = r.answers.some(a => a.questionId === question.id && a.value !== undefined && a.value !== '');
+      if (hasAnswer) return true;
       const answersMap: Record<string, string | number> = {};
       r.answers.forEach(a => { answersMap[a.questionId] = a.value; });
       return isVisible(question, selectedSurvey.questions, answersMap);
@@ -410,9 +423,14 @@ const Surveys: React.FC = () => {
   };
 
   // A respondent was NOT asked a conditional question if their answers hide
-  // it. Distinguished in the Individual view from "answered nothing."
+  // it. Distinguished in the Individual view from "answered nothing." Retro-
+  // active guard: if the respondent already has a real answer on file (rule
+  // was added later), show the answer — never mask historical data as
+  // "Not asked".
   const wasNotAsked = (question: SurveyQuestion, response: SurveyResponse): boolean => {
     if (!selectedSurvey || !question.showIf) return false;
+    const hasAnswer = response.answers.some(a => a.questionId === question.id && a.value !== undefined && a.value !== '');
+    if (hasAnswer) return false;
     const answersMap: Record<string, string | number> = {};
     response.answers.forEach(a => { answersMap[a.questionId] = a.value; });
     return !isVisible(question, selectedSurvey.questions, answersMap);
@@ -809,10 +827,18 @@ const Surveys: React.FC = () => {
           </div>
         </div>
 
+        {/* Live rule-error banner — surfaces broken show-only-if rules at the
+            top so the coach isn't hunting for an amber pill offscreen. */}
+        {liveRuleErrorCount > 0 && (
+          <div className="mb-3 rounded-xl px-4 py-3 text-sm bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-500/10 dark:border-amber-400/30 dark:text-amber-300">
+            Fix the show-only-if {liveRuleErrorCount === 1 ? 'rule' : 'rules'} flagged above before saving.
+          </div>
+        )}
+
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={!title.trim() || questions.length === 0 || questions.some(q => !q.text.trim())}
+          disabled={!title.trim() || questions.length === 0 || questions.some(q => !q.text.trim()) || liveRuleErrorCount > 0}
           className="w-full btn-primary py-3 rounded-xl font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {editingSurvey ? 'Update Survey' : 'Create Survey'}

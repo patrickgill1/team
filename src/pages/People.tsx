@@ -535,7 +535,13 @@ const People: React.FC = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-semibold text-ink-primary truncate">{p.name}</span>
                       <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded border ${ROLE_CHIP[p.role]}`}>
-                        {p.role === 'parent' ? RELATIONSHIP_LABELS[p.relationship || 'parent'] : ROLE_LABEL[p.role]}
+                        {p.role === 'parent'
+                          ? (p.relationship === 'parent'
+                              ? 'Parent'
+                              : (p.relationship && RELATIONSHIP_LABELS[p.relationship])
+                                  ? RELATIONSHIP_LABELS[p.relationship]
+                                  : 'Family')
+                          : ROLE_LABEL[p.role]}
                       </span>
                       {!p.isActive && (
                         <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-surface-base text-ink-primary/40 border-line-default/10">

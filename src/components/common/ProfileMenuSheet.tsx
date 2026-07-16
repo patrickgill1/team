@@ -102,7 +102,7 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
             <ul>
               {availableModes.map((mode) => {
                 const selected = mode === viewMode;
-                const label = mode === 'parent' ? 'Parent' : mode === 'coach' ? 'Coach' : 'Club admin';
+                const label = mode === 'parent' ? 'Family' : mode === 'coach' ? 'Coach' : 'Club admin';
                 const blurb = mode === 'parent'
                   ? 'Player + family content'
                   : mode === 'coach'

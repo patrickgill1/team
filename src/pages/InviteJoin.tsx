@@ -339,7 +339,7 @@ const InviteJoin: React.FC = () => {
         )}
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-ink-primary/60">
-            {(player as any).isAdultPlayer ? 'Claim your spot' : 'Joining as parent'}
+            {(player as any).isAdultPlayer ? 'Claim your spot' : `Joining ${player.name.split(' ')[0]}'s Circle`}
           </p>
           <h1 className="text-2xl font-black leading-tight">{player.name}</h1>
           <p className="text-ink-primary/70 text-sm">
@@ -350,7 +350,7 @@ const InviteJoin: React.FC = () => {
       <p className="text-ink-primary/80 text-sm">
         {(player as any).isAdultPlayer
           ? `Sign in below to lock in your roster spot on ${teamName || 'the team'} — RSVPs, tagged clips, and team splits will land on your device.`
-          : `Are you ${player.name.split(' ')[0]}'s parent? Create an account or sign in below to follow their stats, clips, and team updates.`}
+          : `Create an account or sign in below to follow ${player.name.split(' ')[0]}'s stats, clips, and team updates.`}
       </p>
     </>
   ) : invite?.type === 'coach' ? (

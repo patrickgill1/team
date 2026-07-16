@@ -704,7 +704,13 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
   };
   if (inviteType === 'player') {
     op.role = 'parent';
-    op.relationship = String(invite.relationship || 'parent');
+    // Only stamp a relationship if the invite carried a real one (not the
+    // legacy 'parent' fallback). Leave undefined otherwise so the accepter
+    // can set their own relationship later in Settings.
+    const inviteRel = invite.relationship ? String(invite.relationship) : '';
+    if (inviteRel && inviteRel !== 'parent') {
+      op.relationship = inviteRel;
+    }
     op.playerLink = { playerId, isAdultPlayer: invite.isAdultPlayer === true };
   } else if (inviteType === 'coach') {
     op.role = 'coach';

@@ -792,21 +792,16 @@ const PlayerProfile: React.FC = () => {
     .filter(m => !selectedTeamId || (m as any).teamId === selectedTeamId)
     .slice(0, 6);
 
-  // Kudos gate — 2026-07-14: viewer must be in Circle AND NOT the
-  // immediate parent. Kudos are meant to be from OTHER Circle members
-  // (grandparent, aunt, guardian, etc.) cheering the kid on; a parent
-  // giving Kudos to their own kid is self-congratulatory noise.
-  //
-  // Rule: user.uid ∈ player.parentIds AND user.relationship is set to
-  // something OTHER than 'parent'. Legacy users with undefined
-  // relationship default to 'parent' semantics (per FamilyRelationship
-  // type comment) so they're also excluded — those users can update
-  // their relationship in Settings > Profile to enable the button.
+  // Kudos gate — 2026-07-16: viewer is in this player's Circle and is
+  // not the player themselves. We used to require an explicit non-parent
+  // relationship, which silently locked out every Circle member whose
+  // relationship was still the legacy 'parent' default. Ship 1 opens
+  // Kudos to any Circle member; self-praise is still blocked via
+  // selfPlayerId (adult players joining their own roster spot).
   const canGiveKudos = !!userData
     && Array.isArray((player as any)?.parentIds)
     && (player as any).parentIds.includes(userData.uid)
-    && !!(userData as any)?.relationship
-    && (userData as any).relationship !== 'parent';
+    && (userData as any)?.selfPlayerId !== player.id;
 
   return (
     <div className="min-h-screen bg-surface-base">

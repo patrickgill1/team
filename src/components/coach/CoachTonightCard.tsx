@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useViewMode } from '../../contexts/ViewModeContext';
 import { isCoachOfTeam } from '../../utils/helpers';
+import { useDismissible } from '../../hooks/useDismissible';
 import type { CalendarEvent } from '../../types';
 
 /**
@@ -96,9 +97,19 @@ const CoachTonightCard: React.FC = () => {
     return 'starting now';
   }, [event, now]);
 
+  // Per-event dismiss ("not tonight"). Snoozes until event.date + 3h,
+  // so tomorrow's game will re-surface a fresh card automatically.
+  // Hook runs unconditionally so hook order stays stable even when
+  // the card early-returns below.
+  const dismissKey = event ? `coachTonight:${event.id}` : null;
+  const { dismissed, dismiss: handleDismiss } = useDismissible(dismissKey, {
+    snoozeUntilEventDate: event ? event.date : null,
+  });
+
   if (!isUserCoach) return null;
   if (!loaded) return null;
   if (!event) return null;
+  if (dismissed) return null;
 
   const type = ((event as any).type || '').toLowerCase();
   const isGame = type === 'game' || type === 'tournament' || type === 'scrimmage';
@@ -116,9 +127,18 @@ const CoachTonightCard: React.FC = () => {
       : { label: 'Open event', href: `/event/${event.id}` };
 
   return (
-    <article className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 overflow-hidden animate-fade-in">
+    <article className="relative rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 overflow-hidden animate-fade-in">
+      <button
+        type="button"
+        onClick={handleDismiss}
+        aria-label="Not tonight"
+        title="Not tonight"
+        className="absolute top-2 right-2 w-8 h-8 rounded-full text-ink-tertiary hover:text-ink-primary hover:bg-line-default/5 flex items-center justify-center transition z-10"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+      </button>
       <div className="px-4 py-3 sm:px-5 sm:py-4">
-        <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex items-center justify-between gap-2 mb-1 pr-8">
           <p className={`text-[10px] font-extrabold tracking-widest uppercase ${eyebrowTint}`}>{eyebrow}</p>
           <p className="text-[11px] font-bold text-ink-primary/55 tabular-nums">{countdown}</p>
         </div>

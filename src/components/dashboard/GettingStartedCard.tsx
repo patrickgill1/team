@@ -67,15 +67,21 @@ const GettingStartedCard: React.FC<Props> = ({ players, events, dataLoading }) =
   // (zero players AND zero events) auto-unhide via useDismissible's
   // autoUnDismissWhen — Patrick: "it let me click out of the guide,
   // and now i can't get it back."
+  //
+  // autoUnDismissWhen is skipped while `dataLoading` is true because
+  // Dashboard mounts with players=[] events=[] briefly during initial
+  // fetch. The hook now stores the sig on the entry and compares on
+  // read (survives sessions), so passing a transient "fresh" during
+  // load would incorrectly invalidate a real "populated"-time dismiss.
   const isFreshTeam = (players?.length || 0) === 0 && (events?.length || 0) === 0;
   const dismissKey = selectedTeamId ? `gettingStarted:${selectedTeamId}` : null;
   const { dismissed, dismiss: handleDismiss } = useDismissible(dismissKey, {
     snoozeDays: 7,
     legacyKey: selectedTeamId ? LEGACY_DISMISS_KEY_PREFIX + selectedTeamId : undefined,
     legacyCooldownMs: LEGACY_DISMISS_COOLDOWN_MS,
-    // When the team becomes fresh, drop the dismiss so the checklist
-    // returns. Signature toggles between "fresh" and "populated".
-    autoUnDismissWhen: isFreshTeam ? 'fresh' : 'populated',
+    autoUnDismissWhen: dataLoading
+      ? undefined
+      : (isFreshTeam ? 'fresh' : 'populated'),
   });
 
   if (!userData) return null;

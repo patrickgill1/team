@@ -24,7 +24,7 @@
 // hook emits a `gk:dismissed-cards-changed` window event on every
 // write so Settings can update without prop drilling.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'gk.dismissedCards';
 const CHANGE_EVENT = 'gk:dismissed-cards-changed';
@@ -35,6 +35,12 @@ export interface DismissedEntry {
   snoozeUntilMs: number;
   /** Epoch ms at which the dismiss was recorded. */
   snoozedAtMs: number;
+  /** JSON-stringified autoUnDismissWhen value captured at dismiss time.
+   *  On read, if the current autoSig differs, the entry is treated as
+   *  expired and pruned — this is how "auto re-surface when a Circle
+   *  member joins" survives across sessions. Absent for entries that
+   *  didn't opt into auto-un-dismiss. */
+  autoSig?: string;
 }
 
 export type DismissedMap = Record<string, DismissedEntry>;
@@ -55,10 +61,14 @@ export interface UseDismissibleOptions {
    *  Callers should always pass this so the fallback window is
    *  explicit. */
   legacyCooldownMs?: number;
-  /** Auto-un-dismiss: when this value changes (deep-equal via
-   *  JSON.stringify since values are small ids), the entry for `key`
-   *  is deleted so the card re-surfaces. Use for e.g. Player Circle
-   *  where a new parentId means a fresh event worth showing. */
+  /** Auto-un-dismiss: JSON-stringified and stored WITH the dismiss
+   *  entry. On subsequent reads, if the current value differs from
+   *  what was captured at dismiss time, the entry is pruned and the
+   *  card re-surfaces. Survives across sessions (unlike a live ref).
+   *  Use for e.g. Player Circle where a new parentId means the nudge
+   *  is worth showing again. Pass `undefined` (not `null`) when the
+   *  signal isn't ready yet — passing a placeholder value will cause
+   *  a spurious re-surface once the real value loads. */
   autoUnDismissWhen?: unknown;
 }
 
@@ -115,24 +125,59 @@ function emitChange(): void {
   try { window.dispatchEvent(new Event(CHANGE_EVENT)); } catch { /* noop */ }
 }
 
-/** Return the map with expired entries pruned. Writes back if any
- *  entries were removed. Exported for Settings to reuse without
- *  duplicating the prune contract. */
+/** Return the map with expired entries filtered out. PURE — does not
+ *  write. (Prior versions wrote back during a render pass, which
+ *  violates React's no-side-effects-in-render rule and could cascade
+ *  into an infinite loop if a future maintainer added an emitChange
+ *  here.) Callers that want the stale rows evicted from storage should
+ *  use `pruneDismissedMap()` from an effect, or rely on the natural
+ *  read-modify-write in `dismiss()` / `unhide()` to clean up over time. */
 export function readAndPruneDismissedMap(): DismissedMap {
   const map = readRaw();
   const now = Date.now();
   const kept: DismissedMap = {};
-  let pruned = false;
   for (const key of Object.keys(map)) {
     const entry = map[key];
     if (entry && typeof entry.snoozeUntilMs === 'number' && entry.snoozeUntilMs > now) {
       kept[key] = entry;
-    } else {
-      pruned = true;
     }
   }
-  if (pruned) writeRaw(kept);
   return kept;
+}
+
+/** Write the pruned map back to storage. Safe to call from an effect
+ *  or event handler; not safe to call during render. Emits a change
+ *  event only when something actually changed. */
+export function pruneDismissedMap(): void {
+  const raw = readRaw();
+  const now = Date.now();
+  const kept: DismissedMap = {};
+  let changed = false;
+  for (const key of Object.keys(raw)) {
+    const entry = raw[key];
+    if (entry && typeof entry.snoozeUntilMs === 'number' && entry.snoozeUntilMs > now) {
+      kept[key] = entry;
+    } else {
+      changed = true;
+    }
+  }
+  if (changed) {
+    writeRaw(kept);
+    emitChange();
+  }
+}
+
+/** Re-surface a specific dismissed card. Same code path as the hook's
+ *  `unhide()`, exported so the Settings "Show now" button doesn't
+ *  reimplement (and drift from) the storage contract. Safely handles
+ *  the in-memory fallback when localStorage is unavailable. */
+export function unhideDismissedKey(key: string): void {
+  const current = readRaw();
+  if (!current[key]) return;
+  const next = { ...current };
+  delete next[key];
+  writeRaw(next);
+  emitChange();
 }
 
 /** Compute local-midnight-in-Mountain-Time N days from now, then
@@ -193,10 +238,11 @@ function legacySaysDismissed(opts: UseDismissibleOptions | undefined): boolean {
     if (!ms || Number.isNaN(ms)) return false;
     const cooldown = opts?.legacyCooldownMs;
     if (typeof cooldown !== 'number' || cooldown <= 0) {
-      // No cooldown supplied — treat presence as "dismissed" only if
-      // within the last 30 days. Defensive default; callers should
-      // always pass legacyCooldownMs.
-      return Date.now() - ms < 30 * 24 * 60 * 60 * 1000;
+      // No cooldown supplied — fail OPEN (treat as not dismissed) so a
+      // caller that forgets legacyCooldownMs doesn't accidentally
+      // resurrect a weeks-old dismiss under a 30-day window. Callers
+      // that actually want a legacy fallback MUST pass an explicit ms.
+      return false;
     }
     return Date.now() - ms < cooldown;
   } catch {
@@ -220,33 +266,17 @@ export function useDismissible(
     return () => window.removeEventListener(CHANGE_EVENT, handler);
   }, [bump]);
 
-  // Auto-un-dismiss: if the dep changed since last render, drop this
-  // key from the map before we compute `dismissed`. Uses a ref so we
-  // only act on genuine changes, not initial mount.
-  const lastAutoRef = useRef<string | undefined>(undefined);
+  // Auto-un-dismiss: JSON-stringified current signal. We store this
+  // WITH the entry at dismiss time, then on read compare stored-vs-
+  // current; a mismatch re-surfaces the card. This survives across
+  // sessions (a page reload doesn't wipe the memory) and is one-way in
+  // the sense that only genuine differences from the dismiss-time
+  // value trigger re-surface — a value flapping between two states
+  // (e.g. `[]` during initial fetch → real value on resolve) no longer
+  // silently wipes a legitimate snooze.
   const autoSig = opts?.autoUnDismissWhen !== undefined
     ? JSON.stringify(opts.autoUnDismissWhen)
     : undefined;
-  useEffect(() => {
-    if (autoSig === undefined) return;
-    if (lastAutoRef.current === undefined) {
-      lastAutoRef.current = autoSig;
-      return;
-    }
-    if (lastAutoRef.current !== autoSig) {
-      lastAutoRef.current = autoSig;
-      if (key) {
-        const map = readAndPruneDismissedMap();
-        if (map[key]) {
-          const next = { ...map };
-          delete next[key];
-          writeRaw(next);
-          emitChange();
-          bump();
-        }
-      }
-    }
-  }, [autoSig, key, bump]);
 
   // Silence "unused" for the version state — its role is to trigger
   // re-render when the map changes.
@@ -265,7 +295,17 @@ export function useDismissible(
 
   const map = readAndPruneDismissedMap();
   const entry = map[key];
-  const dismissedByMap = !!entry && entry.snoozeUntilMs > Date.now();
+  // If the caller passed autoUnDismissWhen AND we stored an autoSig
+  // with this entry, a mismatch invalidates the dismiss. We evict
+  // lazily on the next write path (dismiss/unhide) to keep this read
+  // pure; treat as un-dismissed for now.
+  const autoInvalidated = !!entry
+    && autoSig !== undefined
+    && typeof entry.autoSig === 'string'
+    && entry.autoSig !== autoSig;
+  const dismissedByMap = !!entry
+    && entry.snoozeUntilMs > Date.now()
+    && !autoInvalidated;
   const dismissedByLegacy = !dismissedByMap && legacySaysDismissed(opts);
   const dismissed = dismissedByMap || dismissedByLegacy;
 
@@ -273,21 +313,22 @@ export function useDismissible(
     const now = Date.now();
     const snoozeUntilMs = computeSnoozeUntilMs(opts);
     const current = readAndPruneDismissedMap();
-    current[key] = { snoozeUntilMs, snoozedAtMs: now };
+    const next: DismissedEntry = { snoozeUntilMs, snoozedAtMs: now };
+    if (autoSig !== undefined) next.autoSig = autoSig;
+    current[key] = next;
     writeRaw(current);
     emitChange();
     bump();
   };
 
   const unhide = () => {
-    const current = readAndPruneDismissedMap();
-    if (current[key]) {
-      const next = { ...current };
-      delete next[key];
-      writeRaw(next);
-      emitChange();
-      bump();
-    }
+    const current = readRaw();
+    if (!current[key]) return;
+    const next = { ...current };
+    delete next[key];
+    writeRaw(next);
+    emitChange();
+    bump();
   };
 
   return {

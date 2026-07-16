@@ -13,6 +13,7 @@ import {
   DISMISSED_CARDS_CHANGE_EVENT,
   labelForDismissibleKey,
   readAndPruneDismissedMap,
+  unhideDismissedKey,
   type DismissedMap,
 } from '../../hooks/useDismissible';
 
@@ -58,17 +59,13 @@ const HiddenDashboardCardsSection: React.FC = () => {
     return entries;
   }, [map]);
 
+  // Route through the shared helper so the memory-map fallback (used
+  // when localStorage is unavailable, e.g. private browsing / quota
+  // exceeded) is honored. A direct localStorage.setItem here would
+  // silently no-op in those cases while the underlying dismiss lived
+  // on in memory.
   const showNow = (key: string) => {
-    try {
-      if (typeof window === 'undefined') return;
-      const raw = window.localStorage.getItem('gk.dismissedCards');
-      const parsed = raw ? JSON.parse(raw) : {};
-      if (parsed && typeof parsed === 'object' && parsed[key]) {
-        delete parsed[key];
-        window.localStorage.setItem('gk.dismissedCards', JSON.stringify(parsed));
-        window.dispatchEvent(new Event(DISMISSED_CARDS_CHANGE_EVENT));
-      }
-    } catch { /* ignore */ }
+    unhideDismissedKey(key);
   };
 
   // Density rule: nothing to show, nothing rendered.

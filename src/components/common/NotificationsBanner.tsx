@@ -110,8 +110,8 @@ const NotificationsBanner: React.FC = () => {
       <button
         type="button"
         onClick={snooze}
-        aria-label="Remind me later"
-        title="Remind me later"
+        aria-label="Not now"
+        title="Not now"
         className="absolute top-2 right-2 w-8 h-8 rounded-full text-slate-500 hover:text-slate-900 hover:bg-brand-primary/10 flex items-center justify-center transition"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>

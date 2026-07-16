@@ -6,6 +6,7 @@ import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { getPushPermissionState, registerPushNotifications } from '../../utils/nativeShell';
 import { enablePushForUser, getNotifPermission } from '../../utils/push';
+import { useDismissible } from '../../hooks/useDismissible';
 
 type State =
   | 'loading'
@@ -14,14 +15,21 @@ type State =
   | 'denied'        // they tapped no — need to deep-link to settings
   | 'busy';
 
-const SNOOZE_KEY = 'firefc.notifBannerSnoozedAt';
-// Re-surface every 14 days if they snooze.
-const SNOOZE_MS = 14 * 24 * 60 * 60 * 1000;
+// Legacy key retained for read-only fallback so users mid-snooze
+// under the old 14-day cooldown don't get the banner re-surfaced
+// early after the migration.
+const LEGACY_SNOOZE_KEY = 'firefc.notifBannerSnoozedAt';
+const LEGACY_SNOOZE_MS = 14 * 24 * 60 * 60 * 1000;
 
 const NotificationsBanner: React.FC = () => {
   const { userData } = useAuth();
   const [state, setState] = useState<State>('loading');
   const [showSettingsHelp, setShowSettingsHelp] = useState(false);
+  const { dismissed, dismiss: dismissBanner } = useDismissible('notificationsBanner', {
+    snoozeDays: 14,
+    legacyKey: LEGACY_SNOOZE_KEY,
+    legacyCooldownMs: LEGACY_SNOOZE_MS,
+  });
 
   useEffect(() => {
     if (!userData?.uid) { setState('hidden'); return; }
@@ -29,11 +37,8 @@ const NotificationsBanner: React.FC = () => {
     const tokens: string[] = Array.isArray((userData as any).fcmTokens) ? (userData as any).fcmTokens : [];
     if (tokens.length > 0) { setState('hidden'); return; }
 
-    // Respect snooze.
-    try {
-      const snoozed = Number(localStorage.getItem(SNOOZE_KEY) || 0);
-      if (snoozed && Date.now() - snoozed < SNOOZE_MS) { setState('hidden'); return; }
-    } catch { /* ignore */ }
+    // Respect dismiss (new hook + legacy fallback).
+    if (dismissed) { setState('hidden'); return; }
 
     let cancelled = false;
     (async () => {
@@ -63,7 +68,7 @@ const NotificationsBanner: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [userData?.uid, (userData as any)?.fcmTokens?.length]);
+  }, [userData?.uid, (userData as any)?.fcmTokens?.length, dismissed]);
 
   const enable = async () => {
     if (!userData?.uid) return;
@@ -92,7 +97,7 @@ const NotificationsBanner: React.FC = () => {
   };
 
   const snooze = () => {
-    try { localStorage.setItem(SNOOZE_KEY, String(Date.now())); } catch { /* ignore */ }
+    dismissBanner();
     setState('hidden');
   };
 
@@ -101,8 +106,17 @@ const NotificationsBanner: React.FC = () => {
   const platform = Capacitor.getPlatform();
 
   return (
-    <div className="bg-brand-primary-soft border border-brand-primary-soft rounded-xl p-3 shadow-sm">
-      <div className="flex items-start gap-3">
+    <div className="relative bg-brand-primary-soft border border-brand-primary-soft rounded-xl p-3 shadow-sm">
+      <button
+        type="button"
+        onClick={snooze}
+        aria-label="Remind me later"
+        title="Remind me later"
+        className="absolute top-2 right-2 w-8 h-8 rounded-full text-slate-500 hover:text-slate-900 hover:bg-brand-primary/10 flex items-center justify-center transition"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+      </button>
+      <div className="flex items-start gap-3 pr-8">
         <div className="w-9 h-9 rounded-full bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
           <svg className="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useTrialGate } from '../../hooks/useTrialGate';
 import TierPickerSheet from '../common/TierPickerSheet';
+import { useDismissible } from '../../hooks/useDismissible';
 
 // Persistent dashboard nudge for coaches without an active
 // subscription. Dismissable; auto-reappears after 7 days so a
@@ -15,23 +16,24 @@ import TierPickerSheet from '../common/TierPickerSheet';
 // goalkickr.com" copy + system-browser handoff, never an in-app
 // payment trigger.
 
-const DISMISS_KEY = 'gk_dashboard_sub_dismissed_at';
-const DISMISS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// Legacy 7-day cooldown key — migrated to the shared useDismissible
+// hook (30-day snooze under the new contract). The old key is read
+// as a fallback so anyone mid-cooldown doesn't see the banner
+// re-surface before their old 7-day window would have expired.
+const LEGACY_DISMISS_KEY = 'gk_dashboard_sub_dismissed_at';
+const LEGACY_DISMISS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const GATE_REVEAL_DELAY_MS = 3000;
 
 const SubscribeBanner: React.FC = () => {
   const { currentUser, userData } = useAuth();
   const { loading, gated } = useTrialGate();
-  const [dismissed, setDismissed] = useState(false);
   const [tierSheet, setTierSheet] = useState(false);
   const [readyToReveal, setReadyToReveal] = useState(false);
-
-  useEffect(() => {
-    try {
-      const at = Number(window.localStorage.getItem(DISMISS_KEY) || 0);
-      if (at && Date.now() - at < DISMISS_COOLDOWN_MS) setDismissed(true);
-    } catch { /* ignore */ }
-  }, []);
+  const { dismissed, dismiss: handleDismiss } = useDismissible('subscribeBanner', {
+    snoozeDays: 30,
+    legacyKey: LEGACY_DISMISS_KEY,
+    legacyCooldownMs: LEGACY_DISMISS_COOLDOWN_MS,
+  });
 
   useEffect(() => {
     if (loading || !gated) {
@@ -52,18 +54,14 @@ const SubscribeBanner: React.FC = () => {
   // club can pick Club instead of being railroaded into Coach.
   const handleStart = () => setTierSheet(true);
 
-  const handleDismiss = () => {
-    try { window.localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch { /* ignore */ }
-    setDismissed(true);
-  };
-
   return (
     <div className="relative rounded-2xl bg-gradient-to-br from-brand-primary-deep/40 via-surface-elevated to-surface-elevated ring-1 ring-brand-primary/40 p-4 sm:p-5 overflow-hidden">
       <button
         type="button"
         onClick={handleDismiss}
-        aria-label="Dismiss"
-        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full text-ink-primary/50 hover:text-ink-primary hover:bg-line-default/5 flex items-center justify-center transition"
+        aria-label="Not now"
+        title="Not now"
+        className="absolute top-2 right-2 w-8 h-8 rounded-full text-ink-tertiary hover:text-ink-primary hover:bg-line-default/5 flex items-center justify-center transition"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
       </button>

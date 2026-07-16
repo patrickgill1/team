@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import AppIcon, { type AppIconName } from '../common/AppIcon';
 import { useTeam } from '../../contexts/TeamContext';
 import { useTeamAudience } from '../../hooks/useTeamAudience';
+import { useDismissible } from '../../hooks/useDismissible';
 
 interface Prompt {
   key: string;
@@ -46,14 +47,21 @@ const SmartDiscoveryPrompts: React.FC<Props> = ({ players, events, isCoach, data
   const { selectedTeamId, teams } = useTeam() as any;
   const teamObj = Array.isArray(teams) ? teams.find((t: any) => t.id === selectedTeamId) : null;
   const { isAdult } = useTeamAudience(teamObj);
+  // Compute nextGame BEFORE the early-return so we can call the
+  // dismiss hook unconditionally (hooks-before-returns rule).
+  const nextGame = events.find(isSoonGame);
+  const gameDayKey = nextGame ? `gameDayPrompt:${nextGame.id}` : null;
+  const { dismissed: gameDayDismissed, dismiss: dismissGameDay } = useDismissible(gameDayKey, {
+    snoozeUntilEventDate: nextGame ? (nextGame.date instanceof Date ? nextGame.date : new Date(nextGame.date)) : null,
+  });
+
   if (dataLoading) return null;
   const prompts: Prompt[] = [];
-  const nextGame = events.find(isSoonGame);
   const rosterNeedsParents = players.some((p: any) =>
     (p.parentEmails?.length || 0) === 0 && (p.parentIds?.length || 0) === 0
   );
 
-  if (isCoach && nextGame) {
+  if (isCoach && nextGame && !gameDayDismissed) {
     prompts.push({
       key: 'gameday',
       eyebrow: 'Game window',
@@ -96,31 +104,50 @@ const SmartDiscoveryPrompts: React.FC<Props> = ({ players, events, isCoach, data
 
   return (
     <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-fade-in">
-      {visible.map((prompt) => (
-        <Link
-          key={prompt.key}
-          to={prompt.href}
-          className={`group rounded-2xl bg-gradient-to-br ${toneClass[prompt.tone]} ring-1 p-4 transition hover:-translate-y-0.5 hover:ring-brand-primary/40`}
-        >
-          <div className="flex items-start gap-3">
-            <span className="shrink-0 w-9 h-9 rounded-xl bg-line-default/10 ring-1 ring-line-default/10 flex items-center justify-center">
-              <AppIcon name={prompt.icon} className="w-[18px] h-[18px]" strokeWidth={2.25} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest opacity-80 mb-0.5">
-                {prompt.eyebrow}
+      {visible.map((prompt) => {
+        // Only the game-day tile gets its own X (per Patrick's
+        // decision to keep GameDay tiles independently dismissable —
+        // CoachTonight has a separate X). The other prompts are
+        // roster-health nudges that fade out on their own once the
+        // underlying condition resolves.
+        const isGameDayTile = prompt.key === 'gameday';
+        return (
+          <Link
+            key={prompt.key}
+            to={prompt.href}
+            className={`group relative rounded-2xl bg-gradient-to-br ${toneClass[prompt.tone]} ring-1 p-4 transition hover:-translate-y-0.5 hover:ring-brand-primary/40`}
+          >
+            {isGameDayTile && (
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissGameDay(); }}
+                aria-label="Hide for this game"
+                title="Hide for this game"
+                className="absolute top-2 right-2 w-8 h-8 rounded-full text-ink-tertiary hover:text-ink-primary hover:bg-line-default/10 flex items-center justify-center transition z-10"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            )}
+            <div className={`flex items-start gap-3 ${isGameDayTile ? 'pr-8' : ''}`}>
+              <span className="shrink-0 w-9 h-9 rounded-xl bg-line-default/10 ring-1 ring-line-default/10 flex items-center justify-center">
+                <AppIcon name={prompt.icon} className="w-[18px] h-[18px]" strokeWidth={2.25} />
               </span>
-              <span className="block text-sm font-black text-ink-primary leading-tight">
-                {prompt.title}
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10px] font-extrabold uppercase tracking-widest opacity-80 mb-0.5">
+                  {prompt.eyebrow}
+                </span>
+                <span className="block text-sm font-black text-ink-primary leading-tight">
+                  {prompt.title}
+                </span>
+                <span className="block text-xs text-ink-primary/60 leading-snug mt-1">
+                  {prompt.detail}
+                </span>
               </span>
-              <span className="block text-xs text-ink-primary/60 leading-snug mt-1">
-                {prompt.detail}
-              </span>
-            </span>
-            <AppIcon name="arrow-right" className="w-4 h-4 text-ink-primary/35 group-hover:text-ink-primary/75 transition" strokeWidth={2.4} />
-          </div>
-        </Link>
-      ))}
+              <AppIcon name="arrow-right" className="w-4 h-4 text-ink-primary/35 group-hover:text-ink-primary/75 transition" strokeWidth={2.4} />
+            </div>
+          </Link>
+        );
+      })}
     </section>
   );
 };

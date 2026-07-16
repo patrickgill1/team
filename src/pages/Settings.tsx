@@ -21,6 +21,7 @@ import { useTheme, type ThemeMode, isThemePickerVisible } from '../contexts/Them
 import { useViewMode } from '../contexts/ViewModeContext';
 import { useTeam } from '../contexts/TeamContext';
 import Walkthrough from '../components/onboarding/Walkthrough';
+import HiddenDashboardCardsSection from '../components/settings/HiddenDashboardCardsSection';
 
 interface LinkedPlayer {
   id: string;
@@ -550,6 +551,8 @@ const Settings: React.FC = () => {
           <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Notifications</h2>
           <NotificationPreferences />
         </section>
+
+        <HiddenDashboardCardsSection />
 
         <section>
           <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Email</h2>

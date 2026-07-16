@@ -14,9 +14,14 @@
 // event has a new assignment later, the banner returns because the
 // dismissed key includes the assignment timestamp.
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CalendarEvent } from '../../types';
+import {
+  useDismissible,
+  readAndPruneDismissedMap,
+  DISMISSED_CARDS_CHANGE_EVENT,
+} from '../../hooks/useDismissible';
 
 interface Props {
   events: CalendarEvent[];
@@ -26,8 +31,14 @@ interface Props {
   myPlayerIds: string[];
 }
 
-function dismissedKey(eventId: string, assignedAtMs: number | null): string {
+// Legacy key format retained for read-only fallback so a coach mid-
+// dismiss under the previous scheme doesn't see the banner re-surface.
+function legacyDismissedKey(eventId: string, assignedAtMs: number | null): string {
   return `firefc.snackBannerDismissedAt:${eventId}:${assignedAtMs || 'noTs'}`;
+}
+
+function newDismissKey(eventId: string, assignedAtMs: number | null): string {
+  return `snackAssignment:${eventId}:${assignedAtMs || 'noTs'}`;
 }
 
 function toMs(v: any): number | null {
@@ -40,12 +51,21 @@ function toMs(v: any): number | null {
 }
 
 const SnackAssignmentBanner: React.FC<Props> = ({ events, myPlayerIds }) => {
+  // Re-render when any dismiss changes globally (Settings "Show now",
+  // sibling card, etc.). Cheap subscription: increment a tick.
   const [dismissedTick, setDismissedTick] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handler = () => setDismissedTick((t) => t + 1);
+    window.addEventListener(DISMISSED_CARDS_CHANGE_EVENT, handler);
+    return () => window.removeEventListener(DISMISSED_CARDS_CHANGE_EVENT, handler);
+  }, []);
 
   const nextAssignment = useMemo(() => {
     if (!Array.isArray(myPlayerIds) || myPlayerIds.length === 0) return null;
     const myIds = new Set(myPlayerIds);
     const now = Date.now();
+    const dismissedMap = readAndPruneDismissedMap();
     // Prefer nearest upcoming event where snackAssignment.playerId
     // is one of my player ids. Events are typically already
     // sorted ascending by date on the Dashboard.
@@ -57,15 +77,27 @@ const SnackAssignmentBanner: React.FC<Props> = ({ events, myPlayerIds }) => {
       if (!a || !myIds.has(String(a.playerId || ''))) continue;
       const assignedAtMs = toMs(a.assignedAt);
       // Dismissal is timestamp-scoped: if the coach re-assigns you
-      // (new assignedAt), the banner returns.
-      const key = dismissedKey(e.id, assignedAtMs);
+      // (new assignedAt), the key changes and the banner returns.
+      const nk = newDismissKey(e.id, assignedAtMs);
+      if (dismissedMap[nk] && dismissedMap[nk].snoozeUntilMs > now) continue;
+      // Legacy fallback — anyone mid-dismiss under the old key stays
+      // hidden until the event fires.
       try {
-        if (typeof window !== 'undefined' && window.localStorage.getItem(key)) continue;
+        if (typeof window !== 'undefined' && window.localStorage.getItem(legacyDismissedKey(e.id, assignedAtMs))) continue;
       } catch { /* localStorage unavailable — always show */ }
       return { event: e, assignment: a, assignedAtMs };
     }
     return null;
   }, [events, myPlayerIds, dismissedTick]);
+
+  // Always call the hook — with null when there's no assignment to
+  // display — so hooks order stays stable across renders (React #310).
+  const activeKey = nextAssignment
+    ? newDismissKey(nextAssignment.event.id, nextAssignment.assignedAtMs)
+    : null;
+  const { dismiss: hookDismiss } = useDismissible(activeKey, {
+    snoozeUntilEventDate: nextAssignment ? nextAssignment.event.date : null,
+  });
 
   if (!nextAssignment) return null;
   const { event, assignment, assignedAtMs } = nextAssignment;
@@ -77,9 +109,7 @@ const SnackAssignmentBanner: React.FC<Props> = ({ events, myPlayerIds }) => {
   const dismiss = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    try {
-      window.localStorage.setItem(dismissedKey(event.id, assignedAtMs), String(Date.now()));
-    } catch { /* ignore */ }
+    hookDismiss();
     setDismissedTick((t) => t + 1);
   };
 
@@ -109,7 +139,8 @@ const SnackAssignmentBanner: React.FC<Props> = ({ events, myPlayerIds }) => {
       <button
         type="button"
         onClick={dismiss}
-        aria-label="Got it, hide"
+        aria-label="Hide until the game"
+        title="Hide until the game"
         className="flex-shrink-0 -mr-1 p-1.5 rounded-md text-amber-200/60 hover:text-amber-100 hover:bg-amber-500/20 transition"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">

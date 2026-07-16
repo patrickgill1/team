@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
@@ -8,6 +8,7 @@ import { isCoachOfTeam, isClubAdmin as isClubAdminUser } from '../../utils/helpe
 import { useViewMode } from '../../contexts/ViewModeContext';
 import TierPickerSheet from '../common/TierPickerSheet';
 import { openWebSignup } from '../../utils/subscriptionApi';
+import { useDismissible } from '../../hooks/useDismissible';
 
 // Getting Started checklist for new coaches. Patrick: "the guide was
 // cool until you got into the dashboard... they need to be able to
@@ -34,12 +35,14 @@ interface Props {
 
 // Dismiss is keyed per team — dismissing on one team doesn't hide
 // the card on another team (Patrick: testing on a brand-new team
-// and the card was already hidden from a prior dismiss). Cooldown
-// is also short — 24h — so an accidental tap doesn't lock the
-// checklist away for a month. The card always self-hides when all
-// 3 steps are actually done.
-const DISMISS_KEY_PREFIX = 'gk_dashboard_getstarted_dismissed_at__';
-const DISMISS_COOLDOWN_MS = 24 * 60 * 60 * 1000;  // 24 hours
+// and the card was already hidden from a prior dismiss). Snooze is
+// 7 calendar days via the shared useDismissible hook; the legacy 24h
+// key is honored as a read-only fallback so anyone mid-cooldown
+// doesn't see the card re-surface early. The card always self-hides
+// when all 3 steps are actually done, and auto-clears on brand-new
+// teams (zero players + zero events).
+const LEGACY_DISMISS_KEY_PREFIX = 'gk_dashboard_getstarted_dismissed_at__';
+const LEGACY_DISMISS_COOLDOWN_MS = 24 * 60 * 60 * 1000;  // 24 hours
 
 type GuideRole = 'coach' | 'parent' | 'admin';
 
@@ -57,29 +60,23 @@ const GettingStartedCard: React.FC<Props> = ({ players, events, dataLoading }) =
   const { selectedTeamId, selectedTeam } = useTeam();
   const { viewMode } = useViewMode();
   const { isActive, loading: subLoading } = useSubscription();
-  const [dismissed, setDismissed] = useState(false);
   const [tierSheet, setTierSheet] = useState(false);
 
-  // Per-team dismiss key + auto-clear on fresh teams. Patrick: "it
-  // let me click out of the guide, and now i can't get it back."
-  // Resetting when the team has zero players AND zero events means
-  // a brand-new team always re-surfaces the checklist regardless
-  // of what the coach dismissed on another team.
-  useEffect(() => {
-    if (!selectedTeamId) { setDismissed(false); return; }
-    const key = DISMISS_KEY_PREFIX + selectedTeamId;
-    const isFreshTeam = (players?.length || 0) === 0 && (events?.length || 0) === 0;
-    try {
-      if (isFreshTeam) {
-        window.localStorage.removeItem(key);
-        setDismissed(false);
-        return;
-      }
-      const at = Number(window.localStorage.getItem(key) || 0);
-      if (at && Date.now() - at < DISMISS_COOLDOWN_MS) setDismissed(true);
-      else setDismissed(false);
-    } catch { /* ignore */ }
-  }, [selectedTeamId, players?.length, events?.length]);
+  // Per-team dismiss via the shared hook. 7-day snooze (was 24h) with
+  // the old key still honored as a read-only fallback. Fresh teams
+  // (zero players AND zero events) auto-unhide via useDismissible's
+  // autoUnDismissWhen — Patrick: "it let me click out of the guide,
+  // and now i can't get it back."
+  const isFreshTeam = (players?.length || 0) === 0 && (events?.length || 0) === 0;
+  const dismissKey = selectedTeamId ? `gettingStarted:${selectedTeamId}` : null;
+  const { dismissed, dismiss: handleDismiss } = useDismissible(dismissKey, {
+    snoozeDays: 7,
+    legacyKey: selectedTeamId ? LEGACY_DISMISS_KEY_PREFIX + selectedTeamId : undefined,
+    legacyCooldownMs: LEGACY_DISMISS_COOLDOWN_MS,
+    // When the team becomes fresh, drop the dismiss so the checklist
+    // returns. Signature toggles between "fresh" and "populated".
+    autoUnDismissWhen: isFreshTeam ? 'fresh' : 'populated',
+  });
 
   if (!userData) return null;
   if (!selectedTeamId) return null;
@@ -130,13 +127,6 @@ const GettingStartedCard: React.FC<Props> = ({ players, events, dataLoading }) =
   // a coach running a multi-team club had no way to pick Club from
   // inside the app.
   const handleStartTrial = () => setTierSheet(true);
-
-  const handleDismiss = () => {
-    if (!selectedTeamId) return;
-    const key = DISMISS_KEY_PREFIX + selectedTeamId;
-    try { window.localStorage.setItem(key, String(Date.now())); } catch { /* ignore */ }
-    setDismissed(true);
-  };
 
   const rosterReady = hasPlayers && hasInvitedParents;
   const roleCopy: Record<GuideRole, { eyebrow: string; empty: string; almost: string }> = {
@@ -256,8 +246,9 @@ const GettingStartedCard: React.FC<Props> = ({ players, events, dataLoading }) =
       <button
         type="button"
         onClick={handleDismiss}
-        aria-label="Dismiss"
-        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full text-ink-primary/50 hover:text-ink-primary hover:bg-line-default/5 flex items-center justify-center transition"
+        aria-label="Hide for a week"
+        title="Hide for a week"
+        className="absolute top-2 right-2 w-8 h-8 rounded-full text-ink-tertiary hover:text-ink-primary hover:bg-line-default/5 flex items-center justify-center transition"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
       </button>

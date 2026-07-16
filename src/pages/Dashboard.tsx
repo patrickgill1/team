@@ -24,6 +24,7 @@ import SubscribeBanner from '../components/dashboard/SubscribeBanner';
 import TrialCountdownBanner from '../components/dashboard/TrialCountdownBanner';
 import GettingStartedCard from '../components/dashboard/GettingStartedCard';
 import SmartDiscoveryPrompts from '../components/dashboard/SmartDiscoveryPrompts';
+import { useDismissible } from '../hooks/useDismissible';
 import DataGate from '../components/common/DataGate';
 import Walkthrough, { shouldShowWalkthrough } from '../components/onboarding/Walkthrough';
 import { useActiveSeason } from '../hooks/useActiveSeason';
@@ -1271,40 +1272,12 @@ const Dashboard: React.FC = () => {
             Shouts feed). Copy uses the kid's first name to earn the
             tap. Hidden on coach mode + adult teams (where Circle
             isn't the model). */}
-        {isParentMode && myPlayer && !((selectedTeam as any)?.audienceType === 'adult') && (() => {
-          const circleCount = Array.isArray((myPlayer as any).parentIds) ? (myPlayer as any).parentIds.length : 0;
-          const first = (myPlayer.name || 'your player').split(' ')[0];
-          return (
-            <Link
-              to="/circle"
-              className="group relative overflow-hidden rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition p-4 flex items-center gap-4"
-            >
-              <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-brand-primary/15 text-brand-primary shrink-0">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                  <circle cx="9" cy="8" r="3" />
-                  <circle cx="17" cy="10" r="2.5" />
-                  <path d="M2 20a7 7 0 0 1 14 0M14 20a5 5 0 0 1 8 0" />
-                </svg>
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary-soft">Player Circle</p>
-                <p className="text-[15px] font-bold text-ink-primary leading-tight mt-0.5 truncate">
-                  {circleCount === 0
-                    ? `Start ${first}'s Circle`
-                    : `${first}'s Circle · ${circleCount} ${circleCount === 1 ? 'person' : 'people'}`}
-                </p>
-                <p className="text-[12px] text-ink-primary/55 leading-snug truncate">
-                  {circleCount === 0
-                    ? 'Invite grandparents, aunts, and guardians to see the wins.'
-                    : 'Everyone who cheers for your player, in one place.'}
-                </p>
-              </div>
-              <svg className="w-4 h-4 text-ink-primary/35 group-hover:text-brand-primary-soft transition shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <polyline points="9 6 15 12 9 18" />
-              </svg>
-            </Link>
-          );
-        })()}
+        {isParentMode && myPlayer && !((selectedTeam as any)?.audienceType === 'adult') && (
+          <PlayerCircleTile
+            player={myPlayer}
+            teamId={selectedTeamId || (myPlayer as any).teamId || ''}
+          />
+        )}
 
         {/* TodaysDevelopmentCard — sits directly under MyPlayerCard
             for parent-mode users, matching Patrick's 2026-07-13
@@ -2793,5 +2766,61 @@ function relativeTime(date: Date): string {
   if (d < 30) return `${d}d`;
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
+
+// Player Circle entry tile — extracted to its own component so
+// useDismissible can be called at the top level (hooks-before-returns
+// rule). Snoozes for 14 calendar days on dismiss; auto-re-surfaces
+// when a new Circle member joins (parentIds count changes).
+const PlayerCircleTile: React.FC<{ player: any; teamId: string }> = ({ player, teamId }) => {
+  const circleCount = Array.isArray(player.parentIds) ? player.parentIds.length : 0;
+  const first = (player.name || 'your player').split(' ')[0];
+  const key = teamId && player.id ? `playerCircle:${teamId}:${player.id}` : null;
+  const { dismissed, dismiss } = useDismissible(key, {
+    snoozeDays: 14,
+    autoUnDismissWhen: circleCount,
+  });
+  if (dismissed) return null;
+  return (
+    <div className="relative">
+      <Link
+        to="/circle"
+        className="group relative overflow-hidden rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition p-4 flex items-center gap-4"
+      >
+        <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-brand-primary/15 text-brand-primary shrink-0">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <circle cx="9" cy="8" r="3" />
+            <circle cx="17" cy="10" r="2.5" />
+            <path d="M2 20a7 7 0 0 1 14 0M14 20a5 5 0 0 1 8 0" />
+          </svg>
+        </span>
+        <div className="min-w-0 flex-1 pr-8">
+          <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary-soft">Player Circle</p>
+          <p className="text-[15px] font-bold text-ink-primary leading-tight mt-0.5 truncate">
+            {circleCount === 0
+              ? `Start ${first}'s Circle`
+              : `${first}'s Circle · ${circleCount} ${circleCount === 1 ? 'person' : 'people'}`}
+          </p>
+          <p className="text-[12px] text-ink-primary/55 leading-snug truncate">
+            {circleCount === 0
+              ? 'Invite grandparents, aunts, and guardians to see the wins.'
+              : 'Everyone who cheers for your player, in one place.'}
+          </p>
+        </div>
+        <svg className="w-4 h-4 text-ink-primary/35 group-hover:text-brand-primary-soft transition shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <polyline points="9 6 15 12 9 18" />
+        </svg>
+      </Link>
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismiss(); }}
+        aria-label="Hide for two weeks"
+        title="Hide for two weeks"
+        className="absolute top-2 right-2 w-8 h-8 rounded-full text-ink-tertiary hover:text-ink-primary hover:bg-line-default/10 flex items-center justify-center transition z-10"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+      </button>
+    </div>
+  );
+};
 
 export default Dashboard;

@@ -142,7 +142,7 @@ const PublicSurvey: React.FC = () => {
       setStep('thanks');
     } catch (err) {
       console.error('Error submitting survey', err);
-      setError('Something went wrong — please try again');
+      setError('Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }

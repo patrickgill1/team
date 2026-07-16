@@ -395,7 +395,7 @@ const Surveys: React.FC = () => {
                             <div key={r.id} className="bg-brand-primary/15 rounded-lg p-3 text-sm text-ink-primary/85 border border-brand-primary-soft/30">
                               "{String(ans.value)}"
                               {!selectedSurvey.isAnonymous && r.respondentName && (
-                                <span className="block text-xs text-brand-primary-soft mt-1">— {r.respondentName}</span>
+                                <span className="block text-xs text-brand-primary-soft mt-1">by {r.respondentName}</span>
                               )}
                             </div>
                           );
@@ -485,8 +485,8 @@ const Surveys: React.FC = () => {
         {/* Template Button */}
         {!editingSurvey && questions.length === 0 && (
           <button onClick={useTemplate} className="w-full card-modern p-4 mb-4 border-2 border-dashed border-brand-primary-soft/50 hover:border-brand-primary-soft hover:bg-brand-primary/10 transition-colors text-left">
-            <div className="font-semibold text-charcoal-900">Use "How Am I Doing?" Template</div>
-            <div className="text-sm text-brand-primary mt-1">Pre-built anonymous coach feedback survey — 5 questions ready to go</div>
+            <div className="font-semibold text-ink-primary">Use "How Am I Doing?" Template</div>
+            <div className="text-sm text-brand-primary mt-1">Pre-built anonymous coach feedback survey: 5 questions ready to go</div>
           </button>
         )}
 

@@ -17,7 +17,7 @@ export function filterMediaForSeason(
   const start = season?.startDate ? new Date(season.startDate).getTime() : -Infinity;
   const end = season?.endDate ? new Date(season.endDate).getTime() : Infinity;
   return items.filter(m => {
-    if (teamId && (m as any).teamId && (m as any).teamId !== teamId) return false;
+    if (teamId && (m as any).teamId !== teamId) return false;
     if (!season) return true;
     const t = m.createdAt instanceof Date ? m.createdAt.getTime() : new Date((m as any).createdAt || 0).getTime();
     return t >= start && t <= end;

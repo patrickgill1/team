@@ -1558,15 +1558,33 @@ const MediaSeasonView: React.FC<MediaSeasonViewProps> = ({
   const pastBuckets = React.useMemo(() => {
     if (!memberships || memberships.length === 0) return [] as Array<{ key: string; label: string; items: PlayerMedia[] }>;
     const currentSeasonKey = `${selectedTeamId}:${activeSeason?.id || ''}`;
-    const buckets: Array<{ key: string; label: string; items: PlayerMedia[]; sortMs: number }> = [];
+
+    // Collapse memberships to a unique set keyed by teamId:seasonId so a
+    // legacy seasonId=null row plus a season-scoped row for the same team
+    // don't spawn two buckets. Prefer the season-scoped row when both
+    // exist for the same team.
+    const teamsWithSeasonRow = new Set<string>();
     for (const m of memberships) {
+      if ((m as any).seasonId) teamsWithSeasonRow.add((m as any).teamId);
+    }
+    const byKey = new Map<string, any>();
+    for (const m of memberships) {
+      const teamId = (m as any).teamId;
+      const seasonId = (m as any).seasonId;
+      if (!seasonId && teamsWithSeasonRow.has(teamId)) continue;
+      const key = `${teamId}:${seasonId || ''}`;
+      if (!byKey.has(key)) byKey.set(key, m);
+    }
+
+    // Resolve + sort newest-first BEFORE the filter loop so seenMediaIds
+    // fills newest-first (the most recent bucket wins any duplicate clip).
+    const prepared: Array<{ key: string; teamId: string; season: Season | null; label: string; sortMs: number }> = [];
+    for (const m of Array.from(byKey.values())) {
       const teamId = (m as any).teamId;
       const seasonId = (m as any).seasonId;
       const key = `${teamId}:${seasonId || ''}`;
       if (key === currentSeasonKey) continue; // skip current view
       const season = seasonId ? availableSeasons.find(s => s.id === seasonId) || null : null;
-      const items = filterMediaForSeason(media, teamId, season);
-      if (items.length === 0) continue;
       const teamName = teamId === selectedTeamId
         ? (selectedTeam?.name || 'Team')
         : (teamNameById[teamId] || (m as any).teamName || 'Team');
@@ -1574,11 +1592,24 @@ const MediaSeasonView: React.FC<MediaSeasonViewProps> = ({
       const joinedAtRaw: any = (m as any).joinedAt;
       const joinedMs = joinedAtRaw?.toDate ? joinedAtRaw.toDate().getTime() : (joinedAtRaw ? new Date(joinedAtRaw).getTime() : 0);
       const sortMs = season?.startDate ? new Date(season.startDate).getTime() : joinedMs;
-      buckets.push({ key, label, items, sortMs });
+      prepared.push({ key, teamId, season, label, sortMs });
     }
-    buckets.sort((a, b) => b.sortMs - a.sortMs);
-    return buckets.map(({ key, label, items }) => ({ key, label, items }));
-  }, [media, memberships, availableSeasons, selectedTeamId, activeSeason?.id, selectedTeam, teamNameById]);
+    prepared.sort((a, b) => b.sortMs - a.sortMs);
+
+    // Seed with This Season ids so a clip that already rendered above
+    // never reappears in Past Seasons; then dedupe across buckets so a
+    // single doc can't be admitted to more than one section.
+    const seenMediaIds = new Set<string>(thisSeason.map(item => item.id));
+    const buckets: Array<{ key: string; label: string; items: PlayerMedia[] }> = [];
+    for (const p of prepared) {
+      const raw = filterMediaForSeason(media, p.teamId, p.season);
+      const items = raw.filter(item => !seenMediaIds.has(item.id));
+      if (items.length === 0) continue;
+      for (const item of items) seenMediaIds.add(item.id);
+      buckets.push({ key: p.key, label: p.label, items });
+    }
+    return buckets;
+  }, [media, memberships, availableSeasons, selectedTeamId, activeSeason?.id, selectedTeam, teamNameById, thisSeason]);
 
   const totalPast = pastBuckets.reduce((s, b) => s + b.items.length, 0);
 

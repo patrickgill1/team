@@ -1384,13 +1384,25 @@ async function upsertSubscriptionDoc(
   if (uid) {
     const status = String(sub.status || 'incomplete');
     const isActive = status === 'trialing' || status === 'active';
+    const userPatch: Record<string, any> = {
+      subscriptionActive: isActive,
+      subscriptionTier: tier,
+      subscriptionStatus: status,
+      subscriptionUpdatedAt: new Date(),
+    };
+    // On paid conversion (real Stripe sub is now active/trialing),
+    // clear the auto-trial stamps so TrialCountdownBanner stops
+    // showing. writeGuards stamps subscriptionSource='auto-trial-*'
+    // and a 7-day subscriptionExpiresAt on team/club create; without
+    // this clear, a paid user keeps seeing the trial banner forever
+    // because the banner predicate is `source.startsWith('auto-trial')
+    // && subscriptionActive`.
+    if (isActive) {
+      userPatch.subscriptionSource = 'stripe';
+      userPatch.subscriptionExpiresAt = null;
+    }
     try {
-      await patchDocument(projectId, `users/${uid}`, {
-        subscriptionActive: isActive,
-        subscriptionTier: tier,
-        subscriptionStatus: status,
-        subscriptionUpdatedAt: new Date(),
-      }, sa);
+      await patchDocument(projectId, `users/${uid}`, userPatch, sa);
     } catch (err) {
       // Non-fatal: subscriptions/{uid} is still the source of truth
       // for the in-app UI, so a failed user-doc mirror just means

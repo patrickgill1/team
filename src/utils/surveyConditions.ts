@@ -91,7 +91,7 @@ export const validateShowIf = (
 export const isVisible = (
   question: SurveyQuestion,
   allQuestions: SurveyQuestion[],
-  answers: Record<string, string | number>,
+  answers: Record<string, string | number | string[]>,
 ): boolean => {
   const rule = question.showIf;
   if (!rule) return true;
@@ -105,7 +105,14 @@ export const isVisible = (
   // Also check the parent is itself visible; a hidden ancestor cascades.
   if (!isVisible(source, allQuestions, answers)) return false;
 
-  return answers[rule.questionId] === rule.equals;
+  // Shape-aware comparison: multi-select MC stores answer as string[]; single-
+  // select MC / Y/N stores a scalar. "Matches when the picked options include
+  // this value" is the natural interpretation for multi-select. This one code
+  // path also handles a source flipped single→multi (or vice versa) without
+  // stranding old responses stored in the other shape.
+  const value = answers[rule.questionId];
+  if (Array.isArray(value)) return value.includes(rule.equals);
+  return value === rule.equals;
 };
 
 /**
@@ -114,7 +121,7 @@ export const isVisible = (
  */
 export const visibleQuestionIds = (
   questions: SurveyQuestion[],
-  answers: Record<string, string | number>,
+  answers: Record<string, string | number | string[]>,
 ): Set<string> => {
   const set = new Set<string>();
   questions.forEach(q => {
@@ -129,11 +136,11 @@ export const visibleQuestionIds = (
  */
 export const pruneHiddenAnswers = (
   questions: SurveyQuestion[],
-  answers: Record<string, string | number>,
-): Record<string, string | number> => {
+  answers: Record<string, string | number | string[]>,
+): Record<string, string | number | string[]> => {
   const visible = visibleQuestionIds(questions, answers);
   let changed = false;
-  const next: Record<string, string | number> = {};
+  const next: Record<string, string | number | string[]> = {};
   Object.keys(answers).forEach(qid => {
     if (visible.has(qid)) {
       next[qid] = answers[qid];

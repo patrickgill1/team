@@ -82,7 +82,10 @@ const PublicSurvey: React.FC = () => {
   const [error, setError] = useState('');
   const [step, setStep] = useState<'identify' | 'fill' | 'thanks'>('identify');
   const [name, setName] = useState(getRespondentName());
-  const [answers, setAnswers] = useState<Record<string, string | number>>({});
+  // Widened to include string[] for multi-select MC (checkboxes). Every
+  // consumer branches on Array.isArray(value) rather than trusting the
+  // question type, so a source flipped single ↔ multi keeps behaving.
+  const [answers, setAnswers] = useState<Record<string, string | number | string[]>>({});
   const [submitting, setSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
 
@@ -131,10 +134,14 @@ const PublicSurvey: React.FC = () => {
 
     // Only currently-visible questions can be required. Hidden branches (e.g.
     // "which restaurant" when the parent said No to dinner) should never
-    // block submission.
+    // block submission. Empty spans single-value ('' / undefined) AND empty
+    // array (multi-select MC with nothing picked), so required means
+    // "at least one pick" regardless of question shape.
     const errors: Record<string, boolean> = {};
     visibleQuestions.forEach(q => {
-      if (q.required && (answers[q.id] === undefined || answers[q.id] === '')) {
+      if (!q.required) return;
+      const v = answers[q.id];
+      if (v === undefined || v === '' || (Array.isArray(v) && v.length === 0)) {
         errors[q.id] = true;
       }
     });
@@ -147,9 +154,16 @@ const PublicSurvey: React.FC = () => {
     try {
       // Only submit answers to visible questions. Answers to previously-visible
       // but now-hidden questions were already pruned by pruneHiddenAnswers on
-      // parent-answer change; this filter is belt-and-suspenders.
+      // parent-answer change; this filter is belt-and-suspenders. Same
+      // "unanswered" definition as the required guard above so multi-select
+      // MC empty arrays don't ship as junk.
       const answerArray: SurveyAnswer[] = visibleQuestions
-        .filter(q => answers[q.id] !== undefined && answers[q.id] !== '')
+        .filter(q => {
+          const v = answers[q.id];
+          if (v === undefined || v === '') return false;
+          if (Array.isArray(v) && v.length === 0) return false;
+          return true;
+        })
         .map(q => ({ questionId: q.id, value: answers[q.id] }));
 
       await addDoc(collection(db, 'survey_responses'), {
@@ -174,7 +188,7 @@ const PublicSurvey: React.FC = () => {
     }
   };
 
-  const setAnswer = (questionId: string, value: string | number) => {
+  const setAnswer = (questionId: string, value: string | number | string[]) => {
     setAnswers(prev => {
       const next = { ...prev, [questionId]: value };
       // If this question is a source for any conditional child, changing its
@@ -199,6 +213,19 @@ const PublicSurvey: React.FC = () => {
       }
       return pruned;
     });
+  };
+
+  // Toggle a single option on a multi-select MC. Order-preserved by the
+  // question's option index (not click order) so results are stable
+  // across submits + across renders.
+  const toggleMultiChoice = (question: SurveyQuestion, option: string) => {
+    const opts = question.options || [];
+    const current = answers[question.id];
+    const currentArr = Array.isArray(current) ? current : [];
+    const nextSet = new Set(currentArr);
+    if (nextSet.has(option)) nextSet.delete(option); else nextSet.add(option);
+    const next = opts.filter(o => nextSet.has(o));
+    setAnswer(question.id, next);
   };
 
   // ─── Loading ─────────────────────────────────────────────────────────
@@ -323,7 +350,16 @@ const PublicSurvey: React.FC = () => {
                 {visibleIdx + 1}. {q.text}
                 {q.required && <span className="text-rose-400 ml-1">*</span>}
               </h3>
-              {validationErrors[q.id] && <p className="text-xs text-rose-300 mb-2">This question is required</p>}
+              {validationErrors[q.id] && (
+                // Multi-select needs its own copy: "This question is
+                // required" reads as a single-answer prompt when the
+                // control is a checkbox group.
+                <p className="text-xs text-rose-300 mb-2">
+                  {q.type === 'multiple_choice' && q.allowMultiple
+                    ? 'Pick at least one option.'
+                    : 'This question is required'}
+                </p>
+              )}
 
               {/* Rating */}
               {q.type === 'rating' && (
@@ -359,8 +395,8 @@ const PublicSurvey: React.FC = () => {
                 </div>
               )}
 
-              {/* Multiple Choice */}
-              {q.type === 'multiple_choice' && (
+              {/* Multiple Choice — single-select (radio) */}
+              {q.type === 'multiple_choice' && !q.allowMultiple && (
                 <div className="space-y-2 mt-3">
                   {(q.options || []).map(opt => (
                     <button
@@ -379,6 +415,49 @@ const PublicSurvey: React.FC = () => {
                 </div>
               )}
 
+              {/* Multiple Choice — multi-select (checkboxes). Answer is a
+                  string[] preserved in the question's option order. */}
+              {q.type === 'multiple_choice' && q.allowMultiple && (() => {
+                const current = answers[q.id];
+                const currentArr = Array.isArray(current) ? current : [];
+                return (
+                  <div className="space-y-2 mt-3">
+                    {(q.options || []).map(opt => {
+                      const checked = currentArr.includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => toggleMultiChoice(q, opt)}
+                          aria-pressed={checked}
+                          className={`w-full flex items-center gap-3 text-left px-4 py-3 rounded-xl border-2 text-sm transition-colors ${
+                            checked
+                              ? 'border-brand-primary-soft/40 bg-brand-primary/15 text-brand-primary-soft font-medium'
+                              : 'border-line-default/10 text-ink-primary/85 hover:border-gray-300'
+                          }`}
+                        >
+                          <span
+                            className={`w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center ${
+                              checked
+                                ? 'border-brand-primary bg-brand-primary'
+                                : 'border-line-default/30 bg-surface-base'
+                            }`}
+                          >
+                            {checked && (
+                              <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                          </span>
+                          <span className="flex-1">{opt}</span>
+                        </button>
+                      );
+                    })}
+                    <p className="text-[11px] text-ink-primary/50 pt-0.5">Pick as many as apply.</p>
+                  </div>
+                );
+              })()}
+
               {/* Text */}
               {q.type === 'text' && (
                 <textarea
@@ -387,6 +466,18 @@ const PublicSurvey: React.FC = () => {
                   rows={3}
                   placeholder="Type your answer…"
                   className="w-full bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/15 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none resize-none mt-3"
+                />
+              )}
+
+              {/* Date — native picker; answer is an ISO 'YYYY-MM-DD'
+                  string. No new Date(iso) anywhere downstream so the day
+                  doesn't shift in MDT. */}
+              {q.type === 'date' && (
+                <input
+                  type="date"
+                  value={(answers[q.id] as string) || ''}
+                  onChange={e => setAnswer(q.id, e.target.value)}
+                  className="w-full bg-surface-base text-ink-primary [color-scheme:dark] placeholder:text-ink-primary/40 border border-line-default/15 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none mt-3"
                 />
               )}
             </div>

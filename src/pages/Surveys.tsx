@@ -23,6 +23,7 @@ const QUESTION_TYPE_LABELS: Record<SurveyQuestionType, string> = {
   text: 'Free Text',
   multiple_choice: 'Multiple Choice',
   yes_no: 'Yes / No',
+  date: 'Date',
 };
 
 const HOW_AM_I_DOING_TEMPLATE: Omit<Survey, 'id' | 'teamId' | 'createdBy' | 'createdByName' | 'responseCount' | 'createdAt'> = {
@@ -397,7 +398,15 @@ const Surveys: React.FC = () => {
     const counts: Record<string, number> = {};
     responses.forEach(r => {
       const ans = r.answers.find(a => a.questionId === questionId);
-      if (ans && typeof ans.value === 'string') {
+      if (!ans) return;
+      // Multi-select MC: each picked option counts once. Total picks may
+      // exceed respondent count — the "Multi-select" chip in the header
+      // tells the coach not to read a sum as head-count.
+      if (Array.isArray(ans.value)) {
+        ans.value.forEach(v => {
+          if (typeof v === 'string') counts[v] = (counts[v] || 0) + 1;
+        });
+      } else if (typeof ans.value === 'string') {
         counts[ans.value] = (counts[ans.value] || 0) + 1;
       }
     });
@@ -416,8 +425,8 @@ const Surveys: React.FC = () => {
     return responses.filter(r => {
       const hasAnswer = r.answers.some(a => a.questionId === question.id && a.value !== undefined && a.value !== '');
       if (hasAnswer) return true;
-      const answersMap: Record<string, string | number> = {};
-      r.answers.forEach(a => { answersMap[a.questionId] = a.value; });
+      const answersMap: Record<string, string | number | string[]> = {};
+      r.answers.forEach(a => { answersMap[a.questionId] = a.value as any; });
       return isVisible(question, selectedSurvey.questions, answersMap);
     }).length;
   };
@@ -431,9 +440,41 @@ const Surveys: React.FC = () => {
     if (!selectedSurvey || !question.showIf) return false;
     const hasAnswer = response.answers.some(a => a.questionId === question.id && a.value !== undefined && a.value !== '');
     if (hasAnswer) return false;
-    const answersMap: Record<string, string | number> = {};
-    response.answers.forEach(a => { answersMap[a.questionId] = a.value; });
+    const answersMap: Record<string, string | number | string[]> = {};
+    response.answers.forEach(a => { answersMap[a.questionId] = a.value as any; });
     return !isVisible(question, selectedSurvey.questions, answersMap);
+  };
+
+  // Date-question responses: sorted ISO 'YYYY-MM-DD' strings. String sort
+  // matches chronological order and avoids the new Date(iso) timezone bug
+  // (parsing 'YYYY-MM-DD' as UTC shifts the day in MDT).
+  const getDateResponses = (questionId: string): { value: string; respondentName?: string; responseId: string }[] => {
+    const rows: { value: string; respondentName?: string; responseId: string }[] = [];
+    responses.forEach(r => {
+      const ans = r.answers.find(a => a.questionId === questionId);
+      if (ans && typeof ans.value === 'string' && ans.value) {
+        rows.push({ value: ans.value, respondentName: r.respondentName, responseId: r.id });
+      }
+    });
+    return rows.sort((a, b) => a.value.localeCompare(b.value));
+  };
+
+  // Turn '2026-07-16' into 'July 2026' for month-group headers. Purely
+  // display; the underlying sort is still string-based.
+  const formatMonthLabel = (isoMonth: string): string => {
+    const [y, m] = isoMonth.split('-');
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const idx = Math.max(0, Math.min(11, Number(m) - 1));
+    return `${MONTHS[idx]} ${y}`;
+  };
+
+  // Turn '2026-07-16' into a locale-friendly 'Jul 16, 2026' without
+  // creating a Date (which would UTC-shift in negative-offset zones).
+  const formatIsoDatePretty = (iso: string): string => {
+    const [y, m, d] = iso.split('-');
+    const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const idx = Math.max(0, Math.min(11, Number(m) - 1));
+    return `${MONTHS_SHORT[idx]} ${Number(d)}, ${y}`;
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────
@@ -509,7 +550,17 @@ const Surveys: React.FC = () => {
               <div className="space-y-4">
                 {selectedSurvey.questions.map(q => (
                   <div key={q.id} className="card-modern p-5">
-                    <h3 className="font-semibold text-ink-primary mb-1">{q.order}. {q.text}</h3>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <h3 className="font-semibold text-ink-primary">{q.order}. {q.text}</h3>
+                      {q.type === 'multiple_choice' && q.allowMultiple && (
+                        // Coach needs to read counts as picks, not people;
+                        // this chip disarms the "how do numbers add up to
+                        // more than my response count?" moment.
+                        <span className="shrink-0 text-[10px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30">
+                          Multi-select
+                        </span>
+                      )}
+                    </div>
                     {q.showIf && responses.length > 0 && (
                       // Conditional questions have a smaller sample size than
                       // the total response count. This caption tells the coach
@@ -519,7 +570,7 @@ const Surveys: React.FC = () => {
                         Shown to {getShownCount(q)} of {responses.length} respondent{responses.length !== 1 ? 's' : ''}
                       </p>
                     )}
-                    {!q.showIf && <div className="mb-3" />}
+                    {!q.showIf && <div className="mb-2" />}
 
                     {q.type === 'rating' && (
                       <div className="space-y-2">
@@ -569,9 +620,14 @@ const Surveys: React.FC = () => {
                     {q.type === 'multiple_choice' && (() => {
                       const counts = getChoiceCounts(q.id);
                       const max = Math.max(...Object.values(counts), 1);
+                      const currentOptions = q.options || [];
+                      // Options the coach removed after responses came in.
+                      // Show them muted + struck-through so historical picks
+                      // don't silently vanish from the chart.
+                      const removedOptions = Object.keys(counts).filter(k => !currentOptions.includes(k));
                       return (
                         <div className="space-y-2">
-                          {(q.options || []).map(opt => (
+                          {currentOptions.map(opt => (
                             <div key={opt} className="flex items-center gap-3">
                               <span className="text-sm text-ink-primary/85 w-40 truncate">{opt}</span>
                               {/* Track is dim charcoal so the cyan fill
@@ -586,6 +642,17 @@ const Surveys: React.FC = () => {
                                   {counts[opt] ? <span className="text-xs font-bold text-charcoal-950">{counts[opt]}</span> : null}
                                 </div>
                               </div>
+                            </div>
+                          ))}
+                          {removedOptions.map(opt => (
+                            <div key={`removed-${opt}`} className="flex items-center gap-3">
+                              <span className="text-sm text-ink-primary/50 line-through w-40 truncate" title="Option removed after responses collected">{opt}</span>
+                              <div className="flex-1 h-6 bg-line-default/10 rounded-full overflow-hidden">
+                                <div className="h-6 bg-line-default/25 rounded-full transition-all flex items-center pl-2" style={{ width: `${((counts[opt] || 0) / max) * 100}%`, minWidth: counts[opt] ? '28px' : '0' }}>
+                                  {counts[opt] ? <span className="text-xs font-bold text-ink-primary/70">{counts[opt]}</span> : null}
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-semibold text-ink-primary/50 uppercase tracking-wide shrink-0">removed</span>
                             </div>
                           ))}
                         </div>
@@ -608,6 +675,58 @@ const Surveys: React.FC = () => {
                         })}
                       </div>
                     )}
+
+                    {q.type === 'date' && (() => {
+                      const rows = getDateResponses(q.id);
+                      if (rows.length === 0) {
+                        return <p className="text-brand-primary-soft italic text-sm">No dates picked yet.</p>;
+                      }
+                      // At small volume the flat list reads fine; group into
+                      // month headers once there's enough to scan for
+                      // clustering. String sort respects ISO order.
+                      const groupByMonth = rows.length > 12;
+                      if (!groupByMonth) {
+                        return (
+                          <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {rows.map((row, i) => (
+                              <div key={`${row.responseId}_${i}`} className="flex items-center justify-between bg-brand-primary/15 rounded-lg px-3 py-2 text-sm border border-brand-primary-soft/30">
+                                <span className="font-medium text-ink-primary">{formatIsoDatePretty(row.value)}</span>
+                                {!selectedSurvey.isAnonymous && row.respondentName && (
+                                  <span className="text-xs text-brand-primary-soft">{row.respondentName}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      const groups: Record<string, typeof rows> = {};
+                      rows.forEach(row => {
+                        const key = row.value.slice(0, 7); // YYYY-MM
+                        (groups[key] = groups[key] || []).push(row);
+                      });
+                      const monthKeys = Object.keys(groups).sort();
+                      return (
+                        <div className="space-y-3 max-h-72 overflow-y-auto">
+                          {monthKeys.map(mk => (
+                            <div key={mk}>
+                              <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1.5">
+                                {formatMonthLabel(mk)} · {groups[mk].length}
+                              </div>
+                              <div className="space-y-1.5">
+                                {groups[mk].map((row, i) => (
+                                  <div key={`${row.responseId}_${i}`} className="flex items-center justify-between bg-brand-primary/15 rounded-lg px-3 py-2 text-sm border border-brand-primary-soft/30">
+                                    <span className="font-medium text-ink-primary">{formatIsoDatePretty(row.value)}</span>
+                                    {!selectedSurvey.isAnonymous && row.respondentName && (
+                                      <span className="text-xs text-brand-primary-soft">{row.respondentName}</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
@@ -644,6 +763,11 @@ const Surveys: React.FC = () => {
                 {selectedSurvey.questions.map(q => {
                   const ans = currentResp.answers.find(a => a.questionId === q.id);
                   const notAsked = wasNotAsked(q, currentResp);
+                  // "Empty" spans single-value ('' / undefined) AND empty
+                  // array (multi-select MC with nothing picked). The submit
+                  // path prunes empty arrays, but a Firestore doc from a
+                  // past bug or manual edit could still carry [].
+                  const isEmpty = !ans || ans.value === undefined || ans.value === '' || (Array.isArray(ans.value) && ans.value.length === 0);
                   return (
                     <div key={q.id} className="card-modern p-5">
                       <div className="text-xs font-medium text-brand-primary-soft uppercase tracking-wide mb-1">{QUESTION_TYPE_LABELS[q.type]}</div>
@@ -655,22 +779,39 @@ const Surveys: React.FC = () => {
                         <span className="inline-block bg-line-default/10 text-ink-primary/50 px-2.5 py-1 rounded-full text-xs font-medium">
                           Not asked
                         </span>
-                      ) : !ans || ans.value === undefined || ans.value === '' ? (
+                      ) : isEmpty ? (
                         <span className="text-brand-primary-soft italic text-sm">No answer</span>
                       ) : q.type === 'rating' ? (
                         <div className="flex items-center gap-2">
-                          <span className="text-3xl font-bold text-brand-primary">{ans.value}</span>
+                          <span className="text-3xl font-bold text-brand-primary">{String(ans!.value)}</span>
                           <span className="text-brand-primary-soft">/ {q.maxRating || 5}</span>
-                          <span className="ml-1 text-amber-400 text-xl">{'★'.repeat(Number(ans.value))}{'☆'.repeat((q.maxRating || 5) - Number(ans.value))}</span>
+                          <span className="ml-1 text-amber-400 text-xl">{'★'.repeat(Number(ans!.value))}{'☆'.repeat((q.maxRating || 5) - Number(ans!.value))}</span>
                         </div>
                       ) : q.type === 'yes_no' ? (
-                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${ans.value === 'yes' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                          {ans.value === 'yes' ? 'Yes' : 'No'}
+                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${ans!.value === 'yes' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                          {ans!.value === 'yes' ? 'Yes' : 'No'}
                         </span>
                       ) : q.type === 'multiple_choice' ? (
-                        <span className="inline-block bg-brand-primary-soft text-brand-primary px-3 py-1 rounded-full text-sm font-medium">{String(ans.value)}</span>
+                        // Multi-select renders one chip per pick; single-
+                        // select is the same shape but with a single chip.
+                        // Rendering the array path when the value is a
+                        // string still works because we normalize to []
+                        // then map.
+                        <div className="flex flex-wrap gap-1.5">
+                          {(Array.isArray(ans!.value) ? ans!.value : [ans!.value]).map((v, i) => (
+                            <span key={`${String(v)}_${i}`} className="inline-block bg-brand-primary-soft text-brand-primary px-3 py-1 rounded-full text-sm font-medium">
+                              {String(v)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : q.type === 'date' ? (
+                        // ISO string stored raw; formatIsoDatePretty avoids
+                        // new Date(iso) so the day never shifts in MDT.
+                        <span className="inline-block bg-brand-primary-soft text-brand-primary px-3 py-1 rounded-full text-sm font-medium">
+                          {formatIsoDatePretty(String(ans!.value))}
+                        </span>
                       ) : (
-                        <p className="text-ink-primary/85 text-sm bg-brand-primary/15 rounded-lg p-3 border border-brand-primary-soft/30">"{String(ans.value)}"</p>
+                        <p className="text-ink-primary/85 text-sm bg-brand-primary/15 rounded-lg p-3 border border-brand-primary-soft/30">"{String(ans!.value)}"</p>
                       )}
                     </div>
                   );
@@ -738,7 +879,17 @@ const Surveys: React.FC = () => {
           {questions.map((q, idx) => (
             <div key={q.id} className="card-modern p-4 border-l-4 border-l-cyan-400">
               <div className="flex items-start justify-between gap-2 mb-3">
-                <span className="text-xs font-semibold text-brand-primary-soft bg-brand-primary/15 px-2 py-0.5 rounded-full">{QUESTION_TYPE_LABELS[q.type]}</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-semibold text-brand-primary-soft bg-brand-primary/15 px-2 py-0.5 rounded-full">{QUESTION_TYPE_LABELS[q.type]}</span>
+                  {q.type === 'multiple_choice' && q.allowMultiple && (
+                    // Header-level chip so the shape is visible at a glance
+                    // without expanding the options list; mirrors the same
+                    // chip shown on the results view.
+                    <span className="text-[10px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30">
+                      Multi-select
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => moveQuestion(q.id, 'up')} disabled={idx === 0} className="p-1 text-brand-primary-soft hover:text-ink-primary/85 disabled:opacity-30">↑</button>
                   <button onClick={() => moveQuestion(q.id, 'down')} disabled={idx === questions.length - 1} className="p-1 text-brand-primary-soft hover:text-ink-primary/85 disabled:opacity-30">↓</button>
@@ -754,6 +905,13 @@ const Surveys: React.FC = () => {
                 className="w-full border border-brand-primary-soft/30 rounded-lg px-3 py-2 text-sm text-charcoal-900 focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none mb-2"
               />
 
+              {q.type === 'date' && (
+                // No options, no scale, no allowMultiple — a date question
+                // is text + Required. Caption tells the coach what the
+                // respondent will see.
+                <p className="text-xs text-brand-primary-soft mb-1">Respondents pick a date.</p>
+              )}
+
               {q.type === 'rating' && (
                 <div className="flex items-center gap-2 text-sm text-brand-primary">
                   <span>Max rating:</span>
@@ -767,7 +925,11 @@ const Surveys: React.FC = () => {
                 <div className="space-y-2 mt-1">
                   {(q.options || []).map((opt, oi) => (
                     <div key={oi} className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full border-2 border-brand-primary-soft flex-shrink-0" />
+                      {/* Bullet shape follows the answer shape: rounded
+                          for radio (single), square for checkbox (multi).
+                          Purely cosmetic — respondents see the real
+                          controls on the response page. */}
+                      <span className={`w-5 h-5 border-2 border-brand-primary-soft flex-shrink-0 ${q.allowMultiple ? 'rounded' : 'rounded-full'}`} />
                       <input
                         type="text"
                         value={opt}
@@ -784,6 +946,15 @@ const Surveys: React.FC = () => {
                     </div>
                   ))}
                   <button onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `Option ${(q.options || []).length + 1}`] })} className="text-brand-primary hover:text-brand-primary text-sm font-medium">+ Add option</button>
+                  <label className="flex items-center gap-2 pt-1 text-sm text-brand-primary cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!q.allowMultiple}
+                      onChange={e => updateQuestion(q.id, { allowMultiple: e.target.checked })}
+                      className="w-3.5 h-3.5 rounded text-brand-primary focus:ring-brand-primary-soft"
+                    />
+                    Allow multiple selections
+                  </label>
                 </div>
               )}
 

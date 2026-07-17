@@ -46,11 +46,17 @@ const BADGE_SLOTS: string[] = [
   'coach_pick',
 ];
 
-type RarityTier = 'rookie' | 'elite' | 'legend';
+type RarityTier = 'rookie' | 'pro' | 'elite' | 'legend';
 
+// Rarity bands align with the playerTier() label ladder so a kid
+// who reads "PLAYMAKER" on the dashboard sees the matching card
+// treatment here. Level bands: 1-3 = rookie (FIRST KICK / CALLED UP
+// / STARTER), 4-6 = pro (REGULAR / PLAYMAKER / MATCH WINNER),
+// 7-8 = elite (CAPTAIN / TALISMAN), 9+ = legend (LEGEND).
 function rarityForLevel(level: number): RarityTier {
-  if (level >= 21) return 'legend';
-  if (level >= 11) return 'elite';
+  if (level >= 9) return 'legend';
+  if (level >= 7) return 'elite';
+  if (level >= 4) return 'pro';
   return 'rookie';
 }
 
@@ -77,6 +83,17 @@ const RARITY_STYLES: Record<RarityTier, RarityStyle> = {
     frame: 'bg-brand-primary/40',
     glow: '',
     chip: 'bg-brand-primary/15 text-brand-primary ring-brand-primary/30',
+    levelText: 'text-brand-primary',
+    bar: 'bg-brand-primary',
+  },
+  pro: {
+    // Pro sits between Rookie's quiet chip and Elite's full foil
+    // gradient — solid brand-primary chip with a modest glow so the
+    // step up feels earned without shouting.
+    label: 'Pro',
+    frame: 'bg-brand-primary',
+    glow: 'shadow-[0_10px_40px_-14px_rgba(200,32,44,0.4)]',
+    chip: 'bg-brand-primary/20 text-brand-primary ring-brand-primary/40',
     levelText: 'text-brand-primary',
     bar: 'bg-brand-primary',
   },

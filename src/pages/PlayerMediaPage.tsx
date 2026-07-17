@@ -6,6 +6,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useStorage } from '../hooks/useStorage';
 import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { isCoachOfTeam, canManageTeamMedia, formatDate } from '../utils/helpers';
+import { isXpSourceEnabled } from '../utils/xpSource';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import { autoPostVideoToWall } from '../utils/autoPostToWall';
 import { useTrialGate } from '../hooks/useTrialGate';
@@ -342,7 +343,7 @@ const PlayerMediaPage: React.FC = () => {
             {
               existingBadges: (player as any).badges,
               context: 'Clip credit',
-              xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
+              xpEnabled: isXpSourceEnabled(selectedTeam as any, 'badges'),
             },
           );
         } catch { /* non-fatal */ }

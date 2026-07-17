@@ -230,6 +230,9 @@ const Navigation: React.FC = () => {
     // options to manage my team from one page.' Visible to anyone
     // with the coach role (including coach+admin multi-role users).
     ...(isUserCoach ? [{ name: 'Coach', path: '/coach', icon: 'wrench' as const, group: 'apps' as const }] : []),
+    // Player XP settings — coach controls which XP sources fire for
+    // their squad (master toggle + per-source Participation/Badges).
+    ...(isUserCoach ? [{ name: 'Player XP', path: '/coach/xp', icon: 'trophy' as const, group: 'apps' as const }] : []),
     // Club admin's single entry point for everything cross-team.
     ...(isUserClubAdmin ? [{ name: 'Club', path: '/club', icon: 'club' as const, group: 'apps' as const }] : []),
     // Consolidated 2026-07-08: single Support entry point routes

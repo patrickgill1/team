@@ -3,6 +3,7 @@ import { Player, PlayerStats, GameStat } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
+import { isXpSourceEnabled } from '../../utils/xpSource';
 
 interface StatsTrackerProps {
   isOpen: boolean;
@@ -53,7 +54,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
   // right now. Uses the same 0→N crossing rules as
   // src/utils/badgeGrants.ts:maybeGrantFirstStatBadges so what the
   // coach sees here is what actually fires.
-  const xpEnabled = (selectedTeam as any)?.xpConfig?.enabled === true;
+  const xpEnabled = isXpSourceEnabled(selectedTeam as any, 'badges');
   const previewBadges: Array<{ slug: string; label: string; xp: number }> = (() => {
     if (!selectedPlayerData || !xpEnabled) return [];
     const cur = selectedPlayerData.stats || ({} as any);
@@ -181,7 +182,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
             {
               existingBadges: (selectedPlayerData as any).badges,
               context: opponent || 'Match',
-              xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
+              xpEnabled: isXpSourceEnabled(selectedTeam as any, 'badges'),
             },
           );
         } catch { /* non-fatal */ }

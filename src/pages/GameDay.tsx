@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoachOfTeam, isOwner, resolveSenderRole } from '../utils/helpers';
+import { isXpSourceEnabled } from '../utils/xpSource';
 import GameRecapCard from '../components/gameday/GameRecapCard';
 import PlayerRatingSheet from '../components/gameday/PlayerRatingSheet';
 import FormationView from '../components/gameday/FormationView';
@@ -485,7 +486,7 @@ const GameDay: React.FC = () => {
             existingBadges: freshBadges,
             context: event.title || 'Match',
             seasonId: (event as any).seasonId,
-            xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
+            xpEnabled: isXpSourceEnabled(selectedTeam as any, 'badges'),
           },
         );
         // Write a per-game stat record for anyone who registered a

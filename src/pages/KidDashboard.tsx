@@ -18,6 +18,7 @@ import PersonalRecords from '../components/player/PersonalRecords';
 import CoachRecognitionsArchive from '../components/player/CoachRecognitionsArchive';
 import PlayerXpHistoryFeed from '../components/player/PlayerXpHistoryFeed';
 import { awardMicroXp } from '../utils/microXp';
+import { isXpSourceEnabled } from '../utils/xpSource';
 import { getActiveSeasonForTeam } from '../utils/seasons';
 
 type RsvpStatus = 'going' | 'maybe' | 'no';
@@ -423,7 +424,7 @@ const KidDashboard: React.FC = () => {
                       playerPhotoUrl={player.profilePhotoUrl || null}
                       parentUid={(userData as any)?.uid}
                       currentStatus={currentStatus}
-                      xpEnabled={Boolean((team as any)?.xpConfig?.enabled)}
+                      xpEnabled={isXpSourceEnabled(team as any, 'participation')}
                     />
                   </li>
                 );

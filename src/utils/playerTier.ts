@@ -7,7 +7,13 @@
 // career arc that fits the new BASE=100 / GROWTH=1.40 curve
 // (see xpLevel.ts). L1-L4 are the "getting on the pitch" arc;
 // L5-L6 is the standard end-of-season landing; L7-L8 rewards a
-// standout season; L9+ is legendary territory.
+// standout season; L9-L19 is legendary territory.
+//
+// 2026-07-17 addendum: GOAT tier restored at L20+ per Patrick.
+// Original rebalance retired GOAT because it fired at L6 = 305 XP
+// on the old curve (a week-1 unlock). L20 on the new curve is
+// deep career-mode territory that a single season cannot reach,
+// so the label actually means something again.
 //
 // Single source of truth. Used by:
 //   - src/pages/Dashboard.tsx (MyPlayerCard LEVEL cell subtitle)
@@ -17,6 +23,7 @@
 // so the label a player sees on the dashboard matches what they
 // see on their profile Season Card and hero card.
 export function playerTier(level: number): string {
+  if (level >= 20) return 'GOAT';
   if (level >= 9) return 'LEGEND';
   if (level === 8) return 'TALISMAN';
   if (level === 7) return 'CAPTAIN';

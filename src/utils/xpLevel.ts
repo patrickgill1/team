@@ -1,35 +1,37 @@
 // XP level ladder — private per-season progression.
 //
-// Curve tuning per Patrick 2026-07-10: "levels should go quick at
-// first, and then use a 10% increase or whatever to get to the next
-// level." Base + exponential growth. Base is small enough that the
-// first level-up happens on the first meaningful action (one
-// attendance mark or one coach recognition is enough); growth of
-// 1.10 means each subsequent level costs ~10% more XP than the one
-// before it, so late-season levels feel earned.
+// Curve tuning per Patrick 2026-07-17 rebalance: the 1.10 growth
+// curve was too flat — a committed kid was hitting L20+ mid-season,
+// which drained the meaning out of the top labels. Bumped BASE to
+// 100 and GROWTH to 1.40 so the top of the ladder actually reads
+// like a career arc, not a treadmill. Base + exponential growth.
+// Base is still small enough that the first level-up happens on
+// the first meaningful action (one attendance mark or one coach
+// recognition is enough); growth of 1.40 means each subsequent
+// level costs ~40% more XP than the one before it, so late-season
+// levels feel earned.
 //
 // Cumulative XP to reach level N (from level 1) follows the standard
 // geometric-series formula:
 //   XP(N) = BASE * (GROWTH^(N-1) - 1) / (GROWTH - 1)
 //
-// Sample cumulative thresholds (base 50, growth 1.10):
-//   L1  → 0        L10 → 678
-//   L2  → 50       L15 → 1367
-//   L3  → 105      L20 → 2477
-//   L4  → 165      L25 → 4265
-//   L5  → 232      L30 → 7143
-//   L6  → 305      L50 → ~29,000
-//   L7  → 385      L100 → essentially unreachable
+// Sample cumulative thresholds (base 100, growth 1.40, rounded):
+//   L1 -> 0        L6 -> 1095
+//   L2 -> 100      L7 -> 1632
+//   L3 -> 240      L8 -> 2385
+//   L4 -> 436      L9 -> 3439
+//   L5 -> 710
 //
-// For a kid earning ~500-1000 XP/month from attendance + practices
-// + coach recognitions + POTM, that puts them around level 10-12
-// after 3 months, 20-25 by the end of a full season. Feels right.
+// A typical 12-game season should land a kid in L5-L6; a standout
+// season lands L7-L8; L9+ is career/legendary territory that only
+// shows up after multiple strong seasons stack. Feels right for
+// "a career, not a leaderboard."
 //
 // Levels reset each season (matches the "career, not a leaderboard"
 // philosophy). Career badges + season titles persist in Phase 4.
 
-export const XP_LEVEL_BASE = 50;
-export const XP_LEVEL_GROWTH = 1.10;
+export const XP_LEVEL_BASE = 100;
+export const XP_LEVEL_GROWTH = 1.40;
 export const XP_LEVEL_CAP = 200; // safety ceiling; nobody should hit this in youth soccer
 
 /**

@@ -3379,9 +3379,21 @@ const COACH_SOURCE_TYPES = ['coach_recognition', 'coach_live', 'coach_whisper', 
 // bounded by a daily-XP ceiling so bulk grants ("winning team,
 // +10 each") still fit inside a healthy cadence. All caps are
 // per-player-per-calendar-day, America/Denver rolling.
-const COACH_LIVE_XP_PER_PLAYER_PER_DAY = 500;
+//
+// 2026-07-17 curve tune: tightened per-player daily ceiling from
+// 500 to 200 to match the new XP curve (BASE=100 / GROWTH=1.40 in
+// src/utils/xpLevel.ts). 200 XP is still roughly a full level jump
+// on the new curve at mid-ladder (was ~2 levels on the old flatter
+// curve), so a healthy practice can still move the needle without
+// letting a single day compress the whole season arc.
+const COACH_LIVE_XP_PER_PLAYER_PER_DAY = 200;
 const COACH_LIVE_XP_MIN = 1;
-const COACH_LIVE_XP_MAX = 500;
+// Single-grant ceiling matches the daily-per-player cap post-2026-07-17
+// rebalance. Prior 500 ceiling was meaningless once the daily dropped to
+// 200 — any 201-500 grant would pass single-value validation and then
+// bounce off the daily cap with an opaque error. Keeping them equal so
+// the "Amount must be 1-200 XP" message tells the truth end-to-end.
+const COACH_LIVE_XP_MAX = 200;
 const COACH_LIVE_PLAYERS_MAX = 40;
 const COACH_LIVE_REASON_MIN = 1;
 const COACH_LIVE_REASON_MAX = 80;

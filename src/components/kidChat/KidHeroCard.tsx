@@ -7,10 +7,13 @@
 // Skin tiers (level-derived; no store, no Firestore write, no worker):
 //   NO_XP    — team.xpConfig disabled entirely. Bare card, no crimson
 //              flourish, THEME pill hidden.
-//   STARTER  — level 1-4.  Subtle crimson ring (previous default look).
-//   BRONZE   — level 5-9.  Thin bronze metallic frame.
-//   SILVER   — level 10-19. Bright silver metallic frame.
-//   GOLD     — level 20+.  Rich gold frame with a subtle glow.
+//   STARTER  — level 1-3. Subtle crimson ring (previous default look).
+//   BRONZE   — level 4-5. Thin bronze metallic frame.
+//   SILVER   — level 6-7. Bright silver metallic frame.
+//   GOLD     — level 8+.  Rich gold frame with a subtle glow.
+//
+// Bands remap 2026-07-17 to line up with the rebalanced XP curve
+// (BASE=100 / GROWTH=1.40); see xpLevel.ts.
 //
 // Frames are CSS-only (linear-gradient wrapper + padded inner card).
 // The THEME pill top-right opens a modal listing all four tiers with
@@ -20,6 +23,7 @@
 import React, { useState } from 'react';
 import type { Player, Team } from '../../types';
 import { computeXpLevel } from '../../utils/xpLevel';
+import { playerTier } from '../../utils/playerTier';
 import { computeDobAge } from '../../utils/dobDate';
 import { badgeImageSrc, badgeSrcSet, badgeLabel, filterVisibleBadgeSlots } from '../../utils/badgeMeta';
 
@@ -59,18 +63,20 @@ interface TierMeta {
 
 // Kept in ascending order so nextTierMeta() can just look forward.
 // NO_XP is not in this list — it's a separate state, not a rank.
+// Level bands match the rebalanced XP curve (BASE=100 / GROWTH=1.40,
+// see xpLevel.ts) and the label ladder in playerTier.ts.
 const TIERS: TierMeta[] = [
-  { tier: 'STARTER', label: 'Starter', unlockLevel: 1,  copy: 'Everyone starts here.' },
-  { tier: 'BRONZE',  label: 'Bronze',  unlockLevel: 5,  copy: 'Reach Level 5.' },
-  { tier: 'SILVER',  label: 'Silver',  unlockLevel: 10, copy: 'Reach Level 10.' },
-  { tier: 'GOLD',    label: 'Gold',    unlockLevel: 20, copy: 'Reach Level 20.' },
+  { tier: 'STARTER', label: 'Starter', unlockLevel: 1, copy: 'Everyone starts here.' },
+  { tier: 'BRONZE',  label: 'Bronze',  unlockLevel: 4, copy: 'Reach Level 4.' },
+  { tier: 'SILVER',  label: 'Silver',  unlockLevel: 6, copy: 'Reach Level 6.' },
+  { tier: 'GOLD',    label: 'Gold',    unlockLevel: 8, copy: 'Reach Level 8.' },
 ];
 
 function tierForLevel(level: number | null): SkinTier {
   if (level == null) return 'NO_XP';
-  if (level >= 20) return 'GOLD';
-  if (level >= 10) return 'SILVER';
-  if (level >= 5)  return 'BRONZE';
+  if (level >= 8) return 'GOLD';
+  if (level >= 6) return 'SILVER';
+  if (level >= 4) return 'BRONZE';
   return 'STARTER';
 }
 
@@ -182,13 +188,13 @@ const getInitials = (name: string): string => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
+// Rarity chip label. Reads playerTier() so the KidHeroCard, the
+// dashboard MyPlayerCard, LevelProgressBar, and PlayerXpCard all
+// show the same soccer-native ladder (no more one card saying
+// "PRO" while another says "PLAYMAKER" for the same kid).
 function rarityFor(level: number | null): string {
-  if (level == null) return 'ROOKIE';
-  if (level >= 10) return 'LEGEND';
-  if (level >= 7) return 'ELITE';
-  if (level >= 4) return 'PRO';
-  if (level >= 2) return 'RISING';
-  return 'ROOKIE';
+  if (level == null) return 'NO XP';
+  return playerTier(level);
 }
 
 function streakBadgeTone(streak: number): string {

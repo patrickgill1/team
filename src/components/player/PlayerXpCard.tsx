@@ -1,6 +1,6 @@
 // PlayerXpCard — collectible "player card" surface on PlayerProfile.
-// Trading-card treatment: rarity-tiered gradient border (Rookie /
-// Elite / Legend), oversized center-top LEVEL power number, player
+// Trading-card treatment: rarity-tiered gradient border (Rookie 1-3 /
+// Pro 4-6 / Elite 7-8 / Legend 9+), oversized center-top LEVEL power number, player
 // name as card title, XP + collection stats, an animated progress
 // rail with a pulsing cyan-soft energy tip at the leading edge, a
 // quest-style "NEXT MILESTONE" callout under the bar, and a badge
@@ -46,11 +46,17 @@ const BADGE_SLOTS: string[] = [
   'coach_pick',
 ];
 
-type RarityTier = 'rookie' | 'elite' | 'legend';
+type RarityTier = 'rookie' | 'pro' | 'elite' | 'legend';
 
+// Rarity bands align with the playerTier() label ladder so a kid
+// who reads "PLAYMAKER" on the dashboard sees the matching card
+// treatment here. Level bands: 1-3 = rookie (FIRST KICK / CALLED UP
+// / STARTER), 4-6 = pro (REGULAR / PLAYMAKER / MATCH WINNER),
+// 7-8 = elite (CAPTAIN / TALISMAN), 9+ = legend (LEGEND).
 function rarityForLevel(level: number): RarityTier {
-  if (level >= 21) return 'legend';
-  if (level >= 11) return 'elite';
+  if (level >= 9) return 'legend';
+  if (level >= 7) return 'elite';
+  if (level >= 4) return 'pro';
   return 'rookie';
 }
 
@@ -77,6 +83,17 @@ const RARITY_STYLES: Record<RarityTier, RarityStyle> = {
     frame: 'bg-brand-primary/40',
     glow: '',
     chip: 'bg-brand-primary/15 text-brand-primary ring-brand-primary/30',
+    levelText: 'text-brand-primary',
+    bar: 'bg-brand-primary',
+  },
+  pro: {
+    // Pro sits between Rookie's quiet chip and Elite's full foil
+    // gradient — solid brand-primary chip with a modest glow so the
+    // step up feels earned without shouting.
+    label: 'Pro',
+    frame: 'bg-brand-primary',
+    glow: 'shadow-[0_10px_40px_-14px_rgba(200,32,44,0.4)]',
+    chip: 'bg-brand-primary/20 text-brand-primary ring-brand-primary/40',
     levelText: 'text-brand-primary',
     bar: 'bg-brand-primary',
   },
@@ -214,9 +231,9 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onGiveXp }) => {
                   <StarIcon className="w-2.5 h-2.5" />
                   {/* Per-level tier label (Patrick's warm-only progression).
                       rarityStyle still drives the chip's colors + card
-                      frame style — we only override the TEXT so a
-                      Level 3 player reads "GAME READY" here just like
-                      on the dashboard, not "ROOKIE". */}
+                      frame style; we only override the TEXT so a
+                      Level 3 player reads "STARTER" here just like
+                      on the dashboard, not the rarity band "Rookie". */}
                   {playerTier(level.level)}
                 </span>
               )}

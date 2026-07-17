@@ -1,6 +1,6 @@
 {
   "name": "soccer-team-app",
-  "version": "3.9.321",
+  "version": "3.9.322",
   "private": true,
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",

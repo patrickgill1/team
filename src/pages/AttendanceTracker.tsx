@@ -8,6 +8,7 @@ import { formatDate, isCoachOfTeam } from '../utils/helpers';
 import { computeTeamAttendanceCounts } from '../utils/attendance';
 import { maybeGrantPerfectAttendance } from '../utils/badgeGrants';
 import { isXpSourceEnabled } from '../utils/xpSource';
+import { awardMicroXp } from '../utils/microXp';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import { VOCAB } from '../vocab';
@@ -47,6 +48,9 @@ const AttendanceTracker: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [attendanceData, setAttendanceData] = useState<{[playerId: string]: string}>({});
+  // Effort bonus checkbox state, keyed by playerId. Coach taps this
+  // next to a player marked attended to trigger the +5 XP bonus on save.
+  const [effortData, setEffortData] = useState<{[playerId: string]: boolean}>({});
   const [saving, setSaving] = useState(false);
 
   const isUserCoach = isCoachOfTeam(userData, selectedTeam);
@@ -161,15 +165,19 @@ const AttendanceTracker: React.FC = () => {
   const loadAttendanceForEvent = () => {
     if (!selectedEvent) {
       setAttendanceData({});
+      setEffortData({});
       return;
     }
     const ev: any = calendarEvents.find(e => e.id === selectedEvent);
-    const playerRsvps: Record<string, { status?: string }> = ev?.playerRsvps || {};
+    const playerRsvps: Record<string, { status?: string; effortBonus?: boolean }> = ev?.playerRsvps || {};
     const data: { [playerId: string]: string } = {};
+    const effort: { [playerId: string]: boolean } = {};
     Object.entries(playerRsvps).forEach(([pid, r]) => {
       if (r?.status) data[pid] = r.status;
+      if (r?.effortBonus) effort[pid] = true;
     });
     setAttendanceData(data);
+    setEffortData(effort);
   };
 
   const handleAttendanceChange = (playerId: string, status: string) => {
@@ -183,6 +191,16 @@ const AttendanceTracker: React.FC = () => {
   // one update. The list reflects the coach's bulk-set decisions —
   // parent-side RSVPs the coach didn't touch in this session keep
   // their previous status because we merge instead of replacing.
+  //
+  // Attendance-XP fanout (2026-07-17): when the coach marks a player
+  // attended ('going') on a practice or game event, we grant
+  // +10 (practice) or +15 (game) XP the first time and stamp
+  // `attendanceXpAwardedAt` on the RSVP entry so subsequent saves are
+  // idempotent — coaches edit attendance mid-flight all the time and we
+  // must not double-grant. The optional Effort checkbox fires +5 XP
+  // once per player per event, tracked by `effortBonusAwardedAt`.
+  // Grants respect the per-source toggles (practiceAttendance,
+  // gameAttendance, effortBonus) and default on for XP-enabled teams.
   const saveAttendance = async () => {
     if (!userData || !selectedEvent) return;
     try {
@@ -190,18 +208,95 @@ const AttendanceTracker: React.FC = () => {
       const ev: any = calendarEvents.find(e => e.id === selectedEvent);
       const existing: Record<string, any> = ev?.playerRsvps || {};
       const next: Record<string, any> = { ...existing };
+
+      // Discriminate event type for the base grant amount. `event.type`
+      // is the canonical field on CalendarEvent — 'practice' / 'game' /
+      // 'event'. We treat 'event' as neither practice nor game (no
+      // attendance XP), matching the "training/matches only" spirit of
+      // the reshape.
+      const eventType: string | undefined = ev?.type;
+      const isPractice = eventType === 'practice';
+      const isGame = eventType === 'game';
+
+      const practiceAttendanceEnabled = isXpSourceEnabled(selectedTeam as any, 'practiceAttendance');
+      const gameAttendanceEnabled = isXpSourceEnabled(selectedTeam as any, 'gameAttendance');
+      const effortBonusEnabled = isXpSourceEnabled(selectedTeam as any, 'effortBonus');
+
+      // Queue of client-side XP grants to fire after the event write
+      // lands. Each entry is (playerId, amount, actionKey). We only
+      // queue when the player has NOT been credited yet for this
+      // event — the idempotency check reads the existing playerRsvps
+      // entry's *AwardedAt fields.
+      const xpQueue: Array<{ playerId: string; amount: number; actionKey: string }> = [];
+
+      const savedAt = new Date();
+
       for (const player of players) {
         const status = attendanceData[player.id];
         if (!status) continue; // skip "unset" rows entirely
+        const prevEntry = existing[player.id] || {};
+        const effort = effortData[player.id] === true;
+
+        // Base attendance XP eligibility: coach marked 'going' AND
+        // hasn't been credited before AND the event type + team toggle
+        // both allow it.
+        const isAttended = status === 'going';
+        const alreadyAwardedAttendance = Boolean(prevEntry.attendanceXpAwardedAt);
+        let attendanceXpJustAwarded = false;
+        if (isAttended && !alreadyAwardedAttendance) {
+          if (isPractice && practiceAttendanceEnabled) {
+            xpQueue.push({ playerId: player.id, amount: 10, actionKey: 'practiceAttendance' });
+            attendanceXpJustAwarded = true;
+          } else if (isGame && gameAttendanceEnabled) {
+            xpQueue.push({ playerId: player.id, amount: 15, actionKey: 'gameAttendance' });
+            attendanceXpJustAwarded = true;
+          }
+        }
+
+        // Effort bonus eligibility: attended + effort checked + not
+        // credited before + toggle on. Sits on top of the base grant,
+        // so a first-save with effort checked fires two writes.
+        const alreadyAwardedEffort = Boolean(prevEntry.effortBonusAwardedAt);
+        let effortXpJustAwarded = false;
+        if (isAttended && effort && !alreadyAwardedEffort && effortBonusEnabled) {
+          xpQueue.push({ playerId: player.id, amount: 5, actionKey: 'effortBonus' });
+          effortXpJustAwarded = true;
+        }
+
         next[player.id] = {
+          ...prevEntry,
           status,
           playerName: player.name,
           byUid: userData.uid,
           byName: userData.name,
-          respondedAt: new Date(),
+          respondedAt: savedAt,
+          effortBonus: effort,
+          // Stamp *AwardedAt only on the transition (or preserve the
+          // prior stamp). This is the idempotency contract: an entry
+          // once credited stays credited even if the coach later flips
+          // the status away and back, so we never double-grant.
+          ...(alreadyAwardedAttendance || attendanceXpJustAwarded
+            ? { attendanceXpAwardedAt: prevEntry.attendanceXpAwardedAt || savedAt }
+            : {}),
+          ...(alreadyAwardedEffort || effortXpJustAwarded
+            ? { effortBonusAwardedAt: prevEntry.effortBonusAwardedAt || savedAt }
+            : {}),
         };
       }
       await updateDocument('events', selectedEvent, { playerRsvps: next });
+
+      // Fire XP grants AFTER the event write lands so the *AwardedAt
+      // stamp is durably persisted before we bump the player doc. If
+      // any single grant fails, awardMicroXp swallows the error — we
+      // accept losing a grant over double-granting on the next save.
+      if (xpQueue.length > 0) {
+        void Promise.all(xpQueue.map(({ playerId, amount, actionKey }) =>
+          awardMicroXp(playerId, amount, {
+            xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
+            actionKey: `${actionKey}:${selectedEvent}`,
+          })
+        )).catch(err => console.warn('[attendance] XP fanout partial failure', err));
+      }
 
       // Post-save badge sweep: recompute attendance counts across the
       // team's recent completed events and grant perfect_attendance
@@ -473,6 +568,27 @@ const AttendanceTracker: React.FC = () => {
                                 ))}
                               </div>
                             </div>
+
+                            {/* Effort bonus checkbox — only surfaces for
+                                players marked attended (going). Coach
+                                taps this to hand out +5 XP on top of
+                                the base attendance amount when saving.
+                                Once awarded (event write stamps
+                                effortBonusAwardedAt) the check stays
+                                latched so re-saves don't double-grant. */}
+                            {isUserCoach && currentStatus === 'going' && (
+                              <label className="mt-2 inline-flex items-center gap-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={effortData[player.id] === true}
+                                  onChange={(e) => setEffortData(prev => ({ ...prev, [player.id]: e.target.checked }))}
+                                  className="w-4 h-4 accent-emerald-500 rounded"
+                                />
+                                <span className="text-xs font-semibold text-ink-primary/70">
+                                  Great effort <span className="text-ink-primary/45 font-normal">(+5 XP)</span>
+                                </span>
+                              </label>
+                            )}
                           </div>
                         );
                       })}

@@ -6,11 +6,20 @@ import { Team } from '../types';
  *  Ship 1 coarse keys `participation` + `badges` still exist on the
  *  team doc for backwards compat and act as fallbacks below. They're
  *  not valid keys to pass to `isXpSourceEnabled` — the caller should
- *  always ask about the specific action. */
+ *  always ask about the specific action.
+ *
+ *  `kidChat` stays in the union for backwards compat (older team docs
+ *  may have persisted the flag), but the write path was removed
+ *  2026-07-17 when chat became intrinsically motivated. It intentionally
+ *  no longer appears in XP_SOURCE_LABELS so the toggle disappears from
+ *  the UI. */
 export type XpSourceKey =
   | 'practice'
   | 'rsvp'
   | 'kidChat'
+  | 'practiceAttendance'
+  | 'gameAttendance'
+  | 'effortBonus'
   | 'firstGoal'
   | 'firstAssist'
   | 'firstSave'
@@ -24,7 +33,9 @@ export type XpSourceKey =
 
 /** Which Ship 1 coarse key covers each per-source key when the
  *  per-source key is missing (undefined). `whisper` has no coarse
- *  fallback — it was introduced with Ship 2. */
+ *  fallback — it was introduced with Ship 2. Attendance + effort keys
+ *  are Ship 3 (2026-07-17) and have no coarse fallback either — default
+ *  on when absent. */
 const COARSE_FALLBACK: Record<XpSourceKey, 'participation' | 'badges' | null> = {
   practice: 'participation',
   rsvp: 'participation',
@@ -41,14 +52,28 @@ const COARSE_FALLBACK: Record<XpSourceKey, 'participation' | 'badges' | null> = 
   // to inherit. Default on when absent (handled below).
   coachLiveGrant: null,
   kudosConvert: null,
+  // Ship 3 attendance + effort keys — no coarse fallback. Default on
+  // when absent so existing XP-enabled teams pick up the new grants
+  // without needing to re-open Coach XP Config.
+  practiceAttendance: null,
+  gameAttendance: null,
+  effortBonus: null,
 };
 
 /** Warm-voice labels for the per-source toggles surfaced in
- *  CoachXpConfig. Not used at grant time. */
-export const XP_SOURCE_LABELS: Record<XpSourceKey, string> = {
+ *  CoachXpConfig. Not used at grant time.
+ *
+ *  `kidChat` intentionally omitted here — the toggle was removed from
+ *  the UI on 2026-07-17 when kid-chat XP was retired. The key stays in
+ *  the union above for backwards compat with team docs that persisted
+ *  the flag. Using Partial<Record<>> so callers that iterate
+ *  `Object.keys(XP_SOURCE_LABELS)` naturally skip it. */
+export const XP_SOURCE_LABELS: Partial<Record<XpSourceKey, string>> = {
   practice: 'Practice log',
   rsvp: 'RSVP flip',
-  kidChat: 'Kid chat',
+  practiceAttendance: 'Practice attended',
+  gameAttendance: 'Game attended',
+  effortBonus: 'Effort bonus',
   firstGoal: 'First goal',
   firstAssist: 'First assist',
   firstSave: 'First save',

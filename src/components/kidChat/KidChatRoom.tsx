@@ -17,8 +17,6 @@ import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import type { KidChatMessage, Player, Team } from '../../types';
 import { isCoachOfTeam } from '../../utils/helpers';
-import { awardMicroXp } from '../../utils/microXp';
-import { isXpSourceEnabled } from '../../utils/xpSource';
 import { extractMentions } from '../../utils/extractMentions';
 import { sendPushToUsers } from '../../utils/notify';
 import { getShareOrigin } from '../../utils/origin';
@@ -314,15 +312,11 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
         debugWarn('[kid-chat] push fanout threw', err);
       }
 
-      // Micro-XP: +2 per message, daily cap 20 (10 messages). Fires
-      // fire-and-forget so the player-doc round-trip doesn't block
-      // the composer clearing. awardMicroXp is fail-closed on
-      // xpEnabled, so teams that never turned XP on write nothing.
-      void awardMicroXp(actingAsPlayer.id, 2, {
-        xpEnabled: isXpSourceEnabled(team as any, 'kidChat'),
-        dailyCap: 20,
-        actionKey: 'chat_message',
-      });
+      // Kid-chat XP removed 2026-07-17 — chat is intrinsically motivated
+      // now (kids show up because talking to their team is fun, not
+      // because there are +2 points behind the send). The kidChat key
+      // stays on the team doc + in XpSourceKey for backwards compat;
+      // Coach XP Config no longer surfaces the toggle.
       setText('');
       setMentionQuery(null);
       setMentionRange(null);

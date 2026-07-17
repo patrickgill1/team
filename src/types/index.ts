@@ -2227,8 +2227,19 @@ export interface Team {
       practice?: boolean;
       /** Kid RSVP flip +5. */
       rsvp?: boolean;
-      /** Kid chat +2. */
+      /** Kid chat +2. Legacy — kept for backwards compat on team docs
+       *  that persisted the flag; the write path was removed 2026-07-17
+       *  when chat became intrinsically motivated. */
       kidChat?: boolean;
+      /** Coach records attendance and marks a player attended on a
+       *  practice event: +10 XP. */
+      practiceAttendance?: boolean;
+      /** Coach records attendance and marks a player attended on a
+       *  game / match / scrimmage event: +15 XP. */
+      gameAttendance?: boolean;
+      /** Coach taps the Effort checkbox on an attended player during
+       *  attendance recording: +5 XP on top of the base attendance amount. */
+      effortBonus?: boolean;
       /** first_goal badge +100. */
       firstGoal?: boolean;
       /** first_assist badge +100. */

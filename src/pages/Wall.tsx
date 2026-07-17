@@ -1580,7 +1580,7 @@ const Wall: React.FC = () => {
                     </div>
                   ) : (p as any).potmResult ? (
                     <div className="px-3 pb-3">
-                      <PotmWinnerCard potm={(p as any).potmResult} timestamp={p.timestamp} />
+                      <PotmWinnerCard potm={(p as any).potmResult} timestamp={p.timestamp} isCoachView={isCoachOfTeam(userData, selectedTeam)} />
                     </div>
                   ) : (p as any).potmVotingOpen ? (
                     <div className="px-3 pb-3">

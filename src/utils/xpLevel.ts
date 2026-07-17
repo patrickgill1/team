@@ -15,12 +15,12 @@
 // geometric-series formula:
 //   XP(N) = BASE * (GROWTH^(N-1) - 1) / (GROWTH - 1)
 //
-// Sample cumulative thresholds (base 100, growth 1.40):
-//   L1 → 0        L6 → 1094
-//   L2 → 100      L7 → 1631
-//   L3 → 240      L8 → 2384
-//   L4 → 436      L9 → 3438
-//   L5 → 710
+// Sample cumulative thresholds (base 100, growth 1.40, rounded):
+//   L1 -> 0        L6 -> 1095
+//   L2 -> 100      L7 -> 1632
+//   L3 -> 240      L8 -> 2385
+//   L4 -> 436      L9 -> 3439
+//   L5 -> 710
 //
 // A typical 12-game season should land a kid in L5-L6; a standout
 // season lands L7-L8; L9+ is career/legendary territory that only

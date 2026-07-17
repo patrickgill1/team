@@ -1,6 +1,6 @@
 // PlayerXpCard — collectible "player card" surface on PlayerProfile.
-// Trading-card treatment: rarity-tiered gradient border (Rookie /
-// Elite / Legend), oversized center-top LEVEL power number, player
+// Trading-card treatment: rarity-tiered gradient border (Rookie 1-3 /
+// Pro 4-6 / Elite 7-8 / Legend 9+), oversized center-top LEVEL power number, player
 // name as card title, XP + collection stats, an animated progress
 // rail with a pulsing cyan-soft energy tip at the leading edge, a
 // quest-style "NEXT MILESTONE" callout under the bar, and a badge
@@ -231,9 +231,9 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onGiveXp }) => {
                   <StarIcon className="w-2.5 h-2.5" />
                   {/* Per-level tier label (Patrick's warm-only progression).
                       rarityStyle still drives the chip's colors + card
-                      frame style — we only override the TEXT so a
-                      Level 3 player reads "GAME READY" here just like
-                      on the dashboard, not "ROOKIE". */}
+                      frame style; we only override the TEXT so a
+                      Level 3 player reads "STARTER" here just like
+                      on the dashboard, not the rarity band "Rookie". */}
                   {playerTier(level.level)}
                 </span>
               )}

@@ -3388,7 +3388,12 @@ const COACH_SOURCE_TYPES = ['coach_recognition', 'coach_live', 'coach_whisper', 
 // letting a single day compress the whole season arc.
 const COACH_LIVE_XP_PER_PLAYER_PER_DAY = 200;
 const COACH_LIVE_XP_MIN = 1;
-const COACH_LIVE_XP_MAX = 500;
+// Single-grant ceiling matches the daily-per-player cap post-2026-07-17
+// rebalance. Prior 500 ceiling was meaningless once the daily dropped to
+// 200 — any 201-500 grant would pass single-value validation and then
+// bounce off the daily cap with an opaque error. Keeping them equal so
+// the "Amount must be 1-200 XP" message tells the truth end-to-end.
+const COACH_LIVE_XP_MAX = 200;
 const COACH_LIVE_PLAYERS_MAX = 40;
 const COACH_LIVE_REASON_MIN = 1;
 const COACH_LIVE_REASON_MAX = 80;

@@ -3,7 +3,8 @@
 // who, how much, and the reason, then ships. Bulk-friendly: works
 // for one kid or the whole squad. Saved reasons land as tap-to-fill
 // chips. All writes route through worker /xp/grant-coach so the
-// daily-500 per-player cap is enforced server-side.
+// daily-200 per-player cap is enforced server-side (see 2026-07-17
+// XP rebalance in worker/src/writeGuards.ts + src/utils/xpLevel.ts).
 //
 // Presets are a convenience layer, not the primary path — the live
 // gesture always leads.
@@ -27,8 +28,13 @@ interface Props {
 
 const QUICK_AMOUNTS = [5, 10, 25, 50];
 const AMOUNT_MIN = 1;
-const AMOUNT_MAX = 500;
-const AMOUNT_SOFT_WARN = 100;
+// AMOUNT_MAX must stay in lockstep with worker COACH_LIVE_XP_PER_PLAYER_PER_DAY
+// (writeGuards.ts) so a coach never types a valid-looking amount that the
+// server rejects. Both dropped 500 -> 200 in the 2026-07-17 XP rebalance.
+const AMOUNT_MAX = 200;
+// Soft-warn at 25% of daily budget so a "big moment" grant still feels
+// bold without blowing the whole day's ceiling on one recognition.
+const AMOUNT_SOFT_WARN = 50;
 const REASON_MAX = 80;
 const PLAYERS_MAX = 40;
 

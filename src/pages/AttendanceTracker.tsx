@@ -7,6 +7,7 @@ import { Player } from '../types';
 import { formatDate, isCoachOfTeam } from '../utils/helpers';
 import { computeTeamAttendanceCounts } from '../utils/attendance';
 import { maybeGrantPerfectAttendance } from '../utils/badgeGrants';
+import { isXpSourceEnabled } from '../utils/xpSource';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import { VOCAB } from '../vocab';
@@ -220,7 +221,7 @@ const AttendanceTracker: React.FC = () => {
             const player = players.find(p => p.id === pid) as any;
             return maybeGrantPerfectAttendance(pid, c.attended, c.total, {
               existingBadges: player?.badges,
-              xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
+              xpEnabled: isXpSourceEnabled(selectedTeam as any, 'badges'),
             });
           }));
         }

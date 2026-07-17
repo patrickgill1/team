@@ -61,6 +61,7 @@ const Registrations = React.lazy(() => import('./pages/Registrations'));
 const AdminTeams = React.lazy(() => import('./pages/AdminTeams'));
 const SeasonWizard = React.lazy(() => import('./pages/SeasonWizard'));
 const CoachCockpit = React.lazy(() => import('./pages/CoachCockpit'));
+const CoachXpConfig = React.lazy(() => import('./pages/CoachXpConfig'));
 const StaffManagement = React.lazy(() => import('./pages/StaffManagement'));
 // FamilyHome retired 2026-07-08 — see comment on removed /home-v2 route.
 const Products = React.lazy(() => import('./pages/Products'));
@@ -694,6 +695,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <CoachCockpit />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/coach/xp" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CoachXpConfig />
                 </AppLayout>
               </ProtectedRoute>
             } />

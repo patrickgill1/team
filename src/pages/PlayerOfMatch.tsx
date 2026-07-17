@@ -4,6 +4,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { Player, CalendarEvent } from '../types';
 import { formatDate, isCoachOfTeam } from '../utils/helpers';
+import { isXpSourceEnabled } from '../utils/xpSource';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import Header from '../components/common/Header';
@@ -412,7 +413,7 @@ const PlayerOfMatch: React.FC = () => {
               {
                 gameTitle: activeVoting.gameTitle,
                 seasonId: (activeVoting as any).seasonId,
-                xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
+                xpEnabled: isXpSourceEnabled(selectedTeam as any, 'badges'),
               },
             );
             const patch: Record<string, any> = { isCurrentPotm: true, potmAt: new Date() };

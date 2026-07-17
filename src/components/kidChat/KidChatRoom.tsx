@@ -18,6 +18,7 @@ import { useAuth } from '../../hooks/useAuth';
 import type { KidChatMessage, Player, Team } from '../../types';
 import { isCoachOfTeam } from '../../utils/helpers';
 import { awardMicroXp } from '../../utils/microXp';
+import { isXpSourceEnabled } from '../../utils/xpSource';
 import { extractMentions } from '../../utils/extractMentions';
 import { sendPushToUsers } from '../../utils/notify';
 import { getShareOrigin } from '../../utils/origin';
@@ -318,7 +319,7 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
       // the composer clearing. awardMicroXp is fail-closed on
       // xpEnabled, so teams that never turned XP on write nothing.
       void awardMicroXp(actingAsPlayer.id, 2, {
-        xpEnabled: Boolean((team as any)?.xpConfig?.enabled),
+        xpEnabled: isXpSourceEnabled(team as any, 'participation'),
         dailyCap: 20,
         actionKey: 'chat_message',
       });

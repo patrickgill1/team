@@ -227,6 +227,8 @@ export async function recomputeAndPersistPlayerStreak(
     let restDayOfWeek: number | null | undefined = 0;
     let existingBadges: Record<string, any> | undefined;
     let xpEnabled = false;
+    let participationEnabled = true;
+    let badgesEnabled = true;
     let priorXp = 0;
     let parentIds: string[] | undefined;
     try {
@@ -255,6 +257,10 @@ export async function recomputeAndPersistPlayerStreak(
           // Piggyback the XP-enabled read on the same team fetch so
           // streak-badge grants can gate on the team's opt-in state.
           xpEnabled = teamData?.xpConfig?.enabled === true;
+          // Per-source opt-outs. Missing map / missing key = enabled.
+          const sources = teamData?.xpConfig?.sources;
+          if (sources?.participation === false) participationEnabled = false;
+          if (sources?.badges === false) badgesEnabled = false;
         }
       } catch (err) {
         console.warn('team streak config read failed', err);
@@ -269,7 +275,11 @@ export async function recomputeAndPersistPlayerStreak(
     // crossed pre-ship doesn't get retroactive badges. XP-gated so
     // teams that didn't opt into XP don't silently accumulate badges.
     const { computeStreakBadgePatch } = await import('./badgeGrants');
-    const badgePatch = computeStreakBadgePatch(priorStreak, streak, existingBadges, { playerName, xpEnabled });
+    // Master xpEnabled AND per-source badges toggle must both be on to
+    // grant streak-milestone badges. If master is off entirely, xpEnabled
+    // is already false and badges won't accrue.
+    const streakBadgeXpEnabled = xpEnabled && badgesEnabled;
+    const badgePatch = computeStreakBadgePatch(priorStreak, streak, existingBadges, { playerName, xpEnabled: streakBadgeXpEnabled });
     // Compose +5 practice-log micro-XP into the SAME write. When a
     // streak badge crossed on this tick, badgePatch already carries
     // an xp/xpCareer increment sentinel — Firestore's increment does
@@ -277,7 +287,10 @@ export async function recomputeAndPersistPlayerStreak(
     // composeMicroXpIntoPatch recomputes the badge XP amount from the
     // touched slugs and merges into a single combined increment.
     const { composeMicroXpIntoPatch } = await import('./microXp');
-    await composeMicroXpIntoPatch(badgePatch, 5, xpEnabled);
+    // Practice tick +5 is the "participation" source. Gate on both
+    // master + participation flag. Badge XP already handled above.
+    const participationXpEnabled = xpEnabled && participationEnabled;
+    await composeMicroXpIntoPatch(badgePatch, 5, participationXpEnabled);
     // Compute the XP that lands on this tick BEFORE the write so we
     // can trigger checkLevelUpAndWhisper against priorXp + granted.
     // badgePatch.xp is a Firestore increment sentinel, not a plain
@@ -286,13 +299,17 @@ export async function recomputeAndPersistPlayerStreak(
     if (xpEnabled) {
       try {
         const { badgeXp } = await import('./badgeMeta');
-        for (const key of Object.keys(badgePatch)) {
-          if (key.startsWith('badges.')) {
-            const slug = key.slice('badges.'.length);
-            xpGrantedThisTick += badgeXp(slug) || 0;
+        if (streakBadgeXpEnabled) {
+          for (const key of Object.keys(badgePatch)) {
+            if (key.startsWith('badges.')) {
+              const slug = key.slice('badges.'.length);
+              xpGrantedThisTick += badgeXp(slug) || 0;
+            }
           }
         }
-        xpGrantedThisTick += 5; // matches composeMicroXpIntoPatch(., 5, .)
+        if (participationXpEnabled) {
+          xpGrantedThisTick += 5; // matches composeMicroXpIntoPatch(., 5, .)
+        }
       } catch { /* ignore */ }
     }
     await updateDoc(doc(db, 'players', playerId), {

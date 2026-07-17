@@ -2203,6 +2203,16 @@ export interface Team {
       ranByUid: string;
       ranByName: string;
     };
+    /** Per-source opt-outs. Both fields optional; missing = enabled.
+     *  When master enabled=false the sources map is ignored (all off).
+     *  Coach manual paths (whisper +50, live grant, kudos->XP) are NOT
+     *  gated by this — those stay on whenever master is on. */
+    sources?: {
+      /** Practice log tick, RSVP flip, kid chat +2. */
+      participation?: boolean;
+      /** first_*, streaks, perfect_attendance, first_potm. */
+      badges?: boolean;
+    };
   };
   /** Coach control over the weekly email digest sent to parents.
    *  Coach picks day + which sections appear + optional custom

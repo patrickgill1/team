@@ -128,6 +128,15 @@ export function buildSidelineShouts(args: Args): SidelineShout[] {
 
   // POTM vote comments — one shout per (voter, playerVote) pair when
   // the voter left a reason.
+  //
+  // Intentional per Patrick's 2026-07-17 parent-privacy decision: the
+  // aggregation iterates EVERY playerVote's reason regardless of who
+  // won or where the ballot ended up. Coaches lost the per-player
+  // vote counts + bar chart from the public POTM page for parents,
+  // but every warm reason a voter typed still lands on the honored
+  // kid's shout feed — a "you played hard tonight" is emotional
+  // payload, not scoreboard leakage. Do not narrow this loop to
+  // winners-only.
   for (const pv of args.potmVotes) {
     const v: any = pv.voting;
     const votingId = String(v?.id || '');

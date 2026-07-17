@@ -999,12 +999,19 @@ const PlayerOfMatch: React.FC = () => {
                                   <>
                                     <p className="font-semibold text-brand-primary-soft text-sm">Co-Players of the Match ({voting.winners.length})</p>
                                     <p className="text-xs text-ink-primary/65">{voting.winners.map(w => w.playerName).join(', ')}</p>
-                                    <p className="text-xs text-ink-primary/50 mt-0.5">{voting.winners[0].voteCount} votes each</p>
+                                    {/* Vote-count sub-headline is coach-only
+                                        (Patrick 2026-07-17 privacy pass):
+                                        parents see the crown, not the tally. */}
+                                    {isUserCoach && (
+                                      <p className="text-xs text-ink-primary/50 mt-0.5">{voting.winners[0].voteCount} votes each</p>
+                                    )}
                                   </>
                                 ) : (
                                   <>
                                     <p className="font-semibold text-brand-primary-soft">{(voting.winners?.[0] || voting.winner)!.playerName}</p>
-                                    <p className="text-sm text-ink-primary/65">{(voting.winners?.[0] || voting.winner)!.voteCount} votes</p>
+                                    {isUserCoach && (
+                                      <p className="text-sm text-ink-primary/65">{(voting.winners?.[0] || voting.winner)!.voteCount} votes</p>
+                                    )}
                                   </>
                                 )}
                               </div>
@@ -1013,7 +1020,14 @@ const PlayerOfMatch: React.FC = () => {
                         ) : null}
                       </div>
 
-                      {results.length > 0 && (
+                      {/* Per-player breakdown bars — COACH-ONLY on past
+                          votings (Patrick 2026-07-17 parent-privacy
+                          pass: "show WINNER only. Hide per-player vote
+                          counts + percentages + bar chart from
+                          parents."). Coaches still see the full
+                          ranking so they can spot patterns; parents
+                          only see the crowned winner up above. */}
+                      {isUserCoach && results.length > 0 && (
                         <div className="space-y-2">
                           {results.map((result, index) => {
                             const pct = voting.votes.length > 0 ? Math.round((result.count / voting.votes.length) * 100) : 0;

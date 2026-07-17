@@ -11,6 +11,12 @@ import type { WallPost } from '../../types';
 interface Props {
   potm: NonNullable<WallPost['potmResult']>;
   timestamp: Date;
+  /** When true, the vote-count line is rendered. Parent viewers get
+   *  a winner-only view (Patrick 2026-07-17 privacy pass): the tally
+   *  is coach-facing scoreboard info that shouldn't leak on the
+   *  public wall. Defaults to false so the safer view wins if a
+   *  future caller forgets to thread the coach signal. */
+  isCoachView?: boolean;
 }
 
 const InitialAvatar: React.FC<{ name: string }> = ({ name }) => (
@@ -28,7 +34,7 @@ const fmtDate = (raw: any): string => {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 };
 
-const PotmWinnerCard: React.FC<Props> = ({ potm, timestamp }) => {
+const PotmWinnerCard: React.FC<Props> = ({ potm, timestamp, isCoachView = false }) => {
   const [photoFailed, setPhotoFailed] = React.useState(false);
   const dateStr = fmtDate(potm.gameDate) || timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   const title = potm.isCoWin ? 'Co-Player of the Match' : 'Player of the Match';
@@ -88,7 +94,7 @@ const PotmWinnerCard: React.FC<Props> = ({ potm, timestamp }) => {
             {potm.playerName}
           </h3>
           <p className="text-xs text-white/75 mt-1.5 truncate">{potm.gameTitle}</p>
-          {potm.voteCount > 0 && (
+          {isCoachView && potm.voteCount > 0 && (
             <p className="text-[11px] font-black tracking-wider text-amber-200 mt-2 uppercase">
               {potm.voteCount} vote{potm.voteCount === 1 ? '' : 's'}
             </p>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
@@ -49,6 +49,25 @@ const AttendanceTracker: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+
+  // Parent-privacy filter (Patrick 2026-07-17): non-coach viewers
+  // only see their own kid's RSVP row. The coach view still gets the
+  // full roster + per-player stats on the right rail. Same "linked
+  // players" shape PlayerDevelopment uses (player.parentIds includes
+  // viewer.uid). Full `players` state stays intact so the coach save
+  // path (which iterates the whole roster to merge unchanged rows)
+  // isn't affected.
+  const visiblePlayers = useMemo(() => {
+    if (isUserCoach || !userData) return players;
+    // Legacy player docs use singular `parentId`; newer ones use
+    // `parentIds[]`. Dashboard's myPlayers, notify.ts, and
+    // ParentDirectory all union the two shapes — mirror that here
+    // so a parent on a legacy doc still sees their kid's row.
+    return players.filter((p: any) =>
+      (Array.isArray(p.parentIds) && p.parentIds.includes(userData.uid)) ||
+      p.parentId === userData.uid
+    );
+  }, [players, userData, isUserCoach]);
 
   useEffect(() => {
     loadData();
@@ -361,10 +380,41 @@ const AttendanceTracker: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Squad-total going summary — visible to everyone
+                      (Patrick 2026-07-17: parents don't see per-kid
+                      rows anymore, but the "how many of us are going"
+                      energy signal has to survive). Computed against
+                      the FULL roster, not the parent-filtered list,
+                      so the bar reflects the whole squad. */}
+                  {players.length > 0 && (() => {
+                    const total = players.length;
+                    const going = players.filter(p => {
+                      const r: any = (selectedEventData as any)?.playerRsvps?.[p.id];
+                      return r?.status === 'going';
+                    }).length;
+                    const pct = total > 0 ? Math.round((going / total) * 100) : 0;
+                    return (
+                      <div className="mb-4 p-3 rounded-lg bg-surface-elevated ring-1 ring-line-default/10">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-semibold text-ink-primary">
+                            {going} of {total} going
+                          </span>
+                          <span className="text-xs text-ink-primary/60">{pct}%</span>
+                        </div>
+                        <div className="mt-2 h-1.5 rounded-full bg-line-default/[0.08] overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-500/70"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Players List */}
-                  {players.length > 0 ? (
+                  {visiblePlayers.length > 0 ? (
                     <div className="space-y-3">
-                      {players.map(player => {
+                      {visiblePlayers.map(player => {
                         const currentStatus = attendanceData[player.id] || '';
 
                         return (
@@ -428,13 +478,19 @@ const AttendanceTracker: React.FC = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-ink-primary/65">
-                      <p>Squad's empty. Add some players first.</p>
-                      <Link
-                        to="/players"
-                        className="mt-2 inline-block bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200"
-                      >
-                        Build Your Squad
-                      </Link>
+                      {!isUserCoach && players.length > 0 ? (
+                        <p>No linked players on this team yet. Ask your coach to connect your kid to your account.</p>
+                      ) : (
+                        <>
+                          <p>Squad's empty. Add some players first.</p>
+                          <Link
+                            to="/players"
+                            className="mt-2 inline-block bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+                          >
+                            Build Your Squad
+                          </Link>
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -487,7 +543,11 @@ const AttendanceTracker: React.FC = () => {
             </div>
           </div>
 
-          {/* Player Stats */}
+          {/* Player Stats — coach-only rail. Parents shouldn't see
+              other kids' attendance percentages (Patrick 2026-07-17
+              parent-privacy pass). The squad-total "N of M going"
+              bar above keeps the coordination signal for parents. */}
+          {isUserCoach && (
           <div>
             <div className="card-modern">
               <div className="px-6 py-4 border-b border-line-default/10">
@@ -522,6 +582,7 @@ const AttendanceTracker: React.FC = () => {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
 

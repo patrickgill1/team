@@ -33,6 +33,7 @@ import { ChatThread } from '../types';
 import CoachAccordionBar from '../components/coach/CoachAccordionBar';
 import CoachTonightCard from '../components/coach/CoachTonightCard';
 import CoachTeamHealthCard from '../components/coach/CoachTeamHealthCard';
+import DashboardPotmVotingCard from '../components/dashboard/DashboardPotmVotingCard';
 import DashboardDigestSheet, { DigestItem } from '../components/dashboard/DashboardDigestSheet';
 import { useDashboardActivity } from '../hooks/useDashboardActivity';
 import { useViewMode } from '../contexts/ViewModeContext';
@@ -1398,6 +1399,22 @@ const Dashboard: React.FC = () => {
             2026-06-21 dialogue idea #2: 'a "what i'm doing tonight"
             smart card... shifts based on what's actually happening.' */}
         <CoachTonightCard />
+
+        {/* POTM ballot nudge — lives on BOTH Dashboard + Wall during
+            an active vote (Patrick 2026-07-17 parent-privacy pass:
+            "voting appears on both surfaces during an active vote").
+            Renders only when a match_votings doc is open for this
+            team AND the viewer is eligible to weigh in. Coach sees
+            it too, with a Manage-vote action. Dismissable per
+            voting id via useDismissible so a parent can hide it
+            after they've voted without erasing it for the
+            household's second parent. */}
+        <DashboardPotmVotingCard
+          teamId={selectedTeamId}
+          currentUserId={userData?.uid}
+          myPlayerIds={myPlayers.map((p: any) => p.id)}
+          isCoach={isUserCoach}
+        />
 
         {/* The no-event empty state lives in DashboardHero now — no
             second card needed here. */}

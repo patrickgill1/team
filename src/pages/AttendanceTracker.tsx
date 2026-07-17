@@ -238,12 +238,21 @@ const AttendanceTracker: React.FC = () => {
         const effort = effortData[player.id] === true;
 
         // Base attendance XP eligibility: coach marked 'going' AND
-        // hasn't been credited before AND the event type + team toggle
-        // both allow it.
+        // this is a real transition INTO 'going' (not a legacy entry
+        // that was already 'going' before this ship) AND hasn't been
+        // credited before AND the event type + team toggle both allow.
+        //
+        // Legacy backfill guard: any playerRsvps entry created before
+        // this ship shipped has status='going' with no *AwardedAt
+        // stamp. Opening an old event and hitting Lock It In must NOT
+        // fire a fresh +10/+15 for every kid who was already marked
+        // attended. We treat prevEntry.status === 'going' as
+        // pre-existing credit and stamp without granting below.
         const isAttended = status === 'going';
+        const wasAttended = prevEntry.status === 'going';
         const alreadyAwardedAttendance = Boolean(prevEntry.attendanceXpAwardedAt);
         let attendanceXpJustAwarded = false;
-        if (isAttended && !alreadyAwardedAttendance) {
+        if (isAttended && !wasAttended && !alreadyAwardedAttendance) {
           if (isPractice && practiceAttendanceEnabled) {
             xpQueue.push({ playerId: player.id, amount: 10, actionKey: 'practiceAttendance' });
             attendanceXpJustAwarded = true;
@@ -252,6 +261,9 @@ const AttendanceTracker: React.FC = () => {
             attendanceXpJustAwarded = true;
           }
         }
+        // Stamp legacy 'going' entries as credited on first save so
+        // subsequent unmark -> remark cycles can't re-fire the grant.
+        const stampLegacyAttendance = isAttended && wasAttended && !alreadyAwardedAttendance;
 
         // Effort bonus eligibility: attended + effort checked + not
         // credited before + toggle on. Sits on top of the base grant,
@@ -275,7 +287,7 @@ const AttendanceTracker: React.FC = () => {
           // prior stamp). This is the idempotency contract: an entry
           // once credited stays credited even if the coach later flips
           // the status away and back, so we never double-grant.
-          ...(alreadyAwardedAttendance || attendanceXpJustAwarded
+          ...(alreadyAwardedAttendance || attendanceXpJustAwarded || stampLegacyAttendance
             ? { attendanceXpAwardedAt: prevEntry.attendanceXpAwardedAt || savedAt }
             : {}),
           ...(alreadyAwardedEffort || effortXpJustAwarded

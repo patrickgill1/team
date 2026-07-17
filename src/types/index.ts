@@ -2245,6 +2245,12 @@ export interface Team {
       perfectAttendance?: boolean;
       /** Coach whisper +50 XP. */
       whisper?: boolean;
+      /** Coach-picked XP handed out in Grant XP flow. Turn off to
+       *  disable that action end-to-end. */
+      coachLiveGrant?: boolean;
+      /** Convert Circle Kudos to XP with one tap. Turn off to keep
+       *  Kudos as celebration-only. */
+      kudosConvert?: boolean;
     };
   };
   /** Coach control over the weekly email digest sent to parents.
@@ -3036,6 +3042,9 @@ export interface Survey {
   isActive: boolean;
   isAnonymous: boolean;
   resultsPublic: boolean;
+  // When true, coach-side notification on new responses fires only
+  // to the survey creator, not to every coach on the team.
+  isPrivate?: boolean;
   createdBy: string;
   createdByName: string;
   responseCount: number;

@@ -200,6 +200,9 @@ const Surveys: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(true);
+  // Coach picked "only notify me on responses" — worker will fan out
+  // new-response push/email to survey.createdBy only, not team.coachIds.
+  const [isPrivate, setIsPrivate] = useState(false);
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
 
   const userIsCoach = isCoachOfTeam(userData, selectedTeam);
@@ -316,6 +319,7 @@ const Surveys: React.FC = () => {
       questions,
       isActive: true,
       isAnonymous,
+      isPrivate,
       resultsPublic: false,
       createdBy: userData.uid,
       createdByName: userData.name,
@@ -366,6 +370,7 @@ const Surveys: React.FC = () => {
     setTitle('');
     setDescription('');
     setIsAnonymous(true);
+    setIsPrivate(false);
     setQuestions([]);
     setEditingSurvey(null);
   };
@@ -405,6 +410,7 @@ const Surveys: React.FC = () => {
     setTitle(survey.title);
     setDescription(survey.description || '');
     setIsAnonymous(survey.isAnonymous);
+    setIsPrivate(survey.isPrivate === true);
     setQuestions(survey.questions);
     setView('create');
   };
@@ -413,6 +419,7 @@ const Surveys: React.FC = () => {
     setTitle(HOW_AM_I_DOING_TEMPLATE.title);
     setDescription(HOW_AM_I_DOING_TEMPLATE.description || '');
     setIsAnonymous(HOW_AM_I_DOING_TEMPLATE.isAnonymous);
+    setIsPrivate(false);
     setQuestions(HOW_AM_I_DOING_TEMPLATE.questions);
   };
 
@@ -901,6 +908,20 @@ const Surveys: React.FC = () => {
             <span className="text-sm text-ink-primary/85">Anonymous responses</span>
           </label>
           <p className="text-xs text-brand-primary">Survey results are private and visible only to the survey creator.</p>
+          <label className="flex items-start gap-2 cursor-pointer pt-1">
+            <input
+              type="checkbox"
+              checked={isPrivate}
+              onChange={e => setIsPrivate(e.target.checked)}
+              className="w-4 h-4 rounded text-brand-primary focus:ring-brand-primary-soft mt-0.5"
+            />
+            <span className="text-sm text-ink-primary/85 leading-tight">
+              Only notify me on responses
+              <span className="block text-xs text-ink-primary/60 font-normal">
+                Skip pushing new-response alerts to other coaches on the team. You still get them.
+              </span>
+            </span>
+          </label>
         </div>
 
         {/* Questions */}

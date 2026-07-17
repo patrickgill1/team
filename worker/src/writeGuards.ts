@@ -3720,6 +3720,11 @@ async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promi
   if (teamData?.xpConfig?.enabled !== true) {
     return json({ ok: false, error: 'xp_not_enabled' }, 403);
   }
+  // Per-source gate: coach can disable the Kudos->XP convert action
+  // via team.xpConfig.sources.kudosConvert = false. Absent = on.
+  if (teamData?.xpConfig?.sources?.kudosConvert === false) {
+    return json({ ok: false, error: 'xp-source-disabled' }, 403);
+  }
   const clubId = teamData.clubId ? String(teamData.clubId) : '';
 
   const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
@@ -3973,6 +3978,11 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
   const teamData: any = teamDoc.data;
   if (teamData?.xpConfig?.enabled !== true) {
     return json({ ok: false, error: 'xp_not_enabled' }, 403);
+  }
+  // Per-source gate: coach can disable the Grant XP action end-to-end
+  // via team.xpConfig.sources.coachLiveGrant = false. Absent = on.
+  if (teamData?.xpConfig?.sources?.coachLiveGrant === false) {
+    return json({ ok: false, error: 'xp-source-disabled' }, 403);
   }
   const clubId = teamData.clubId ? String(teamData.clubId) : '';
 
@@ -4674,15 +4684,30 @@ async function handleSurveyResponseCreated(_req: Request, env: Env, payload: any
   // through to "Someone completed …" below.
   const respondentName = survey.isAnonymous === true ? '' : clientRespondentName;
 
-  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
-  if (!teamDoc?.data) return json({ ok: false, error: 'team_not_found' }, 404);
-  const team: any = teamDoc.data;
-  const coachIds: string[] = Array.isArray(team.coachIds)
-    ? team.coachIds.filter((u: unknown) => typeof u === 'string' && u.length > 0)
-    : [];
-  const recipients = fromUid ? coachIds.filter(uid => uid !== fromUid) : coachIds;
-  if (recipients.length === 0) {
-    return json({ ok: true, sent: 0, note: 'no_coach_recipients' });
+  // Private-notify surveys: only the survey creator gets the new-
+  // response ping. Other coaches on the team are skipped. Default
+  // (survey.isPrivate !== true) preserves the existing all-coaches
+  // fanout.
+  let recipients: string[];
+  if (survey.isPrivate === true) {
+    const creator = typeof survey.createdBy === 'string' && survey.createdBy.length > 0
+      ? [survey.createdBy]
+      : [];
+    recipients = fromUid ? creator.filter(uid => uid !== fromUid) : creator;
+    if (recipients.length === 0) {
+      return json({ ok: true, sent: 0, note: 'no_creator_recipient' });
+    }
+  } else {
+    const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+    if (!teamDoc?.data) return json({ ok: false, error: 'team_not_found' }, 404);
+    const team: any = teamDoc.data;
+    const coachIds: string[] = Array.isArray(team.coachIds)
+      ? team.coachIds.filter((u: unknown) => typeof u === 'string' && u.length > 0)
+      : [];
+    recipients = fromUid ? coachIds.filter(uid => uid !== fromUid) : coachIds;
+    if (recipients.length === 0) {
+      return json({ ok: true, sent: 0, note: 'no_coach_recipients' });
+    }
   }
 
   if (!env.FCM_SERVICE_ACCOUNT) {

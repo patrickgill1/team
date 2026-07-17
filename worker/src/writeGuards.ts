@@ -4656,7 +4656,7 @@ async function handleDevPlansLogVerify(req: Request, env: Env, payload: any): Pr
 // ────────────────────────────────────────────────────────────────
 async function handleSurveyResponseCreated(_req: Request, env: Env, payload: any): Promise<Response> {
   const surveyId = String(payload?.surveyId || '');
-  const respondentName = payload?.respondentName ? String(payload.respondentName).slice(0, 100) : '';
+  const clientRespondentName = payload?.respondentName ? String(payload.respondentName).slice(0, 100) : '';
   const fromUid = payload?.fromUid ? String(payload.fromUid) : '';
   if (!surveyId) return json({ ok: false, error: 'survey_id_required' }, 400);
 
@@ -4668,6 +4668,11 @@ async function handleSurveyResponseCreated(_req: Request, env: Env, payload: any
   const title = String(survey.title || 'the survey').slice(0, 100);
   const teamId = String(survey.teamId || '');
   if (!teamId) return json({ ok: false, error: 'survey_missing_team' }, 400);
+  // Anonymity is enforced server-side: even if a client (or a direct
+  // POST to this public endpoint) supplies a respondentName, we drop
+  // it when the survey is flagged anonymous so the push body falls
+  // through to "Someone completed …" below.
+  const respondentName = survey.isAnonymous === true ? '' : clientRespondentName;
 
   const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
   if (!teamDoc?.data) return json({ ok: false, error: 'team_not_found' }, 404);

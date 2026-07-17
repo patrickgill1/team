@@ -1,6 +1,8 @@
 import { doc, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db } from './firebase';
 import { BadgeSlug, badgeXp } from './badgeMeta';
+import { isXpSourceEnabled, XpSourceKey } from './xpSource';
+import type { Team } from '../types';
 
 // Badge grant helpers. Every grant fires ONLY on the crossing action
 // from ship-forward — never retroactively from historical stats.
@@ -14,9 +16,13 @@ import { BadgeSlug, badgeXp } from './badgeMeta';
 //
 // Every grant is idempotent — safe to call multiple times.
 //
-// XP GATE (added 2026-07-11): every grant now requires ctx.xpEnabled
-// === true. If the coach hasn't opted the team into XP (team.xpConfig
-// .enabled !== true), grants short-circuit to a no-op. This closes
+// XP GATE (Ship 2, 2026-07-17): each grant now gates on the team's
+// per-source key via isXpSourceEnabled(team, <key>). Callers pass the
+// `team` object in ctx; a missing team fails-closed (no grants). If
+// per-source keys are absent, the resolver falls back to Ship 1's
+// coarse `participation` / `badges` keys. If the coach hasn't opted
+// the team into XP (team.xpConfig.enabled !== true), grants short-
+// circuit to a no-op. This closes
 // the "zombie writes" hole where auto-grants kept firing on stat
 // writes and streak crossings even for teams that never turned XP on
 // — silently accumulating player.xp / player.badges that would jump
@@ -64,12 +70,15 @@ export async function maybeGrantFirstStatBadges(
   playerId: string,
   prev: { goals?: number; assists?: number; saves?: number; cleanSheets?: number } | null | undefined,
   next: { goals?: number; assists?: number; saves?: number; cleanSheets?: number },
-  ctx: { existingBadges?: Record<string, any>; context?: string; seasonId?: string; xpEnabled?: boolean } = {},
+  ctx: { team?: Team | null; existingBadges?: Record<string, any>; context?: string; seasonId?: string } = {},
 ): Promise<void> {
   if (!playerId) return;
-  // XP gate: no-op unless the team explicitly opted in. Fail-closed
-  // if the caller didn't pass the flag.
-  if (ctx.xpEnabled !== true) return;
+  // XP gate: no-op unless the team has master XP + at least one of the
+  // four first-stat sources enabled. Individual badges are gated below
+  // so the coach can silence one milestone without disabling the rest.
+  const team = ctx.team ?? null;
+  if (!team) return;
+  const gate = (k: XpSourceKey) => isXpSourceEnabled(team, k);
   const prevG = prev?.goals || 0;
   const prevA = prev?.assists || 0;
   const prevS = prev?.saves || 0;
@@ -83,19 +92,19 @@ export async function maybeGrantFirstStatBadges(
   const patch: Record<string, any> = {};
   let xpAwarded = 0;
 
-  if (prevG === 0 && nextG > 0 && !existing.first_goal) {
+  if (gate('firstGoal') && prevG === 0 && nextG > 0 && !existing.first_goal) {
     patch['badges.first_goal'] = makeBadge(ctx.context, ctx.seasonId);
     xpAwarded += badgeXp('first_goal');
   }
-  if (prevA === 0 && nextA > 0 && !existing.first_assist) {
+  if (gate('firstAssist') && prevA === 0 && nextA > 0 && !existing.first_assist) {
     patch['badges.first_assist'] = makeBadge(ctx.context, ctx.seasonId);
     xpAwarded += badgeXp('first_assist');
   }
-  if (prevS === 0 && nextS > 0 && !existing.first_save) {
+  if (gate('firstSave') && prevS === 0 && nextS > 0 && !existing.first_save) {
     patch['badges.first_save'] = makeBadge(ctx.context, ctx.seasonId);
     xpAwarded += badgeXp('first_save');
   }
-  if (prevC === 0 && nextC > 0 && !existing.first_clean_sheet) {
+  if (gate('firstCleanSheet') && prevC === 0 && nextC > 0 && !existing.first_clean_sheet) {
     patch['badges.first_clean_sheet'] = makeBadge(ctx.context, ctx.seasonId);
     xpAwarded += badgeXp('first_clean_sheet');
   }
@@ -130,11 +139,11 @@ export function computeStreakBadgePatch(
   priorStreak: number,
   newStreak: number,
   existingBadges: Record<string, any> | null | undefined,
-  ctx: { seasonId?: string; playerName?: string; xpEnabled?: boolean } = {},
+  ctx: { seasonId?: string; playerName?: string; team?: Team | null } = {},
 ): Record<string, any> {
   // XP gate: return an empty patch so the caller's outer streak-days
   // write still commits, but no badge/XP side-effects fire.
-  if (ctx.xpEnabled !== true) return {};
+  if (!isXpSourceEnabled(ctx.team ?? null, 'streaks')) return {};
   const thresholds: Array<[number, BadgeSlug]> = [
     [5, 'streak_5'],
     [10, 'streak_10'],
@@ -180,10 +189,10 @@ export async function maybeGrantPerfectAttendance(
   playerId: string,
   attended: number,
   total: number,
-  ctx: { existingBadges?: Record<string, any>; context?: string; seasonId?: string; xpEnabled?: boolean } = {},
+  ctx: { team?: Team | null; existingBadges?: Record<string, any>; context?: string; seasonId?: string } = {},
 ): Promise<void> {
   if (!playerId) return;
-  if (ctx.xpEnabled !== true) return;
+  if (!isXpSourceEnabled(ctx.team ?? null, 'perfectAttendance')) return;
   const existing = ctx.existingBadges || {};
   if (existing.perfect_attendance) return;
   if (total < PERFECT_ATTENDANCE_MIN_EVENTS) return;
@@ -208,9 +217,9 @@ export async function maybeGrantPerfectAttendance(
  *  Caller merges the returned patch into the winner's updateDoc. */
 export function computeFirstPotmPatch(
   existingBadges: Record<string, any> | null | undefined,
-  ctx: { gameTitle?: string; seasonId?: string; xpEnabled?: boolean } = {},
+  ctx: { gameTitle?: string; seasonId?: string; team?: Team | null } = {},
 ): Record<string, any> | null {
-  if (ctx.xpEnabled !== true) return null;
+  if (!isXpSourceEnabled(ctx.team ?? null, 'firstPotm')) return null;
   const existing = existingBadges || {};
   if (existing.first_potm) return null;
   const xp = badgeXp('first_potm');

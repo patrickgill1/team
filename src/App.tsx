@@ -1013,6 +1013,17 @@ function App() {
               </ProtectedRoute>
             } />
 
+            {/* Deep link for the survey-completion push notification.
+                Renders the same Surveys page; the page reads useParams
+                and jumps straight to the results view for the coach. */}
+            <Route path="/surveys/:surveyId" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Surveys />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
             <Route path="/full-games" element={
               <ProtectedRoute>
                 <AppLayout>

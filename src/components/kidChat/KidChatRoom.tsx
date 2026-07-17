@@ -319,7 +319,7 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
       // the composer clearing. awardMicroXp is fail-closed on
       // xpEnabled, so teams that never turned XP on write nothing.
       void awardMicroXp(actingAsPlayer.id, 2, {
-        xpEnabled: isXpSourceEnabled(team as any, 'participation'),
+        xpEnabled: isXpSourceEnabled(team as any, 'kidChat'),
         dailyCap: 20,
         actionKey: 'chat_message',
       });

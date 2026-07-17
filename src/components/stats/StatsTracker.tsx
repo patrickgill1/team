@@ -54,9 +54,11 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
   // right now. Uses the same 0→N crossing rules as
   // src/utils/badgeGrants.ts:maybeGrantFirstStatBadges so what the
   // coach sees here is what actually fires.
-  const xpEnabled = isXpSourceEnabled(selectedTeam as any, 'badges');
+  const anyBadgeEnabled = isXpSourceEnabled(selectedTeam as any, 'firstGoal')
+    || isXpSourceEnabled(selectedTeam as any, 'firstAssist')
+    || isXpSourceEnabled(selectedTeam as any, 'firstSave');
   const previewBadges: Array<{ slug: string; label: string; xp: number }> = (() => {
-    if (!selectedPlayerData || !xpEnabled) return [];
+    if (!selectedPlayerData || !anyBadgeEnabled) return [];
     const cur = selectedPlayerData.stats || ({} as any);
     const positions: string[] = Array.isArray((selectedPlayerData as any).positions)
       ? (selectedPlayerData as any).positions
@@ -65,13 +67,16 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
     const isKeeperOrD = isKeeper || positions.includes('Defender');
     const out: Array<{ slug: string; label: string; xp: number }> = [];
     const existingBadges = ((selectedPlayerData as any).badges) || {};
-    if (!existingBadges.first_goal && (cur.goals || 0) === 0 && statData.goals > 0) {
+    if (isXpSourceEnabled(selectedTeam as any, 'firstGoal')
+      && !existingBadges.first_goal && (cur.goals || 0) === 0 && statData.goals > 0) {
       out.push({ slug: 'first_goal', label: 'First Goal', xp: 100 });
     }
-    if (!existingBadges.first_assist && (cur.assists || 0) === 0 && statData.assists > 0) {
+    if (isXpSourceEnabled(selectedTeam as any, 'firstAssist')
+      && !existingBadges.first_assist && (cur.assists || 0) === 0 && statData.assists > 0) {
       out.push({ slug: 'first_assist', label: 'First Assist', xp: 100 });
     }
-    if (isKeeper && !existingBadges.first_save && (cur.saves || 0) === 0 && statData.saves > 0) {
+    if (isKeeper && isXpSourceEnabled(selectedTeam as any, 'firstSave')
+      && !existingBadges.first_save && (cur.saves || 0) === 0 && statData.saves > 0) {
       out.push({ slug: 'first_save', label: 'First Save', xp: 100 });
     }
     return out;
@@ -182,7 +187,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
             {
               existingBadges: (selectedPlayerData as any).badges,
               context: opponent || 'Match',
-              xpEnabled: isXpSourceEnabled(selectedTeam as any, 'badges'),
+              team: selectedTeam as any,
             },
           );
         } catch { /* non-fatal */ }
@@ -448,7 +453,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                 entry would trigger first-stat crossings, tell the
                 coach BEFORE they submit and give them an opt-out for
                 catch-up entries. */}
-            {xpEnabled && previewBadges.length > 0 && (
+            {anyBadgeEnabled && previewBadges.length > 0 && (
               <div className="pt-4 border-t border-line-default/15">
                 <div className="p-3 rounded-xl bg-amber-500/10 ring-1 ring-amber-400/40">
                   <p className="text-[11px] font-black uppercase tracking-widest text-amber-700 mb-1.5">

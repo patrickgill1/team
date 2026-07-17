@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
@@ -225,6 +226,34 @@ const Surveys: React.FC = () => {
   }, [selectedTeamId]);
 
   useEffect(() => { loadSurveys(); }, [loadSurveys]);
+
+  // Deep-link support: /surveys/:surveyId lands the coach directly on
+  // the results view for that survey. Push notifications from
+  // /surveys/response-created point here so tapping the alert opens
+  // the responses instead of the list. Silently falls back to the
+  // list view if the survey isn't in this coach's loaded set (wrong
+  // team selected, deleted, or not their survey).
+  //
+  // The consumed ref makes the jump fire AT MOST ONCE per surveyId.
+  // Without it, any post-mount loadSurveys() (toggle active, create,
+  // delete another survey) would trip the effect again and yank the
+  // coach back into results after they'd navigated away.
+  const { surveyId: deepLinkSurveyId } = useParams<{ surveyId?: string }>();
+  const consumedDeepLinkRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!deepLinkSurveyId) return;
+    if (consumedDeepLinkRef.current === deepLinkSurveyId) return;
+    if (surveys.length === 0) return;
+    const match = surveys.find(s => s.id === deepLinkSurveyId);
+    if (!match) return;
+    consumedDeepLinkRef.current = deepLinkSurveyId;
+    setSelectedSurvey(match);
+    void loadResponses(match);
+    setView('results');
+    // Only run once per surveyId change; loadResponses is stable enough
+    // for this narrow use.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkSurveyId, surveys]);
 
   // ─── Load responses for a survey ────────────────────────────────────────
   const loadResponses = async (survey: Survey) => {

@@ -9,31 +9,97 @@ import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import type { Player } from '../types';
 import { computeXpLevel } from '../utils/xpLevel';
+import { XP_SOURCE_LABELS, XpSourceKey } from '../utils/xpSource';
 
 /**
  * Coach XP Config — /coach/xp
  *
- * One page, three controls, warm explainer copy:
+ * Ship 2 (2026-07-17): per-source toggles. Master enable stays on top,
+ * then four collapsible sections group the 11 per-source keys:
  *
- *  1. Master enable: team.xpConfig.enabled — the whole system on/off.
- *  2. Reward showing up: team.xpConfig.sources.participation — practice
- *     log ticks, RSVP flips, kid chat +2.
- *  3. Award badges: team.xpConfig.sources.badges — first goals, streaks,
- *     POTM, perfect attendance milestone badges.
+ *  1. Participation      — practice, rsvp, kidChat
+ *  2. Milestones         — firstGoal, firstAssist, firstSave,
+ *                          firstCleanSheet, firstPotm
+ *  3. Streaks & attendance — streaks, perfectAttendance
+ *  4. Coach actions      — whisper
  *
- * Coach manual paths (whisper +50, live grant, kudos convert) are NOT
- * exposed here — those stay always-on whenever master is on. If the
- * coach chose to grant, we don't second-guess.
- *
- * Below the toggles: a lightweight "Team XP status" summary so the coach
- * can feel how their config is landing (total XP paid out this season +
- * top 3 highest-leveled kids).
+ * Ship 1's coarse `participation` + `badges` keys stay on the team doc
+ * as fallbacks. Teams that only ever flipped Ship 1's two toggles keep
+ * the same behavior until the coach opens a section here and sets an
+ * explicit per-source flag. Coach live grants + kudos->XP are NOT
+ * exposed — those stay always-on when master is on (the coach chose
+ * to grant, we don't second-guess).
  */
 
-type PendingSources = {
-  participation: boolean;
-  badges: boolean;
+// Per-source toggle grouping. Order here drives the UI order.
+type SectionKey = 'participation' | 'milestones' | 'streaksAttendance' | 'coachActions';
+
+interface SectionSpec {
+  key: SectionKey;
+  title: string;
+  keys: XpSourceKey[];
+}
+
+const SECTIONS: SectionSpec[] = [
+  {
+    key: 'participation',
+    title: 'Participation',
+    keys: ['practice', 'rsvp', 'kidChat'],
+  },
+  {
+    key: 'milestones',
+    title: 'Milestones',
+    keys: ['firstGoal', 'firstAssist', 'firstSave', 'firstCleanSheet', 'firstPotm'],
+  },
+  {
+    key: 'streaksAttendance',
+    title: 'Streaks & attendance',
+    keys: ['streaks', 'perfectAttendance'],
+  },
+  {
+    key: 'coachActions',
+    title: 'Coach actions',
+    keys: ['whisper'],
+  },
+];
+
+// Warm-voice subtitle for each per-source toggle. Kept here (not in
+// xpSource.ts) so the resolver stays UI-agnostic.
+const XP_SOURCE_SUBTITLES: Record<XpSourceKey, string> = {
+  practice: '+5 XP when a kid taps "I did it today" on a practice log.',
+  rsvp: '+5 XP when a kid flips their own RSVP to going.',
+  kidChat: '+2 XP per kid chat message, daily cap 20.',
+  firstGoal: '+100 XP the first time a kid scores.',
+  firstAssist: '+100 XP the first time a kid picks up an assist.',
+  firstSave: '+100 XP the first time a keeper makes a save.',
+  firstCleanSheet: '+100 XP the first time a keeper holds a clean sheet.',
+  firstPotm: '+150 XP the first time a kid wins Player of the Match.',
+  streaks: '+50 to +400 XP as practice streaks hit 5, 10, 25, 50 days.',
+  perfectAttendance: '+200 XP for perfect attendance across a run of team events.',
+  whisper: '+50 XP each time you send a parent whisper.',
 };
+
+/** Resolve the initial per-source toggle state. Reads explicit per-source
+ *  keys first; if missing, mirrors the Ship 1 coarse fallback so the
+ *  displayed state matches what's actually granting. */
+function initialSourceValue(
+  key: XpSourceKey,
+  sources: Record<string, unknown> | undefined | null,
+): boolean {
+  if (!sources) return true;
+  const explicit = sources[key];
+  if (explicit === true) return true;
+  if (explicit === false) return false;
+  // Fall back to coarse Ship 1 keys.
+  if (key === 'practice' || key === 'rsvp' || key === 'kidChat') {
+    return sources.participation !== false;
+  }
+  if (key === 'whisper') return true;
+  // Everything else falls under Ship 1 'badges'.
+  return sources.badges !== false;
+}
+
+type PendingSources = Partial<Record<XpSourceKey, boolean>>;
 
 // Outer wrapper: keying on selectedTeamId forces a clean remount when the
 // coach switches teams, so local toggle state never flashes stale values
@@ -51,10 +117,11 @@ const CoachXpConfigInner: React.FC = () => {
   const initialEnabled = (selectedTeam as any)?.xpConfig?.enabled === true;
   const initialSources: PendingSources = useMemo(() => {
     const src = (selectedTeam as any)?.xpConfig?.sources || {};
-    return {
-      participation: src.participation !== false,
-      badges: src.badges !== false,
-    };
+    const out: PendingSources = {};
+    (Object.keys(XP_SOURCE_LABELS) as XpSourceKey[]).forEach((k) => {
+      out[k] = initialSourceValue(k, src);
+    });
+    return out;
   }, [selectedTeam]);
 
   const [enabled, setEnabled] = useState<boolean>(initialEnabled);
@@ -62,6 +129,12 @@ const CoachXpConfigInner: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
+    participation: false,
+    milestones: false,
+    streaksAttendance: false,
+    coachActions: false,
+  });
 
   // Toast auto-dismiss.
   useEffect(() => {
@@ -101,9 +174,13 @@ const CoachXpConfigInner: React.FC = () => {
       .slice(0, 3);
   }, [players]);
 
-  const dirty = enabled !== initialEnabled
-    || sources.participation !== initialSources.participation
-    || sources.badges !== initialSources.badges;
+  const dirty = useMemo(() => {
+    if (enabled !== initialEnabled) return true;
+    for (const k of Object.keys(XP_SOURCE_LABELS) as XpSourceKey[]) {
+      if ((sources[k] ?? true) !== (initialSources[k] ?? true)) return true;
+    }
+    return false;
+  }, [enabled, sources, initialEnabled, initialSources]);
 
   const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
 
@@ -111,14 +188,18 @@ const CoachXpConfigInner: React.FC = () => {
     if (!selectedTeamId || saving) return;
     setSaving(true);
     try {
-      // Write each source with its own dot-notation key so future keys on
-      // xpConfig.sources (e.g. a chat split) aren't wiped by an older client
-      // that only knows about participation + badges.
+      // Write each per-source key with its own dot-notation path so
+      // future keys on xpConfig.sources aren't wiped by an older client
+      // that only knows a subset. Ship 1's coarse `participation` and
+      // `badges` keys are preserved (never touched here) so a team that
+      // only ever set those keeps its documented fallback behavior for
+      // any per-source key the coach didn't override.
       const patch: Record<string, any> = {
         'xpConfig.enabled': enabled,
-        'xpConfig.sources.participation': sources.participation,
-        'xpConfig.sources.badges': sources.badges,
       };
+      (Object.keys(XP_SOURCE_LABELS) as XpSourceKey[]).forEach((k) => {
+        patch[`xpConfig.sources.${k}`] = sources[k] !== false;
+      });
       // Stamp enabledAt on first-ever enable so downstream code that
       // treats "no enabledAt" as never-opted-in stays consistent.
       const priorEnabledAt = (selectedTeam as any)?.xpConfig?.enabledAt;
@@ -191,7 +272,7 @@ const CoachXpConfigInner: React.FC = () => {
           </div>
         </section>
 
-        {/* Source toggles — dimmed but visible when master is off, so the
+        {/* Per-source sections — dimmed but visible when master is off, so the
             coach can preview / stage source config before flipping master on. */}
         <section
           className={`rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5 transition ${
@@ -207,25 +288,58 @@ const CoachXpConfigInner: React.FC = () => {
               Turn on Player XP above to configure sources.
             </p>
           )}
-          <div className="mt-3 space-y-3">
-            <ToggleRow
-              title="Reward showing up"
-              subtitle="Small XP for daily practice logs, RSVP flips, and kid chat. Turn off if your squad treats these as expected."
-              checked={sources.participation}
-              disabled={!enabled}
-              onChange={(v) => setSources(s => ({ ...s, participation: v }))}
-            />
-            <ToggleRow
-              title="Award badges"
-              subtitle="Milestone badges (first goal, streaks, POTM, perfect attendance) award XP when unlocked. Turn off if streak-chasing is getting anxious."
-              checked={sources.badges}
-              disabled={!enabled}
-              onChange={(v) => setSources(s => ({ ...s, badges: v }))}
-            />
+          <div className="mt-3 space-y-2">
+            {SECTIONS.map((section) => {
+              const on = section.keys.filter(k => sources[k] !== false).length;
+              const total = section.keys.length;
+              const isOpen = openSections[section.key];
+              return (
+                <div key={section.key} className="rounded-xl bg-surface-base/50 ring-1 ring-line-default/10 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setOpenSections(s => ({ ...s, [section.key]: !s[section.key] }))}
+                    className="w-full flex items-center justify-between gap-3 p-3 text-left"
+                    aria-expanded={isOpen}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold">{section.title}</p>
+                      <p className="mt-0.5 text-[11px] text-ink-primary/55">
+                        {on} of {total} on
+                      </p>
+                    </div>
+                    <svg
+                      className={`w-4 h-4 text-ink-primary/50 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      viewBox="0 0 24 24"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  {isOpen && (
+                    <div className="border-t border-line-default/10 p-3 space-y-2.5">
+                      {section.keys.map((k) => (
+                        <ToggleRow
+                          key={k}
+                          title={XP_SOURCE_LABELS[k]}
+                          subtitle={XP_SOURCE_SUBTITLES[k]}
+                          checked={sources[k] !== false}
+                          disabled={!enabled}
+                          onChange={(v) => setSources(s => ({ ...s, [k]: v }))}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <p className="mt-4 text-[11px] text-ink-primary/50 leading-relaxed">
-            Your own recognitions (whispers, live grants, converting a kudos to XP) always land.
-            You chose to give them, we won't second-guess that.
+            Live grants and converting a kudos to XP always land. You chose to give
+            them, we won't second-guess that.
           </p>
         </section>
 
@@ -315,10 +429,10 @@ const ToggleRow: React.FC<{
   onChange: (v: boolean) => void;
   disabled?: boolean;
 }> = ({ title, subtitle, checked, onChange, disabled }) => (
-  <div className="rounded-xl bg-surface-base/50 ring-1 ring-line-default/10 p-3 flex items-start gap-3">
+  <div className="rounded-lg bg-surface-elevated ring-1 ring-line-default/10 p-3 flex items-start gap-3">
     <div className="min-w-0 flex-1">
       <p className="text-sm font-bold">{title}</p>
-      <p className="mt-1 text-[12px] text-ink-primary/65 leading-snug">{subtitle}</p>
+      <p className="mt-0.5 text-[11px] text-ink-primary/60 leading-snug">{subtitle}</p>
     </div>
     <ToggleSwitch checked={checked} onChange={onChange} label={title} disabled={disabled} />
   </div>

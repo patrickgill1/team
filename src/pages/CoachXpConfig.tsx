@@ -35,7 +35,15 @@ type PendingSources = {
   badges: boolean;
 };
 
+// Outer wrapper: keying on selectedTeamId forces a clean remount when the
+// coach switches teams, so local toggle state never flashes stale values
+// from the previous team.
 const CoachXpConfig: React.FC = () => {
+  const { selectedTeamId } = useTeam();
+  return <CoachXpConfigInner key={selectedTeamId || 'no-team'} />;
+};
+
+const CoachXpConfigInner: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeam, selectedTeamId } = useTeam();
 
@@ -54,12 +62,6 @@ const CoachXpConfig: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
-
-  // Reset local state whenever the coach switches teams.
-  useEffect(() => {
-    setEnabled(initialEnabled);
-    setSources(initialSources);
-  }, [selectedTeamId, initialEnabled, initialSources]);
 
   // Toast auto-dismiss.
   useEffect(() => {
@@ -109,12 +111,13 @@ const CoachXpConfig: React.FC = () => {
     if (!selectedTeamId || saving) return;
     setSaving(true);
     try {
+      // Write each source with its own dot-notation key so future keys on
+      // xpConfig.sources (e.g. a chat split) aren't wiped by an older client
+      // that only knows about participation + badges.
       const patch: Record<string, any> = {
         'xpConfig.enabled': enabled,
-        'xpConfig.sources': {
-          participation: sources.participation,
-          badges: sources.badges,
-        },
+        'xpConfig.sources.participation': sources.participation,
+        'xpConfig.sources.badges': sources.badges,
       };
       // Stamp enabledAt on first-ever enable so downstream code that
       // treats "no enabledAt" as never-opted-in stays consistent.
@@ -188,32 +191,43 @@ const CoachXpConfig: React.FC = () => {
           </div>
         </section>
 
-        {/* Source toggles — only meaningful when master is on */}
-        {enabled && (
-          <section className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5">
-            <p className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/55">
-              What earns XP
+        {/* Source toggles — dimmed but visible when master is off, so the
+            coach can preview / stage source config before flipping master on. */}
+        <section
+          className={`rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5 transition ${
+            enabled ? '' : 'opacity-50 pointer-events-none'
+          }`}
+          aria-disabled={!enabled}
+        >
+          <p className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/55">
+            What earns XP
+          </p>
+          {!enabled && (
+            <p className="mt-2 text-[11px] text-ink-primary/55 leading-relaxed">
+              Turn on Player XP above to configure sources.
             </p>
-            <div className="mt-3 space-y-3">
-              <ToggleRow
-                title="Reward showing up"
-                subtitle="Small XP for daily practice logs, RSVP flips, and kid chat. Turn off if your squad treats these as expected."
-                checked={sources.participation}
-                onChange={(v) => setSources(s => ({ ...s, participation: v }))}
-              />
-              <ToggleRow
-                title="Award badges"
-                subtitle="Milestone badges (first goal, streaks, POTM, perfect attendance) award XP when unlocked. Turn off if streak-chasing is getting anxious."
-                checked={sources.badges}
-                onChange={(v) => setSources(s => ({ ...s, badges: v }))}
-              />
-            </div>
-            <p className="mt-4 text-[11px] text-ink-primary/50 leading-relaxed">
-              Your own recognitions (whispers, live grants, converting a kudos to XP) always land.
-              You chose to give them, we won't second-guess that.
-            </p>
-          </section>
-        )}
+          )}
+          <div className="mt-3 space-y-3">
+            <ToggleRow
+              title="Reward showing up"
+              subtitle="Small XP for daily practice logs, RSVP flips, and kid chat. Turn off if your squad treats these as expected."
+              checked={sources.participation}
+              disabled={!enabled}
+              onChange={(v) => setSources(s => ({ ...s, participation: v }))}
+            />
+            <ToggleRow
+              title="Award badges"
+              subtitle="Milestone badges (first goal, streaks, POTM, perfect attendance) award XP when unlocked. Turn off if streak-chasing is getting anxious."
+              checked={sources.badges}
+              disabled={!enabled}
+              onChange={(v) => setSources(s => ({ ...s, badges: v }))}
+            />
+          </div>
+          <p className="mt-4 text-[11px] text-ink-primary/50 leading-relaxed">
+            Your own recognitions (whispers, live grants, converting a kudos to XP) always land.
+            You chose to give them, we won't second-guess that.
+          </p>
+        </section>
 
         {/* Team XP status */}
         <section className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5">
@@ -272,16 +286,19 @@ const ToggleSwitch: React.FC<{
   checked: boolean;
   onChange: (v: boolean) => void;
   label: string;
-}> = ({ checked, onChange, label }) => (
+  disabled?: boolean;
+}> = ({ checked, onChange, label, disabled }) => (
   <button
     type="button"
     role="switch"
     aria-checked={checked}
     aria-label={label}
-    onClick={() => onChange(!checked)}
+    aria-disabled={disabled}
+    disabled={disabled}
+    onClick={() => { if (!disabled) onChange(!checked); }}
     className={`shrink-0 relative inline-flex h-7 w-12 items-center rounded-full transition ${
       checked ? 'bg-brand-primary' : 'bg-line-default/25'
-    }`}
+    } ${disabled ? 'cursor-not-allowed' : ''}`}
   >
     <span
       className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition ${
@@ -296,13 +313,14 @@ const ToggleRow: React.FC<{
   subtitle: string;
   checked: boolean;
   onChange: (v: boolean) => void;
-}> = ({ title, subtitle, checked, onChange }) => (
+  disabled?: boolean;
+}> = ({ title, subtitle, checked, onChange, disabled }) => (
   <div className="rounded-xl bg-surface-base/50 ring-1 ring-line-default/10 p-3 flex items-start gap-3">
     <div className="min-w-0 flex-1">
       <p className="text-sm font-bold">{title}</p>
       <p className="mt-1 text-[12px] text-ink-primary/65 leading-snug">{subtitle}</p>
     </div>
-    <ToggleSwitch checked={checked} onChange={onChange} label={title} />
+    <ToggleSwitch checked={checked} onChange={onChange} label={title} disabled={disabled} />
   </div>
 );
 

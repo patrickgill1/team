@@ -21,14 +21,12 @@ import { XP_SOURCE_LABELS, XpSourceKey } from '../utils/xpSource';
  *  2. Milestones         — firstGoal, firstAssist, firstSave,
  *                          firstCleanSheet, firstPotm
  *  3. Streaks & attendance — streaks, perfectAttendance
- *  4. Coach actions      — whisper
+ *  4. Coach actions      — whisper, coachLiveGrant, kudosConvert
  *
  * Ship 1's coarse `participation` + `badges` keys stay on the team doc
  * as fallbacks. Teams that only ever flipped Ship 1's two toggles keep
  * the same behavior until the coach opens a section here and sets an
- * explicit per-source flag. Coach live grants + kudos->XP are NOT
- * exposed — those stay always-on when master is on (the coach chose
- * to grant, we don't second-guess).
+ * explicit per-source flag.
  */
 
 // Per-source toggle grouping. Order here drives the UI order.
@@ -59,7 +57,7 @@ const SECTIONS: SectionSpec[] = [
   {
     key: 'coachActions',
     title: 'Coach actions',
-    keys: ['whisper'],
+    keys: ['whisper', 'coachLiveGrant', 'kudosConvert'],
   },
 ];
 
@@ -77,6 +75,8 @@ const XP_SOURCE_SUBTITLES: Record<XpSourceKey, string> = {
   streaks: '+50 to +400 XP as practice streaks hit 5, 10, 25, 50 days.',
   perfectAttendance: '+200 XP for perfect attendance across a run of team events.',
   whisper: '+50 XP each time you send a parent whisper.',
+  coachLiveGrant: 'Coach-picked XP handed out in Grant XP flow. Turn off to disable that action end-to-end.',
+  kudosConvert: 'Convert Circle Kudos to XP with one tap. Turn off to keep Kudos as celebration-only.',
 };
 
 /** Resolve the initial per-source toggle state. Reads explicit per-source
@@ -94,7 +94,7 @@ function initialSourceValue(
   if (key === 'practice' || key === 'rsvp' || key === 'kidChat') {
     return sources.participation !== false;
   }
-  if (key === 'whisper') return true;
+  if (key === 'whisper' || key === 'coachLiveGrant' || key === 'kudosConvert') return true;
   // Everything else falls under Ship 1 'badges'.
   return sources.badges !== false;
 }
@@ -337,10 +337,6 @@ const CoachXpConfigInner: React.FC = () => {
               );
             })}
           </div>
-          <p className="mt-4 text-[11px] text-ink-primary/50 leading-relaxed">
-            Live grants and converting a kudos to XP always land. You chose to give
-            them, we won't second-guess that.
-          </p>
         </section>
 
         {/* Team XP status */}

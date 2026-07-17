@@ -1,9 +1,7 @@
 import { Team } from '../types';
 
 /** Per-source XP toggle keys. See team.xpConfig.sources on the type
- *  for the full list + fallbacks. Coach live grants + kudos->XP
- *  conversion do NOT flow through this helper — those stay on
- *  whenever master is on (coach chose to grant).
+ *  for the full list + fallbacks.
  *
  *  Ship 1 coarse keys `participation` + `badges` still exist on the
  *  team doc for backwards compat and act as fallbacks below. They're
@@ -20,7 +18,9 @@ export type XpSourceKey =
   | 'firstPotm'
   | 'streaks'
   | 'perfectAttendance'
-  | 'whisper';
+  | 'whisper'
+  | 'coachLiveGrant'
+  | 'kudosConvert';
 
 /** Which Ship 1 coarse key covers each per-source key when the
  *  per-source key is missing (undefined). `whisper` has no coarse
@@ -37,6 +37,10 @@ const COARSE_FALLBACK: Record<XpSourceKey, 'participation' | 'badges' | null> = 
   streaks: 'badges',
   perfectAttendance: 'badges',
   whisper: null,
+  // Ship 2 coach-action keys — no coarse fallback, no legacy behavior
+  // to inherit. Default on when absent (handled below).
+  coachLiveGrant: null,
+  kudosConvert: null,
 };
 
 /** Warm-voice labels for the per-source toggles surfaced in
@@ -53,6 +57,8 @@ export const XP_SOURCE_LABELS: Record<XpSourceKey, string> = {
   streaks: 'Streak badges',
   perfectAttendance: 'Perfect attendance',
   whisper: 'Whisper XP',
+  coachLiveGrant: 'Live grant',
+  kudosConvert: 'Kudos to XP',
 };
 
 /**

@@ -293,10 +293,13 @@ const PlayerOfMatch: React.FC = () => {
     const player = players.find(p => p.id === selectedPlayer);
     if (!player) return;
 
-    // Prevent parents from voting for their own children. For adult
-    // teams the same guard reads as "can't vote for yourself" since
-    // adult self-players sit in their own parentIds.
-    if (!isUserCoach && player.parentIds?.includes(userData.uid)) {
+    // Prevent voters from voting for their own children. Applies to
+    // parents AND coach-parents (a coach whose own kid is on the
+    // roster still can't cast for them — same rule as parents so the
+    // ballot stays clean). For adult teams the guard reads as "can't
+    // vote for yourself" since adult self-players sit in their own
+    // parentIds.
+    if (player.parentIds?.includes(userData.uid)) {
       const isAdultTeam = (selectedTeam as any)?.audienceType === 'adult';
       alert(isAdultTeam
         ? "You can't vote for yourself. Pick another player."
@@ -525,9 +528,10 @@ const PlayerOfMatch: React.FC = () => {
       eligible = players.filter(p => activeVoting.eligiblePlayerIds!.includes(p.id));
     }
 
-    if (isUserCoach) return eligible;
-    
-    return eligible.filter(player => 
+    // Every voter (parent or coach) gets filtered by "not your kid" —
+    // a coach-parent still can't vote for their own child, matching
+    // the handleVote guard above.
+    return eligible.filter(player =>
       !player.parentIds?.includes(userData?.uid || '')
     );
   };
@@ -764,7 +768,7 @@ const PlayerOfMatch: React.FC = () => {
                     <select
                       value={selectedPlayer}
                       onChange={(e) => setSelectedPlayer(e.target.value)}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-base text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     >
                       <option value="">Select a player...</option>
                       {votableePlayers.map(player => (
@@ -773,7 +777,7 @@ const PlayerOfMatch: React.FC = () => {
                         </option>
                       ))}
                     </select>
-                    {!isUserCoach && (
+                    {players.some(p => p.parentIds?.includes(userData?.uid || '')) && (
                       <p className="text-xs text-ink-primary/50 mt-1">
                         Note: You cannot vote for your own child
                       </p>

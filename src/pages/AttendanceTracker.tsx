@@ -59,7 +59,14 @@ const AttendanceTracker: React.FC = () => {
   // isn't affected.
   const visiblePlayers = useMemo(() => {
     if (isUserCoach || !userData) return players;
-    return players.filter(p => (p as any).parentIds?.includes?.(userData.uid));
+    // Legacy player docs use singular `parentId`; newer ones use
+    // `parentIds[]`. Dashboard's myPlayers, notify.ts, and
+    // ParentDirectory all union the two shapes — mirror that here
+    // so a parent on a legacy doc still sees their kid's row.
+    return players.filter((p: any) =>
+      (Array.isArray(p.parentIds) && p.parentIds.includes(userData.uid)) ||
+      p.parentId === userData.uid
+    );
   }, [players, userData, isUserCoach]);
 
   useEffect(() => {

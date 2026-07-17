@@ -19,9 +19,14 @@ interface Props {
   /** Fired after a successful tap so the parent can reload the player
    *  + plans (the streak chip etc. will re-render with fresh data). */
   onUpdated?: () => void;
+  /** Kid-in-app double (2026-07-17): true when this card is rendered
+   *  inside the kid mode shell (KidDashboard). Doubles the practice
+   *  micro-XP from +5 to +10 on the "I did it" tap. Defaults false so
+   *  the parent PlayerProfile callsite keeps the base amount. */
+  isKidActor?: boolean;
 }
 
-const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStreakDays, onUpdated }) => {
+const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStreakDays, onUpdated, isKidActor = false }) => {
   const navigate = useNavigate();
   const [busy, setBusy] = useState<string | null>(null);
   const [localPlans, setLocalPlans] = useState<DevelopmentPlan[]>(plans);
@@ -88,7 +93,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
       // page locally shows the new number. Patrick: "i go to the
       // development plan and it says 5 day is complete, but still
       // shows 4."
-      await recomputeAndPersistPlayerStreak(playerId, optimisticActive, actor);
+      await recomputeAndPersistPlayerStreak(playerId, optimisticActive, actor, isKidActor);
       onUpdated?.();
     } finally {
       setBusy(null);

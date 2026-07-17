@@ -325,6 +325,10 @@ const KidDashboard: React.FC = () => {
             actor={userData ? { uid: (userData as any).uid, name: (userData as any).name || firstName } : null}
             currentStreakDays={(player as any).currentStreakDays || 0}
             onUpdated={() => { /* onSnapshot listeners refresh */ }}
+            // Kid-in-app double (2026-07-17): this card is rendered
+            // inside the KidDashboard shell, so the actor is by
+            // definition in kid mode — practice tick pays +10 not +5.
+            isKidActor
           />
         )}
 
@@ -678,7 +682,10 @@ const KidRsvpButtons: React.FC<{
         },
       });
       if (crossedIntoGoing) {
-        void awardMicroXp(playerId, 5, {
+        // Kid-in-app double (2026-07-17): this component only ever
+        // renders inside the KidDashboard shell, so the actor is by
+        // definition in kid mode. Award +10 instead of the base +5.
+        void awardMicroXp(playerId, 10, {
           xpEnabled: Boolean(xpEnabled),
           actionKey: 'rsvp_going',
         });

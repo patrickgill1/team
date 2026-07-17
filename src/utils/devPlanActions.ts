@@ -214,7 +214,14 @@ export function computeStreakDays(
 export async function recomputeAndPersistPlayerStreak(
   playerId: string,
   activePlansAfterUpdate: DevelopmentPlan[],
-  actor?: { uid: string; name: string; role?: string }
+  actor?: { uid: string; name: string; role?: string },
+  /** Kid-in-app double (2026-07-17): when the "I did it" tap fires from
+   *  the kid mode shell (KidDashboard, KidHeroCard etc.), the practice
+   *  micro-XP doubles from +5 to +10. Defaults false so parent + coach
+   *  callsites keep the base amount. Only affects the practice
+   *  participation micro-XP — badge XP + streak milestones + wall posts
+   *  are unchanged. */
+  isKidActor: boolean = false
 ): Promise<number> {
   try {
     // Read the prior streak + player name/team + team rest-day config
@@ -291,7 +298,8 @@ export async function recomputeAndPersistPlayerStreak(
     // Practice tick +5 gates on the per-source 'practice' key (falling
     // back to Ship 1 'participation' coarse). Badge XP already handled above.
     const participationXpEnabled = isXpSourceEnabled(teamDataForXp, 'practice');
-    await composeMicroXpIntoPatch(badgePatch, 5, participationXpEnabled);
+    const practiceMicroXpAmount = isKidActor ? 10 : 5;
+    await composeMicroXpIntoPatch(badgePatch, practiceMicroXpAmount, participationXpEnabled);
     // Compute the XP that lands on this tick BEFORE the write so we
     // can trigger checkLevelUpAndWhisper against priorXp + granted.
     // badgePatch.xp is a Firestore increment sentinel, not a plain
@@ -309,7 +317,9 @@ export async function recomputeAndPersistPlayerStreak(
           }
         }
         if (participationXpEnabled) {
-          xpGrantedThisTick += 5; // matches composeMicroXpIntoPatch(., 5, .)
+          // Must mirror composeMicroXpIntoPatch(., practiceMicroXpAmount, .) above
+          // so the level-up whisper trigger stays in sync with what actually landed.
+          xpGrantedThisTick += practiceMicroXpAmount;
         }
       } catch { /* ignore */ }
     }

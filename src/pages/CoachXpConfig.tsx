@@ -14,35 +14,42 @@ import { XP_SOURCE_LABELS, XpSourceKey } from '../utils/xpSource';
 /**
  * Coach XP Config — /coach/xp
  *
- * Ship 2 (2026-07-17): per-source toggles. Master enable stays on top,
- * then four collapsible sections group the 11 per-source keys:
+ * Ship 3 (2026-07-17): attendance-XP + effort-bonus reshape. Kid-chat
+ * XP retired (chat is now intrinsically motivated). Master enable stays
+ * on top, then four collapsible sections group the per-source keys:
  *
- *  1. Participation      — practice, rsvp, kidChat
+ *  1. Participation      — practice, rsvp, practiceAttendance,
+ *                          gameAttendance
  *  2. Milestones         — firstGoal, firstAssist, firstSave,
  *                          firstCleanSheet, firstPotm
  *  3. Streaks & attendance — streaks, perfectAttendance
- *  4. Coach actions      — whisper, coachLiveGrant, kudosConvert
+ *  4. Coach actions      — whisper, coachLiveGrant, kudosConvert,
+ *                          effortBonus
  *
  * Ship 1's coarse `participation` + `badges` keys stay on the team doc
  * as fallbacks. Teams that only ever flipped Ship 1's two toggles keep
  * the same behavior until the coach opens a section here and sets an
- * explicit per-source flag.
+ * explicit per-source flag. The kidChat key is preserved on the team
+ * doc for backwards compat but no longer surfaces as a toggle here.
  */
 
-// Per-source toggle grouping. Order here drives the UI order.
+// Per-source toggle grouping. Order here drives the UI order. Section
+// keys are the XpSourceKey subset that has a UI label (kidChat omitted
+// on purpose — see XP_SOURCE_LABELS in utils/xpSource.ts).
 type SectionKey = 'participation' | 'milestones' | 'streaksAttendance' | 'coachActions';
+type UiXpKey = Exclude<XpSourceKey, 'kidChat'>;
 
 interface SectionSpec {
   key: SectionKey;
   title: string;
-  keys: XpSourceKey[];
+  keys: UiXpKey[];
 }
 
 const SECTIONS: SectionSpec[] = [
   {
     key: 'participation',
     title: 'Participation',
-    keys: ['practice', 'rsvp', 'kidChat'],
+    keys: ['practice', 'rsvp', 'practiceAttendance', 'gameAttendance'],
   },
   {
     key: 'milestones',
@@ -57,16 +64,18 @@ const SECTIONS: SectionSpec[] = [
   {
     key: 'coachActions',
     title: 'Coach actions',
-    keys: ['whisper', 'coachLiveGrant', 'kudosConvert'],
+    keys: ['whisper', 'coachLiveGrant', 'kudosConvert', 'effortBonus'],
   },
 ];
 
 // Warm-voice subtitle for each per-source toggle. Kept here (not in
-// xpSource.ts) so the resolver stays UI-agnostic.
-const XP_SOURCE_SUBTITLES: Record<XpSourceKey, string> = {
+// xpSource.ts) so the resolver stays UI-agnostic. Only rendered keys
+// need entries.
+const XP_SOURCE_SUBTITLES: Partial<Record<XpSourceKey, string>> = {
   practice: '+5 XP when a kid taps "I did it today" on a practice log.',
   rsvp: '+5 XP when a kid flips their own RSVP to going.',
-  kidChat: '+2 XP per kid chat message, daily cap 20.',
+  practiceAttendance: '+10 XP when you mark a player attended at practice.',
+  gameAttendance: '+15 XP when you mark a player attended at a match.',
   firstGoal: '+100 XP the first time a kid scores.',
   firstAssist: '+100 XP the first time a kid picks up an assist.',
   firstSave: '+100 XP the first time a keeper makes a save.',
@@ -77,24 +86,35 @@ const XP_SOURCE_SUBTITLES: Record<XpSourceKey, string> = {
   whisper: '+50 XP each time you send a parent whisper.',
   coachLiveGrant: 'Coach-picked XP handed out in Grant XP flow. Turn off to disable that action end-to-end.',
   kudosConvert: 'Convert Circle Kudos to XP with one tap. Turn off to keep Kudos as celebration-only.',
+  effortBonus: '+5 XP on top of attendance when you tap the Effort checkbox during roll call.',
 };
 
 /** Resolve the initial per-source toggle state. Reads explicit per-source
  *  keys first; if missing, mirrors the Ship 1 coarse fallback so the
  *  displayed state matches what's actually granting. */
 function initialSourceValue(
-  key: XpSourceKey,
+  key: UiXpKey,
   sources: Record<string, unknown> | undefined | null,
 ): boolean {
   if (!sources) return true;
   const explicit = sources[key];
   if (explicit === true) return true;
   if (explicit === false) return false;
-  // Fall back to coarse Ship 1 keys.
-  if (key === 'practice' || key === 'rsvp' || key === 'kidChat') {
+  // Fall back to coarse Ship 1 keys for the classic participation trio.
+  if (key === 'practice' || key === 'rsvp') {
     return sources.participation !== false;
   }
-  if (key === 'whisper' || key === 'coachLiveGrant' || key === 'kudosConvert') return true;
+  // Ship 2 + Ship 3 keys have no coarse fallback — default on.
+  if (
+    key === 'whisper' ||
+    key === 'coachLiveGrant' ||
+    key === 'kudosConvert' ||
+    key === 'practiceAttendance' ||
+    key === 'gameAttendance' ||
+    key === 'effortBonus'
+  ) {
+    return true;
+  }
   // Everything else falls under Ship 1 'badges'.
   return sources.badges !== false;
 }
@@ -118,7 +138,7 @@ const CoachXpConfigInner: React.FC = () => {
   const initialSources: PendingSources = useMemo(() => {
     const src = (selectedTeam as any)?.xpConfig?.sources || {};
     const out: PendingSources = {};
-    (Object.keys(XP_SOURCE_LABELS) as XpSourceKey[]).forEach((k) => {
+    (Object.keys(XP_SOURCE_LABELS) as UiXpKey[]).forEach((k) => {
       out[k] = initialSourceValue(k, src);
     });
     return out;
@@ -176,7 +196,7 @@ const CoachXpConfigInner: React.FC = () => {
 
   const dirty = useMemo(() => {
     if (enabled !== initialEnabled) return true;
-    for (const k of Object.keys(XP_SOURCE_LABELS) as XpSourceKey[]) {
+    for (const k of Object.keys(XP_SOURCE_LABELS) as UiXpKey[]) {
       if ((sources[k] ?? true) !== (initialSources[k] ?? true)) return true;
     }
     return false;
@@ -197,7 +217,7 @@ const CoachXpConfigInner: React.FC = () => {
       const patch: Record<string, any> = {
         'xpConfig.enabled': enabled,
       };
-      (Object.keys(XP_SOURCE_LABELS) as XpSourceKey[]).forEach((k) => {
+      (Object.keys(XP_SOURCE_LABELS) as UiXpKey[]).forEach((k) => {
         patch[`xpConfig.sources.${k}`] = sources[k] !== false;
       });
       // Stamp enabledAt on first-ever enable so downstream code that
@@ -324,8 +344,8 @@ const CoachXpConfigInner: React.FC = () => {
                       {section.keys.map((k) => (
                         <ToggleRow
                           key={k}
-                          title={XP_SOURCE_LABELS[k]}
-                          subtitle={XP_SOURCE_SUBTITLES[k]}
+                          title={XP_SOURCE_LABELS[k] || k}
+                          subtitle={XP_SOURCE_SUBTITLES[k] || ''}
                           checked={sources[k] !== false}
                           disabled={!enabled}
                           onChange={(v) => setSources(s => ({ ...s, [k]: v }))}

@@ -221,7 +221,7 @@ const AttendanceTracker: React.FC = () => {
             const player = players.find(p => p.id === pid) as any;
             return maybeGrantPerfectAttendance(pid, c.attended, c.total, {
               existingBadges: player?.badges,
-              xpEnabled: isXpSourceEnabled(selectedTeam as any, 'badges'),
+              team: selectedTeam as any,
             });
           }));
         }

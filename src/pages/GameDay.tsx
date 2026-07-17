@@ -486,7 +486,7 @@ const GameDay: React.FC = () => {
             existingBadges: freshBadges,
             context: event.title || 'Match',
             seasonId: (event as any).seasonId,
-            xpEnabled: isXpSourceEnabled(selectedTeam as any, 'badges'),
+            team: selectedTeam as any,
           },
         );
         // Write a per-game stat record for anyone who registered a

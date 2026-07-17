@@ -413,7 +413,7 @@ const PlayerOfMatch: React.FC = () => {
               {
                 gameTitle: activeVoting.gameTitle,
                 seasonId: (activeVoting as any).seasonId,
-                xpEnabled: isXpSourceEnabled(selectedTeam as any, 'badges'),
+                team: selectedTeam as any,
               },
             );
             const patch: Record<string, any> = { isCurrentPotm: true, potmAt: new Date() };

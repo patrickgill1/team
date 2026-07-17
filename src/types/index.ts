@@ -2203,15 +2203,48 @@ export interface Team {
       ranByUid: string;
       ranByName: string;
     };
-    /** Per-source opt-outs. Both fields optional; missing = enabled.
+    /** Per-source opt-outs. All fields optional; missing = enabled.
      *  When master enabled=false the sources map is ignored (all off).
-     *  Coach manual paths (whisper +50, live grant, kudos->XP) are NOT
-     *  gated by this — those stay on whenever master is on. */
+     *  Coach live grant + kudos->XP conversion stay always-on whenever
+     *  master is on (coach chose to grant). Whisper +50 IS gated.
+     *
+     *  Resolution order (see src/utils/xpSource.ts):
+     *   1. master enabled? no => everything off
+     *   2. per-source key defined? use it
+     *   3. coarse fallback key defined? use it
+     *   4. default true
+     *
+     *  Ship 1 coarse keys `participation` + `badges` stay as fallbacks so
+     *  existing teams keep the same behavior until the coach opens the
+     *  finer-grained toggles in CoachXpConfig. */
     sources?: {
-      /** Practice log tick, RSVP flip, kid chat +2. */
+      /** Ship 1 coarse fallback: practice + rsvp + kidChat. */
       participation?: boolean;
-      /** first_*, streaks, perfect_attendance, first_potm. */
+      /** Ship 1 coarse fallback: firstGoal/firstAssist/firstSave/
+       *  firstCleanSheet/firstPotm/streaks/perfectAttendance. */
       badges?: boolean;
+      /** Practice log tick +5. */
+      practice?: boolean;
+      /** Kid RSVP flip +5. */
+      rsvp?: boolean;
+      /** Kid chat +2. */
+      kidChat?: boolean;
+      /** first_goal badge +100. */
+      firstGoal?: boolean;
+      /** first_assist badge +100. */
+      firstAssist?: boolean;
+      /** first_save badge +100. */
+      firstSave?: boolean;
+      /** first_clean_sheet badge +100. */
+      firstCleanSheet?: boolean;
+      /** first_potm badge +150. */
+      firstPotm?: boolean;
+      /** streak_5/10/25/50 badges (+50 to +400). */
+      streaks?: boolean;
+      /** perfect_attendance badge +200. */
+      perfectAttendance?: boolean;
+      /** Coach whisper +50 XP. */
+      whisper?: boolean;
     };
   };
   /** Coach control over the weekly email digest sent to parents.

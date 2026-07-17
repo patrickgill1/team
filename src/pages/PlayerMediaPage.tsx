@@ -343,7 +343,7 @@ const PlayerMediaPage: React.FC = () => {
             {
               existingBadges: (player as any).badges,
               context: 'Clip credit',
-              xpEnabled: isXpSourceEnabled(selectedTeam as any, 'badges'),
+              team: selectedTeam as any,
             },
           );
         } catch { /* non-fatal */ }

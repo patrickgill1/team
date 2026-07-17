@@ -424,7 +424,7 @@ const KidDashboard: React.FC = () => {
                       playerPhotoUrl={player.profilePhotoUrl || null}
                       parentUid={(userData as any)?.uid}
                       currentStatus={currentStatus}
-                      xpEnabled={isXpSourceEnabled(team as any, 'participation')}
+                      xpEnabled={isXpSourceEnabled(team as any, 'rsvp')}
                     />
                   </li>
                 );

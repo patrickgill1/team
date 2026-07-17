@@ -51,6 +51,7 @@ import { createLeague, createFixture, reportFixtureScore, recomputeStandings } f
 interface Env {
   FIREBASE_PROJECT_ID?: string;
   FCM_SERVICE_ACCOUNT?: string;
+  APP_ORIGIN?: string;
 }
 
 const json = (body: unknown, status = 200): Response =>
@@ -3602,6 +3603,15 @@ async function handleXpAwardWhisper(req: Request, env: Env, payload: any): Promi
   if (teamData?.xpConfig?.enabled !== true) {
     return json({ ok: false, error: 'xp_not_enabled' }, 403);
   }
+  // Ship 2 per-source gate. Whisper +50 has its own toggle now — the
+  // coach can silence Whisper XP without disabling other Coach paths.
+  // Mirrors isXpSourceEnabled in src/utils/xpSource.ts: explicit false
+  // blocks, missing key defaults on (Ship 1 teams stay unchanged since
+  // whisper has no coarse fallback).
+  const whisperFlag = teamData?.xpConfig?.sources?.whisper;
+  if (whisperFlag === false) {
+    return json({ ok: false, error: 'xp_source_disabled' }, 403);
+  }
   const clubId = teamData.clubId ? String(teamData.clubId) : '';
 
   const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
@@ -4621,6 +4631,105 @@ async function handleDevPlansLogVerify(req: Request, env: Env, payload: any): Pr
   });
 }
 
+// ────────────────────────────────────────────────────────────────
+// POST /surveys/response-created — public endpoint. The client
+// (PublicSurvey.tsx) fires this fire-and-forget after addDoc on
+// survey_responses succeeds. The worker looks up the parent
+// survey doc for title + teamId, reads team.coachIds, and pushes
+// "{name} completed {title}" to every coach with an FCM token.
+//
+// PUBLIC by design — public surveys can be filled out by
+// unauthenticated parents (cold link in email / SMS). No auth
+// scope check; the worst-case abuse (someone spamming this with
+// fake surveyIds) resolves to a Firestore read miss + 404. The
+// endpoint does NOT accept any user-provided display copy — the
+// title comes from the survey doc, respondentName from the survey
+// response the client just wrote, so a bad actor can't hijack the
+// notification body.
+//
+// Idempotency: the client only calls once per submit. If a retry
+// storms it, we accept the extra push (parents doing survey twice
+// is already handled by the client's localStorage duplicate guard).
+//
+// fromUid excludes the responding coach from their own push so a
+// coach who fills out their own team's survey doesn't self-notify.
+// ────────────────────────────────────────────────────────────────
+async function handleSurveyResponseCreated(_req: Request, env: Env, payload: any): Promise<Response> {
+  const surveyId = String(payload?.surveyId || '');
+  const respondentName = payload?.respondentName ? String(payload.respondentName).slice(0, 100) : '';
+  const fromUid = payload?.fromUid ? String(payload.fromUid) : '';
+  if (!surveyId) return json({ ok: false, error: 'survey_id_required' }, 400);
+
+  const { pid, sa } = projectAndSA(env);
+
+  const surveyDoc = await getDocument(pid, `surveys/${surveyId}`, sa).catch(() => null);
+  if (!surveyDoc?.data) return json({ ok: false, error: 'survey_not_found' }, 404);
+  const survey: any = surveyDoc.data;
+  const title = String(survey.title || 'the survey').slice(0, 100);
+  const teamId = String(survey.teamId || '');
+  if (!teamId) return json({ ok: false, error: 'survey_missing_team' }, 400);
+
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  if (!teamDoc?.data) return json({ ok: false, error: 'team_not_found' }, 404);
+  const team: any = teamDoc.data;
+  const coachIds: string[] = Array.isArray(team.coachIds)
+    ? team.coachIds.filter((u: unknown) => typeof u === 'string' && u.length > 0)
+    : [];
+  const recipients = fromUid ? coachIds.filter(uid => uid !== fromUid) : coachIds;
+  if (recipients.length === 0) {
+    return json({ ok: true, sent: 0, note: 'no_coach_recipients' });
+  }
+
+  if (!env.FCM_SERVICE_ACCOUNT) {
+    return json({ ok: false, error: 'fcm-not-configured' }, 503);
+  }
+
+  // Resolve FCM tokens across all coaches, honoring push prefs.
+  // 'broadcast' is the closest pref key (informational, non-message).
+  // Absent prefs default true — matches DEFAULT_PUSH_PREFS on client.
+  const tokens: string[] = [];
+  for (const uid of recipients) {
+    try {
+      const uDoc = await getDocument(pid, `users/${uid}`, sa).catch(() => null);
+      if (!uDoc?.data) continue;
+      const u: any = uDoc.data;
+      if (u.isActive === false) continue;
+      if (u.pushPreferences && u.pushPreferences.broadcast === false) continue;
+      const arr: string[] = Array.isArray(u.fcmTokens) ? u.fcmTokens : [];
+      for (const t of arr) {
+        if (typeof t === 'string' && t.length > 10) tokens.push(t);
+      }
+    } catch { /* ignore per-user lookup failures */ }
+  }
+  const uniqueTokens = Array.from(new Set(tokens));
+  if (uniqueTokens.length === 0) {
+    return json({ ok: true, sent: 0, note: 'no_tokens' });
+  }
+
+  // Anonymous surveys don't leak a name — respondentName is empty for
+  // survey.isAnonymous === true (client strips it before POST). "Someone"
+  // keeps the notif informational without exposing the token owner.
+  const name = respondentName || 'Someone';
+  const pushTitle = 'Survey response';
+  const pushBody = `${name} completed ${title}`;
+  const appOrigin = env.APP_ORIGIN || 'https://app.goalkickr.com';
+  const url = `${appOrigin}/surveys/${surveyId}`;
+
+  const { sendPush } = await import('./fcm');
+  try {
+    const result = await sendPush(uniqueTokens, {
+      title: pushTitle,
+      body: pushBody,
+      url,
+      badge: 1,
+    }, env.FCM_SERVICE_ACCOUNT);
+    return json({ ok: true, sent: result.sent, tokens: uniqueTokens.length });
+  } catch (err: any) {
+    console.warn('[surveys] response-created push failed', err);
+    return json({ ok: false, error: 'push_failed', detail: String(err?.message || err).slice(0, 200) }, 502);
+  }
+}
+
 export async function routeWriteGuard(
   pathname: string,
   req: Request,
@@ -4680,6 +4789,7 @@ export async function routeWriteGuard(
     case '/dev-plans/log-verify':  return handleDevPlansLogVerify(req, env, payload);
     case '/register/submit':       return handleRegisterSubmit(req, env, payload);
     case '/parent/pool-status':    return handleParentPoolStatus(req, env, payload);
+    case '/surveys/response-created': return handleSurveyResponseCreated(req, env, payload);
     default:                       return null;
   }
 }

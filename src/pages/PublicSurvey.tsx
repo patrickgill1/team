@@ -76,6 +76,9 @@ const StarRating: React.FC<{ value: number; max: number; onChange: (v: number) =
 // ─── Main Component ───────────────────────────────────────────────────────────
 const PublicSurvey: React.FC = () => {
   const { surveyId } = useParams<{ surveyId: string }>();
+  // Optional. Signed-in coaches who take their own survey get excluded
+  // from the follow-up push via fromUid; unauth respondents pass null.
+  const { userData } = useAuth();
 
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [loading, setLoading] = useState(true);
@@ -176,6 +179,27 @@ const PublicSurvey: React.FC = () => {
 
       // Increment response count
       await updateDoc(doc(db, 'surveys', surveyId), { responseCount: increment(1) });
+
+      // Fire the coach notification fanout. Public endpoint (unauth OK)
+      // so cold-link parents can trigger it. Fire-and-forget: errors
+      // swallowed so a worker hiccup never blocks the "thanks" screen.
+      try {
+        const { workerOrigin, hasWorkerConfig } = await import('../utils/workerFetch');
+        if (hasWorkerConfig()) {
+          const respondentName = survey.isAnonymous
+            ? null
+            : (name.trim() || 'Anonymous');
+          void fetch(`${workerOrigin()}/surveys/response-created`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              surveyId,
+              respondentName,
+              fromUid: userData?.uid || null,
+            }),
+          }).catch(() => { /* swallow */ });
+        }
+      } catch { /* non-fatal */ }
 
       if (!survey.isAnonymous && name.trim()) setRespondentName(name.trim());
       markSubmitted(surveyId);

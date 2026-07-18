@@ -168,8 +168,9 @@ const Navigation: React.FC = () => {
     isCoachOfTeam: isCoachOfTeam(userData, selectedTeam),
     isClubAdmin: isClubAdmin(userData),
     isParentMode: (userData as any)?.role === 'parent',
+    isAdultTeam,
     myPlayer: linkedPlayers[0] ? ({ id: linkedPlayers[0].id, name: linkedPlayers[0].name } as any) : null,
-  }), [userData, selectedTeam, linkedPlayers]);
+  }), [userData, selectedTeam, isAdultTeam, linkedPlayers]);
 
   const searchResults = useMemo(
     () => filterActions(SEARCHABLE_ACTIONS, moreSearch, searchCtx),

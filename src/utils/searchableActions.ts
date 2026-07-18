@@ -18,6 +18,7 @@ export interface SearchCtx {
   isCoachOfTeam: boolean;
   isClubAdmin: boolean;
   isParentMode: boolean;
+  isAdultTeam: boolean;
   myPlayer: Player | null;
 }
 
@@ -37,6 +38,10 @@ const always = () => true;
 const coach = (c: SearchCtx) => c.isCoachOfTeam;
 const admin = (c: SearchCtx) => c.isClubAdmin;
 const hasPlayer = (c: SearchCtx) => !!c.myPlayer?.id;
+// Youth-only surfaces (Development, etc.) drop out for adult teams.
+// Mirrors the isAdultTeam suppression in Navigation.tsx so search can't
+// leak a youth-only screen onto Patrick's adult pickup wedge.
+const youthOnly = (c: SearchCtx) => !c.isAdultTeam;
 
 // Top-level page rows. Mirrors allNavItems in Navigation.tsx so
 // the search returns them without the user having to remember
@@ -57,8 +62,8 @@ const PAGE_ACTIONS: SearchableAction[] = [
   { id: 'page-attendance', label: 'Attendance', description: 'Track who showed up', keywords: ['attendance', 'check in', 'present', 'roll call'], route: '/attendance', icon: 'check', visibleTo: always },
   { id: 'page-volunteers', label: 'Volunteers', description: 'Parent sign-ups and helpers', keywords: ['volunteers', 'volunteer', 'snack', 'signup'], route: '/volunteers', icon: 'handshake', visibleTo: always },
   { id: 'page-directory', label: 'Directory', description: 'Parent contact directory', keywords: ['directory', 'parents', 'contacts', 'phone book'], route: '/directory', icon: 'phone', visibleTo: always },
-  { id: 'page-development', label: 'Development', description: 'Player growth pathway', keywords: ['development', 'pathway', 'growth', 'progress'], route: '/development', icon: 'chart', visibleTo: always },
-  { id: 'page-game-day', label: 'Game Day', description: 'Live match tracker', keywords: ['game day', 'gameday', 'live', 'match tracker', 'subs'], route: '/coach', icon: 'whistle', visibleTo: coach },
+  { id: 'page-development', label: 'Development', description: 'Player growth pathway', keywords: ['development', 'pathway', 'growth', 'progress'], route: '/development', icon: 'chart', visibleTo: youthOnly },
+  { id: 'page-game-day', label: 'Game Day', description: 'Live match tracker', keywords: ['game day', 'gameday', 'live', 'match tracker', 'subs'], route: '/game-day', icon: 'whistle', visibleTo: coach },
   { id: 'page-practice-plan', label: 'Practice Plan', description: 'Build a practice plan', keywords: ['practice plan', 'plan', 'training plan', 'session'], route: '/practice-plan', icon: 'clipboard', visibleTo: coach },
   { id: 'page-surveys', label: 'Surveys', description: 'Ask the team', keywords: ['surveys', 'survey', 'poll', 'questionnaire', 'form'], route: '/surveys', icon: 'survey', visibleTo: coach },
   { id: 'page-equipment', label: 'Equipment', description: 'Gear the squad needs', keywords: ['equipment', 'gear', 'balls', 'cones'], route: '/equipment', icon: 'check', visibleTo: coach },
@@ -74,8 +79,8 @@ const PAGE_ACTIONS: SearchableAction[] = [
 // /coach/xp so a coach can jump straight to the toggle they need.
 const XP_ACTIONS: SearchableAction[] = [
   { id: 'xp-master', label: 'Turn on Player XP for this team', description: 'Enable the whole XP system', keywords: ['xp', 'player xp', 'enable xp', 'turn on xp', 'master toggle', 'xp on'], route: '/coach/xp', anchor: 'master', icon: 'trophy', visibleTo: coach },
-  { id: 'xp-practice', label: 'Toggle practice log XP', description: 'Points when a kid taps I did it', keywords: ['xp', 'practice', 'practice log', 'i did it', 'practice xp'], route: '/coach/xp', anchor: 'source-practice', icon: 'trophy', visibleTo: coach },
-  { id: 'xp-rsvp', label: 'Toggle RSVP XP', description: 'Points when a kid RSVPs going', keywords: ['xp', 'rsvp', 'rsvp xp'], route: '/coach/xp', anchor: 'source-rsvp', icon: 'trophy', visibleTo: coach },
+  { id: 'xp-practice', label: 'Toggle practice log XP', description: 'Points when a player taps I did it', keywords: ['xp', 'practice', 'practice log', 'i did it', 'practice xp'], route: '/coach/xp', anchor: 'source-practice', icon: 'trophy', visibleTo: coach },
+  { id: 'xp-rsvp', label: 'Toggle RSVP XP', description: 'Points when a player RSVPs going', keywords: ['xp', 'rsvp', 'rsvp xp'], route: '/coach/xp', anchor: 'source-rsvp', icon: 'trophy', visibleTo: coach },
   { id: 'xp-practice-attendance', label: 'Toggle practice attended XP', description: 'Points when marked present at practice', keywords: ['xp', 'attendance', 'practice attendance', 'practiceattendance'], route: '/coach/xp', anchor: 'source-practiceAttendance', icon: 'trophy', visibleTo: coach },
   { id: 'xp-game-attendance', label: 'Toggle game attended XP', description: 'Points when marked present at a match', keywords: ['xp', 'game attendance', 'gameattendance', 'match attendance'], route: '/coach/xp', anchor: 'source-gameAttendance', icon: 'trophy', visibleTo: coach },
   { id: 'xp-effort-bonus', label: 'Toggle effort bonus XP', description: 'Coach-granted effort bonus', keywords: ['xp', 'effort', 'effort bonus', 'bonus'], route: '/coach/xp', anchor: 'source-effortBonus', icon: 'trophy', visibleTo: coach },
@@ -104,8 +109,8 @@ const CLUB_ACTIONS: SearchableAction[] = [
   { id: 'club-branding', label: 'Club branding', description: 'Logo, colors, wordmark', keywords: ['club', 'branding', 'logo', 'colors', 'palette'], route: '/club/branding', icon: 'palette', visibleTo: admin },
   { id: 'club-admins', label: 'Club admins', description: 'Grant access to staff', keywords: ['club', 'admins', 'staff', 'members', 'permissions'], route: '/club/admins', icon: 'shield', visibleTo: admin },
   { id: 'club-teams', label: 'Club teams', description: 'All the teams under this club', keywords: ['club', 'teams', 'roster of teams'], route: '/club', icon: 'club', visibleTo: admin },
-  { id: 'club-registrations', label: 'Registrations', description: 'Season sign-ups and offers', keywords: ['registrations', 'registration', 'sign ups', 'signups', 'seasons'], route: '/registrations', icon: 'clipboard', visibleTo: admin },
-  { id: 'club-tryouts', label: 'Tryouts', description: 'Player evaluation cycles', keywords: ['tryouts', 'evaluations', 'tryout'], route: '/tryouts', icon: 'clipboard', visibleTo: admin },
+  { id: 'club-registrations', label: 'Registrations', description: 'Season sign-ups and offers', keywords: ['registrations', 'registration', 'sign ups', 'signups', 'seasons'], route: '/club/registrations', icon: 'clipboard', visibleTo: admin },
+  { id: 'club-tryouts', label: 'Tryouts', description: 'Player evaluation cycles', keywords: ['tryouts', 'evaluations', 'tryout'], route: '/club/tryouts', icon: 'clipboard', visibleTo: admin },
 ];
 
 // Player profile deep actions. Only surface when the current
@@ -134,7 +139,7 @@ const PLAYER_ACTIONS: SearchableAction[] = [
     label: 'Player Circle',
     description: 'Add family to the Circle',
     keywords: ['circle', 'player circle', 'family', 'crew', 'guardians', 'add to circle'],
-    route: '/player-circle',
+    route: '/circle',
     icon: 'players',
     visibleTo: hasPlayer,
   },
@@ -143,7 +148,11 @@ const PLAYER_ACTIONS: SearchableAction[] = [
 // Settings deep actions.
 const SETTINGS_ACTIONS: SearchableAction[] = [
   { id: 'settings-notifications', label: 'Turn on notifications', description: 'Push and email preferences', keywords: ['notifications', 'push', 'alerts', 'email notifications'], route: '/settings', anchor: 'notifications', icon: 'bell', visibleTo: always },
-  { id: 'settings-role', label: 'Switch to Family or Coach mode', description: 'Change your account role', keywords: ['role', 'switch role', 'family mode', 'coach mode', 'parent', 'switch to family', 'switch to coach'], route: '/settings', anchor: 'role-switch', icon: 'user', visibleTo: always },
+  // Role switch only renders in Settings for accounts currently in
+  // Coach mode; parents can't self-service switch back (see Settings.tsx
+  // guard on currentGlobalRole === 'coach'). Gate the search entry too
+  // so we don't promise a jump the anchor won't answer.
+  { id: 'settings-role', label: 'Switch to Family mode', description: 'Change your account role', keywords: ['role', 'switch role', 'family mode', 'coach mode', 'parent', 'switch to family'], route: '/settings', anchor: 'role-switch', icon: 'user', visibleTo: (c) => (c.userData as any)?.role === 'coach' },
   { id: 'settings-appearance', label: 'Appearance', description: 'Light or dark mode', keywords: ['appearance', 'theme', 'light mode', 'dark mode', 'colors'], route: '/settings', anchor: 'appearance', icon: 'palette', visibleTo: always },
   { id: 'settings-email', label: 'Email preferences', description: 'What lands in your inbox', keywords: ['email', 'email preferences', 'digest', 'unsubscribe'], route: '/settings', anchor: 'email', icon: 'gear', visibleTo: always },
   { id: 'settings-subscription', label: 'Subscription', description: 'Your GoalKickr plan', keywords: ['subscription', 'billing', 'plan', 'upgrade', 'payment'], route: '/settings', anchor: 'subscription', icon: 'gear', visibleTo: always },
@@ -167,11 +176,15 @@ export const SEARCHABLE_ACTIONS: SearchableAction[] = [
 // needs to fill it in.
 export function resolveRoute(action: SearchableAction, ctx: SearchCtx): string {
   if (action.route) return withAnchor(action);
+  // The player edit modal opens off /player/:playerId — no dedicated
+  // /edit route exists. PlayerProfile watches for ?edit=1 and flips
+  // editOpen on mount, so the search deep-link lands straight in the
+  // edit sheet instead of the profile.
   if (action.id === 'player-edit' && ctx.myPlayer?.id) {
-    return `/player/${ctx.myPlayer.id}/edit`;
+    return `/player/${ctx.myPlayer.id}?edit=1`;
   }
   if (action.id === 'player-photo' && ctx.myPlayer?.id) {
-    return `/player/${ctx.myPlayer.id}/edit`;
+    return `/player/${ctx.myPlayer.id}?edit=1`;
   }
   // Fallback — should not happen if the entry is visible.
   return '/settings';

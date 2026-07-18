@@ -195,7 +195,15 @@ const PlayerCircle: React.FC = () => {
           where('playerId', '==', playerId),
           orderBy('createdAt', 'desc'),
         ));
-        setWhispers(snap.docs.map(d => {
+        // Same kind filter as PlayerProfile: parent_whispers is a mixed
+        // bag (dev-plan did_it/coach_verify, level_up broadcasts, real
+        // whispers). Circle only wants coach whispers + recognitions +
+        // legacy no-kind docs. Client-side filter avoids a new index.
+        const whisperDocs = snap.docs.filter(d => {
+          const k = (d.data() as any).kind;
+          return k === 'whisper' || k === 'recognition' || k == null;
+        });
+        setWhispers(whisperDocs.map(d => {
           const v: any = d.data();
           return {
             id: d.id,

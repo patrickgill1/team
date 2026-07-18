@@ -114,6 +114,11 @@ export async function checkLevelUpAndWhisper(
           previousLevel: level - 1,
           xp: safeNew,
           parentIds,
+          // Populate message + coachName so if any downstream reader
+          // forgets the kind filter, the row still reads sensibly
+          // instead of showing as an empty "Coach" whisper.
+          message: `${playerName || 'Player'} leveled up to Lvl ${level}!`,
+          coachName: 'GoalKickr',
           createdAt: serverTimestamp(),
         });
       } catch (err) {

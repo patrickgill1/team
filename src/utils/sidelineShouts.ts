@@ -75,8 +75,13 @@ export function buildSidelineShouts(args: Args): SidelineShout[] {
     });
   }
 
-  // Whispers
+  // Whispers.
+  // Belt-and-suspenders: reads already filter parent_whispers by kind
+  // (whisper / recognition / legacy), but if an empty-body doc still
+  // sneaks through we don't want a phantom "Coach" card. Drop any
+  // whisper whose message is missing or whitespace-only.
   for (const w of args.whispers) {
+    if (!w.message || String(w.message).trim() === '') continue;
     shouts.push({
       id: `whisper-${w.id}`,
       type: 'whisper',

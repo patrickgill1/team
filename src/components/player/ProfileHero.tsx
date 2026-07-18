@@ -64,18 +64,24 @@ const ProfileHero: React.FC<Props> = ({
           </button>
         ) : <span />}
         <div className="flex items-center gap-2">
-          {/* Whisper — coach's private note to parents. Icon-only to
-              keep the top nav compact; the tooltip carries the label
-              for anyone hovering. */}
+          {/* Whisper — coach's private note to parents. Matches the
+              Kudos pill shape (icon + label) so it's discoverable on
+              mobile where hover tooltips never fire. Uses a subdued
+              ink treatment (not brand-primary) to stay visually
+              distinct from Give Kudos and to signal "coach-only
+              action" per project_sideline_shouts framing. 2026-07-18:
+              was icon-only chat-bubble which read as "team chat" and
+              coaches missed it. */}
           {showWhisper && onWhisper && (
             <button
               type="button"
               onClick={onWhisper}
-              className="w-10 h-10 rounded-full bg-surface-input hover:bg-surface-raised ring-1 ring-line-default/15 flex items-center justify-center text-ink-primary"
-              aria-label="Send a private note to this player's parents"
-              title="Whisper — private note to parents"
+              className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full bg-surface-input hover:bg-surface-raised ring-1 ring-line-default/15 text-ink-primary text-[11px] font-black uppercase tracking-[0.14em] transition whitespace-nowrap"
+              aria-label="Send a private whisper to this player's parents"
+              title="Whisper: private note to this player's parents"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+              Whisper
             </button>
           )}
           {/* Kudos — Circle-member action. Sits alongside Edit at the

@@ -567,7 +567,16 @@ const PlayerProfile: React.FC = () => {
           where('playerId', '==', playerId),
           orderBy('createdAt', 'desc'),
         ));
-        setWhispers(wSnap.docs.map(d => {
+        // Keep only real Sideline Shout whispers: explicit whisper/recognition
+        // kinds plus legacy docs that pre-date the `kind` field. Dev-plan
+        // bookkeeping (did_it, coach_verify) and level_up broadcasts live in
+        // the same collection but shouldn't render as coach whispers here.
+        // Filter on the client so we don't need a new composite index.
+        const whisperDocs = wSnap.docs.filter(d => {
+          const k = (d.data() as any).kind;
+          return k === 'whisper' || k === 'recognition' || k == null;
+        });
+        setWhispers(whisperDocs.map(d => {
           const data: any = d.data();
           return {
             id: d.id,
@@ -600,21 +609,28 @@ const PlayerProfile: React.FC = () => {
             collection(db, 'parent_whispers'),
             where('playerId', '==', playerId),
           ));
-          const list = wSnap.docs.map(d => {
-            const data: any = d.data();
-            return {
-              id: d.id,
-              coachUid: data.coachUid || '',
-              message: data.message || '',
-              coachName: data.coachName || 'Coach',
-              coachAvatarUrl: data.coachAvatarUrl || null,
-              devPlanTitle: data.devPlanTitle || null,
-              clipUrl: data.clipUrl || null,
-              clipCaption: data.clipCaption || null,
-              createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
-              teamId: data.teamId || undefined,
-            };
-          });
+          // Same kind filter as the primary read: drop dev-plan and
+          // level_up bookkeeping, keep whispers + recognitions + legacy.
+          const list = wSnap.docs
+            .filter(d => {
+              const k = (d.data() as any).kind;
+              return k === 'whisper' || k === 'recognition' || k == null;
+            })
+            .map(d => {
+              const data: any = d.data();
+              return {
+                id: d.id,
+                coachUid: data.coachUid || '',
+                message: data.message || '',
+                coachName: data.coachName || 'Coach',
+                coachAvatarUrl: data.coachAvatarUrl || null,
+                devPlanTitle: data.devPlanTitle || null,
+                clipUrl: data.clipUrl || null,
+                clipCaption: data.clipCaption || null,
+                createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
+                teamId: data.teamId || undefined,
+              };
+            });
           list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
           setWhispers(list);
         } catch { /* whispers absent on this profile is fine */ }

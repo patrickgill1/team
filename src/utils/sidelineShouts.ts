@@ -12,7 +12,7 @@
 // All sources are already readable by Circle members via the whispers
 // rule; no rule change needed.
 
-import type { Player, PlayerXpEvent } from '../types';
+import type { Player, PlayerXpEvent, PlayerMedia, MomentType } from '../types';
 import { badgeLabel, badgeImageSrc } from './badgeMeta';
 
 export type SidelineShoutType =
@@ -20,7 +20,8 @@ export type SidelineShoutType =
   | 'whisper'
   | 'xp_note'
   | 'badge'
-  | 'potm_comment';
+  | 'potm_comment'
+  | 'highlight';
 
 export interface SidelineShout {
   id: string; // stable per-item key for React
@@ -35,6 +36,12 @@ export interface SidelineShout {
   xpAmount?: number;
   badgeSlug?: string;
   badgeImage?: string;
+  // For 'highlight' shouts: which moment type + a jump-to link.
+  momentType?: MomentType;
+  mediaId?: string;
+  mediaUrl?: string;
+  playerId?: string;
+  playerName?: string;
 }
 
 // Coach-authored XP sources whose `note` we want to surface as shouts.
@@ -49,6 +56,11 @@ interface Args {
   whispers: Array<{ id: string; coachName: string; coachAvatarUrl?: string | null; message: string; createdAt: Date }>;
   xpEvents: Array<{ id: string; awardedByName?: string | null; awardedBy?: string; source: string; note?: string | null; xp: number; createdAt: Date }>;
   potmVotes: Array<{ voting: any; playerVotes: Array<{ voterName: string; reason?: string }> }>;
+  /** Coach-tagged highlight clips (PlayerMedia w/ momentType set).
+   *  Optional so existing callers keep working; wire in wherever
+   *  the caller already has player_media for the player. Zero
+   *  side-effects — this is a display tag, not a stat/XP event. */
+  highlights?: PlayerMedia[];
   /** When set, badges are filtered to only those earned inside this
    *  season (via `badges[slug].seasonId === activeSeasonId`). Legacy
    *  badges with no seasonId are dropped in season mode; they still
@@ -159,8 +171,41 @@ export function buildSidelineShouts(args: Args): SidelineShout[] {
     }
   }
 
+  // Highlight clips — coach-tagged moments (goal / assist / big play).
+  // Purely display; zero stat/XP/badge side-effects live in this loop.
+  // The clip's uploader is the "speaker" so the shout reads as
+  // "Coach shared a highlight" — matches the emotional payload.
+  for (const m of (args.highlights || [])) {
+    if (!m.momentType) continue;
+    const at = (m as any).createdAt?.toDate?.() || (m.createdAt instanceof Date ? m.createdAt : null);
+    if (!at) continue;
+    shouts.push({
+      id: `highlight-${m.id}`,
+      type: 'highlight',
+      timestamp: at,
+      fromName: m.uploadedByName || 'Coach',
+      body: m.caption || momentBodyForShout(m.momentType, m.playerName),
+      momentType: m.momentType,
+      mediaId: m.id,
+      mediaUrl: m.url,
+      playerId: m.playerId,
+      playerName: m.playerName,
+    });
+  }
+
   shouts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   return shouts;
+}
+
+/** Fallback body when the coach didn't leave a caption. Warm + short. */
+function momentBodyForShout(kind: MomentType, playerName?: string): string {
+  const name = (playerName || '').split(' ')[0] || 'They';
+  switch (kind) {
+    case 'goal':     return `${name} put one in the net.`;
+    case 'assist':   return `${name} set it up.`;
+    case 'big_play': return `${name} came up big.`;
+    default:         return `${name} had a moment.`;
+  }
 }
 
 /** Human-readable label per type — matches the visual chips on
@@ -171,6 +216,7 @@ export const SHOUT_TYPE_LABEL: Record<SidelineShoutType, string> = {
   xp_note: 'From coach',
   badge: 'Badge earned',
   potm_comment: 'Player of the Match',
+  highlight: 'Highlight',
 };
 
 /** Border-left / accent color per type. Kudos + Whispers stay brand
@@ -184,6 +230,7 @@ export function shoutAccentClass(type: SidelineShoutType): string {
     case 'xp_note':
     case 'badge':
     case 'potm_comment':
+    case 'highlight':
       return 'border-amber-500/70';
     default:
       return 'border-line-default/30';

@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { useStorage } from '../hooks/useStorage';
-import { Player, PlayerMedia as PlayerMediaType } from '../types';
+import { Player, PlayerMedia as PlayerMediaType, MomentType, MOMENT_TYPES } from '../types';
 import { isCoachOfTeam, canManageTeamMedia, formatDate } from '../utils/helpers';
 import { isXpSourceEnabled } from '../utils/xpSource';
 import { useTeamAudience } from '../hooks/useTeamAudience';
@@ -28,6 +28,47 @@ import { db } from '../utils/firebase';
 
 const ACTIVITY_TAGS = ['Goal', 'Own Goal', 'Assist', 'Save', 'Skill', 'Practice', 'Highlight', 'Celebration', 'Tournament', 'Training'];
 const ITEMS_PER_PAGE = 20;
+
+/** Monoline SVG icons for each momentType. 2px stroke, currentColor —
+ *  matches the existing icon aesthetic throughout the upload modal. */
+const MomentIcon: React.FC<{ kind: 'goal' | 'assist' | 'big_play'; className?: string }> = ({ kind, className = 'w-5 h-5' }) => {
+  const stroke = { strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  if (kind === 'goal') {
+    // Goal-mouth silhouette: crossbar + posts + a hint of net.
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke} aria-hidden>
+        <path d="M3 6h18" />
+        <path d="M5 6v14" />
+        <path d="M19 6v14" />
+        <path d="M5 10h14" />
+        <path d="M5 14h14" />
+        <path d="M5 20l14 0" />
+      </svg>
+    );
+  }
+  if (kind === 'assist') {
+    // Curved arrow — the pass that made it.
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke} aria-hidden>
+        <path d="M4 17 Q 12 4, 20 12" />
+        <path d="M15 11 L 20 12 L 19 17" />
+      </svg>
+    );
+  }
+  // big_play — lightning bolt.
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke} aria-hidden>
+      <path d="M13 3 L 4 14 L 11 14 L 10 21 L 19 10 L 13 10 Z" />
+    </svg>
+  );
+};
+
+/** Warm short label for a momentType — used on the pill overlay. */
+function momentLabel(kind: 'goal' | 'assist' | 'big_play'): string {
+  if (kind === 'goal') return 'Goal';
+  if (kind === 'assist') return 'Assist';
+  return 'Big play';
+}
 
 const PlayerMediaPage: React.FC = () => {
   const { userData } = useAuth();
@@ -64,7 +105,7 @@ const PlayerMediaPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'highlights' | 'fullgames' | 'photos'>('highlights');
   const [searchQuery, setSearchQuery] = useState('');
   // Media-type split — All / Videos only / Photos only.
-  const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'video' | 'photo'>('all');
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'video' | 'photo' | 'highlight'>('all');
   // For parents — their linked player. Once loaded, the page auto-
   // selects that player so opening Media drops them straight onto their
   // kid's clips.
@@ -86,6 +127,9 @@ const PlayerMediaPage: React.FC = () => {
   const [uploadCaption, setUploadCaption] = useState('');
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadTags, setUploadTags] = useState<string[]>([]);
+  // Coach-only display tag. NEVER a stat entry, NEVER an XP grant,
+  // NEVER a badge trigger — the whole point of the feature.
+  const [uploadMomentType, setUploadMomentType] = useState<MomentType | ''>('');
   const [uploadTaggedPlayers, setUploadTaggedPlayers] = useState<string[]>([]);
   const [uploadGoalScorerId, setUploadGoalScorerId] = useState<string>('');
   const [uploadAssistByIds, setUploadAssistByIds] = useState<string[]>([]);
@@ -513,6 +557,14 @@ const PlayerMediaPage: React.FC = () => {
         // We need the new media doc id BEFORE bumping stats so we can pass it
         // into the live-game dedup helper. Build the doc payload first, add it,
         // then apply credits.
+        // Coach-only momentType. Parents can upload media but can't
+        // classify it as a highlight — the tag is coach-authored
+        // curation, not user-generated. If a non-coach ever reaches
+        // this code path (they shouldn't; the picker is gated), the
+        // value gets stripped here as belt-and-suspenders.
+        const momentTypeToSave: MomentType | undefined =
+          isUserCoach && uploadMomentType ? (uploadMomentType as MomentType) : undefined;
+
         const mediaPayload: any = {
           playerId: uploadPlayerId,
           playerName: player.name,
@@ -529,6 +581,7 @@ const PlayerMediaPage: React.FC = () => {
           taggedPlayerIds: uploadTaggedPlayers.length > 0 ? uploadTaggedPlayers : undefined,
           gameId: uploadGameId || undefined,
           isOwnGoal: isOwnGoal ? true : undefined,
+          ...(momentTypeToSave ? { momentType: momentTypeToSave } : {}),
           ...(streamUid ? { streamUid } : {}),
           updatedAt: new Date(),
         };
@@ -1003,6 +1056,7 @@ const PlayerMediaPage: React.FC = () => {
     setUploadGoalScorerId('');
     setUploadAssistByIds([]);
     setUploadGameId('');
+    setUploadMomentType('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -1302,9 +1356,13 @@ const PlayerMediaPage: React.FC = () => {
     ? media.filter(m => m.playerId === selectedPlayerId || (m.taggedPlayerIds || []).includes(selectedPlayerId))
     : media;
   // Split by media type (videos / photos / both) before tags + search.
+  // 'highlight' is a filter across BOTH types — anything with a
+  // coach-tagged momentType shows here, video or photo.
   const typeFilteredMedia = mediaTypeFilter === 'all'
     ? playerFilteredMedia
-    : playerFilteredMedia.filter(m => (m.type || 'video') === mediaTypeFilter);
+    : mediaTypeFilter === 'highlight'
+      ? playerFilteredMedia.filter(m => !!m.momentType)
+      : playerFilteredMedia.filter(m => (m.type || 'video') === mediaTypeFilter);
   // Filter media by selected tags
   const tagFilteredMedia = filterTags.length > 0
     ? typeFilteredMedia.filter(m => filterTags.some(t => m.tags?.includes(t)))
@@ -1676,8 +1734,9 @@ const PlayerMediaPage: React.FC = () => {
                 <div className="inline-flex bg-line-default/5 ring-1 ring-line-default/10 rounded-full p-0.5 flex-shrink-0">
                   {[
                     { k: 'all' as const, label: 'All' },
-                    { k: 'video' as const, label: '🎬 Videos' },
                     { k: 'photo' as const, label: 'Photos' },
+                    { k: 'video' as const, label: 'Videos' },
+                    { k: 'highlight' as const, label: 'Moments' },
                   ].map((opt) => (
                     <button
                       key={opt.k}
@@ -1779,7 +1838,20 @@ const PlayerMediaPage: React.FC = () => {
                 )
               ) : (
                 <>
-                  <DarkMediaGrid items={filteredMedia} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} isUserCoach={isUserCoach} />
+                  <DarkMediaGrid
+                    items={filteredMedia}
+                    onView={setSelectedMedia}
+                    onDelete={handleDelete}
+                    onLike={handleLike}
+                    onShare={handleShare}
+                    userData={userData}
+                    isUserCoach={isUserCoach}
+                    emptyLabel={mediaTypeFilter === 'highlight'
+                      ? (isUserCoach
+                          ? 'No moments tagged yet. Pick a moment (Goal, Assist, or Big play) next time you upload a clip.'
+                          : 'No moments tagged yet. Coaches can tag goals, assists, and big plays. They will show up here.')
+                      : undefined}
+                  />
                   {hasMore && (
                     <div className="text-center pt-4">
                       <button
@@ -1908,6 +1980,55 @@ const PlayerMediaPage: React.FC = () => {
                       placeholder="Optional caption..."
                     />
                   </div>
+                  {/* Highlight picker — coach-only display tag.
+                      Explicitly NOT a stat entry: no XP, no badges,
+                      no live-game write. Copy calls this out so a
+                      coach never confuses it with the Goal/Assist
+                      tag row below (which DOES bump stats). */}
+                  {isUserCoach && (
+                    <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-3 sm:p-4">
+                      <div className="flex items-baseline justify-between mb-1">
+                        <label className="text-sm font-bold text-ink-primary">Tag this moment</label>
+                        <span className="text-[10px] font-black tracking-widest uppercase text-ink-primary/45">Display only</span>
+                      </div>
+                      <p className="text-xs text-ink-primary/60 mb-3 leading-snug">
+                        Optional. This tags the clip so it surfaces under the Moments filter. It does not count as a stat or grant XP. Use the Goal or Assist tag below for stats.
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {([
+                          { key: '' as const,        label: 'None',      hint: 'Just a clip' },
+                          ...MOMENT_TYPES.map(m => ({ key: m.key, label: m.short, hint: m.hint })),
+                        ]).map(opt => {
+                          const on = uploadMomentType === (opt.key as MomentType | '');
+                          return (
+                            <button
+                              key={opt.key || 'none'}
+                              type="button"
+                              onClick={() => setUploadMomentType(opt.key as MomentType | '')}
+                              className={`flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 text-center transition ring-1 ${
+                                on
+                                  ? 'bg-brand-primary/15 ring-brand-primary-soft/60 text-ink-primary'
+                                  : 'bg-transparent ring-line-default/15 text-ink-primary/70 hover:bg-line-default/[0.05]'
+                              }`}
+                            >
+                              <span className={on ? 'text-brand-primary-soft' : 'text-ink-primary/55'}>
+                                {opt.key === '' ? (
+                                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                    <path d="M4 4l16 16" />
+                                    <circle cx="12" cy="12" r="9" />
+                                  </svg>
+                                ) : (
+                                  <MomentIcon kind={opt.key as 'goal' | 'assist' | 'big_play'} />
+                                )}
+                              </span>
+                              <span className="text-xs font-bold leading-none">{opt.label}</span>
+                              <span className="text-[10px] text-ink-primary/45 leading-tight">{opt.hint}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-ink-primary/85 mb-1">Tags</label>
                     <div className="flex flex-wrap gap-1.5">
@@ -2746,6 +2867,15 @@ const FeaturedCard: React.FC<FeaturedCardProps> = ({ item, player, timeAgo, onCl
           </div>
         </div>
       )}
+      {/* Highlight overlay — coach-tagged moment. Display only. */}
+      {item.momentType && (
+        <div className="pointer-events-none absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-brand-primary text-white pl-2 pr-2.5 py-1 shadow ring-1 ring-black/10">
+          <MomentIcon kind={item.momentType} className="w-4 h-4" />
+          <span className="text-[10px] font-black uppercase tracking-widest">
+            {momentLabel(item.momentType)}
+          </span>
+        </div>
+      )}
       {/* Bottom info gradient */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent p-3 pt-10">
         <div className="flex items-center gap-2">
@@ -2837,10 +2967,11 @@ interface DarkMediaGridProps {
   onShare: (item: PlayerMediaType) => void;
   userData: any;
   isUserCoach: boolean;
+  emptyLabel?: string;
 }
-const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, onLike, onShare, userData, isUserCoach }) => {
+const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, onLike, onShare, userData, isUserCoach, emptyLabel }) => {
   if (items.length === 0) {
-    return <div className="text-center py-8 text-ink-primary/50 text-sm">No clips here.</div>;
+    return <div className="text-center py-8 text-ink-primary/50 text-sm">{emptyLabel || 'No clips here.'}</div>;
   }
   const isLiked = (item: PlayerMediaType) => item.likes?.includes(userData?.uid || '') || false;
   const canDelete = (item: PlayerMediaType) => userData?.uid === item.uploadedBy || isUserCoach;
@@ -2883,6 +3014,12 @@ const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, 
               <div className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center">
                 <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
               </div>
+            </div>
+          )}
+          {item.momentType && (
+            <div className="pointer-events-none absolute top-2 left-2 flex items-center gap-1 rounded-full bg-brand-primary text-white pl-1.5 pr-2 py-1 shadow-sm ring-1 ring-black/10">
+              <MomentIcon kind={item.momentType} className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Highlight</span>
             </div>
           )}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-2">

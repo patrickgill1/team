@@ -2962,6 +2962,27 @@ export interface ParentWhisper {
 // PLAYER MEDIA (Per-Player Gallery)
 // ================================
 
+/** Coach-declared classification for a highlight clip. Display-only —
+ *  never wired to stats, XP, or badges (that's the whole point of
+ *  the feature). Coaches opt in per upload; parents can view but
+ *  not set. */
+export type MomentType = 'goal' | 'assist' | 'big_play';
+
+export interface MomentTypeMeta {
+  key: MomentType;
+  label: string;
+  short: string;
+  hint: string;
+}
+
+/** Warm, soccer-native labels used in the upload picker + overlays.
+ *  Icons are rendered inline as monoline SVGs at the call sites. */
+export const MOMENT_TYPES: readonly MomentTypeMeta[] = [
+  { key: 'goal',     label: 'Goal',     short: 'Goal',     hint: 'Back of the net.' },
+  { key: 'assist',   label: 'Assist',   short: 'Assist',   hint: 'The pass that made it.' },
+  { key: 'big_play', label: 'Big play', short: 'Big play', hint: 'Save, tackle, or spark.' },
+] as const;
+
 export interface PlayerMedia {
   id: string;
   playerId: string;
@@ -2986,6 +3007,12 @@ export interface PlayerMedia {
   // which often lands on a fade-in/transition frame). Stored in seconds.
   posterTimeSeconds?: number;
   type: 'photo' | 'video';
+  // Coach-declared "moment type" for highlight clips. Purely a
+  // display/curation tag — NEVER a stat entry, NEVER an XP grant,
+  // NEVER a badge trigger. Set on upload by a coach; parents can
+  // upload media but cannot tag momentType (see coach-only guard
+  // on the upload picker + the applyMomentTypeGuard() call).
+  momentType?: MomentType;
   caption?: string;
   uploadedBy: string;
   uploadedByName: string;

@@ -12,6 +12,7 @@ import { normalizeKit } from '../../utils/kitColors';
 import { autoPostGameToWall } from '../../utils/autoPostToWall';
 import { sendPushToTeam } from '../../utils/notify';
 import { debug } from '../../utils/debug';
+import { grossUpCents, coachNetCents, DROPIN_DEFAULT_PLATFORM_BPS } from '../../utils/pricing';
 
 /** Compact location for the Recent + Favorites quick-pick rows. */
 interface PickableLocation {
@@ -42,11 +43,16 @@ const EventForm: React.FC<EventFormProps> = ({
   // Team-shape gates:
   //   isAdult      → adult (opt-in) fee is legal for the "refs/field"
   //                 use case even on a fixed roster.
-  //   isPickup     → drop-in team; unlocks both RSVP cap and per-event
-  //                 fee prompts with pickup-flavored copy.
+  //   isPickup     → drop-in team; unlocks the pickup-flavored copy
+  //                 (RSVP cap + waitlist).
+  // Fee input is available to any coach who wants to collect for a
+  // tournament / referee / field cost — including youth roster teams.
+  // Gating it out on Fire FC would silently strip legacy feeCents on
+  // edit and hide the tournament-fee use case entirely.
   const { isAdult, isPickup } = useTeamAudience(selectedTeam);
-  const showRsvpCap = isPickup;
-  const showFee = isPickup || isAdult;
+  const legacyHasCap = typeof (editingEvent as any)?.rsvpCap === 'number' && (editingEvent as any).rsvpCap > 0;
+  const showRsvpCap = isPickup || legacyHasCap;
+  const showFee = true;
 
   const [formData, setFormData] = useState({
     title: '',
@@ -112,6 +118,29 @@ const EventForm: React.FC<EventFormProps> = ({
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  // Club's platform-fee override, if any. Used so the "Player sees $X"
+  // preview in the Fees helper matches what the worker will actually
+  // charge at Checkout — a club with a non-default rate would
+  // otherwise show a client-side number that differs from Stripe's.
+  const [platformFeeBps, setPlatformFeeBps] = useState<number>(DROPIN_DEFAULT_PLATFORM_BPS);
+  useEffect(() => {
+    const clubId = (selectedTeam as any)?.clubId;
+    if (!clubId) { setPlatformFeeBps(DROPIN_DEFAULT_PLATFORM_BPS); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'clubs', clubId));
+        if (cancelled) return;
+        const bps = (snap.exists() && typeof snap.data()?.platformFeeBps === 'number')
+          ? Number(snap.data()!.platformFeeBps)
+          : DROPIN_DEFAULT_PLATFORM_BPS;
+        setPlatformFeeBps(bps);
+      } catch {
+        if (!cancelled) setPlatformFeeBps(DROPIN_DEFAULT_PLATFORM_BPS);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [(selectedTeam as any)?.clubId]);
 
   useEffect(() => {
     if (editingEvent) {
@@ -1328,12 +1357,12 @@ const EventForm: React.FC<EventFormProps> = ({
                 <p className="text-[11px] text-ink-primary/60 mt-1 leading-snug">
                   {isPickup
                     ? 'What each player pays to play. Card charges route to your Stripe account.'
-                    : 'Optional. Leave blank for regular training. Splits evenly across players who RSVP going.'}
+                    : 'Charged to every attendee who marks Going. Not split. Card charges route to your Stripe account.'}
                 </p>
               ) : (
                 !isPickup && (
                   <p className="text-[11px] text-ink-primary/60 mt-1 leading-snug">
-                    Leave blank for regular training.
+                    Leave blank for regular training. Set a per-head amount for tournaments, referee splits, or field rental.
                   </p>
                 )
               )}
@@ -1345,6 +1374,9 @@ const EventForm: React.FC<EventFormProps> = ({
                 const raw = String(formData.feeDollars || '').trim();
                 const dollars = Number(raw);
                 if (!raw || !Number.isFinite(dollars) || dollars <= 0) return null;
+                const feeCents = Math.round(dollars * 100);
+                const grossed = grossUpCents(feeCents, platformFeeBps);
+                const coachNet = coachNetCents(feeCents, platformFeeBps);
                 return (
                   <div className="mt-3 rounded-lg bg-surface-base ring-1 ring-line-default/15 p-3">
                     <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-2">
@@ -1361,8 +1393,8 @@ const EventForm: React.FC<EventFormProps> = ({
                         <span className="text-sm font-semibold text-ink-primary block">Player covers fees</span>
                         <span className="text-[11px] text-ink-primary/60 block leading-snug mt-0.5">
                           {formData.feeCoveredBy === 'player'
-                            ? `Player sees one price that covers card + platform fees. You net $${dollars.toFixed(2)} per head.`
-                            : "You'll absorb Stripe + platform fees from your deposit."}
+                            ? `Player pays $${(grossed / 100).toFixed(2)} per head. You keep the full $${dollars.toFixed(2)}.`
+                            : `Player pays $${dollars.toFixed(2)} per head. You keep $${(coachNet / 100).toFixed(2)} after card + platform fees.`}
                         </span>
                       </span>
                     </label>
@@ -1371,12 +1403,13 @@ const EventForm: React.FC<EventFormProps> = ({
               })()}
 
               {/* Personal-club Connect nudge. Save still works — the
-                  worker auto-creates the personal club shell on save.
-                  This is only a heads-up so the coach knows the next
-                  step to actually collect money. */}
+                  worker auto-creates the personal club shell on save,
+                  which grants the coach access to /club so they can
+                  finish Stripe Connect and start collecting cards.
+                  Cash-paid mark works even before payouts are live. */}
               {!(selectedTeam as any)?.clubId && String(formData.feeDollars || '').trim() && (
                 <p className="text-[11px] text-amber-600 mt-2 leading-snug">
-                  Heads up: to actually collect card payments, finish Stripe payouts setup after saving. Cash-paid mark works either way.
+                  To collect card payments, finish payouts setup in the Club tab after saving. Cash-paid mark works either way.
                 </p>
               )}
             </div>

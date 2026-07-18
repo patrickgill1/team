@@ -1904,8 +1904,17 @@ export interface CalendarEvent {
    *  the union of paidUids ∪ paidByCoach. Coexists with the Stripe
    *  path so a coach can mark cash-paid on any event with feeCents > 0
    *  even before Stripe Connect is wired up. Written only by the
-   *  /events/mark-paid worker endpoint (coach-of-team check). */
+   *  /events/mark-paid worker endpoint (coach-of-team check).
+   *  Only for adult attendees who RSVP with their own uid — kid
+   *  roster entries land in paidByCoachPlayerIds instead so two
+   *  siblings sharing a parent uid don't contaminate each other. */
   paidByCoach?: string[];
+  /** Roster playerIds the coach has marked as paid IRL. Parallel to
+   *  paidByCoach but keyed by playerId so a "mark paid" on kid A
+   *  never bleeds onto kid B when they share a parent account. Same
+   *  worker endpoint (/events/mark-paid) writes this — the request
+   *  carries either { uid } or { playerId }. */
+  paidByCoachPlayerIds?: string[];
   /** Who eats the Stripe + platform fees on a drop-in Checkout.
    *  - 'player' (default): worker grosses up the Checkout line item
    *    so the player sees one total that covers fees; coach nets

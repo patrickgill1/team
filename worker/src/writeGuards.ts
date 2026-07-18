@@ -2249,18 +2249,23 @@ async function handleEventsRsvp(req: Request, env: Env, payload: any): Promise<R
 }
 
 // ────────────────────────────────────────────────────────────────
-// /events/mark-paid — coach toggles a uid in event.paidByCoach for
-// events with feeCents > 0. Coexists with paidUids (Stripe path);
-// display truth is the union of both sets. Idempotent: setting the
-// same state is a no-op returning 200.
-// Body: { eventId, uid, paid: boolean }
+// /events/mark-paid — coach toggles paid state for an attendee on an
+// event with feeCents > 0. Two shapes:
+//   { eventId, uid, paid }       → adult attendee, writes paidByCoach
+//   { eventId, playerId, paid }  → roster kid, writes paidByCoachPlayerIds
+// Coexists with paidUids (Stripe path); display truth is the union
+// of paidUids ∪ paidByCoach ∪ paidByCoachPlayerIds. Idempotent:
+// setting the same state is a no-op returning 200. Kids are marked
+// by playerId so two siblings sharing a parent uid don't contaminate
+// each other.
 // ────────────────────────────────────────────────────────────────
 async function handleEventsMarkPaid(req: Request, env: Env, payload: any): Promise<Response> {
   const eventId = String(payload?.eventId || '').trim();
   const targetUid = String(payload?.uid || '').trim();
+  const targetPlayerId = String(payload?.playerId || '').trim();
   const paid = payload?.paid !== false; // default true so a bare call marks paid
   if (!eventId) return json({ ok: false, error: 'event_id_required' }, 400);
-  if (!targetUid) return json({ ok: false, error: 'uid_required' }, 400);
+  if (!targetUid && !targetPlayerId) return json({ ok: false, error: 'uid_or_player_id_required' }, 400);
 
   const { pid, sa } = projectAndSA(env);
   const ev = await getDocument(pid, `events/${eventId}`, sa).catch(() => null);
@@ -2277,23 +2282,33 @@ async function handleEventsMarkPaid(req: Request, env: Env, payload: any): Promi
     return json({ ok: false, error: 'no_fee_set', hint: 'Set a drop-in fee on the event before marking anyone paid.' }, 400);
   }
 
-  const existing: string[] = Array.isArray(ev.data.paidByCoach) ? ev.data.paidByCoach.filter((v: any) => typeof v === 'string') : [];
-  const set = new Set(existing);
-  const before = set.size;
-  if (paid) set.add(targetUid);
-  else set.delete(targetUid);
-  const nextArr = Array.from(set);
-  const changed = set.size !== before;
+  const existingUids: string[] = Array.isArray(ev.data.paidByCoach) ? ev.data.paidByCoach.filter((v: any) => typeof v === 'string') : [];
+  const existingPids: string[] = Array.isArray(ev.data.paidByCoachPlayerIds) ? ev.data.paidByCoachPlayerIds.filter((v: any) => typeof v === 'string') : [];
+  const uidSet = new Set(existingUids);
+  const pidSet = new Set(existingPids);
+  const beforeUid = uidSet.size;
+  const beforePid = pidSet.size;
+
+  if (targetPlayerId) {
+    if (paid) pidSet.add(targetPlayerId);
+    else pidSet.delete(targetPlayerId);
+  } else {
+    if (paid) uidSet.add(targetUid);
+    else uidSet.delete(targetUid);
+  }
+  const nextUids = Array.from(uidSet);
+  const nextPids = Array.from(pidSet);
+  const changed = uidSet.size !== beforeUid || pidSet.size !== beforePid;
 
   // Idempotent — same state, no write.
   if (!changed) {
-    return json({ ok: true, paidByCoach: nextArr, noop: true });
+    return json({ ok: true, paidByCoach: nextUids, paidByCoachPlayerIds: nextPids, noop: true });
   }
 
-  await patchDocument(pid, `events/${eventId}`, {
-    paidByCoach: nextArr,
-    updatedAt: new Date(),
-  }, sa);
+  const patch: Record<string, any> = { updatedAt: new Date() };
+  if (targetPlayerId) patch.paidByCoachPlayerIds = nextPids;
+  else patch.paidByCoach = nextUids;
+  await patchDocument(pid, `events/${eventId}`, patch, sa);
 
   // Best-effort audit trail — non-blocking on failure. Mirrors the
   // eventActivity shape used elsewhere in the app for coach actions.
@@ -2302,7 +2317,8 @@ async function handleEventsMarkPaid(req: Request, env: Env, payload: any): Promi
       await createDocument(pid, `events/${eventId}/eventActivity`, {
         action: 'markPaid',
         by: claims.uid,
-        target: targetUid,
+        target: targetPlayerId || targetUid,
+        targetKind: targetPlayerId ? 'playerId' : 'uid',
         paid,
         at: new Date(),
       }, sa);
@@ -2311,7 +2327,7 @@ async function handleEventsMarkPaid(req: Request, env: Env, payload: any): Promi
     }
   })());
 
-  return json({ ok: true, paidByCoach: nextArr });
+  return json({ ok: true, paidByCoach: nextUids, paidByCoachPlayerIds: nextPids });
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -2371,6 +2387,21 @@ async function handleClubsPersonalCreateIfMissing(req: Request, env: Env, payloa
   }
 
   await patchDocument(pid, `teams/${teamId}`, { clubId }, sa);
+
+  // Stamp the personal clubId onto the user so isClubAdmin() opens
+  // /club for them and Stripe Connect setup is reachable. arrayUnion
+  // is idempotent — safe to re-fire on subsequent teams.
+  try {
+    await commitDocumentTransforms(
+      pid,
+      `users/${claims.uid}`,
+      [{ fieldPath: 'clubIds', kind: 'arrayUnion', value: clubId }],
+      null,
+      sa,
+    );
+  } catch (err) {
+    console.warn('[personal-club] user.clubIds arrayUnion failed', err);
+  }
 
   return json({ ok: true, clubId, created: true });
 }

@@ -132,8 +132,12 @@ export function formatCents(cents: number): string {
 
 export const DROPIN_STRIPE_PCT = 0.029;
 export const DROPIN_STRIPE_FIXED_CENTS = 30;
-/** Fallback platform fee when platform_settings/defaults is missing. */
-export const DROPIN_DEFAULT_PLATFORM_BPS = 500;
+/** Fallback platform fee when platform_settings/defaults is missing.
+ *  Patrick 2026-07-18: set to 100 bps (1% above Stripe passthrough).
+ *  Raise via platform_settings/defaults (admin-only doc), never in
+ *  coach UI. Baseline was 500. Pricing philosophy: "we're not
+ *  squeezing coaches." Take is intentionally thin. */
+export const DROPIN_DEFAULT_PLATFORM_BPS = 100;
 
 /**
  * Total to charge the customer so the coach nets `feeCents` after

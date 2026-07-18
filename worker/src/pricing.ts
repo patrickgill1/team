@@ -8,7 +8,12 @@
 
 export const DROPIN_STRIPE_PCT = 0.029;
 export const DROPIN_STRIPE_FIXED_CENTS = 30;
-export const DROPIN_DEFAULT_PLATFORM_BPS = 500;
+// Patrick 2026-07-18: platform take set to 1% (100 bps) above Stripe passthrough.
+// Runtime lookup order: clubs/{clubId}.platformFeeBps -> platform_settings/defaults.platformFeeBps
+// -> this hardcoded fallback if both are missing. Baseline was 500; dropped to 100 because the
+// pricing philosophy is "we're not squeezing coaches." Raise via platform_settings/defaults
+// (admin-only doc), never in coach UI.
+export const DROPIN_DEFAULT_PLATFORM_BPS = 100;
 
 /** Total to charge so the coach nets `feeCents` after Stripe +
  *  platform fees. See src/utils/pricing.ts for the notes on rounding

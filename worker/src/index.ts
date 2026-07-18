@@ -59,6 +59,17 @@ import { logWorkerError } from './errorLog';
 import { handleUnsubscribe, handleOpenPixel, runDueCampaigns } from './campaigns';
 import { handleSendVerification } from './authMail';
 import { routeWriteGuard, drainPendingBackground } from './writeGuards';
+import {
+  handleCreatePaymentRequest,
+  handleClosePaymentRequest,
+  handlePaymentMarkPaidCash,
+} from './paymentRequests';
+import {
+  handlePaymentCheckout,
+  handlePaymentSubscriptionCheckout,
+  handlePaymentSubscriptionCancel,
+  handlePaymentRefund,
+} from './stripe';
 
 export interface Env {
   // NOTIFY_SECRET is retained on the env for backwards compatibility
@@ -357,6 +368,100 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       try { payload = await req.json(); } catch {}
       const { handleEventDropInCheckout } = await import('./stripe');
       const res = await handleEventDropInCheckout(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // POST /payments/checkout + /payments/subscription-checkout —
+    // parent-facing pay flows for team payment_requests. Any signed-in
+    // user, worker validates the paymentRequest is active + club is
+    // Stripe-ready.
+    if (url.pathname === '/payments/checkout' && req.method === 'POST') {
+      await requireUser(req, env);
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handlePaymentCheckout(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    if (url.pathname === '/payments/subscription-checkout' && req.method === 'POST') {
+      await requireUser(req, env);
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handlePaymentSubscriptionCheckout(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    if (url.pathname === '/payments/subscription-cancel' && req.method === 'POST') {
+      // Parent cancels their own sub OR coach force-cancels. The
+      // caller's uid MUST match payload.uid unless the caller is a
+      // coach on the payment request's team.
+      const claims = await requireUser(req, env);
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const targetUid = String(payload?.uid || '');
+      if (targetUid && targetUid !== claims.uid) {
+        // Attempt coach check via the payment_request doc.
+        const { getDocument } = await import('./firestore');
+        const { parseServiceAccount } = await import('./fcm');
+        const sa = env.FCM_SERVICE_ACCOUNT ? parseServiceAccount(env.FCM_SERVICE_ACCOUNT) : null;
+        const pid = env.FIREBASE_PROJECT_ID;
+        if (!sa || !pid) return json({ ok: false, error: 'server_not_configured' }, 500, cors);
+        const pr = await getDocument(pid, `payment_requests/${String(payload?.paymentRequestId || '')}`, sa).catch(() => null);
+        const teamId = String(pr?.data?.teamId || '');
+        try { await requireCoachOfTeam(req, env, teamId); }
+        catch (err: any) {
+          const resp = authErrorResponse(err, cors);
+          if (resp) return resp;
+          throw err;
+        }
+      }
+      const res = await handlePaymentSubscriptionCancel(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    if (url.pathname === '/payments/refund' && req.method === 'POST') {
+      // Coach-only. Resolve teamId from the paymentRequest doc first,
+      // then gate on requireCoachOfTeam.
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const { getDocument } = await import('./firestore');
+      const { parseServiceAccount } = await import('./fcm');
+      const sa = env.FCM_SERVICE_ACCOUNT ? parseServiceAccount(env.FCM_SERVICE_ACCOUNT) : null;
+      const pid = env.FIREBASE_PROJECT_ID;
+      if (!sa || !pid) return json({ ok: false, error: 'server_not_configured' }, 500, cors);
+      const pr = await getDocument(pid, `payment_requests/${String(payload?.paymentRequestId || '')}`, sa).catch(() => null);
+      const teamId = String(pr?.data?.teamId || '');
+      await requireCoachOfTeam(req, env, teamId);
+      const res = await handlePaymentRefund(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    if (url.pathname === '/payments/create' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleCreatePaymentRequest(req, env, payload);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    if (url.pathname === '/payments/close' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleClosePaymentRequest(req, env, payload);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    if (url.pathname === '/payments/mark-paid-cash' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handlePaymentMarkPaidCash(req, env, payload);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

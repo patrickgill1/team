@@ -145,6 +145,17 @@ const PLAYER_ACTIONS: SearchableAction[] = [
   },
 ];
 
+// Team Payments deep actions — coach-owned collections (one-off,
+// recurring, catalog) shipped alongside the /coach/payments surface.
+const PAYMENT_ACTIONS: SearchableAction[] = [
+  { id: 'pay-list', label: 'Team payments', description: 'Every collection you have opened', keywords: ['payments', 'team payments', 'dues', 'collections', 'money'], route: '/coach/payments', icon: 'wrench', visibleTo: coach },
+  { id: 'pay-new', label: 'Collect for something', description: 'Start a new payment request', keywords: ['collect', 'new payment', 'ask for money', 'invoice', 'dues', 'tournament', 'fee'], route: '/coach/payments/new', icon: 'wrench', visibleTo: coach },
+  { id: 'pay-tournament', label: 'Collect for a tournament', description: 'One-time collection for tournament fees', keywords: ['tournament', 'travel fee', 'tournament fee', 'vegas'], route: '/coach/payments/new', icon: 'wrench', visibleTo: coach },
+  { id: 'pay-dues', label: 'Team dues', description: 'Recurring subscription for the whole team', keywords: ['dues', 'monthly dues', 'season dues', 'subscription', 'recurring'], route: '/coach/payments/new', icon: 'wrench', visibleTo: coach },
+  { id: 'pay-store', label: 'Team store', description: 'Sell spirit wear and extras', keywords: ['store', 'team store', 'spirit', 'hoodie', 'catalog', 'shop'], route: '/coach/payments/new', icon: 'wrench', visibleTo: coach },
+  { id: 'pay-parent', label: 'Payments', description: 'What your family owes', keywords: ['payments', 'pay', 'dues', 'invoice', 'money'], route: '/payments', icon: 'wrench', visibleTo: always },
+];
+
 // Settings deep actions.
 const SETTINGS_ACTIONS: SearchableAction[] = [
   { id: 'settings-notifications', label: 'Turn on notifications', description: 'Push and email preferences', keywords: ['notifications', 'push', 'alerts', 'email notifications'], route: '/settings', anchor: 'notifications', icon: 'bell', visibleTo: always },
@@ -167,6 +178,7 @@ export const SEARCHABLE_ACTIONS: SearchableAction[] = [
   ...ATTENDANCE_ACTIONS,
   ...CLUB_ACTIONS,
   ...PLAYER_ACTIONS,
+  ...PAYMENT_ACTIONS,
   ...SETTINGS_ACTIONS,
 ];
 

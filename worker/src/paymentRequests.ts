@@ -131,6 +131,22 @@ export async function handleCreatePaymentRequest(
 
   const { clubId } = await ensureClubForTeam(pid, sa, teamId, claims.uid, claims.email || null);
 
+  // Guard: the request is worthless if the club can't accept charges.
+  // Verifier flagged a standalone-coach dead-end where the request was
+  // created but every parent hit `club-not-stripe-ready` at checkout.
+  // Fail fast so the create UI surfaces the "connect Stripe first" hint
+  // instead of shipping a broken payment to families.
+  const clubDoc = await getDocument(pid, `clubs/${clubId}`, sa).catch(() => null);
+  const stripeAccountId = String(clubDoc?.data?.stripeAccountId || '');
+  const chargesEnabled = clubDoc?.data?.stripeChargesEnabled === true;
+  if (!stripeAccountId || !chargesEnabled) {
+    return json({
+      ok: false,
+      error: 'club-not-stripe-ready',
+      hint: 'Connect Stripe from Team HQ first so families can actually pay.',
+    }, 409);
+  }
+
   const feeCoveredBy: 'player' | 'coach' =
     payload?.feeCoveredBy === 'coach' ? 'coach' : 'player';
   const description = payload?.description ? String(payload.description).slice(0, 2000) : undefined;
@@ -369,8 +385,8 @@ async function sendCreationPush(
           : '';
   const title = kind === 'catalog' ? 'Team store' : String(req.title || 'Team payment');
   const body = kind === 'catalog'
-    ? `Coach ${req.createdByName || ''} opened the team store — tap to shop.`
-    : `Coach ${req.createdByName || ''} added ${req.title || 'a payment'}${price ? ` — ${price}` : ''}. Tap to pay.`;
+    ? `Coach ${req.createdByName || ''} opened the team store. Tap to shop.`
+    : `Coach ${req.createdByName || ''} added ${req.title || 'a payment'}${price ? ` for ${price}` : ''}. Tap to pay.`;
 
   const appOrigin = env.APP_ORIGIN || 'https://app.goalkickr.com';
   const url = `${appOrigin}/payments`;
@@ -423,7 +439,7 @@ export async function pushPaymentConfirmed(
   if (tokens.length === 0) return;
   const amount = `$${(args.amountCents / 100).toFixed(2)}`;
   const body = args.isRenewal
-    ? `${args.payerName} renewed ${title} — ${amount}.`
+    ? `${args.payerName} renewed ${title} for ${amount}.`
     : `${args.payerName} paid ${amount} for ${title}.`;
   const appOrigin = env.APP_ORIGIN || 'https://app.goalkickr.com';
   try {
@@ -476,7 +492,7 @@ export async function pushPaymentFailed(
 
   const amount = `$${(args.amountCents / 100).toFixed(2)}`;
   const appOrigin = env.APP_ORIGIN || 'https://app.goalkickr.com';
-  const parentBody = `Payment for ${title} didn't go through. Stripe will retry — you can update your card anytime.`;
+  const parentBody = `Payment for ${title} didn't go through. Stripe will retry. You can update your card anytime.`;
   const coachBody = `${parent?.name || 'A parent'}'s payment for ${title} (${amount}) didn't go through. Stripe will retry.`;
 
   if (parentTokens.length > 0) {

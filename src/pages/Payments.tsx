@@ -79,7 +79,7 @@ const Payments: React.FC = () => {
     if (!userData?.uid) return { outstanding: [], history: [] };
     const uid = userData.uid;
     const outstanding: Array<{ pr: PaymentRequest; kidsOnRequest: Player[]; paid: boolean; subscribed: boolean }> = [];
-    const history: Array<{ pr: PaymentRequest; paidVia: 'card' | 'cash'; }> = [];
+    const history: Array<{ pr: PaymentRequest; paidVia: 'card' | 'cash' | 'subscribed'; }> = [];
     for (const pr of requests) {
       const kidsOnTeam = players.filter(p => ((p as any).teamIds || []).includes(pr.teamId));
       const kidsOnRequest = pr.targetPlayerIds === 'all'
@@ -87,12 +87,16 @@ const Payments: React.FC = () => {
         : kidsOnTeam.filter(p => (pr.targetPlayerIds as string[]).includes(p.id));
       if (kidsOnRequest.length === 0) continue;
       const paidViaStripe = (pr.paidUids || []).includes(uid);
+      // Per-kid cash marks only settle the row when EVERY targeted kid
+      // for this family has been marked; otherwise sibling B's balance
+      // silently vanishes when sibling A gets marked paid.
       const paidByCoach = (pr.paidByCoach || []).includes(uid)
-        || kidsOnRequest.some(k => (pr.paidByCoachPlayerIds || []).includes(k.id));
+        || kidsOnRequest.every(k => (pr.paidByCoachPlayerIds || []).includes(k.id));
       const subscribed = pr.kind === 'recurring' && !!(pr.stripeSubscriptionIds || {})[uid];
       if (pr.status !== 'active' || pr.isActive === false) {
         if (paidViaStripe) history.push({ pr, paidVia: 'card' });
         else if (paidByCoach) history.push({ pr, paidVia: 'cash' });
+        else if (subscribed) history.push({ pr, paidVia: 'subscribed' });
         continue;
       }
       if (pr.kind === 'catalog') {
@@ -101,7 +105,13 @@ const Payments: React.FC = () => {
         outstanding.push({ pr, kidsOnRequest, paid: false, subscribed: false });
         continue;
       }
-      if (paidViaStripe || paidByCoach || subscribed) {
+      if (subscribed) {
+        // Active subscription: show in history with its own "Subscribed"
+        // label + manage/cancel path instead of misleading cash copy.
+        history.push({ pr, paidVia: 'subscribed' });
+        continue;
+      }
+      if (paidViaStripe || paidByCoach) {
         history.push({ pr, paidVia: paidViaStripe ? 'card' : 'cash' });
         continue;
       }
@@ -127,6 +137,22 @@ const Payments: React.FC = () => {
         return;
       }
       window.location.href = data.url;
+    } catch (err: any) {
+      alert(String(err?.message || err));
+    } finally { setBusyId(null); }
+  };
+
+  const cancelSubscription = async (pr: PaymentRequest) => {
+    if (!userData?.uid) return;
+    if (!confirm('Cancel this subscription at the end of the current period? You keep access until then.')) return;
+    setBusyId(pr.id);
+    try {
+      const res = await workerFetch('/payments/subscription-cancel', {
+        method: 'POST',
+        body: JSON.stringify({ paymentRequestId: pr.id, uid: userData.uid }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) alert(data?.hint || data?.error || 'Could not cancel.');
     } catch (err: any) {
       alert(String(err?.message || err));
     } finally { setBusyId(null); }
@@ -169,16 +195,16 @@ const Payments: React.FC = () => {
                       <div className="text-right shrink-0">
                         {row.pr.kind === 'one_off' && row.pr.feeCents != null && (
                           <p className="text-base font-black text-ink-primary tabular-nums">
-                            ${(row.pr.feeCoveredBy === 'player'
+                            ${((row.pr.feeCoveredBy === 'player'
                               ? grossUpCents(row.pr.feeCents) * row.kidsOnRequest.length
-                              : row.pr.feeCents * row.kidsOnRequest.length) / 100}
+                              : row.pr.feeCents * row.kidsOnRequest.length) / 100).toFixed(2)}
                           </p>
                         )}
                         {row.pr.kind === 'recurring' && row.pr.intervalCents != null && (
                           <p className="text-base font-black text-ink-primary tabular-nums">
-                            ${(row.pr.feeCoveredBy === 'player'
+                            ${((row.pr.feeCoveredBy === 'player'
                               ? grossUpCents(row.pr.intervalCents)
-                              : row.pr.intervalCents) / 100}
+                              : row.pr.intervalCents) / 100).toFixed(2)}
                             <span className="text-[11px] font-semibold text-ink-primary/60">{intervalShort(row.pr.interval || 'month')}</span>
                           </p>
                         )}
@@ -213,9 +239,23 @@ const Payments: React.FC = () => {
                     <div className="min-w-0">
                       <p className="text-sm font-black text-ink-primary truncate">{row.pr.title}</p>
                       <p className="text-[11px] text-ink-primary/55">
-                        {row.paidVia === 'card' ? 'Paid via card' : `Coach ${row.pr.createdByName} marked you paid`}
+                        {row.paidVia === 'card'
+                          ? 'Paid via card'
+                          : row.paidVia === 'subscribed'
+                            ? `Subscribed${row.pr.intervalCents ? ` at $${(row.pr.intervalCents / 100).toFixed(2)}${intervalShort(row.pr.interval || 'month')}` : ''}`
+                            : `Coach ${row.pr.createdByName} marked you paid`}
                       </p>
                     </div>
+                    {row.paidVia === 'subscribed' && (
+                      <button
+                        type="button"
+                        onClick={() => cancelSubscription(row.pr)}
+                        disabled={busyId === row.pr.id}
+                        className="shrink-0 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest text-ink-primary/60 hover:text-ink-primary ring-1 ring-line-default/20 hover:ring-brand-primary/40 transition disabled:opacity-50"
+                      >
+                        {busyId === row.pr.id ? 'Cancelling...' : 'Cancel'}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

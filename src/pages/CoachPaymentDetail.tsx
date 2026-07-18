@@ -71,7 +71,6 @@ const CoachPaymentDetail: React.FC = () => {
   }, [selectedTeamId]);
 
   const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
-  if (!coachOnThisTeam) return <Navigate to="/coach" replace />;
 
   const relevantPlayers = useMemo(() => {
     if (!pr) return [];
@@ -79,6 +78,8 @@ const CoachPaymentDetail: React.FC = () => {
     const targets = new Set(pr.targetPlayerIds);
     return players.filter(p => targets.has(p.id));
   }, [pr, players]);
+
+  if (!coachOnThisTeam) return <Navigate to="/coach" replace />;
 
   if (!pr && loaded) {
     return (

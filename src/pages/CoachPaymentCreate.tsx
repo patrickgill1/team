@@ -24,8 +24,8 @@ type Kind = 'one_off' | 'recurring' | 'catalog';
 
 const KIND_CARDS: Array<{ id: Kind; title: string; hint: string }> = [
   { id: 'one_off', title: 'One-time collection', hint: 'Tournament fees, uniforms, a single ask.' },
-  { id: 'recurring', title: 'Recurring dues', hint: 'Monthly, season, or weekly — charge every family on a cycle.' },
-  { id: 'catalog', title: 'Team store', hint: 'Line items families can shop — spirit wear, extras, add-ons.' },
+  { id: 'recurring', title: 'Recurring dues', hint: 'Monthly, season, or weekly. Charge every family on a cycle.' },
+  { id: 'catalog', title: 'Team store', hint: 'Line items families can shop: spirit wear, extras, add-ons.' },
 ];
 
 const CoachPaymentCreate: React.FC = () => {
@@ -44,7 +44,6 @@ const CoachPaymentCreate: React.FC = () => {
   const [err, setErr] = useState<string | null>(null);
 
   const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
-  if (!coachOnThisTeam) return <Navigate to="/coach" replace />;
 
   const feeCents = Math.round((Number(feeDollars) || 0) * 100);
   const intervalCents = Math.round((Number(intervalDollars) || 0) * 100);
@@ -75,6 +74,8 @@ const CoachPaymentCreate: React.FC = () => {
     if (kind === 'catalog') return items.some(i => i.name.trim() && i.priceCents > 0);
     return false;
   }, [kind, title, feeCents, intervalCents, items]);
+
+  if (!coachOnThisTeam) return <Navigate to="/coach" replace />;
 
   const submit = async () => {
     if (!kind || !selectedTeamId) return;

@@ -61,8 +61,12 @@ const PaymentsDueCard: React.FC<Props> = ({ players }) => {
         : kidsOnTeam.filter(p => (pr.targetPlayerIds as string[]).includes(p.id));
       if (kidsOnRequest.length === 0) continue;
       const paidStripe = (pr.paidUids || []).includes(uid);
+      // For multi-kid families: parent-level cash-mark covers the whole
+      // request, but per-kid marks must cover EVERY kid on the request
+      // before the row is considered done. Sibling A being marked cash
+      // must never hide sibling B's obligation.
       const paidCash = (pr.paidByCoach || []).includes(uid)
-        || kidsOnRequest.some(k => (pr.paidByCoachPlayerIds || []).includes(k.id));
+        || kidsOnRequest.every(k => (pr.paidByCoachPlayerIds || []).includes(k.id));
       const subscribed = pr.kind === 'recurring' && !!(pr.stripeSubscriptionIds || {})[uid];
       if (paidStripe || paidCash || subscribed) continue;
       if (pr.kind === 'catalog') continue; // shopping is optional

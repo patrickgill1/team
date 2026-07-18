@@ -113,6 +113,36 @@ export async function getDocument(projectId: string, path: string, sa: ServiceAc
   };
 }
 
+// Atomic subfield write on a map field. Uses a dotted field-mask path
+// so concurrent writers touching sibling keys on the same map don't
+// clobber each other (unlike a read-merge-write PATCH). Pass value=null
+// to atomically clear the entry (Firestore stores nullValue; readers
+// that check truthiness of the entry treat it as absent).
+export async function patchMapEntry(
+  projectId: string,
+  path: string,
+  mapField: string,
+  entryKey: string,
+  value: any,
+  sa: ServiceAccount,
+): Promise<void> {
+  const token = await getAccessToken(sa, FIRESTORE_SCOPE);
+  const dotted = `${mapField}.${entryKey}`;
+  const mask = `updateMask.fieldPaths=${encodeURIComponent(dotted)}`;
+  const url = `${baseUrl(projectId)}/${path}?${mask}`;
+  const body = {
+    fields: {
+      [mapField]: { mapValue: { fields: { [entryKey]: encodeValue(value) } } },
+    },
+  };
+  const r = await fetch(url, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`firestore patchMapEntry ${path} ${dotted} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+}
+
 export async function patchDocument(projectId: string, path: string, fields: Record<string, any>, sa: ServiceAccount): Promise<void> {
   const token = await getAccessToken(sa, FIRESTORE_SCOPE);
   const keys = Object.keys(fields);

@@ -19,7 +19,7 @@
  */
 
 import { ServiceAccount, parseServiceAccount } from './fcm';
-import { getDocument, patchDocument, createDocument, runQuery, incrementFields, commitDocumentTransforms } from './firestore';
+import { getDocument, patchDocument, createDocument, runQuery, incrementFields, commitDocumentTransforms, patchMapEntry } from './firestore';
 
 export interface StripeEnv {
   STRIPE_SECRET_KEY?: string;
@@ -1221,14 +1221,15 @@ export async function handlePaymentSubscriptionCheckout(payload: any, env: Strip
       sessionParams['subscription_data[application_fee_percent]'] = pct;
       sessionParams['metadata[platformFeeBps]'] = String(platformFeeBps);
     }
-    sessionParams['subscription_data[transfer_data][destination]'] = stripeAccountId;
 
-    // Subscription mode on Connect: the Checkout runs on the PLATFORM
-    // account (no Stripe-Account header), and transfer_data.destination
-    // + application_fee_percent tell Stripe where each renewal payout
-    // goes. Standard Connect requires the coach's account be
-    // charges_enabled which we validated above.
-    const session = await stripeRequest(env, '/checkout/sessions', sessionParams);
+    // Direct charge on the connected account (Stripe-Account header),
+    // same shape as the one_off path. The coach's connected account is
+    // the merchant of record, so Stripe processing fees are debited
+    // there and the platform's cut (application_fee_percent) transfers
+    // back to us. The prior destination-charge shape had the platform
+    // absorbing Stripe fees on every renewal, silently overpaying the
+    // coach by ~3% and breaking the gross-up math parents saw.
+    const session = await stripeRequest(env, '/checkout/sessions', sessionParams, { stripeAccount: stripeAccountId });
     return json({ ok: true, url: session.url, sessionId: session.id });
   } catch (err: any) {
     console.error('payment-subscription-checkout error', err);
@@ -1356,10 +1357,16 @@ async function reflectPaymentSuccess(
     try { cart = meta.cart ? JSON.parse(meta.cart) : []; } catch { cart = []; }
     const purchases: any[] = Array.isArray(pr.data.purchases) ? pr.data.purchases : [];
     const items: any[] = Array.isArray(pr.data.items) ? pr.data.items : [];
+    // Dedup: purchase ids are deterministic on (session, itemId), so a
+    // Stripe webhook retry (very common on network blips) would
+    // otherwise append duplicate rows and double the "collected" total.
+    const existing = new Set(purchases.map((p: any) => String(p?.id || '')));
     const additions: any[] = [];
     for (const row of cart) {
       const item = items.find(i => i.id === row.itemId);
       if (!item) continue;
+      const purchaseId = `purch_${session.id}_${row.itemId}`;
+      if (existing.has(purchaseId)) continue;
       const feeCoveredBy = meta.feeCoveredBy === 'coach' ? 'coach' : 'player';
       const perUnit = Number(item.priceCents || 0);
       let chargedPer = perUnit;
@@ -1369,7 +1376,7 @@ async function reflectPaymentSuccess(
         chargedPer = grossUpCents(perUnit, platformFeeBps || undefined);
       }
       additions.push({
-        id: `purch_${session.id}_${row.itemId}`,
+        id: purchaseId,
         uid,
         itemId: row.itemId,
         quantity: row.quantity,
@@ -1380,6 +1387,7 @@ async function reflectPaymentSuccess(
         stripePaymentIntentId: session.payment_intent || undefined,
       });
     }
+    if (additions.length === 0) return;
     await patchDocument(projectId, `payment_requests/${paymentRequestId}`, {
       purchases: [...purchases, ...additions],
       updatedAt: new Date(),
@@ -1387,10 +1395,18 @@ async function reflectPaymentSuccess(
   } else if (paymentKind === 'recurring') {
     const subscriptionId = String(session.subscription || '');
     if (!subscriptionId) return;
-    const subs: Record<string, string> = (pr.data.stripeSubscriptionIds || {}) as Record<string, string>;
-    subs[uid] = subscriptionId;
+    // Atomic map-subfield write so two parents subscribing back-to-back
+    // don't clobber each other's ids under stripeSubscriptionIds. The
+    // prior read-merge-write pattern lost one parent's row on races.
+    await patchMapEntry(
+      projectId,
+      `payment_requests/${paymentRequestId}`,
+      'stripeSubscriptionIds',
+      uid,
+      subscriptionId,
+      sa,
+    );
     await patchDocument(projectId, `payment_requests/${paymentRequestId}`, {
-      stripeSubscriptionIds: subs,
       updatedAt: new Date(),
     }, sa);
     // First invoice = renewal; skip the "renewed" push and let the
@@ -1485,15 +1501,24 @@ async function reflectSubscriptionDeleted(
   if (!paymentRequestId || !uid) return;
   const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa).catch(() => null);
   if (!pr?.data) return;
-  const subs: Record<string, string> = (pr.data.stripeSubscriptionIds || {}) as Record<string, string>;
-  if (subs[uid]) delete subs[uid];
-  const cancelledUids: string[] = Array.isArray(pr.data.cancelledUids) ? pr.data.cancelledUids : [];
-  if (!cancelledUids.includes(uid)) cancelledUids.push(uid);
-  await patchDocument(projectId, `payment_requests/${paymentRequestId}`, {
-    stripeSubscriptionIds: subs,
-    cancelledUids,
-    updatedAt: new Date(),
-  }, sa);
+  // Atomic: clear only this parent's map entry (null preserves the map
+  // for other subscribers). Combine cancelledUids arrayUnion + updatedAt
+  // in one commit so a re-delivery is idempotent.
+  await patchMapEntry(
+    projectId,
+    `payment_requests/${paymentRequestId}`,
+    'stripeSubscriptionIds',
+    uid,
+    null,
+    sa,
+  );
+  await commitDocumentTransforms(
+    projectId,
+    `payment_requests/${paymentRequestId}`,
+    [{ fieldPath: 'cancelledUids', kind: 'arrayUnion', value: uid }],
+    { updatedAt: new Date() },
+    sa,
+  );
 }
 
 // Public hooks used by handleWebhook — exposed so the switch stays

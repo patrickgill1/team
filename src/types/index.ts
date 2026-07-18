@@ -288,6 +288,15 @@ export interface Club {
    *  to keep the playbook proprietary. Existing shared drills stay
    *  shared even if this is later turned off; new shares are blocked. */
   allowDrillSharing?: boolean;
+  /** True when this club is the auto-created "personal club" shell
+   *  for a standalone coach (doc id shape `personal_{coachUid}`).
+   *  Written by /clubs/personal-create-if-missing the first time the
+   *  coach turns on a fee-bearing event without an existing clubId.
+   *  Standard Connect onboarding writes stripeAccountId onto the
+   *  same doc later. Cosmetic marker so admin UI can tell auto- from
+   *  hand-created clubs apart; all read paths treat it as a normal
+   *  club. */
+  isDefaultSoloClub?: boolean;
 }
 
 export interface Invoice {
@@ -1890,6 +1899,31 @@ export interface CalendarEvent {
    *  by the Stripe webhook on successful payment. Coach can also
    *  manually mark someone paid (comp'd). */
   paidUids?: string[];
+  /** Uids the coach has marked as paid IRL (cash, Venmo, comp).
+   *  Distinct from paidUids (Stripe-confirmed). The display truth is
+   *  the union of paidUids ∪ paidByCoach. Coexists with the Stripe
+   *  path so a coach can mark cash-paid on any event with feeCents > 0
+   *  even before Stripe Connect is wired up. Written only by the
+   *  /events/mark-paid worker endpoint (coach-of-team check).
+   *  Only for adult attendees who RSVP with their own uid — kid
+   *  roster entries land in paidByCoachPlayerIds instead so two
+   *  siblings sharing a parent uid don't contaminate each other. */
+  paidByCoach?: string[];
+  /** Roster playerIds the coach has marked as paid IRL. Parallel to
+   *  paidByCoach but keyed by playerId so a "mark paid" on kid A
+   *  never bleeds onto kid B when they share a parent account. Same
+   *  worker endpoint (/events/mark-paid) writes this — the request
+   *  carries either { uid } or { playerId }. */
+  paidByCoachPlayerIds?: string[];
+  /** Who eats the Stripe + platform fees on a drop-in Checkout.
+   *  - 'player' (default): worker grosses up the Checkout line item
+   *    so the player sees one total that covers fees; coach nets
+   *    exactly feeCents.
+   *  - 'coach': worker uses feeCents as-is; coach's deposit nets
+   *    feeCents minus Stripe processing minus platform fee.
+   *  Missing = 'player'. Only meaningful when feeCents > 0. Never
+   *  itemize the split to the player. They see one price. */
+  feeCoveredBy?: 'player' | 'coach';
 }
 
 export interface GalleryPhoto {
@@ -2135,6 +2169,15 @@ export interface Team {
    *    availability polling + post-match ratings enabled.
    *  Absent = 'youth' so the entire existing base stays intact. */
   audienceType?: 'youth' | 'adult';
+  /** Roster shape. Sibling to audienceType, not a third value on it.
+   *  - 'roster' (default): fixed roster, same players week over week.
+   *    Youth teams always run in this mode. Adult teams default here.
+   *  - 'pickup': open group / drop-in. Unlocks the RSVP cap +
+   *    per-event drop-in fee prompts on EventForm. Adult-only path.
+   *  Absent = 'roster' so existing docs keep their exact behavior.
+   *  Read through useTeamRosterMode(team) so the default lives in
+   *  one place. */
+  rosterMode?: 'roster' | 'pickup';
   /** League memberships. A team can play in multiple leagues at once
    *  (winter indoor + spring outdoor). League.teamIds is the source
    *  of truth; this denorm speeds up "leagues this team is in" reads

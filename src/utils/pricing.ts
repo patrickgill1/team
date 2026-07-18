@@ -112,3 +112,61 @@ export function quotePrice(
 export function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
+
+// ─── Drop-in fee gross-up ────────────────────────────────────────
+//
+// Single source of truth for the "player covers fees" math on
+// per-event drop-in Checkout. Duplicated in worker/src/pricing.ts
+// because the worker can't import from src/ (separate tsconfig).
+// Keep the two copies in lockstep.
+//
+// Fee stack (integer cents throughout):
+//   Stripe    = charged * STRIPE_PCT + STRIPE_FIXED_CENTS
+//   Platform  = charged * platformBps / 10000
+//   Coach net = charged - Stripe - Platform
+//
+// When event.feeCoveredBy === 'player': worker charges the customer
+//   grossUpCents(feeCents) so the coach nets exactly feeCents.
+// When event.feeCoveredBy === 'coach': worker charges feeCents as-is
+//   and the coach's deposit nets coachNetCents(feeCents).
+
+export const DROPIN_STRIPE_PCT = 0.029;
+export const DROPIN_STRIPE_FIXED_CENTS = 30;
+/** Fallback platform fee when platform_settings/defaults is missing. */
+export const DROPIN_DEFAULT_PLATFORM_BPS = 500;
+
+/**
+ * Total to charge the customer so the coach nets `feeCents` after
+ * Stripe + platform fees. Rounded UP so cent-level rounding never
+ * leaves the coach a cent short.
+ *
+ * platformBps is the platform take in basis points. Read from
+ * platform_settings/defaults.platformFeeBps in the worker; the
+ * default here is only used for client-side "what will the player
+ * see?" previews. Never expose this parameter in coach UI.
+ *
+ * Enforce a UI minimum of feeCents >= 100 when the player is
+ * covering: below that the ratio gets ugly (a $0.50 fee grosses to
+ * roughly $0.87) and players notice.
+ */
+export function grossUpCents(feeCents: number, platformBps: number = DROPIN_DEFAULT_PLATFORM_BPS): number {
+  if (!Number.isFinite(feeCents) || feeCents <= 0) return 0;
+  const platformPct = platformBps / 10000;
+  const denom = 1 - DROPIN_STRIPE_PCT - platformPct;
+  if (denom <= 0) return feeCents; // pathological — fees ate 100%
+  return Math.ceil((feeCents + DROPIN_STRIPE_FIXED_CENTS) / denom);
+}
+
+/**
+ * What the coach nets on a Checkout for `chargedCents` after Stripe
+ * + platform fees. Used for coach-facing display only ("You net
+ * $Y.YY per player"). Do not use for sizing Stripe's
+ * application_fee_amount — the worker computes that off chargedCents
+ * directly so both sides land on the same rounded value.
+ */
+export function coachNetCents(chargedCents: number, platformBps: number = DROPIN_DEFAULT_PLATFORM_BPS): number {
+  if (!Number.isFinite(chargedCents) || chargedCents <= 0) return 0;
+  const stripeFee = Math.ceil(chargedCents * DROPIN_STRIPE_PCT) + DROPIN_STRIPE_FIXED_CENTS;
+  const platformFee = Math.ceil((chargedCents * platformBps) / 10000);
+  return Math.max(0, chargedCents - stripeFee - platformFee);
+}

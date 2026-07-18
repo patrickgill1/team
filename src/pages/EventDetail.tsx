@@ -15,6 +15,7 @@ import { mapsUrl, osmEmbedUrl } from '../utils/maps';
 import RosterAvatar from '../components/common/RosterAvatar';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import SplitTeamsModal from '../components/calendar/SplitTeamsModal';
+import { grossUpCents, coachNetCents, DROPIN_DEFAULT_PLATFORM_BPS } from '../utils/pricing';
 
 // Authenticated event detail page — the "command center" for a single
 // event. Replaces the old inline-expanded Calendar row and the public
@@ -156,6 +157,33 @@ const EventDetail: React.FC = () => {
   const [attendanceOpen, setAttendanceOpen] = useState(false);
 
   const isUserCoach = isCoachOfTeam(userData, audienceTeamObj);
+
+  // Platform-fee override for the event's club, if any. Falls back
+  // to the default (500 bps) so the client-side gross-up preview
+  // matches whatever the worker will actually charge at Checkout.
+  // Absent clubId (standalone coach who hasn't finished payments
+  // setup yet) → default. See src/utils/pricing.ts.
+  const [platformFeeBps, setPlatformFeeBps] = useState<number>(DROPIN_DEFAULT_PLATFORM_BPS);
+  useEffect(() => {
+    const clubId = (audienceTeamObj as any)?.clubId;
+    if (!clubId) { setPlatformFeeBps(DROPIN_DEFAULT_PLATFORM_BPS); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const snap = await getDoc(doc(db, 'clubs', clubId));
+        if (cancelled) return;
+        const bps = (snap.exists() && typeof snap.data()?.platformFeeBps === 'number')
+          ? Number(snap.data()!.platformFeeBps)
+          : DROPIN_DEFAULT_PLATFORM_BPS;
+        setPlatformFeeBps(bps);
+      } catch {
+        if (!cancelled) setPlatformFeeBps(DROPIN_DEFAULT_PLATFORM_BPS);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [(audienceTeamObj as any)?.clubId]);
 
   // Form signups — when a coach attaches a questionnaire-style form
   // to this event via FormDefinition.allocateToEventId, each submitter
@@ -1205,18 +1233,33 @@ const EventDetail: React.FC = () => {
           public RSVP page was killed (everyone's expected to be on
           the app now). */}
       {/* Drop-in fee — visible to anyone going who hasn't paid yet.
-          Opens Stripe Checkout on the club's connected account. */}
+          Opens Stripe Checkout on the club's connected account. Paid
+          status is the union of paidUids (Stripe) and paidByCoach
+          (coach marked cash). Player-facing copy shows ONE number
+          (the gross-up total when they'd cover fees). */}
       {(() => {
         const feeCents = Number((event as any).feeCents || 0);
         if (feeCents <= 0) return null;
         if (myRsvp?.status !== 'going') return null;
         const paidUids: string[] = Array.isArray((event as any).paidUids) ? (event as any).paidUids : [];
-        const iPaid = !!userData?.uid && paidUids.includes(userData.uid);
+        const paidByCoach: string[] = Array.isArray((event as any).paidByCoach) ? (event as any).paidByCoach : [];
+        // iPaid only checks uid-space (Stripe-paid ∪ coach-marked adult).
+        // Kid marks live in paidByCoachPlayerIds and never turn a
+        // parent's own "You paid" pill on — a parent with two kids
+        // where only one is settled shouldn't lose the pay button.
+        const iPaid = !!userData?.uid && (paidUids.includes(userData.uid) || paidByCoach.includes(userData.uid));
+        const feeCoveredBy: 'player' | 'coach' = (event as any).feeCoveredBy === 'coach' ? 'coach' : 'player';
+        // Player-facing preview of the actual charge. When 'player'
+        // covers fees the client uses the same gross-up formula the
+        // worker uses so the number matches what Stripe will present.
+        // Passes the club's real platformFeeBps so any non-default
+        // rate doesn't drift between preview and Checkout.
+        const playerCharge = feeCoveredBy === 'player' ? grossUpCents(feeCents, platformFeeBps) : feeCents;
         if (iPaid) return (
           <section className="bg-emerald-500/10 ring-1 ring-emerald-500/30 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 px-4 py-3 flex items-center gap-2 text-emerald-200">
             <Icon name="check" className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-black uppercase tracking-widest">Drop-in fee paid</span>
-            <span className="text-[11px] text-emerald-200/70 ml-auto">${(feeCents / 100).toFixed(2)}</span>
+            <span className="text-xs font-black uppercase tracking-widest">You paid</span>
+            <span className="text-[11px] text-emerald-200/70 ml-auto">${(playerCharge / 100).toFixed(2)}</span>
           </section>
         );
         return (
@@ -1226,7 +1269,7 @@ const EventDetail: React.FC = () => {
                 <p className="text-xs font-black uppercase tracking-widest text-amber-300">Drop-in fee</p>
                 <p className="text-[11px] text-amber-200/75 truncate">Pay to lock in your spot for this event.</p>
               </div>
-              <span className="shrink-0 text-lg font-black text-amber-100">${(feeCents / 100).toFixed(2)}</span>
+              <span className="shrink-0 text-lg font-black text-amber-100">${(playerCharge / 100).toFixed(2)}</span>
             </div>
             <button
               onClick={async () => {
@@ -1253,8 +1296,46 @@ const EventDetail: React.FC = () => {
               }}
               className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-amber-950 text-sm font-black uppercase tracking-widest transition"
             >
-              Pay ${(feeCents / 100).toFixed(2)} drop-in
+              Pay ${(playerCharge / 100).toFixed(2)}
             </button>
+          </section>
+        );
+      })()}
+
+      {/* Coach fee summary — discreet card showing net-per-player
+          and a running total from paid attendees. Coach-only. */}
+      {isUserCoach && Number((event as any).feeCents || 0) > 0 && (() => {
+        const feeCents = Number((event as any).feeCents || 0);
+        const feeCoveredBy: 'player' | 'coach' = (event as any).feeCoveredBy === 'coach' ? 'coach' : 'player';
+        const charged = feeCoveredBy === 'player' ? grossUpCents(feeCents, platformFeeBps) : feeCents;
+        const netCents = feeCoveredBy === 'player' ? feeCents : coachNetCents(charged, platformFeeBps);
+        const paidUids: string[] = Array.isArray((event as any).paidUids) ? (event as any).paidUids : [];
+        const paidByCoach: string[] = Array.isArray((event as any).paidByCoach) ? (event as any).paidByCoach : [];
+        const paidByCoachPlayerIds: string[] = Array.isArray((event as any).paidByCoachPlayerIds) ? (event as any).paidByCoachPlayerIds : [];
+        // Uid-tracked adults and playerId-tracked kids live in
+        // distinct namespaces; a person can't appear in both. Total
+        // paid heads = adults (uid ∪ Stripe) + kids by playerId.
+        const paidAdults = new Set<string>([...paidUids, ...paidByCoach]).size;
+        const paidKids = new Set<string>(paidByCoachPlayerIds).size;
+        const paidCount = paidAdults + paidKids;
+        const totalNet = paidCount * netCents;
+        return (
+          <section className="bg-surface-elevated ring-1 ring-line-default/15 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">You net</p>
+                <p className="text-base font-black text-ink-primary">${(netCents / 100).toFixed(2)} <span className="text-[11px] font-semibold text-ink-primary/60">/ player</span></p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">Collected</p>
+                <p className="text-base font-black text-ink-primary">${(totalNet / 100).toFixed(2)} <span className="text-[11px] font-semibold text-ink-primary/60">({paidCount} paid)</span></p>
+              </div>
+            </div>
+            <p className="text-[11px] text-ink-primary/60 mt-2 leading-snug">
+              {feeCoveredBy === 'player'
+                ? `Player sees $${(charged / 100).toFixed(2)}. Card + platform fees are baked into their price.`
+                : `Player sees $${(charged / 100).toFixed(2)}. You absorb card + platform fees.`}
+            </p>
           </section>
         );
       })()}
@@ -1427,11 +1508,74 @@ const EventDetail: React.FC = () => {
           <ul className="mt-3 divide-y divide-line-default/10">
             {buckets.going.map((p: any, i) => {
               const photo = photoForEntry(p);
+              // Mark-paid target: prefer playerId (roster kid) so
+              // siblings don't collide via a shared parent uid. Adult
+              // staff entries carry p.uid directly. Guest entries
+              // (no playerId, no uid) currently can't be marked —
+              // they need to be merged into a roster player or
+              // resolved to a uid first.
+              const targetPlayerId: string | undefined = p.playerId || undefined;
+              const targetUid: string | undefined = targetPlayerId ? undefined : (p.uid || undefined);
+              const feeCentsForList = Number((event as any).feeCents || 0);
+              const paidUidsList: string[] = Array.isArray((event as any).paidUids) ? (event as any).paidUids : [];
+              const paidByCoachListInner: string[] = Array.isArray((event as any).paidByCoach) ? (event as any).paidByCoach : [];
+              const paidByCoachPidsInner: string[] = Array.isArray((event as any).paidByCoachPlayerIds) ? (event as any).paidByCoachPlayerIds : [];
+              const isPaidStripe = !!targetUid && paidUidsList.includes(targetUid);
+              const isPaidCash = targetPlayerId
+                ? paidByCoachPidsInner.includes(targetPlayerId)
+                : (!!targetUid && paidByCoachListInner.includes(targetUid));
+              const canToggleCash = isUserCoach && feeCentsForList > 0 && (!!targetUid || !!targetPlayerId);
+
+              const togglePaid = async () => {
+                if (!targetUid && !targetPlayerId) return;
+                try {
+                  const { workerFetch } = await import('../utils/workerFetch');
+                  const body: Record<string, any> = {
+                    eventId: event.id,
+                    paid: !isPaidCash,
+                  };
+                  if (targetPlayerId) body.playerId = targetPlayerId;
+                  else body.uid = targetUid;
+                  const res = await workerFetch('/events/mark-paid', {
+                    method: 'POST',
+                    body: JSON.stringify(body),
+                  });
+                  const data: any = await res.json().catch(() => ({}));
+                  if (!res.ok || !data?.ok) {
+                    alert(data?.error || "Couldn't update paid status.");
+                    return;
+                  }
+                  setEvent({
+                    ...event,
+                    paidByCoach: data.paidByCoach,
+                    paidByCoachPlayerIds: data.paidByCoachPlayerIds,
+                  } as any);
+                } catch (err) {
+                  console.error('mark-paid failed', err);
+                }
+              };
+
               return (
               <li key={`go-${i}`} className="py-1.5">
                 <div className="flex items-center gap-2.5">
                   <RosterAvatar name={p.name} photoUrl={photo} size={28} className="ring-1 ring-line-default/10" />
                   <span className="text-sm font-semibold text-ink-primary flex-1 truncate">{p.name}</span>
+                  {canToggleCash && (
+                    <button
+                      onClick={togglePaid}
+                      title={isPaidStripe ? 'Paid via Stripe' : (isPaidCash ? 'Marked cash-paid. Tap to undo.' : 'Mark cash-paid')}
+                      disabled={isPaidStripe}
+                      className={`text-[9px] font-extrabold tracking-widest px-2 py-0.5 rounded ring-1 transition ${
+                        isPaidStripe
+                          ? 'bg-emerald-500/15 text-emerald-700 ring-emerald-400/40 opacity-75 cursor-default'
+                          : isPaidCash
+                            ? 'bg-emerald-500/15 text-emerald-700 ring-emerald-400/40 hover:bg-emerald-500/25'
+                            : 'bg-surface-input text-ink-primary/65 ring-line-default/15 hover:ring-line-default/30'
+                      }`}
+                    >
+                      {isPaidStripe ? 'PAID' : (isPaidCash ? 'CASH PAID' : 'MARK PAID')}
+                    </button>
+                  )}
                   {p.kind === 'guest' && isUserCoach && roster.length > 0 && (
                     <button
                       onClick={() => setMergingToken(mergingToken === p.guestToken ? null : p.guestToken)}

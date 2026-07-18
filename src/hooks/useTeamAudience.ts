@@ -77,31 +77,50 @@ export function copyForAudience(audience: TeamAudience): TeamAudienceCopy {
   };
 }
 
+export type TeamRosterMode = 'roster' | 'pickup';
+
 export interface UseTeamAudienceResult {
   audience: TeamAudience;
   isAdult: boolean;
   isYouth: boolean;
   copy: TeamAudienceCopy;
+  /** Fixed roster ('roster') vs open drop-in group ('pickup'). Youth
+   *  teams are always 'roster'. Adults default 'roster' unless the
+   *  coach explicitly opted in to pickup at team-create time. Missing
+   *  field on the team doc → 'roster'. */
+  rosterMode: TeamRosterMode;
+  isPickup: boolean;
 }
 
-// Accept anything with an audienceType — a partial team object, a
-// selected-team context, whatever. Legacy teams / missing team → youth.
+// Accept anything with an audienceType + rosterMode — a partial team
+// object, a selected-team context, whatever. Legacy teams / missing
+// team → youth + roster.
 export function useTeamAudience(
-  team: Pick<Team, 'audienceType'> | null | undefined,
+  team: Pick<Team, 'audienceType' | 'rosterMode'> | null | undefined,
 ): UseTeamAudienceResult {
   return useMemo(() => {
     const audience: TeamAudience = team?.audienceType === 'adult' ? 'adult' : 'youth';
+    const rosterMode: TeamRosterMode = team?.rosterMode === 'pickup' ? 'pickup' : 'roster';
     return {
       audience,
       isAdult: audience === 'adult',
       isYouth: audience === 'youth',
       copy: copyForAudience(audience),
+      rosterMode,
+      isPickup: rosterMode === 'pickup',
     };
-  }, [team?.audienceType]);
+  }, [team?.audienceType, team?.rosterMode]);
 }
 
 // Non-hook variant for utilities / server code (e.g., email drips
 // that need to swap a word before send). Same fallback rules.
 export function audienceOf(team: Pick<Team, 'audienceType'> | null | undefined): TeamAudience {
   return team?.audienceType === 'adult' ? 'adult' : 'youth';
+}
+
+// Non-hook variant for the rosterMode read. Same fallback rule
+// (missing/unknown → 'roster') so every read site converges on the
+// same default.
+export function rosterModeOf(team: Pick<Team, 'rosterMode'> | null | undefined): TeamRosterMode {
+  return team?.rosterMode === 'pickup' ? 'pickup' : 'roster';
 }

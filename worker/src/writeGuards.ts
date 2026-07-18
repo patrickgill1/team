@@ -1140,6 +1140,14 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
   const withDefaultClub = payload?.withDefaultClub === true;
   const format = ['7v7', '9v9', '11v11'].includes(String(payload?.format)) ? String(payload.format) : '7v7';
   const audienceType = payload?.audienceType === 'adult' ? 'adult' : undefined;
+  // rosterMode is a sibling to audienceType, not a third value on it.
+  // Only accept 'pickup' explicitly; anything else (undefined, 'roster',
+  // garbage) leaves the field unset so read sites fall back to 'roster'
+  // via rosterModeOf(). Enforced adult-only to keep youth teams clean —
+  // a youth team with rosterMode='pickup' would be nonsense.
+  const rosterMode = (payload?.rosterMode === 'pickup' && audienceType === 'adult')
+    ? 'pickup'
+    : undefined;
 
   const teamFields: Record<string, any> = {
     name,
@@ -1160,6 +1168,7 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
     xpConfig: { enabled: true, enabledAt: new Date() },
   };
   if (audienceType) teamFields.audienceType = audienceType;
+  if (rosterMode) teamFields.rosterMode = rosterMode;
   if (requestedClubId) teamFields.clubId = requestedClubId;
 
   const teamId = payload?.desiredId ? String(payload.desiredId).slice(0, 60) : undefined;
@@ -2237,6 +2246,133 @@ async function handleEventsRsvp(req: Request, env: Env, payload: any): Promise<R
     }
   }
   return json({ ok: false, error: 'contention', message: 'Too many concurrent RSVPs — please try again.' }, 409);
+}
+
+// ────────────────────────────────────────────────────────────────
+// /events/mark-paid — coach toggles a uid in event.paidByCoach for
+// events with feeCents > 0. Coexists with paidUids (Stripe path);
+// display truth is the union of both sets. Idempotent: setting the
+// same state is a no-op returning 200.
+// Body: { eventId, uid, paid: boolean }
+// ────────────────────────────────────────────────────────────────
+async function handleEventsMarkPaid(req: Request, env: Env, payload: any): Promise<Response> {
+  const eventId = String(payload?.eventId || '').trim();
+  const targetUid = String(payload?.uid || '').trim();
+  const paid = payload?.paid !== false; // default true so a bare call marks paid
+  if (!eventId) return json({ ok: false, error: 'event_id_required' }, 400);
+  if (!targetUid) return json({ ok: false, error: 'uid_required' }, 400);
+
+  const { pid, sa } = projectAndSA(env);
+  const ev = await getDocument(pid, `events/${eventId}`, sa).catch(() => null);
+  if (!ev?.data) return json({ ok: false, error: 'event_not_found' }, 404);
+  const teamId = String(ev.data.teamId || '');
+  if (!teamId) return json({ ok: false, error: 'event_missing_team' }, 400);
+
+  // Coach-of-team check — reuses the standard scope helper so the
+  // authorization surface matches every other coach-only write.
+  const claims = await requireCoachOfTeam(req, env, teamId);
+
+  const feeCents = Number(ev.data.feeCents || 0);
+  if (feeCents <= 0) {
+    return json({ ok: false, error: 'no_fee_set', hint: 'Set a drop-in fee on the event before marking anyone paid.' }, 400);
+  }
+
+  const existing: string[] = Array.isArray(ev.data.paidByCoach) ? ev.data.paidByCoach.filter((v: any) => typeof v === 'string') : [];
+  const set = new Set(existing);
+  const before = set.size;
+  if (paid) set.add(targetUid);
+  else set.delete(targetUid);
+  const nextArr = Array.from(set);
+  const changed = set.size !== before;
+
+  // Idempotent — same state, no write.
+  if (!changed) {
+    return json({ ok: true, paidByCoach: nextArr, noop: true });
+  }
+
+  await patchDocument(pid, `events/${eventId}`, {
+    paidByCoach: nextArr,
+    updatedAt: new Date(),
+  }, sa);
+
+  // Best-effort audit trail — non-blocking on failure. Mirrors the
+  // eventActivity shape used elsewhere in the app for coach actions.
+  trackBackground((async () => {
+    try {
+      await createDocument(pid, `events/${eventId}/eventActivity`, {
+        action: 'markPaid',
+        by: claims.uid,
+        target: targetUid,
+        paid,
+        at: new Date(),
+      }, sa);
+    } catch (e) {
+      console.warn('events/mark-paid audit write failed', e);
+    }
+  })());
+
+  return json({ ok: true, paidByCoach: nextArr });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /clubs/personal-create-if-missing — standalone-coach auto-club.
+// The first time a coach without a clubId turns on feeCents on an
+// event, the EventForm save path fires this to spin up a personal
+// club shell at clubs/personal_{coachUid} and stamp it as
+// team.clubId so downstream Stripe Connect + platform-fee reads
+// have a doc to land on.
+//
+// Body: { teamId }
+// Idempotent by construction: deterministic doc id + team.clubId
+// patch is a set that converges. Concurrent double-fires safely
+// no-op.
+// ────────────────────────────────────────────────────────────────
+async function handleClubsPersonalCreateIfMissing(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '').trim();
+  if (!teamId) return json({ ok: false, error: 'team_id_required' }, 400);
+  const claims = await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+
+  const clubId = `personal_${claims.uid}`;
+  const team = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  if (!team?.data) return json({ ok: false, error: 'team_not_found' }, 404);
+  const existingClubId = String(team.data.clubId || '');
+  if (existingClubId) {
+    // Team is already club-attached — do nothing. This is the common
+    // case for club-owned adult teams; the endpoint is safe to call
+    // opportunistically without checking client-side.
+    return json({ ok: true, clubId: existingClubId, created: false });
+  }
+
+  // Load coach name for the personal-club name. Fall back to a neutral
+  // "My Team" if the user doc is missing — always writable later.
+  const user = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+  const coachName = String(user?.data?.name || claims.email?.split('@')[0] || 'My').trim() || 'My';
+
+  // Try to create the personal club at the deterministic id. If it
+  // already exists (concurrent fire, prior aborted flow, whatever),
+  // swallow AlreadyExistsError and move on to the team patch.
+  try {
+    await createDocument(pid, 'clubs', {
+      name: `${coachName}'s Team`,
+      ownerUid: claims.uid,
+      adminUids: [],
+      teamIds: [teamId],
+      isActive: true,
+      isDefaultSoloClub: true,
+      createdAt: new Date(),
+      createdBy: claims.uid,
+    }, sa, clubId);
+  } catch (err) {
+    if (!(err instanceof AlreadyExistsError)) {
+      throw err;
+    }
+    // Existing personal club — fine.
+  }
+
+  await patchDocument(pid, `teams/${teamId}`, { clubId }, sa);
+
+  return json({ ok: true, clubId, created: true });
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -4796,6 +4932,8 @@ export async function routeWriteGuard(
     case '/players/create':        return handlePlayersCreate(req, env, payload);
     case '/events/batch-create':   return handleEventsBatchCreate(req, env, payload);
     case '/events/rsvp':           return handleEventsRsvp(req, env, payload);
+    case '/events/mark-paid':      return handleEventsMarkPaid(req, env, payload);
+    case '/clubs/personal-create-if-missing': return handleClubsPersonalCreateIfMissing(req, env, payload);
     case '/leagues/create':        return handleLeaguesCreate(req, env, payload);
     case '/leagues/fixture-create': return handleLeaguesFixtureCreate(req, env, payload);
     case '/leagues/report-score':  return handleLeaguesReportScore(req, env, payload);

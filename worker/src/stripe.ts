@@ -751,8 +751,23 @@ export async function handleEventDropInCheckout(payload: any, env: StripeEnv): P
       platformFeeBps = 0;
     }
   }
+
+  // Who eats Stripe + platform fees. Missing = 'player' (default),
+  // matching how the drop-in Checkout has historically behaved. When
+  // 'player', gross the line item so the coach nets the raw
+  // feeCents; when 'coach', charge feeCents as-is and the coach's
+  // deposit absorbs both fee slices.
+  const feeCoveredBy: 'player' | 'coach' = ev.data.feeCoveredBy === 'coach' ? 'coach' : 'player';
+  const { grossUpCents } = await import('./pricing');
+  const chargedCents = feeCoveredBy === 'player'
+    ? grossUpCents(feeCents, platformFeeBps)
+    : feeCents;
+
+  // application_fee_amount is always computed off the actual charged
+  // total (not the raw feeCents) so Stripe's own rounding lands on
+  // the same integer both sides expect.
   const applicationFeeAmount = platformFeeBps > 0
-    ? Math.round((feeCents * platformFeeBps) / 10000)
+    ? Math.round((chargedCents * platformFeeBps) / 10000)
     : 0;
 
   const sessionParams: Record<string, any> = {
@@ -761,13 +776,16 @@ export async function handleEventDropInCheckout(payload: any, env: StripeEnv): P
     cancel_url: cancelUrl,
     'line_items[0][price_data][currency]': 'usd',
     'line_items[0][price_data][product_data][name]': `Drop-in · ${eventTitle}`,
-    'line_items[0][price_data][unit_amount]': feeCents,
+    'line_items[0][price_data][unit_amount]': chargedCents,
     'line_items[0][quantity]': 1,
     'metadata[kind]': 'event_dropin',
     'metadata[eventId]': eventId,
     'metadata[uid]': uid,
     'metadata[clubId]': clubId,
     'metadata[teamId]': teamId,
+    'metadata[feeCoveredBy]': feeCoveredBy,
+    'metadata[feeCentsRaw]': String(feeCents),
+    'metadata[chargedCents]': String(chargedCents),
   };
   if (customerEmail) sessionParams['customer_email'] = customerEmail;
   if (applicationFeeAmount > 0) {

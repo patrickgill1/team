@@ -115,6 +115,11 @@ const Onboarding: React.FC = () => {
   // on every /players/create call from the invite step's bulk form.
   const [audienceType, setAudienceType] = useState<'youth' | 'adult'>('youth');
   const isAdultTeam = audienceType === 'adult';
+  // Adult-only sub-question: fixed roster (same players every week)
+  // vs pickup (open group, drop-in). Default 'roster' so the safest
+  // choice is pre-selected. Youth track never touches this. Writes as
+  // team.rosterMode on the /teams/create call.
+  const [rosterMode, setRosterMode] = useState<'roster' | 'pickup'>('roster');
 
   // Kid (coach's own child)
   const [hasKid, setHasKid] = useState<boolean | null>(null);
@@ -200,6 +205,9 @@ const Onboarding: React.FC = () => {
           ageGroup: teamAgeGroup || undefined,
           format: teamFormat || undefined,
           audienceType: isAdultTeam ? 'adult' : undefined,
+          // Only send rosterMode when it's the non-default choice AND
+          // the adult track — worker enforces the same guard.
+          rosterMode: isAdultTeam && rosterMode === 'pickup' ? 'pickup' : undefined,
           withDefaultClub: true,
         }),
       });
@@ -690,6 +698,41 @@ const Onboarding: React.FC = () => {
                   </button>
                 </div>
               </div>
+              {/* Adult sub-question: fixed team vs open group. Youth
+                  track skips this (kids are always on a fixed roster).
+                  Default 'roster' pre-selected so the safest option
+                  wins if the coach barrels through. */}
+              {isAdultTeam && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-white/70 mb-1.5">Same players every week?</label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setRosterMode('roster')}
+                      className={`py-3 rounded-xl text-sm font-bold transition ${
+                        rosterMode === 'roster'
+                          ? 'bg-brand-primary text-white ring-1 ring-brand-primary-soft/60'
+                          : 'bg-white/5 text-white/70 ring-1 ring-white/10 hover:bg-white/10'
+                      }`}
+                    >
+                      Same players
+                      <span className="block text-[10px] font-medium opacity-70 mt-0.5 normal-case tracking-normal">Fixed team roster</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRosterMode('pickup')}
+                      className={`py-3 rounded-xl text-sm font-bold transition ${
+                        rosterMode === 'pickup'
+                          ? 'bg-brand-primary text-white ring-1 ring-brand-primary-soft/60'
+                          : 'bg-white/5 text-white/70 ring-1 ring-white/10 hover:bg-white/10'
+                      }`}
+                    >
+                      Open group
+                      <span className="block text-[10px] font-medium opacity-70 mt-0.5 normal-case tracking-normal">Drop-in / pickup</span>
+                    </button>
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-white/70 mb-1.5">Team name</label>
                 <input

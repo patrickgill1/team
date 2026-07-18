@@ -4,6 +4,7 @@ import { db } from '../../utils/firebase';
 import { CalendarEvent } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
+import { useTeamAudience } from '../../hooks/useTeamAudience';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { osmEmbedUrl, geocodeForward, geocodeResolve, hasMapbox, hasNotifyProxy, isGoogleAvailable, GeocodeHit } from '../../utils/maps';
@@ -38,6 +39,14 @@ const EventForm: React.FC<EventFormProps> = ({
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
   const { addDocument, updateDocument } = useFirestore();
+  // Team-shape gates:
+  //   isAdult      → adult (opt-in) fee is legal for the "refs/field"
+  //                 use case even on a fixed roster.
+  //   isPickup     → drop-in team; unlocks both RSVP cap and per-event
+  //                 fee prompts with pickup-flavored copy.
+  const { isAdult, isPickup } = useTeamAudience(selectedTeam);
+  const showRsvpCap = isPickup;
+  const showFee = isPickup || isAdult;
 
   const [formData, setFormData] = useState({
     title: '',
@@ -56,6 +65,11 @@ const EventForm: React.FC<EventFormProps> = ({
     arriveOffsetMinutes: 0,
     rsvpCap: '',
     feeDollars: '',
+    // Who covers Stripe + platform fees on the drop-in Checkout. Only
+    // meaningful when feeDollars > 0. Default 'player' so the coach
+    // nets exactly the number they typed. Coach can flip to 'coach' if
+    // they'd rather absorb the fees from their deposit.
+    feeCoveredBy: 'player' as 'player' | 'coach',
     developmentFocus: '',
     endTime: '' as string, // HH:mm, optional
     // Default ON for new events (you usually want to tell people about
@@ -128,6 +142,7 @@ const EventForm: React.FC<EventFormProps> = ({
           ? String((editingEvent as any).rsvpCap) : '',
         feeDollars: typeof (editingEvent as any).feeCents === 'number' && (editingEvent as any).feeCents > 0
           ? ((editingEvent as any).feeCents / 100).toFixed(2) : '',
+        feeCoveredBy: (editingEvent as any).feeCoveredBy === 'coach' ? 'coach' : 'player',
         developmentFocus: (editingEvent as any).developmentFocus || '',
         endTime: (() => {
           const e = (editingEvent as any).endDate;
@@ -163,6 +178,7 @@ const EventForm: React.FC<EventFormProps> = ({
         arriveOffsetMinutes: 0,
     rsvpCap: '',
     feeDollars: '',
+    feeCoveredBy: 'player',
         developmentFocus: '',
         endTime: '',
         notifyTeam: true,
@@ -524,18 +540,35 @@ const EventForm: React.FC<EventFormProps> = ({
         createdBy: userData.uid,
         createdByName: userData.name,
         arriveOffsetMinutes: formData.arriveOffsetMinutes > 0 ? formData.arriveOffsetMinutes : null,
+        // rsvpCap + feeCents are gated by team shape. If the UI didn't
+        // expose the input for this team, don't overwrite an existing
+        // saved value with null on edit — preserve whatever's on the doc.
         rsvpCap: (() => {
+          if (!showRsvpCap) return editingEvent ? (editingEvent as any).rsvpCap ?? null : null;
           const raw = String(formData.rsvpCap || '').trim();
           if (!raw) return null;
           const n = Number(raw);
           return Number.isFinite(n) && n > 0 ? Math.min(1000, Math.floor(n)) : null;
         })(),
         feeCents: (() => {
+          if (!showFee) return editingEvent ? (editingEvent as any).feeCents ?? null : null;
           const raw = String(formData.feeDollars || '').trim();
           if (!raw) return null;
           const dollars = Number(raw);
           if (!Number.isFinite(dollars) || dollars <= 0) return null;
           return Math.round(dollars * 100);
+        })(),
+        // feeCoveredBy is meaningful only when feeCents > 0. When the
+        // fee input is hidden or blank, write null so old values don't
+        // silently apply. When the coach did set a fee, write the
+        // toggle state.
+        feeCoveredBy: (() => {
+          if (!showFee) return editingEvent ? (editingEvent as any).feeCoveredBy ?? null : null;
+          const raw = String(formData.feeDollars || '').trim();
+          if (!raw) return null;
+          const dollars = Number(raw);
+          if (!Number.isFinite(dollars) || dollars <= 0) return null;
+          return formData.feeCoveredBy === 'coach' ? 'coach' : 'player';
         })(),
         developmentFocus: formData.developmentFocus.trim() || null,
         // Signal to the onEventCreate Cloud Function whether to fan
@@ -548,6 +581,27 @@ const EventForm: React.FC<EventFormProps> = ({
       };
 
       debug('Saving event data:', eventData);
+
+      // Standalone-coach auto-club: if this event carries a fee AND
+      // the team isn't attached to a club yet, fire-and-forget the
+      // personal-club create. Worker is idempotent so re-firing on
+      // subsequent fee-enabled saves is safe. Non-blocking so the
+      // event write itself never waits on club provisioning.
+      const feeCentsNumeric = typeof eventData.feeCents === 'number' && eventData.feeCents > 0 ? eventData.feeCents : 0;
+      const teamNeedsPersonalClub = feeCentsNumeric > 0 && selectedTeamId && !(selectedTeam as any)?.clubId;
+      if (teamNeedsPersonalClub) {
+        void (async () => {
+          try {
+            const { workerFetch } = await import('../../utils/workerFetch');
+            await workerFetch('/clubs/personal-create-if-missing', {
+              method: 'POST',
+              body: JSON.stringify({ teamId: selectedTeamId }),
+            });
+          } catch (e) {
+            console.warn('personal-club auto-create failed', e);
+          }
+        })();
+      }
 
       let calendarEvent;
       if (editingEvent) {
@@ -657,6 +711,7 @@ const EventForm: React.FC<EventFormProps> = ({
         arriveOffsetMinutes: 0,
     rsvpCap: '',
     feeDollars: '',
+    feeCoveredBy: 'player',
         developmentFocus: '',
         endTime: '',
         notifyTeam: true,
@@ -1220,54 +1275,112 @@ const EventForm: React.FC<EventFormProps> = ({
             </div>
           )}
 
-          {/* RSVP cap — for pickup / limited-field-size events. When
-              set, additional "Going" taps beyond the cap land on the
-              waitlist and get auto-promoted as slots free up. */}
-          <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
-              Cap the "Going" list (optional)
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={1000}
-              value={formData.rsvpCap}
-              onChange={(e) => setFormData({ ...formData, rsvpCap: e.target.value })}
-              placeholder="e.g. 20 (blank = no cap)"
-              className="w-full px-3 py-2 bg-surface-base text-ink-primary border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
-            />
-            {String(formData.rsvpCap || '').trim() && (
-              <p className="text-[11px] text-ink-primary/60 mt-1 leading-snug">
-                First {formData.rsvpCap} to tap Going are confirmed. Everyone else joins a waitlist and gets promoted automatically if someone drops out.
-              </p>
-            )}
-          </div>
-
-          {/* Drop-in fee — for pickup / field-rental use case. Needs the
-              club's Stripe Connect to be set up; hidden fee prompt shows
-              on EventDetail when set. */}
-          <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
-              Drop-in fee (optional)
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-primary/50 text-sm font-bold">$</span>
+          {/* RSVP cap — pickup teams only. Additional "Going" taps
+              beyond the cap land on the waitlist and get auto-promoted
+              as slots free up. Hidden for fixed-roster teams (youth
+              or adult), which have a stable known headcount. */}
+          {showRsvpCap && (
+            <div>
+              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
+                Cap the "Going" list (optional)
+              </label>
               <input
                 type="number"
                 min={0}
-                step="0.50"
-                value={formData.feeDollars}
-                onChange={(e) => setFormData({ ...formData, feeDollars: e.target.value })}
-                placeholder="e.g. 10.00"
-                className="w-full pl-7 pr-3 py-2 bg-surface-base text-ink-primary border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+                max={1000}
+                value={formData.rsvpCap}
+                onChange={(e) => setFormData({ ...formData, rsvpCap: e.target.value })}
+                placeholder="e.g. 20 (blank = no cap)"
+                className="w-full px-3 py-2 bg-surface-base text-ink-primary border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
               />
+              {String(formData.rsvpCap || '').trim() && (
+                <p className="text-[11px] text-ink-primary/60 mt-1 leading-snug">
+                  First {formData.rsvpCap} to tap Going are confirmed. Everyone else joins a waitlist and gets promoted automatically if someone drops out.
+                </p>
+              )}
             </div>
-            {String(formData.feeDollars || '').trim() && (
-              <p className="text-[11px] text-ink-primary/60 mt-1 leading-snug">
-                Players pay this amount at RSVP time via Stripe Checkout. Requires your club's Stripe Connect to be active.
-              </p>
-            )}
-          </div>
+          )}
+
+          {/* Event fee. Two shapes:
+              - Pickup team: recurring drop-in fee ($10 per session).
+              - Adult roster team: opt-in one-off (refs, field,
+                tournament entry). Youth roster teams don't see this.
+              Hidden fields don't overwrite existing saved values on
+              edit — see the save-side guard on eventData.feeCents. */}
+          {showFee && (
+            <div>
+              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
+                {isPickup ? 'Drop-in fee (optional)' : 'Event fee (refs, field, tournament)'}
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-primary/50 text-sm font-bold">$</span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.50"
+                  value={formData.feeDollars}
+                  onChange={(e) => setFormData({ ...formData, feeDollars: e.target.value })}
+                  placeholder="e.g. 10.00"
+                  className="w-full pl-7 pr-3 py-2 bg-surface-base text-ink-primary border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+                />
+              </div>
+              {String(formData.feeDollars || '').trim() ? (
+                <p className="text-[11px] text-ink-primary/60 mt-1 leading-snug">
+                  {isPickup
+                    ? 'What each player pays to play. Card charges route to your Stripe account.'
+                    : 'Optional. Leave blank for regular training. Splits evenly across players who RSVP going.'}
+                </p>
+              ) : (
+                !isPickup && (
+                  <p className="text-[11px] text-ink-primary/60 mt-1 leading-snug">
+                    Leave blank for regular training.
+                  </p>
+                )
+              )}
+
+              {/* Who covers Stripe + platform fees. Only shown when a
+                  fee is set. Default 'player' so the coach nets exactly
+                  the number they typed. */}
+              {(() => {
+                const raw = String(formData.feeDollars || '').trim();
+                const dollars = Number(raw);
+                if (!raw || !Number.isFinite(dollars) || dollars <= 0) return null;
+                return (
+                  <div className="mt-3 rounded-lg bg-surface-base ring-1 ring-line-default/15 p-3">
+                    <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-2">
+                      Fees
+                    </div>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.feeCoveredBy === 'player'}
+                        onChange={(e) => setFormData({ ...formData, feeCoveredBy: e.target.checked ? 'player' : 'coach' })}
+                        className="mt-0.5 w-4 h-4 accent-cyan-600"
+                      />
+                      <span>
+                        <span className="text-sm font-semibold text-ink-primary block">Player covers fees</span>
+                        <span className="text-[11px] text-ink-primary/60 block leading-snug mt-0.5">
+                          {formData.feeCoveredBy === 'player'
+                            ? `Player sees one price that covers card + platform fees. You net $${dollars.toFixed(2)} per head.`
+                            : "You'll absorb Stripe + platform fees from your deposit."}
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                );
+              })()}
+
+              {/* Personal-club Connect nudge. Save still works — the
+                  worker auto-creates the personal club shell on save.
+                  This is only a heads-up so the coach knows the next
+                  step to actually collect money. */}
+              {!(selectedTeam as any)?.clubId && String(formData.feeDollars || '').trim() && (
+                <p className="text-[11px] text-amber-600 mt-2 leading-snug">
+                  Heads up: to actually collect card payments, finish Stripe payouts setup after saving. Cash-paid mark works either way.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Arrive early — recommended for games (warmups), useful for
               practices too. Offsets are stored so they auto-shift if the

@@ -97,6 +97,10 @@ const FILTERS: Array<{ key: RecognitionFilter; label: string }> = [
   { key: 'xp_note',      label: 'XP notes' },
   { key: 'potm_comment', label: 'POTM comments' },
   { key: 'badge',        label: 'Badges' },
+  // TODO(highlights-shouts): show 'highlight' filter once we thread
+  // player_media (with momentType) into buildSidelineShouts callers.
+  // See project_sideline_shouts memory + Highlights feature audit.
+  { key: 'highlight',    label: 'Highlights' },
 ];
 
 // Season window helpers — used to filter every source in Season mode.

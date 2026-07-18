@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
@@ -184,6 +184,7 @@ const Surveys: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
   const { addDocument, updateDocument, deleteDocument } = useFirestore();
+  const [searchParams] = useSearchParams();
 
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -229,6 +230,16 @@ const Surveys: React.FC = () => {
   }, [selectedTeamId]);
 
   useEffect(() => { loadSurveys(); }, [loadSurveys]);
+
+  // Deep-link from the More-sheet search: ?section=create jumps the
+  // coach straight into the survey builder. Only fires when the coach
+  // is actually the coach of this team — no point opening the builder
+  // for a viewer.
+  useEffect(() => {
+    if (searchParams.get('section') !== 'create') return;
+    if (!userIsCoach) return;
+    setView('create');
+  }, [searchParams, userIsCoach]);
 
   // Deep-link support: /surveys/:surveyId lands the coach directly on
   // the results view for that survey. Push notifications from

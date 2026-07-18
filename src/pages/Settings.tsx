@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
@@ -36,7 +36,24 @@ interface LinkedPlayer {
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { userData, currentUser, logout, deleteAccount, refreshUserData } = useAuth();
+
+  // Deep-link scroll: the More-sheet search routes here with a
+  // ?section= query param. Scroll the matching anchor into view once
+  // the section renders. Short timeout lets subordinate cards mount
+  // (NotificationPreferences, SubscriptionCard etc.) before we scroll.
+  useEffect(() => {
+    const section = searchParams.get('section');
+    if (!section) return;
+    const id = window.setTimeout(() => {
+      const el = document.querySelector(`[data-search-anchor="${section}"]`);
+      if (el && 'scrollIntoView' in el) {
+        (el as HTMLElement).scrollIntoView({ block: 'start', behavior: 'smooth' });
+      }
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [searchParams]);
   const { updateDocument } = useFirestore();
   const { viewMode } = useViewMode();
   const { selectedTeamId, teams } = useTeam();
@@ -458,7 +475,7 @@ const Settings: React.FC = () => {
             coach either (a) starts a new team from the landing
             screen or (b) gets flipped by an admin. */}
         {currentGlobalRole === 'coach' && (
-          <section>
+          <section data-search-anchor="role-switch">
             <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Account role</h2>
             <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4 space-y-3">
               <p className="text-sm text-ink-primary/70 leading-snug">
@@ -546,20 +563,20 @@ const Settings: React.FC = () => {
         </section>
 
         {/* ── SUBSCRIPTION ──────────────────────────────────────── */}
-        <section>
+        <section data-search-anchor="subscription">
           <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Subscription</h2>
           <SubscriptionCard />
         </section>
 
         {/* ── MANAGE ACCOUNT ────────────────────────────────────── */}
-        <section>
+        <section data-search-anchor="notifications">
           <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Notifications</h2>
           <NotificationPreferences />
         </section>
 
         <HiddenDashboardCardsSection />
 
-        <section>
+        <section data-search-anchor="email">
           <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Email</h2>
           <EmailPreferences />
         </section>
@@ -579,13 +596,13 @@ const Settings: React.FC = () => {
         )}
 
         {isThemePickerVisible(userData) && (
-          <section>
+          <section data-search-anchor="appearance">
             <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Appearance</h2>
             <ThemeToggleCard />
           </section>
         )}
 
-        <section>
+        <section data-search-anchor="widget">
           <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Widget</h2>
           <WidgetSetupCard />
         </section>
@@ -664,7 +681,7 @@ const Settings: React.FC = () => {
         </section>
 
         {/* ── DANGER ────────────────────────────────────────────── */}
-        <section>
+        <section data-search-anchor="danger">
           <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm overflow-hidden divide-y divide-line-default/5">
             <button
               onClick={handleSignOut}

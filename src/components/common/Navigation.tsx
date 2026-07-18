@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { VOCAB } from '../../vocab';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { SEARCHABLE_ACTIONS, filterActions, resolveRoute, type SearchCtx } from '../../utils/searchableActions';
 
 // Subscribe to body class changes so React can re-render when TeamChat
 // toggles `chat-conversation` (we want to fully unmount the bottom nav
@@ -51,6 +52,8 @@ const Navigation: React.FC = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [wordmarkFailed, setWordmarkFailed] = useState(false);
+  const [moreSearch, setMoreSearch] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     setWordmarkFailed(false);
@@ -149,6 +152,31 @@ const Navigation: React.FC = () => {
   useEffect(() => {
     setIsMoreOpen(false);
   }, [location.pathname]);
+
+  // Clear search when the More sheet closes so the next open starts
+  // on the section list, not stale results.
+  useEffect(() => {
+    if (!isMoreOpen) setMoreSearch('');
+  }, [isMoreOpen]);
+
+  // Build the search context once per relevant change. The registry's
+  // visibleTo gates read from this object so parents never see coach
+  // actions, non-admins never see club-admin actions, etc.
+  const searchCtx: SearchCtx = useMemo(() => ({
+    userData: (userData as any) || null,
+    selectedTeam: (selectedTeam as any) || null,
+    isCoachOfTeam: isCoachOfTeam(userData, selectedTeam),
+    isClubAdmin: isClubAdmin(userData),
+    isParentMode: (userData as any)?.role === 'parent',
+    isAdultTeam,
+    myPlayer: linkedPlayers[0] ? ({ id: linkedPlayers[0].id, name: linkedPlayers[0].name } as any) : null,
+  }), [userData, selectedTeam, isAdultTeam, linkedPlayers]);
+
+  const searchResults = useMemo(
+    () => filterActions(SEARCHABLE_ACTIONS, moreSearch, searchCtx),
+    [moreSearch, searchCtx],
+  );
+  const searchActive = moreSearch.trim().length > 0;
 
   const handleLogout = async () => {
     try {
@@ -797,6 +825,88 @@ const Navigation: React.FC = () => {
               );
             })()}
 
+            {/* Search — top of the More sheet only. When there's a
+                query, results replace the sectioned list. Warm copy in
+                the placeholder so it reads as helpful, not techy. */}
+            <div className="sticky top-0 z-10 bg-surface-elevated/95 backdrop-blur-sm px-4 pt-2 pb-3">
+              <div className="relative">
+                <span className="absolute inset-y-0 left-3 flex items-center text-ink-primary/45 pointer-events-none">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="7" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </span>
+                <input
+                  type="search"
+                  value={moreSearch}
+                  onChange={(e) => setMoreSearch(e.target.value)}
+                  placeholder="Search settings and features"
+                  aria-label="Search settings and features"
+                  className="w-full bg-line-default/[0.06] text-ink-primary placeholder-ink-primary/45 rounded-xl pl-9 pr-9 py-2.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-brand-primary-soft border border-line-default/10"
+                  style={{ fontSize: '16px' }}
+                />
+                {searchActive && (
+                  <button
+                    type="button"
+                    onClick={() => setMoreSearch('')}
+                    aria-label="Clear search"
+                    className="absolute inset-y-0 right-2 flex items-center px-1 text-ink-primary/50 hover:text-ink-primary"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {searchActive ? (
+              <div className="px-4 pb-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/45 mb-2 px-2">
+                  {searchResults.length === 0 ? 'No matches' : `${searchResults.length} result${searchResults.length === 1 ? '' : 's'}`}
+                </div>
+                {searchResults.length === 0 ? (
+                  <div className="bg-line-default/[0.04] rounded-2xl ring-1 ring-line-default/10 px-4 py-6 text-center">
+                    <p className="text-sm text-ink-primary/60">
+                      Nothing matched that. Try a different word, or scroll the sections below.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-line-default/[0.04] rounded-2xl ring-1 ring-line-default/10 overflow-hidden divide-y divide-line-default/5">
+                    {searchResults.map((a) => {
+                      const to = resolveRoute(a, searchCtx);
+                      return (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => {
+                            setIsMoreOpen(false);
+                            setMoreSearch('');
+                            navigate(to);
+                          }}
+                          className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-line-default/5 transition text-left"
+                        >
+                          <span className="flex items-center gap-3 min-w-0">
+                            <span className="w-9 h-9 rounded-lg bg-brand-primary/10 text-brand-primary-soft flex items-center justify-center shrink-0">
+                              <AppIcon name={(a.icon || 'gear') as any} className="w-5 h-5" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-[15px] font-semibold text-ink-primary truncate">{a.label}</span>
+                              {a.description && (
+                                <span className="block text-[12px] text-ink-primary/55 truncate">{a.description}</span>
+                              )}
+                            </span>
+                          </span>
+                          <AppIcon name="arrow-right" className="w-4 h-4 text-ink-primary/30 shrink-0" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+            <>
             {/* Sectioned list — consistent outline icons in a tinted
                 square, single-column rows like Ollie's Tools page.
                 Sections are filtered to only render when they actually
@@ -890,6 +1000,8 @@ const Navigation: React.FC = () => {
                 </div>
               </div>
             </div>
+            </>
+            )}
 
             {/* Bottom spacer for safe area */}
             <div className="h-20" />

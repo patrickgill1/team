@@ -318,6 +318,23 @@ const PlayerProfile: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 2026-07-17: honor ?edit=1 on the URL. The More sheet's search
+  // deep-links "Edit jersey number" and "Add a profile photo" to
+  // /player/:id?edit=1 so tapping the result opens the edit sheet
+  // directly. We strip the flag off the URL after firing so a refresh
+  // doesn't re-open it.
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('edit') === '1') {
+        setEditOpen(true);
+        url.searchParams.delete('edit');
+        window.history.replaceState(window.history.state, '', url.toString());
+      }
+    } catch { /* SSR-safe noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Sticky-hero sentinel: an IntersectionObserver watches an invisible
   // element placed at the end of the hero band. When it exits the top
   // of the viewport, the pill bar row above sprouts a compact

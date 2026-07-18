@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
@@ -129,9 +129,37 @@ const CoachXpConfig: React.FC = () => {
   return <CoachXpConfigInner key={selectedTeamId || 'no-team'} />;
 };
 
+// Map a search anchor (e.g. `source-practice`, `section-milestones`,
+// `master`) to the SECTIONS group it belongs to, so the More-sheet
+// search can auto-expand the correct group after navigation.
+const ANCHOR_TO_SECTION: Record<string, SectionKey> = {
+  'section-participation': 'participation',
+  'section-milestones': 'milestones',
+  'section-streaksAttendance': 'streaksAttendance',
+  'section-coachActions': 'coachActions',
+};
+const SOURCE_KEY_TO_SECTION: Record<UiXpKey, SectionKey> = {
+  practice: 'participation',
+  rsvp: 'participation',
+  practiceAttendance: 'participation',
+  gameAttendance: 'participation',
+  firstGoal: 'milestones',
+  firstAssist: 'milestones',
+  firstSave: 'milestones',
+  firstCleanSheet: 'milestones',
+  firstPotm: 'milestones',
+  streaks: 'streaksAttendance',
+  perfectAttendance: 'streaksAttendance',
+  whisper: 'coachActions',
+  coachLiveGrant: 'coachActions',
+  kudosConvert: 'coachActions',
+  effortBonus: 'coachActions',
+};
+
 const CoachXpConfigInner: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeam, selectedTeamId } = useTeam();
+  const [searchParams] = useSearchParams();
 
   // Hooks BEFORE any conditional return — react hook rules.
   const initialEnabled = (selectedTeam as any)?.xpConfig?.enabled === true;
@@ -162,6 +190,39 @@ const CoachXpConfigInner: React.FC = () => {
     const id = window.setTimeout(() => setToast(null), 2500);
     return () => window.clearTimeout(id);
   }, [toast]);
+
+  // Deep-link scroll: the More-sheet search routes here with a
+  // ?section= query param. `master` focuses the master toggle,
+  // `section-<key>` expands a group, `source-<key>` expands the
+  // group containing that source and scrolls to the toggle. We
+  // wait a frame so the DOM has painted before measuring.
+  useEffect(() => {
+    const section = searchParams.get('section');
+    if (!section) return;
+    // Map anchor → sectionKey to expand.
+    let sectionKey: SectionKey | null = null;
+    if (ANCHOR_TO_SECTION[section]) {
+      sectionKey = ANCHOR_TO_SECTION[section];
+    } else if (section.startsWith('source-')) {
+      const src = section.slice('source-'.length) as UiXpKey;
+      sectionKey = SOURCE_KEY_TO_SECTION[src] || null;
+    }
+    if (sectionKey) {
+      const key = sectionKey;
+      setOpenSections(s => ({ ...s, [key]: true }));
+    }
+    // Give React a moment to render the expanded group and finish
+    // loading the team data, then scroll the anchor into view. A
+    // short delay is more robust than a single rAF because selectedTeam
+    // may still be resolving on first mount.
+    const id = window.setTimeout(() => {
+      const el = document.querySelector(`[data-search-anchor="${section}"]`);
+      if (el && 'scrollIntoView' in el) {
+        (el as HTMLElement).scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [searchParams]);
 
   // Load roster so we can show "Team XP status." Non-fatal.
   useEffect(() => {
@@ -274,7 +335,7 @@ const CoachXpConfigInner: React.FC = () => {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-4">
 
         {/* Master toggle card */}
-        <section className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5">
+        <section data-search-anchor="master" className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-bold">Enable player XP for this team</h2>
@@ -314,7 +375,7 @@ const CoachXpConfigInner: React.FC = () => {
               const total = section.keys.length;
               const isOpen = openSections[section.key];
               return (
-                <div key={section.key} className="rounded-xl bg-surface-base/50 ring-1 ring-line-default/10 overflow-hidden">
+                <div key={section.key} data-search-anchor={`section-${section.key}`} className="rounded-xl bg-surface-base/50 ring-1 ring-line-default/10 overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setOpenSections(s => ({ ...s, [section.key]: !s[section.key] }))}
@@ -342,14 +403,15 @@ const CoachXpConfigInner: React.FC = () => {
                   {isOpen && (
                     <div className="border-t border-line-default/10 p-3 space-y-2.5">
                       {section.keys.map((k) => (
-                        <ToggleRow
-                          key={k}
-                          title={XP_SOURCE_LABELS[k] || k}
-                          subtitle={XP_SOURCE_SUBTITLES[k] || ''}
-                          checked={sources[k] !== false}
-                          disabled={!enabled}
-                          onChange={(v) => setSources(s => ({ ...s, [k]: v }))}
-                        />
+                        <div key={k} data-search-anchor={`source-${k}`}>
+                          <ToggleRow
+                            title={XP_SOURCE_LABELS[k] || k}
+                            subtitle={XP_SOURCE_SUBTITLES[k] || ''}
+                            checked={sources[k] !== false}
+                            disabled={!enabled}
+                            onChange={(v) => setSources(s => ({ ...s, [k]: v }))}
+                          />
+                        </div>
                       ))}
                     </div>
                   )}

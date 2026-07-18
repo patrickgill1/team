@@ -1736,7 +1736,7 @@ const PlayerMediaPage: React.FC = () => {
                     { k: 'all' as const, label: 'All' },
                     { k: 'photo' as const, label: 'Photos' },
                     { k: 'video' as const, label: 'Videos' },
-                    { k: 'highlight' as const, label: 'Highlights' },
+                    { k: 'highlight' as const, label: 'Moments' },
                   ].map((opt) => (
                     <button
                       key={opt.k}
@@ -1847,7 +1847,9 @@ const PlayerMediaPage: React.FC = () => {
                     userData={userData}
                     isUserCoach={isUserCoach}
                     emptyLabel={mediaTypeFilter === 'highlight'
-                      ? 'No highlights yet. Tag a moment when you upload a video or photo.'
+                      ? (isUserCoach
+                          ? 'No moments tagged yet. Pick a moment (Goal, Assist, or Big play) next time you upload a clip.'
+                          : 'No moments tagged yet. Coaches can tag goals, assists, and big plays. They will show up here.')
                       : undefined}
                   />
                   {hasMore && (
@@ -1990,7 +1992,7 @@ const PlayerMediaPage: React.FC = () => {
                         <span className="text-[10px] font-black tracking-widest uppercase text-ink-primary/45">Display only</span>
                       </div>
                       <p className="text-xs text-ink-primary/60 mb-3 leading-snug">
-                        Optional. This tags the clip so it shows up in Highlights. It does not count as a stat or grant XP. Use the Goal or Assist tag below for stats.
+                        Optional. This tags the clip so it surfaces under the Moments filter. It does not count as a stat or grant XP. Use the Goal or Assist tag below for stats.
                       </p>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {([

@@ -19,7 +19,7 @@
  */
 
 import { ServiceAccount, parseServiceAccount } from './fcm';
-import { getDocument, patchDocument, createDocument, runQuery, incrementFields } from './firestore';
+import { getDocument, patchDocument, createDocument, runQuery, incrementFields, commitDocumentTransforms, patchMapEntry } from './firestore';
 
 export interface StripeEnv {
   STRIPE_SECRET_KEY?: string;
@@ -981,6 +981,586 @@ export async function handleCustomerPortal(payload: any, env: StripeEnv): Promis
   }
 }
 
+// ────────────────────────────────────────────────────────────────
+// Team payment_requests — Stripe flows for one-off, catalog, and
+// recurring coach-created payment requests. Mirrors the event
+// drop-in checkout pattern (grossed-up destination charge) with two
+// additions: catalog carries a variable-length line-item list, and
+// recurring creates an on-the-fly Stripe Product+Price on the
+// connected account before opening a subscription-mode Checkout.
+//
+// All three land back on /payments (parent) or /coach/payments/:id
+// (coach) so the success page never has to know which shape fired.
+// ────────────────────────────────────────────────────────────────
+
+async function resolvePaymentClub(projectId: string, sa: ServiceAccount, clubId: string): Promise<{ stripeAccountId: string; platformFeeBps: number } | null> {
+  const club = await getDocument(projectId, `clubs/${clubId}`, sa).catch(() => null);
+  if (!club?.data) return null;
+  const stripeAccountId = String(club.data.stripeAccountId || '');
+  if (!stripeAccountId || !club.data.stripeChargesEnabled) return null;
+  let platformFeeBps = (typeof club.data.platformFeeBps === 'number')
+    ? club.data.platformFeeBps
+    : null;
+  if (platformFeeBps === null) {
+    try {
+      const defaults = await getDocument(projectId, 'platform_settings/defaults', sa).catch(() => null);
+      const defaultBps = Number(defaults?.data?.platformFeeBps || 0);
+      platformFeeBps = defaultBps > 0 ? defaultBps : 0;
+    } catch { platformFeeBps = 0; }
+  }
+  return { stripeAccountId, platformFeeBps };
+}
+
+// POST /payments/checkout — one_off + catalog. Body:
+//   { paymentRequestId, uid, items?: [{ itemId, quantity }],
+//     playerIds?: string[], successUrl?, cancelUrl?, customerEmail? }
+// For one_off, playerIds names the kids this parent is paying for
+// (multi-child families multiply the fee). For catalog, items is the
+// cart.
+export async function handlePaymentCheckout(payload: any, env: StripeEnv): Promise<Response> {
+  const paymentRequestId = String(payload?.paymentRequestId || '').trim();
+  const uid = String(payload?.uid || '').trim();
+  if (!paymentRequestId) return json({ ok: false, error: 'missing-paymentRequestId' }, 400);
+  if (!uid) return json({ ok: false, error: 'missing-uid' }, 400);
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
+
+  const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa);
+  if (!pr?.data) return json({ ok: false, error: 'payment-request-not-found' }, 404);
+  if (pr.data.status !== 'active' || pr.data.isActive === false) {
+    return json({ ok: false, error: 'payment-request-closed' }, 409);
+  }
+  const kind = String(pr.data.kind || '');
+  if (kind !== 'one_off' && kind !== 'catalog') {
+    return json({ ok: false, error: 'wrong-kind', hint: 'Use /payments/subscription-checkout for recurring.' }, 400);
+  }
+
+  const clubInfo = await resolvePaymentClub(projectId, sa, String(pr.data.clubId || ''));
+  if (!clubInfo) return json({ ok: false, error: 'club-not-stripe-ready', hint: 'Coach must connect Stripe before payments can be collected.' }, 409);
+  const { stripeAccountId, platformFeeBps } = clubInfo;
+
+  const { grossUpCents } = await import('./pricing');
+  const feeCoveredBy: 'player' | 'coach' = pr.data.feeCoveredBy === 'coach' ? 'coach' : 'player';
+
+  // Build line items.
+  interface LineSpec { name: string; unitCents: number; quantity: number; }
+  const lines: LineSpec[] = [];
+  let metaExtras: Record<string, string> = {};
+
+  if (kind === 'one_off') {
+    const feeCents = Number(pr.data.feeCents || 0);
+    if (feeCents <= 0) return json({ ok: false, error: 'no-fee-set' }, 400);
+    const playerIdsRaw = Array.isArray(payload?.playerIds) ? payload.playerIds : [];
+    const playerIds: string[] = playerIdsRaw.filter((s: unknown) => typeof s === 'string');
+    const quantity = Math.max(1, playerIds.length);
+    const perUnitCharged = feeCoveredBy === 'player' ? grossUpCents(feeCents, platformFeeBps) : feeCents;
+    lines.push({
+      name: `${pr.data.title || 'Team payment'}${quantity > 1 ? ` (${quantity} players)` : ''}`,
+      unitCents: perUnitCharged,
+      quantity,
+    });
+    if (playerIds.length > 0) metaExtras['playerIds'] = playerIds.slice(0, 20).join(',');
+  } else {
+    // catalog
+    const cart = Array.isArray(payload?.items) ? payload.items : [];
+    if (cart.length === 0) return json({ ok: false, error: 'empty-cart' }, 400);
+    const catalog: any[] = Array.isArray(pr.data.items) ? pr.data.items : [];
+    const purchases: any[] = Array.isArray(pr.data.purchases) ? pr.data.purchases : [];
+    const cartMeta: Array<{ itemId: string; quantity: number }> = [];
+    for (const row of cart) {
+      const itemId = String(row?.itemId || '');
+      const qty = Math.max(1, Math.round(Number(row?.quantity || 1)));
+      const item = catalog.find(i => i.id === itemId);
+      if (!item || item.isActive === false) return json({ ok: false, error: 'item-unavailable', itemId }, 409);
+      // maxPerPlayer enforcement (per-uid across prior purchases)
+      if (item.maxPerPlayer != null) {
+        const priorForUid = purchases
+          .filter(p => p?.itemId === itemId && p?.uid === uid && p?.paidVia !== 'refunded')
+          .reduce((sum, p) => sum + Number(p.quantity || 0), 0);
+        if (priorForUid + qty > item.maxPerPlayer) {
+          return json({ ok: false, error: 'max-per-player', itemId, maxPerPlayer: item.maxPerPlayer, priorPurchased: priorForUid }, 409);
+        }
+      }
+      const perUnitCharged = feeCoveredBy === 'player' ? grossUpCents(Number(item.priceCents), platformFeeBps) : Number(item.priceCents);
+      lines.push({
+        name: `${item.name}${qty > 1 ? ` x${qty}` : ''}`,
+        unitCents: perUnitCharged,
+        quantity: qty,
+      });
+      cartMeta.push({ itemId, quantity: qty });
+    }
+    metaExtras['cart'] = JSON.stringify(cartMeta).slice(0, 480);
+  }
+
+  const chargedTotal = lines.reduce((sum, l) => sum + l.unitCents * l.quantity, 0);
+  const applicationFeeAmount = platformFeeBps > 0
+    ? Math.round((chargedTotal * platformFeeBps) / 10000)
+    : 0;
+
+  const successUrl = String(payload?.successUrl || `${env.APP_ORIGIN}/payments?paid=${encodeURIComponent(paymentRequestId)}`);
+  const cancelUrl = String(payload?.cancelUrl || `${env.APP_ORIGIN}/payments`);
+  const customerEmail = payload?.customerEmail ? String(payload.customerEmail) : undefined;
+
+  const sessionParams: Record<string, any> = {
+    mode: 'payment',
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    'metadata[kind]': 'payment_request',
+    'metadata[paymentKind]': kind,
+    'metadata[paymentRequestId]': paymentRequestId,
+    'metadata[uid]': uid,
+    'metadata[teamId]': String(pr.data.teamId || ''),
+    'metadata[clubId]': String(pr.data.clubId || ''),
+    'metadata[feeCoveredBy]': feeCoveredBy,
+    'metadata[chargedCents]': String(chargedTotal),
+  };
+  lines.forEach((l, i) => {
+    sessionParams[`line_items[${i}][price_data][currency]`] = 'usd';
+    sessionParams[`line_items[${i}][price_data][product_data][name]`] = l.name;
+    sessionParams[`line_items[${i}][price_data][unit_amount]`] = l.unitCents;
+    sessionParams[`line_items[${i}][quantity]`] = l.quantity;
+  });
+  for (const [k, v] of Object.entries(metaExtras)) {
+    sessionParams[`metadata[${k}]`] = v;
+  }
+  if (customerEmail) sessionParams['customer_email'] = customerEmail;
+  if (applicationFeeAmount > 0) {
+    sessionParams['payment_intent_data[application_fee_amount]'] = applicationFeeAmount;
+    sessionParams['metadata[platformFeeCents]'] = String(applicationFeeAmount);
+  }
+
+  try {
+    const session = await stripeRequest(env, '/checkout/sessions', sessionParams, { stripeAccount: stripeAccountId });
+    return json({ ok: true, url: session.url, sessionId: session.id });
+  } catch (err: any) {
+    console.error('payments-checkout error', err);
+    return json({ ok: false, error: 'stripe_error', detail: String(err?.message || err).slice(0, 300) }, 502);
+  }
+}
+
+// POST /payments/subscription-checkout — recurring only. Body:
+//   { paymentRequestId, uid, successUrl?, cancelUrl?, customerEmail? }
+// Creates a Stripe Product+Price on the connected account (idempotent
+// by paymentRequestId lookup) and opens a subscription-mode Checkout
+// with transfer_data.destination and application_fee_percent.
+export async function handlePaymentSubscriptionCheckout(payload: any, env: StripeEnv): Promise<Response> {
+  const paymentRequestId = String(payload?.paymentRequestId || '').trim();
+  const uid = String(payload?.uid || '').trim();
+  if (!paymentRequestId) return json({ ok: false, error: 'missing-paymentRequestId' }, 400);
+  if (!uid) return json({ ok: false, error: 'missing-uid' }, 400);
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
+
+  const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa);
+  if (!pr?.data) return json({ ok: false, error: 'payment-request-not-found' }, 404);
+  if (pr.data.kind !== 'recurring') return json({ ok: false, error: 'wrong-kind' }, 400);
+  if (pr.data.status !== 'active' || pr.data.isActive === false) {
+    return json({ ok: false, error: 'payment-request-closed' }, 409);
+  }
+  // One active sub per parent uid.
+  const subs: Record<string, string> = (pr.data.stripeSubscriptionIds || {}) as Record<string, string>;
+  if (subs && subs[uid]) return json({ ok: false, error: 'already-subscribed', subscriptionId: subs[uid] }, 409);
+
+  const clubInfo = await resolvePaymentClub(projectId, sa, String(pr.data.clubId || ''));
+  if (!clubInfo) return json({ ok: false, error: 'club-not-stripe-ready' }, 409);
+  const { stripeAccountId, platformFeeBps } = clubInfo;
+
+  const { grossUpCents } = await import('./pricing');
+  const { stripeInterval } = await import('./paymentIntervals');
+  const feeCoveredBy: 'player' | 'coach' = pr.data.feeCoveredBy === 'coach' ? 'coach' : 'player';
+  const intervalCents = Number(pr.data.intervalCents || 0);
+  if (intervalCents <= 0) return json({ ok: false, error: 'no-interval-cents' }, 400);
+  const chargedPer = feeCoveredBy === 'player' ? grossUpCents(intervalCents, platformFeeBps) : intervalCents;
+  const stripeIvl = stripeInterval(pr.data.interval);
+
+  const successUrl = String(payload?.successUrl || `${env.APP_ORIGIN}/payments?subscribed=${encodeURIComponent(paymentRequestId)}`);
+  const cancelUrl = String(payload?.cancelUrl || `${env.APP_ORIGIN}/payments`);
+  const customerEmail = payload?.customerEmail ? String(payload.customerEmail) : undefined;
+
+  try {
+    // Create (or reuse) a Stripe Product on the connected account. We
+    // key by paymentRequestId in metadata so a re-run finds the same
+    // product without needing to store the id on the request doc.
+    // Stripe's `product_data` on price_data can create the product
+    // inline, so we skip the explicit product create step — subscription
+    // mode requires a recurring price, and price_data.recurring is
+    // enough.
+    const sessionParams: Record<string, any> = {
+      mode: 'subscription',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      'line_items[0][price_data][currency]': 'usd',
+      'line_items[0][price_data][product_data][name]': `${pr.data.title || 'Team dues'}`,
+      'line_items[0][price_data][unit_amount]': chargedPer,
+      'line_items[0][price_data][recurring][interval]': stripeIvl.interval,
+      'line_items[0][price_data][recurring][interval_count]': stripeIvl.interval_count,
+      'line_items[0][quantity]': 1,
+      'metadata[kind]': 'payment_request',
+      'metadata[paymentKind]': 'recurring',
+      'metadata[paymentRequestId]': paymentRequestId,
+      'metadata[uid]': uid,
+      'metadata[teamId]': String(pr.data.teamId || ''),
+      'metadata[clubId]': String(pr.data.clubId || ''),
+      'metadata[feeCoveredBy]': feeCoveredBy,
+      'metadata[chargedCents]': String(chargedPer),
+      'subscription_data[metadata][kind]': 'payment_request',
+      'subscription_data[metadata][paymentKind]': 'recurring',
+      'subscription_data[metadata][paymentRequestId]': paymentRequestId,
+      'subscription_data[metadata][uid]': uid,
+      'subscription_data[metadata][teamId]': String(pr.data.teamId || ''),
+      'subscription_data[metadata][clubId]': String(pr.data.clubId || ''),
+      'subscription_data[metadata][feeCoveredBy]': feeCoveredBy,
+    };
+    if (customerEmail) sessionParams['customer_email'] = customerEmail;
+    // application_fee_percent on subscriptions is a percent (not bps),
+    // and accepts up to 2 decimal places. Convert bps -> percent.
+    if (platformFeeBps > 0) {
+      const pct = (platformFeeBps / 100).toFixed(2);
+      sessionParams['subscription_data[application_fee_percent]'] = pct;
+      sessionParams['metadata[platformFeeBps]'] = String(platformFeeBps);
+    }
+
+    // Direct charge on the connected account (Stripe-Account header),
+    // same shape as the one_off path. The coach's connected account is
+    // the merchant of record, so Stripe processing fees are debited
+    // there and the platform's cut (application_fee_percent) transfers
+    // back to us. The prior destination-charge shape had the platform
+    // absorbing Stripe fees on every renewal, silently overpaying the
+    // coach by ~3% and breaking the gross-up math parents saw.
+    const session = await stripeRequest(env, '/checkout/sessions', sessionParams, { stripeAccount: stripeAccountId });
+    return json({ ok: true, url: session.url, sessionId: session.id });
+  } catch (err: any) {
+    console.error('payment-subscription-checkout error', err);
+    return json({ ok: false, error: 'stripe_error', detail: String(err?.message || err).slice(0, 300) }, 502);
+  }
+}
+
+// POST /payments/subscription-cancel — parent or coach.
+// Body: { paymentRequestId, uid, atPeriodEnd?: boolean }
+// Defaults to cancel_at_period_end=true. Coach forcing an immediate
+// cancel passes atPeriodEnd=false.
+export async function handlePaymentSubscriptionCancel(payload: any, env: StripeEnv): Promise<Response> {
+  const paymentRequestId = String(payload?.paymentRequestId || '').trim();
+  const targetUid = String(payload?.uid || '').trim();
+  if (!paymentRequestId) return json({ ok: false, error: 'missing-paymentRequestId' }, 400);
+  if (!targetUid) return json({ ok: false, error: 'missing-uid' }, 400);
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
+  const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa);
+  if (!pr?.data) return json({ ok: false, error: 'payment-request-not-found' }, 404);
+  const subs: Record<string, string> = (pr.data.stripeSubscriptionIds || {}) as Record<string, string>;
+  const subId = subs?.[targetUid];
+  if (!subId) return json({ ok: false, error: 'no-subscription' }, 404);
+  const atPeriodEnd = payload?.atPeriodEnd !== false;
+  const clubInfo = await resolvePaymentClub(projectId, sa, String(pr.data.clubId || ''));
+  if (!clubInfo) return json({ ok: false, error: 'club-not-stripe-ready' }, 409);
+  try {
+    if (atPeriodEnd) {
+      await stripeRequest(env, `/subscriptions/${encodeURIComponent(subId)}`, {
+        cancel_at_period_end: true,
+      });
+    } else {
+      // Immediate cancel via DELETE — stripeRequest is POST-only, so
+      // we inline this call.
+      const url = `https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subId)}`;
+      const r = await fetch(url, {
+        method: 'DELETE',
+        headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` },
+      });
+      if (!r.ok) throw new Error(`stripe cancel ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    }
+    return json({ ok: true, subscriptionId: subId, atPeriodEnd });
+  } catch (err: any) {
+    return json({ ok: false, error: String(err?.message || err) }, 502);
+  }
+}
+
+// POST /payments/refund — coach-only, one_off + catalog.
+// Body: { paymentRequestId, uid?, purchaseId?, chargeId?, actorUid, actorName? }
+// Either uid (one_off) or purchaseId (catalog). Refunds the full
+// slice via refund_application_fee: true so the platform gives its
+// 100 bps back too.
+export async function handlePaymentRefund(payload: any, env: StripeEnv): Promise<Response> {
+  const paymentRequestId = String(payload?.paymentRequestId || '').trim();
+  if (!paymentRequestId) return json({ ok: false, error: 'missing-paymentRequestId' }, 400);
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
+  const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa);
+  if (!pr?.data) return json({ ok: false, error: 'payment-request-not-found' }, 404);
+
+  const clubInfo = await resolvePaymentClub(projectId, sa, String(pr.data.clubId || ''));
+  if (!clubInfo) return json({ ok: false, error: 'club-not-stripe-ready' }, 409);
+
+  const paymentIntentId = String(payload?.paymentIntentId || '').trim();
+  if (!paymentIntentId) return json({ ok: false, error: 'missing-paymentIntentId' }, 400);
+  try {
+    const refund = await stripeRequest(env, '/refunds', {
+      payment_intent: paymentIntentId,
+      refund_application_fee: true,
+      reverse_transfer: true,
+      'metadata[paymentRequestId]': paymentRequestId,
+      'metadata[actorUid]': String(payload?.actorUid || ''),
+    }, { stripeAccount: clubInfo.stripeAccountId });
+
+    // Reflect on the payment_request. one_off: drop from paidUids.
+    // catalog: mark the matching purchase as refunded (audit trail).
+    if (pr.data.kind === 'one_off' && payload?.uid) {
+      const targetUid = String(payload.uid);
+      await commitDocumentTransforms(projectId, `payment_requests/${paymentRequestId}`, [
+        { fieldPath: 'paidUids', kind: 'arrayRemove', value: targetUid },
+      ], { updatedAt: new Date() }, sa);
+    } else if (pr.data.kind === 'catalog' && payload?.purchaseId) {
+      const purchases: any[] = Array.isArray(pr.data.purchases) ? pr.data.purchases : [];
+      const next = purchases.map((p: any) => p.id === payload.purchaseId
+        ? { ...p, refundedAt: new Date() }
+        : p);
+      await patchDocument(projectId, `payment_requests/${paymentRequestId}`, {
+        purchases: next,
+        updatedAt: new Date(),
+      }, sa);
+    }
+    return json({ ok: true, refundId: refund.id });
+  } catch (err: any) {
+    return json({ ok: false, error: String(err?.message || err) }, 502);
+  }
+}
+
+// ── Webhook helpers for payment_requests ────────────────────────
+// Called from handleWebhook below when metadata.kind === 'payment_request'.
+
+async function reflectPaymentSuccess(
+  projectId: string,
+  sa: ServiceAccount,
+  env: StripeEnv,
+  session: any,
+): Promise<void> {
+  const meta = session?.metadata || {};
+  const paymentRequestId = meta.paymentRequestId;
+  const uid = meta.uid;
+  const paymentKind = meta.paymentKind;
+  if (!paymentRequestId || !uid) return;
+
+  const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa).catch(() => null);
+  if (!pr?.data) return;
+
+  if (paymentKind === 'one_off') {
+    // Add uid to paidUids (atomic arrayUnion).
+    await commitDocumentTransforms(projectId, `payment_requests/${paymentRequestId}`, [
+      { fieldPath: 'paidUids', kind: 'arrayUnion', value: uid },
+    ], { updatedAt: new Date() }, sa);
+  } else if (paymentKind === 'catalog') {
+    let cart: Array<{ itemId: string; quantity: number }> = [];
+    try { cart = meta.cart ? JSON.parse(meta.cart) : []; } catch { cart = []; }
+    const purchases: any[] = Array.isArray(pr.data.purchases) ? pr.data.purchases : [];
+    const items: any[] = Array.isArray(pr.data.items) ? pr.data.items : [];
+    // Dedup: purchase ids are deterministic on (session, itemId), so a
+    // Stripe webhook retry (very common on network blips) would
+    // otherwise append duplicate rows and double the "collected" total.
+    const existing = new Set(purchases.map((p: any) => String(p?.id || '')));
+    const additions: any[] = [];
+    for (const row of cart) {
+      const item = items.find(i => i.id === row.itemId);
+      if (!item) continue;
+      const purchaseId = `purch_${session.id}_${row.itemId}`;
+      if (existing.has(purchaseId)) continue;
+      const feeCoveredBy = meta.feeCoveredBy === 'coach' ? 'coach' : 'player';
+      const perUnit = Number(item.priceCents || 0);
+      let chargedPer = perUnit;
+      if (feeCoveredBy === 'player') {
+        const { grossUpCents } = await import('./pricing');
+        const platformFeeBps = Number(meta.platformFeeBps || 0);
+        chargedPer = grossUpCents(perUnit, platformFeeBps || undefined);
+      }
+      additions.push({
+        id: purchaseId,
+        uid,
+        itemId: row.itemId,
+        quantity: row.quantity,
+        chargedCents: chargedPer * row.quantity,
+        paidVia: 'stripe',
+        purchasedAt: new Date(),
+        stripeSessionId: session.id,
+        stripePaymentIntentId: session.payment_intent || undefined,
+      });
+    }
+    if (additions.length === 0) return;
+    await patchDocument(projectId, `payment_requests/${paymentRequestId}`, {
+      purchases: [...purchases, ...additions],
+      updatedAt: new Date(),
+    }, sa);
+  } else if (paymentKind === 'recurring') {
+    const subscriptionId = String(session.subscription || '');
+    if (!subscriptionId) return;
+    // Atomic map-subfield write so two parents subscribing back-to-back
+    // don't clobber each other's ids under stripeSubscriptionIds. The
+    // prior read-merge-write pattern lost one parent's row on races.
+    await patchMapEntry(
+      projectId,
+      `payment_requests/${paymentRequestId}`,
+      'stripeSubscriptionIds',
+      uid,
+      subscriptionId,
+      sa,
+    );
+    await patchDocument(projectId, `payment_requests/${paymentRequestId}`, {
+      updatedAt: new Date(),
+    }, sa);
+    // First invoice = renewal; skip the "renewed" push and let the
+    // upcoming invoice.paid webhook handle repeat renewals.
+  }
+
+  // Fire the coach notification.
+  try {
+    const { pushPaymentConfirmed } = await import('./paymentRequests');
+    const parent = await getDocument(projectId, `users/${uid}`, sa).catch(() => null);
+    const payerName = String(parent?.data?.name || 'A parent');
+    await pushPaymentConfirmed(projectId, sa, env, {
+      paymentRequestId,
+      payerUid: uid,
+      payerName,
+      amountCents: Number(session.amount_total || meta.chargedCents || 0),
+      kind: paymentKind as 'one_off' | 'recurring' | 'catalog',
+    });
+  } catch (err) {
+    console.warn('[payments] push after session.completed failed', err);
+  }
+}
+
+async function reflectRecurringInvoice(
+  projectId: string,
+  sa: ServiceAccount,
+  env: StripeEnv,
+  invoice: any,
+  outcome: 'paid' | 'failed',
+): Promise<void> {
+  // The invoice metadata inherits from subscription metadata (Stripe
+  // copies it). Look up paymentRequestId + uid from there.
+  const meta = invoice?.subscription_details?.metadata || invoice?.metadata || {};
+  const paymentRequestId = meta.paymentRequestId;
+  const uid = meta.uid;
+  if (!paymentRequestId || !uid) return;
+
+  // Log to subcollection payment_requests/{id}/invoices/{invoiceId} —
+  // creates a queryable audit trail without bloating the main doc.
+  try {
+    await createDocument(projectId, `payment_requests/${paymentRequestId}/invoices`, {
+      uid,
+      amountCents: Number(invoice.amount_paid || invoice.amount_due || 0),
+      status: outcome,
+      periodStart: invoice.period_start ? new Date(invoice.period_start * 1000) : null,
+      periodEnd: invoice.period_end ? new Date(invoice.period_end * 1000) : null,
+      stripeInvoiceId: String(invoice.id || ''),
+      createdAt: new Date(),
+    }, sa, String(invoice.id));
+  } catch (err) {
+    // AlreadyExists is fine — Stripe retries land here.
+    console.warn('[payments] invoice log failed', err);
+  }
+
+  if (outcome === 'paid') {
+    // Skip the very-first invoice push (checkout.session.completed
+    // already handled it). Stripe billing_reason === 'subscription_create'
+    // is the first invoice.
+    if (invoice.billing_reason === 'subscription_create') return;
+    try {
+      const { pushPaymentConfirmed } = await import('./paymentRequests');
+      const parent = await getDocument(projectId, `users/${uid}`, sa).catch(() => null);
+      await pushPaymentConfirmed(projectId, sa, env, {
+        paymentRequestId,
+        payerUid: uid,
+        payerName: String(parent?.data?.name || 'A parent'),
+        amountCents: Number(invoice.amount_paid || 0),
+        kind: 'recurring',
+        isRenewal: true,
+      });
+    } catch (err) { console.warn('[payments] renewal push failed', err); }
+  } else {
+    try {
+      const { pushPaymentFailed } = await import('./paymentRequests');
+      await pushPaymentFailed(projectId, sa, env, {
+        paymentRequestId,
+        payerUid: uid,
+        amountCents: Number(invoice.amount_due || 0),
+      });
+    } catch (err) { console.warn('[payments] failure push failed', err); }
+  }
+}
+
+async function reflectSubscriptionDeleted(
+  projectId: string,
+  sa: ServiceAccount,
+  sub: any,
+): Promise<void> {
+  const meta = sub?.metadata || {};
+  const paymentRequestId = meta.paymentRequestId;
+  const uid = meta.uid;
+  if (!paymentRequestId || !uid) return;
+  const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa).catch(() => null);
+  if (!pr?.data) return;
+  // Atomic: clear only this parent's map entry (null preserves the map
+  // for other subscribers). Combine cancelledUids arrayUnion + updatedAt
+  // in one commit so a re-delivery is idempotent.
+  await patchMapEntry(
+    projectId,
+    `payment_requests/${paymentRequestId}`,
+    'stripeSubscriptionIds',
+    uid,
+    null,
+    sa,
+  );
+  await commitDocumentTransforms(
+    projectId,
+    `payment_requests/${paymentRequestId}`,
+    [{ fieldPath: 'cancelledUids', kind: 'arrayUnion', value: uid }],
+    { updatedAt: new Date() },
+    sa,
+  );
+}
+
+// Public hooks used by handleWebhook — exposed so the switch stays
+// readable. Guarded by metadata.kind === 'payment_request'.
+export async function paymentWebhookHandleSessionCompleted(
+  projectId: string,
+  sa: ServiceAccount,
+  env: StripeEnv,
+  session: any,
+): Promise<void> {
+  if (session?.metadata?.kind !== 'payment_request') return;
+  await reflectPaymentSuccess(projectId, sa, env, session);
+}
+export async function paymentWebhookHandleInvoicePaid(
+  projectId: string,
+  sa: ServiceAccount,
+  env: StripeEnv,
+  invoice: any,
+): Promise<void> {
+  const meta = invoice?.subscription_details?.metadata || invoice?.metadata || {};
+  if (meta.kind !== 'payment_request') return;
+  await reflectRecurringInvoice(projectId, sa, env, invoice, 'paid');
+}
+export async function paymentWebhookHandleInvoiceFailed(
+  projectId: string,
+  sa: ServiceAccount,
+  env: StripeEnv,
+  invoice: any,
+): Promise<void> {
+  const meta = invoice?.subscription_details?.metadata || invoice?.metadata || {};
+  if (meta.kind !== 'payment_request') return;
+  await reflectRecurringInvoice(projectId, sa, env, invoice, 'failed');
+}
+export async function paymentWebhookHandleSubscriptionDeleted(
+  projectId: string,
+  sa: ServiceAccount,
+  sub: any,
+): Promise<void> {
+  if (sub?.metadata?.kind !== 'payment_request') return;
+  await reflectSubscriptionDeleted(projectId, sa, sub);
+}
+
 // ── Endpoint: POST /stripe/webhook ───────────────────────────────
 
 async function verifyStripeSignature(rawBody: string, sigHeader: string, secret: string): Promise<boolean> {
@@ -1063,6 +1643,20 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
   // every time Stripe sends us a state change. The webhook is the
   // single source of truth — the app reads from Firestore, never
   // from Stripe directly.
+  // Team payment_request invoice events. Recurring dues (see
+  // payment_requests kind='recurring') get renewed via Stripe
+  // Subscription; each renewal fires invoice.paid / .payment_failed.
+  // We branch by metadata.kind and log to a subcollection so the coach
+  // detail view can render history without bloating the main doc.
+  if (event.type === 'invoice.paid') {
+    try { await paymentWebhookHandleInvoicePaid(projectId, sa, env, event.data.object); }
+    catch (err) { console.warn('payment_request invoice.paid handler failed', err); }
+  }
+  if (event.type === 'invoice.payment_failed') {
+    try { await paymentWebhookHandleInvoiceFailed(projectId, sa, env, event.data.object); }
+    catch (err) { console.warn('payment_request invoice.payment_failed handler failed', err); }
+  }
+
   if (
     event.type === 'customer.subscription.created' ||
     event.type === 'customer.subscription.updated' ||
@@ -1070,6 +1664,18 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
   ) {
     try {
       const sub = event.data.object;
+      // Team payment_request recurring subs are keyed by
+      // metadata.kind === 'payment_request'. Deletion clears the
+      // subscription id off the request doc + adds the uid to
+      // cancelledUids. Created/updated events don't need extra work
+      // because the checkout.session.completed handler below already
+      // stamped stripeSubscriptionIds[uid].
+      if (sub?.metadata?.kind === 'payment_request') {
+        if (event.type === 'customer.subscription.deleted') {
+          await paymentWebhookHandleSubscriptionDeleted(projectId, sa, sub);
+        }
+        return json({ ok: true });
+      }
       // Branch on metadata.kind. Video subscriptions are per-team
       // and write to teams/{teamId}.videoTier instead of the
       // per-user subscriptions doc. Coach/Club subs fall through
@@ -1097,6 +1703,17 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
+
+    // Team payment_request — reflect one_off / catalog paid state, or
+    // stamp the subscription id on the request doc for recurring. Runs
+    // before the registration branches below since it short-circuits
+    // for our namespace.
+    if (session?.metadata?.kind === 'payment_request') {
+      try { await paymentWebhookHandleSessionCompleted(projectId, sa, env, session); }
+      catch (err) { console.warn('payment_request session.completed handler failed', err); }
+      return json({ ok: true });
+    }
+
     const registrationId = session?.metadata?.registrationId;
     const clubId = session?.metadata?.clubId;
     const installmentId = session?.metadata?.installmentId;

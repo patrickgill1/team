@@ -3278,6 +3278,121 @@ export interface SupportTicket {
 }
 
 // ================================
+// TEAM PAYMENTS (coach-owned)
+// ================================
+//
+// One collection, three kinds, orthogonal to /events feeCents drop-in
+// path. Coach creates a payment_request; parents pay per-player
+// (one_off), per-family (recurring), or per-item (catalog). Stripe
+// flows mirror /events drop-in checkout so gross-up + destination
+// charge math lives in the same helpers.
+//
+// Discriminated by `kind`. Common shape below, per-kind extras follow.
+
+export type PaymentRequestKind = 'one_off' | 'recurring' | 'catalog';
+export type PaymentRequestStatus = 'active' | 'closed' | 'archived';
+export type PaymentRecurringInterval = 'week' | 'month' | 'season' | 'year';
+
+/** Storefront item on a catalog payment_request. Priced independently.
+ *  `imageUrl` points at the existing R2 bucket. `maxPerPlayer` caps
+ *  how many any one player can buy. */
+export interface CatalogItem {
+  id: string;
+  name: string;
+  priceCents: number;
+  description?: string;
+  imageUrl?: string;
+  maxPerPlayer?: number;
+  isActive?: boolean;
+}
+
+/** One row in `catalog.purchases[]` recorded via webhook or the
+ *  mark-cash endpoint. `chargedCents` is what the parent actually
+ *  paid (grossed up when feeCoveredBy='player'). */
+export interface CatalogPurchase {
+  id: string;
+  uid?: string;
+  playerId?: string;
+  itemId: string;
+  quantity: number;
+  chargedCents: number;
+  paidVia: 'stripe' | 'cash';
+  purchasedAt: Date;
+  refundedAt?: Date;
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+}
+
+/** Row logged on `payment_requests/{id}/invoices/{invoiceId}` when a
+ *  recurring subscription's invoice.paid webhook fires. Optional shape
+ *  — subcollection lookup is only for coach history views. */
+export interface PaymentRequestInvoice {
+  id: string;
+  uid: string;
+  amountCents: number;
+  status: 'paid' | 'failed';
+  periodStart?: Date;
+  periodEnd?: Date;
+  stripeInvoiceId: string;
+  createdAt: Date;
+}
+
+export interface PaymentRequest {
+  id: string;
+  teamId: string;
+  /** Snapshotted at create so mid-flight team re-parenting can't
+   *  reroute funds. Personal-club fallback fires here when the coach
+   *  has no clubId. */
+  clubId: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: Date;
+  updatedAt: Date;
+  /** Soft-delete flag. Never hard delete a payment_request. */
+  isActive: boolean;
+  title: string;
+  description?: string;
+  kind: PaymentRequestKind;
+  /** Who eats Stripe + platform fees. Mirrors event.feeCoveredBy
+   *  semantics. Default 'player' — worker grosses up the line item so
+   *  the coach nets the raw fee. */
+  feeCoveredBy: 'player' | 'coach';
+  status: PaymentRequestStatus;
+  /** 'all' targets every player on the team; an explicit array lets a
+   *  coach bill a travel squad without spamming the rest. */
+  targetPlayerIds: 'all' | string[];
+  notifiedAt?: Date;
+  dueDate?: Date;
+
+  // ── one_off ──────────────────────────────────────────────────
+  /** Per-player fee. A parent with two rostered kids owes 2x. */
+  feeCents?: number;
+  /** Uids that paid via Stripe (webhook-written). */
+  paidUids?: string[];
+  /** Parent uids the coach marked paid IRL. Mirrors event pattern. */
+  paidByCoach?: string[];
+  /** Player ids the coach marked paid IRL. Kid-scoped so two siblings
+   *  sharing a parent uid don't contaminate each other. */
+  paidByCoachPlayerIds?: string[];
+
+  // ── recurring ────────────────────────────────────────────────
+  intervalCents?: number;
+  interval?: PaymentRecurringInterval;
+  /** Map keyed by parent uid → Stripe subscription id on the club's
+   *  connected account. One sub per family (not per player). */
+  stripeSubscriptionIds?: Record<string, string>;
+  /** Uids whose subscription was cancelled (self-service or coach). */
+  cancelledUids?: string[];
+  /** Optional end date. Display-only — Stripe subscriptions cancel via
+   *  the dedicated cancel endpoint. */
+  endsAt?: Date;
+
+  // ── catalog ──────────────────────────────────────────────────
+  items?: CatalogItem[];
+  purchases?: CatalogPurchase[];
+}
+
+// ================================
 // FIRESTORE COLLECTION REFERENCES
 // ================================
 
@@ -3299,7 +3414,8 @@ export const COLLECTIONS = {
   MATCH_VOTINGS: 'match_votings',
   DEVELOPMENT_PLANS: 'development_plans',
   PLAYER_MEDIA: 'player_media',
-  COACH_INVITES: 'coach_invites'
+  COACH_INVITES: 'coach_invites',
+  PAYMENT_REQUESTS: 'payment_requests'
 } as const;
 
 // ================================

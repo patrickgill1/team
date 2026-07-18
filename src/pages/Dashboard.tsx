@@ -15,6 +15,7 @@ import { RichContent } from './Wall';
 import NextEventPoster from '../components/common/NextEventPoster';
 import UpcomingEventsList from '../components/dashboard/UpcomingEventsList';
 import SnackAssignmentBanner from '../components/dashboard/SnackAssignmentBanner';
+import PaymentsDueCard from '../components/dashboard/PaymentsDueCard';
 import TodaysDevelopmentCard from '../components/dashboard/TodaysDevelopmentCard';
 import FamilyFeed from '../components/dashboard/FamilyFeed';
 import WeeklySpotlightCard, { type SpotlightPotm, type SpotlightPick } from '../components/dashboard/WeeklySpotlightCard';
@@ -1346,6 +1347,7 @@ const Dashboard: React.FC = () => {
                 events={upcomingEvents}
                 myPlayerIds={myPlayers.map((p) => p.id)}
               />
+              <PaymentsDueCard players={myPlayers} />
               <GettingStartedCard players={players} events={upcomingEvents} dataLoading={loading} />
               <SubscribeBanner />
               <SmartDiscoveryPrompts

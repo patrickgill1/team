@@ -115,6 +115,10 @@ const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 const People = React.lazy(() => import('./pages/People'));
 const Helpdesk = React.lazy(() => import('./pages/Helpdesk'));
 const HelpdeskTicketPage = React.lazy(() => import('./pages/HelpdeskTicket'));
+const CoachPayments = React.lazy(() => import('./pages/CoachPayments'));
+const CoachPaymentCreate = React.lazy(() => import('./pages/CoachPaymentCreate'));
+const CoachPaymentDetail = React.lazy(() => import('./pages/CoachPaymentDetail'));
+const Payments = React.lazy(() => import('./pages/Payments'));
 
 const prefetchCoreRoutes = (() => {
   let started = false;
@@ -695,6 +699,38 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <CoachCockpit />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/coach/payments" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CoachPayments />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/coach/payments/new" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CoachPaymentCreate />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/coach/payments/:id" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CoachPaymentDetail />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/payments" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Payments />
                 </AppLayout>
               </ProtectedRoute>
             } />

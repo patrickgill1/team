@@ -609,6 +609,23 @@ service cloud.firestore {
       allow delete: if request.auth != null && canCoachWrite();
     }
 
+    // ── Team payment_requests (2026-07-18) ────────────────────
+    //
+    // Coach-owned payment requests spanning one_off / recurring /
+    // catalog kinds. Reads: any signed-in user on the team can see
+    // active requests so parents can pay. Writes: worker-only —
+    // /payments/create, /payments/close, /payments/mark-paid-cash,
+    // and the Stripe webhook stamp paidUids / stripeSubscriptionIds /
+    // purchases[]. Parents never touch these fields directly.
+    match /payment_requests/{paymentRequestId} {
+      allow get, list: if request.auth != null;
+      allow create, update, delete: if false;
+    }
+    match /payment_requests/{paymentRequestId}/invoices/{invoiceId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if false;
+    }
+
     // ── League MVP (2026-07-11) ────────────────────────────────
     // Rules are permissive for public league discovery (public
     // fixtures + standings are the whole point). All writes route

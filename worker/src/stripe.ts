@@ -130,7 +130,7 @@ async function stripeRequest(env: StripeEnv, path: string, body: Record<string, 
   return data;
 }
 
-// ── Endpoint: GET /stripe/connect/start?clubId=... ────────────────
+// ── Endpoint: GET /stripe/connect/start?clubId=...&returnTo=... ──
 
 export function handleConnectStart(url: URL, env: StripeEnv): Response {
   if (!env.STRIPE_CONNECT_CLIENT_ID) {
@@ -138,20 +138,51 @@ export function handleConnectStart(url: URL, env: StripeEnv): Response {
   }
   const clubId = url.searchParams.get('clubId');
   if (!clubId) return json({ ok: false, error: 'missing-clubId' }, 400);
+
+  // Optional returnTo. Whitelist to same-origin RELATIVE paths only —
+  // must start with a single '/' and must not open with '//' or '/\'
+  // (protocol-relative). Anything else is dropped silently so an
+  // attacker can't smuggle an external redirect through OAuth state.
+  const returnToRaw = url.searchParams.get('returnTo') || '';
+  const returnToSafe = (
+    returnToRaw.startsWith('/')
+    && !returnToRaw.startsWith('//')
+    && !returnToRaw.startsWith('/\\')
+  ) ? returnToRaw.slice(0, 512) : '';
+
   // Stripe requires the redirect_uri to EXACTLY match one of the URIs
   // registered in the Connect platform settings. We register the
-  // static base URL (no state in the URI itself) and rely on Stripe
-  // to append `&state=<clubId>&code=<auth>` automatically via the
-  // OAuth state parameter on the return trip. That way ONE registered
-  // URI works for every club instead of needing one per club.
+  // static base URL (no state in the URI itself) and carry per-flow
+  // context (clubId + returnTo) inside the OAuth `state` param, which
+  // Stripe echoes back untouched. That way ONE registered URI works
+  // for every club instead of needing one per club.
   const redirect = `${env.APP_ORIGIN}/club?stripe_connected=1`;
+
+  // Encode {clubId, returnTo} as base64-JSON. Client decodes on return
+  // to run its clubId security check and pick the destination route.
+  // Base64 keeps it URL-safe through the Stripe round-trip; JSON gives
+  // us room to add fields later without another format break.
+  // Backwards-compat: any in-flight OAuth session whose `state` was
+  // the raw clubId string still passes the client-side check because
+  // that decoder falls back to a plain string compare.
+  const statePayload = returnToSafe ? { clubId, returnTo: returnToSafe } : { clubId };
+  const state = btoa(JSON.stringify(statePayload));
+
+  // Default business_type=individual (was 'company'). Company mode
+  // forces coaches through EIN + representative + owners screens they
+  // can't fill on a solo-coach setup. Individual pre-fills legal name
+  // + DOB + address only — no website required. Coaches who actually
+  // operate as an LLC/corp can flip this in the Stripe Dashboard after
+  // onboarding. Personal shell clubs (personal_{uid}) and any club
+  // flagged isDefaultSoloClub are ALWAYS individual; other clubs also
+  // default to individual for now as the safer, lower-friction choice.
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: env.STRIPE_CONNECT_CLIENT_ID,
     scope: 'read_write',
     redirect_uri: redirect,
-    state: clubId,
-    'stripe_user[business_type]': 'company',
+    state,
+    'stripe_user[business_type]': 'individual',
   });
   const oauthUrl = `https://connect.stripe.com/oauth/authorize?${params.toString()}`;
   return json({ ok: true, url: oauthUrl });

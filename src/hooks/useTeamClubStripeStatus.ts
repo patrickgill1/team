@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
+import { useLocation } from 'react-router-dom';
 import { db } from '../utils/firebase';
 import { useAuth } from './useAuth';
 import { useTeam } from '../contexts/TeamContext';
@@ -25,9 +26,17 @@ export function useTeamClubStripeStatus(): {
 } {
   const { currentUser } = useAuth();
   const { selectedTeam } = useTeam();
+  const location = useLocation();
   const teamClubId = selectedTeam?.clubId;
   const uid = currentUser?.uid;
   const derivedClubId = teamClubId || (uid ? `personal_${uid}` : undefined);
+
+  // When the coach lands back here after Stripe (ClubOverview
+  // preserves ?stripe_connected=1 on the returnTo URL), Firestore may
+  // still be within the write-propagation window. Include the flag in
+  // the effect deps so a fresh mount post-redirect re-runs getDoc
+  // instead of showing a stale "Not connected" state.
+  const stripeConnectedFlag = new URLSearchParams(location.search).get('stripe_connected');
 
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,7 +64,7 @@ export function useTeamClubStripeStatus(): {
       }
     })();
     return () => { cancelled = true; };
-  }, [derivedClubId]);
+  }, [derivedClubId, stripeConnectedFlag]);
 
   return { clubId: derivedClubId, isReady, isLoading };
 }

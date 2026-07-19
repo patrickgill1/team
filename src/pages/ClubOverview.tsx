@@ -77,6 +77,91 @@ const ClubOverview: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // Stripe Connect OAuth return handler. Lifted OUT of PaymentsTab
+  // (which only mounts when tab==='payments') so the exchange fires
+  // regardless of which tab the coach lands on. Stripe redirects to
+  //   /club?stripe_connected=1&code=AUTH&state=<base64 {clubId,returnTo}>
+  // We decode state, verify clubId matches this admin's club, POST the
+  // code to the worker, then either navigate to the returnTo path (with
+  // stripe_connected=1 preserved so useTeamClubStripeStatus refetches)
+  // or auto-flip the tab to Payments so the connected state shows.
+  const [connectFinishing, setConnectFinishing] = useState(false);
+  useEffect(() => {
+    if (!scopedClubId) return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const flag = params.get('stripe_connected');
+    if (!code || !state || !flag) return;
+
+    // Decode state — new format is base64({clubId,returnTo}), legacy is
+    // the raw clubId string. Try JSON first, fall back to plain string
+    // so any in-flight OAuth code from the pre-encoding rollout still
+    // completes cleanly.
+    let stateClubId = '';
+    let returnTo = '';
+    try {
+      const parsed = JSON.parse(atob(state));
+      if (parsed && typeof parsed === 'object') {
+        stateClubId = String(parsed.clubId || '');
+        returnTo = typeof parsed.returnTo === 'string' ? parsed.returnTo : '';
+      }
+    } catch {
+      stateClubId = state;
+    }
+    if (!stateClubId || stateClubId !== scopedClubId) return;
+
+    let cancelled = false;
+    setConnectFinishing(true);
+    (async () => {
+      try {
+        const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
+        if (!hasWorkerConfig()) { alert('Worker not configured.'); return; }
+        const r = await workerFetch('/stripe/connect/finish', {
+          method: 'POST',
+          body: JSON.stringify({ code, clubId: stateClubId }),
+        });
+        const data: any = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          alert(data?.error || 'Payments setup failed to finish.');
+          return;
+        }
+        // Refresh the local club doc so the checklist + PaymentsTab
+        // read the newly-populated stripeAccountId immediately.
+        try {
+          const snap = await getDoc(doc(db, 'clubs', stateClubId));
+          if (!cancelled && snap.exists()) setClubDoc({ id: snap.id, ...(snap.data() as any) });
+        } catch { /* ignore */ }
+        if (cancelled) return;
+
+        // Route back to where the coach started, or auto-flip to the
+        // Payments tab so they see the fresh connected state. Preserve
+        // stripe_connected=1 on the destination URL so any downstream
+        // hook (useTeamClubStripeStatus) can detect the return and
+        // force a refetch of its own.
+        const safeReturn = (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.startsWith('/\\'))
+          ? returnTo
+          : '';
+        if (safeReturn && safeReturn !== '/club') {
+          const sep = safeReturn.includes('?') ? '&' : '?';
+          navigate(`${safeReturn}${sep}stripe_connected=1`, { replace: true });
+        } else {
+          // Keep the flag on the URL so any hooks looking for it still
+          // fire, but strip the sensitive code/state so a refresh
+          // doesn't re-exchange a spent auth code.
+          window.history.replaceState({}, '', '/club?stripe_connected=1');
+          setTab('payments');
+        }
+      } catch (err: any) {
+        alert(err?.message || 'Network error finalizing payments.');
+      } finally {
+        if (!cancelled) setConnectFinishing(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopedClubId]);
+
   const reload = async () => {
     setLoading(true);
     try {
@@ -293,6 +378,11 @@ const ClubOverview: React.FC = () => {
         subtitle={`${teams.length} team${teams.length === 1 ? '' : 's'} · ${players.length} player${players.length === 1 ? '' : 's'} · ${users.length} member${users.length === 1 ? '' : 's'}`}
       />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-3">
+        {connectFinishing && (
+          <div className="rounded-xl bg-brand-primary/10 ring-1 ring-brand-primary/30 px-4 py-3 text-sm text-ink-primary">
+            Finalizing payments setup...
+          </div>
+        )}
         {/* Setup checklist — first-launch coaching for fresh club
             admins who land here right after the OnboardingGate
             "Start a club" flow. Surfaces the four things they need
@@ -903,43 +993,12 @@ const PaymentsTab: React.FC = () => {
   const { clubId } = useClubId();
   const [club, setClub] = React.useState<any | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [connectFinishing, setConnectFinishing] = React.useState(false);
 
-  // Stripe Connect OAuth return — Stripe sends parents back to
-  // /club?stripe_connected=1&state=clubId&code=AUTH_CODE. We post the
-  // code to the worker, which exchanges it for a real account ID.
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const state = params.get('state');
-    const flag = params.get('stripe_connected');
-    if (!code || !state || !flag || !clubId || state !== clubId) return;
-    setConnectFinishing(true);
-    (async () => {
-      try {
-        const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
-        if (!hasWorkerConfig()) { alert('Worker not configured.'); return; }
-        const r = await workerFetch('/stripe/connect/finish', {
-          method: 'POST',
-          body: JSON.stringify({ code, clubId }),
-        });
-        const data: any = await r.json().catch(() => ({}));
-        if (!r.ok) {
-          alert(data?.error || 'Payments setup failed to finish.');
-          return;
-        }
-        // Clean the URL so a refresh doesn't re-fire the exchange.
-        window.history.replaceState({}, '', '/club');
-        // Reload the club doc so the new state shows.
-        const { doc, getDoc } = await import('firebase/firestore');
-        const { db } = await import('../utils/firebase');
-        const snap = await getDoc(doc(db, 'clubs', clubId));
-        if (snap.exists()) setClub({ id: snap.id, ...(snap.data() as any) });
-      } finally {
-        setConnectFinishing(false);
-      }
-    })();
-  }, [clubId]);
+  // OAuth return handling was hoisted to the top-level ClubOverview
+  // component (see the connectFinishing effect there). PaymentsTab
+  // only mounts when tab==='payments', so if we kept the exchange
+  // here the coach would land on the default 'overview' tab after
+  // Stripe redirects and nothing would happen.
 
   React.useEffect(() => {
     if (!clubId) { setLoading(false); return; }
@@ -965,11 +1024,9 @@ const PaymentsTab: React.FC = () => {
 
   return (
     <div className="space-y-3">
-      {connectFinishing && (
-        <div className="rounded-xl bg-violet-500/15 ring-1 ring-violet-200 px-4 py-3 text-sm text-violet-200">
-          Finalizing payments setup…
-        </div>
-      )}
+      {/* The "Finalizing payments setup..." banner is rendered at the
+          top-level ClubOverview scope now, since the OAuth return
+          effect was lifted there. */}
       {/* GoalKickr Payments status card */}
       <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
         <div className="px-5 py-4 border-b border-line-default/5 flex items-center justify-between">
@@ -1023,7 +1080,10 @@ const PaymentsTab: React.FC = () => {
                       alert('Worker URL not configured (REACT_APP_NOTIFY_URL).');
                       return;
                     }
-                    const url = `${NOTIFY_URL}/stripe/connect/start?clubId=${encodeURIComponent(clubId)}`;
+                    // returnTo=/club so after the Stripe round-trip
+                    // the top-level handler auto-flips back to this
+                    // Payments tab (see ClubOverview OAuth effect).
+                    const url = `${NOTIFY_URL}/stripe/connect/start?clubId=${encodeURIComponent(clubId)}&returnTo=${encodeURIComponent('/club')}`;
                     const r = await fetch(url);
                     const data: any = await r.json().catch(() => ({}));
                     if (r.ok && data?.url) {

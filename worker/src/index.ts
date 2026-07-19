@@ -73,6 +73,13 @@ import {
   handlePaymentSubscriptionCancel,
   handlePaymentRefund,
 } from './stripe';
+import {
+  handleCreateTrip,
+  handleUpdateTrip,
+  handleArchiveTrip,
+  handleTripAttend,
+  handleTripPublicInfo,
+} from './trips';
 
 export interface Env {
   // NOTIFY_SECRET is retained on the env for backwards compatibility
@@ -500,6 +507,53 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       let payload: any = {};
       try { payload = await req.json(); } catch {}
       const res = await handlePaymentMarkPaidCash(req, env, payload);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // ── Trips (2026-07-19) — coach-owned tournament / weekend-trip
+    // stat-scoping container. Auto-attribution runs client-side at stat
+    // write time; these endpoints own the CRUD for the trip doc itself.
+    if (url.pathname === '/trips/create' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleCreateTrip(req, env, payload);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    if (url.pathname === '/trips/update' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleUpdateTrip(req, env, payload);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    if (url.pathname === '/trips/archive' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleArchiveTrip(req, env, payload);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    if (url.pathname === '/trips/attend' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleTripAttend(req, env, payload);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    // Anonymous by design — shareToken in the body IS the auth. Routed
+    // before the bearer check so /trip/:id?token=... recap URLs work
+    // without a signed-in user.
+    if (url.pathname === '/trips/public-info' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleTripPublicInfo(req, env, payload);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

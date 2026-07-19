@@ -438,6 +438,29 @@ const GameDay: React.FC = () => {
       const { maybeGrantFirstStatBadges } = await import('../utils/badgeGrants');
       const { doc: fsDoc, getDoc: fsGet } = await import('firebase/firestore');
       const { db: firestoreDb } = await import('../utils/firebase');
+      // Trip attribution — resolve ONCE per game (all this game's
+      // stats share the same tripId). Cheap: one Firestore query
+      // per team per 30s window, cached in tripAttribution.
+      const { resolveTripIdForGame } = await import('../utils/tripAttribution');
+      const tripResult = await resolveTripIdForGame({
+        teamId: event.teamId,
+        gameDate: new Date(event.date?.toDate ? event.date.toDate() : event.date),
+        tripAssignmentOverride: (event as any).tripAssignmentOverride,
+        gameTripId: (event as any).tripId,
+      });
+      const resolvedTripId: string | undefined = tripResult.tripId;
+      // Mirror tripId back onto the event doc so read paths (game
+      // detail, timeline media, cross-team recap card) can filter
+      // without a stats join. Idempotent — patch is a no-op when the
+      // field already matches.
+      if (resolvedTripId && (event as any).tripId !== resolvedTripId) {
+        try {
+          const { updateDoc: fsUpdate, doc: fsDocRef } = await import('firebase/firestore');
+          await fsUpdate(fsDocRef(firestoreDb, 'events', eventId!), { tripId: resolvedTripId });
+        } catch (err) {
+          console.warn('[gameday] stamp event.tripId failed', err);
+        }
+      }
       const allPids = new Set<string>([...Object.keys(counts), ...cleanSheetPids]);
       for (const pid of allPids) {
         const c = counts[pid] || { goals: 0, assists: 0, saves: 0, yellow: 0, red: 0, name: '' };
@@ -473,12 +496,22 @@ const GameDay: React.FC = () => {
           gamesPlayed: (prev.gamesPlayed || 0) + 1,
           cleanSheets: ((prev as any).cleanSheets || 0) + csDelta,
         };
-        await updatePlayerStats(pid, nextStats);
+        // Trip stats DON'T bump player.stats — keeps that aggregate
+        // regulation-only by default. The per-entry `stats` row still
+        // gets written with tripId so the "Tournaments" section can
+        // aggregate it separately. First-stat badges are also
+        // suppressed for trip goals so a kid's "first goal" doesn't
+        // burn on a tournament (badge is tied to the regulation
+        // journey).
+        if (!resolvedTripId) {
+          await updatePlayerStats(pid, nextStats);
+        }
         // Fire first-stat badges on the 0→N crossing. Non-fatal —
         // stat write already committed so a badge failure doesn't
         // regress the game. Uses freshBadges so a same-game clip
         // credit doesn't get its first_goal re-clobbered here.
-        void maybeGrantFirstStatBadges(
+        // Skipped for trip games (see comment above).
+        if (!resolvedTripId) void maybeGrantFirstStatBadges(
           pid,
           prev,
           nextStats,
@@ -512,6 +545,7 @@ const GameDay: React.FC = () => {
           recordedBy: userData?.uid,
           recordedByName: userData?.name || 'Coach',
           teamId: event.teamId,
+          ...(resolvedTripId ? { tripId: resolvedTripId } : {}),
         });
         await addGameStat(gsPayload as any);
       }

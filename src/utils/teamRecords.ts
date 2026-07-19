@@ -101,9 +101,20 @@ const asDate = (v: any): Date => {
 export function filterStatsBySeason(
   rows: GameStat[],
   seasonId: string | null | undefined,
+  opts?: { includeTrips?: boolean; tripId?: string | null },
 ): GameStat[] {
-  if (seasonId == null) return rows;  // all-time
-  return rows.filter((r) => ((r as any).seasonId || null) === seasonId);
+  // Trip scoping (2026-07-19). Season leaders + team single-game
+  // records default to "regulation-only" — trip-tagged rows are their
+  // own bucket. Callers who explicitly want the trip view (tournament
+  // leaders card) pass `tripId`. Callers who want the raw union pass
+  // `includeTrips: true`.
+  let out = seasonId == null ? rows : rows.filter((r) => ((r as any).seasonId || null) === seasonId);
+  if (opts?.tripId) {
+    out = out.filter((r) => (r as any).tripId === opts.tripId);
+  } else if (!opts?.includeTrips) {
+    out = out.filter((r) => !(r as any).tripId);
+  }
+  return out;
 }
 
 /**

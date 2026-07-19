@@ -367,6 +367,14 @@ const CoachCockpit: React.FC = () => {
               </svg>}
             />
             <CoachTile
+              to="/coach/trips"
+              title="Trips"
+              hint="Tournaments and weekend trips. Stats stay their own bucket."
+              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M4 20h16" /><path d="M6 20V10l6-6 6 6v10" /><path d="M10 20v-6h4v6" />
+              </svg>}
+            />
+            <CoachTile
               to="/team/staff"
               title="Staff"
               hint="Assistants, managers, permissions."

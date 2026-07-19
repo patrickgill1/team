@@ -61,11 +61,13 @@ import { handleSendVerification } from './authMail';
 import { routeWriteGuard, drainPendingBackground } from './writeGuards';
 import {
   handleCreatePaymentRequest,
+  handleUpdatePaymentRequest,
   handleClosePaymentRequest,
   handlePaymentMarkPaidCash,
 } from './paymentRequests';
 import {
   handlePaymentCheckout,
+  handlePaymentCheckoutAnon,
   handlePaymentSubscriptionCheckout,
   handlePaymentSubscriptionCancel,
   handlePaymentRefund,
@@ -296,6 +298,20 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       return new Response(res.body, { status: res.status, headers });
     }
 
+    // POST /payments/checkout-anon — anonymous by design (Ship 1
+    // decision #3). Guest pays a one_off payment_request through
+    // the /pay/{id} share link with just email + optional name.
+    // Rate-limited inside the handler. Routed BEFORE the bearer
+    // check so it accepts unauthenticated callers.
+    if (url.pathname === '/payments/checkout-anon' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handlePaymentCheckoutAnon(payload, env, req);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
     // Stripe webhook is anonymous — Stripe doesn't send our bearer.
     // Verified by the Stripe-Signature header inside the handler.
     // Raw body is required for signature verification, so this must
@@ -446,6 +462,14 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       let payload: any = {};
       try { payload = await req.json(); } catch {}
       const res = await handleCreatePaymentRequest(req, env, payload);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    if (url.pathname === '/payments/update' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleUpdatePaymentRequest(req, env, payload);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

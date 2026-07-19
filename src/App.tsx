@@ -37,6 +37,7 @@ import PublicGame from './pages/PublicGame';
 import PublicWallPost from './pages/PublicWallPost';
 import PlayerJoin from './pages/PlayerJoin';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import PayLink from './pages/PayLink';
 
 // Lazy load all other pages
 const InviteJoin = React.lazy(() => import('./pages/InviteJoin'));
@@ -539,6 +540,12 @@ function App() {
               <Route path="/survey/:surveyId" element={<PublicSurvey />} />
               <Route path="/game/:gameId" element={<PublicGame />} />
               <Route path="/wall/p/:postId" element={<PublicWallPost />} />
+              {/* Anonymous guest-pay page for /pay/{requestId} share
+                  links (Ship 1 decision #3). Firestore rule allows
+                  anon single-doc reads on active + still-billable
+                  payment_requests; worker /payments/checkout-anon
+                  gates the actual Stripe redirect. */}
+              <Route path="/pay/:id" element={<PayLink />} />
               <Route path="/p/:playerId" element={<PublicPlayerCard />} />
               <Route path="/f/:teamId" element={<PublicFixtures />} />
               <Route path="/l/:leagueId" element={<PublicLeague />} />

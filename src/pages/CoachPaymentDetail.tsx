@@ -9,6 +9,8 @@ import Header from '../components/common/Header';
 import type { PaymentRequest, Player } from '../types';
 import { intervalShort } from '../utils/paymentIntervals';
 import { workerFetch } from '../utils/workerFetch';
+import PaymentRequestEditModal from '../components/coach/PaymentRequestEditModal';
+import { getShareOrigin } from '../utils/origin';
 
 /**
  * Coach Payment Detail — /coach/payments/:id
@@ -28,6 +30,8 @@ const CoachPaymentDetail: React.FC = () => {
   const [showProgress, setShowProgress] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [errMsg, setErrMsg] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
 
   useEffect(() => {
     if (loaded) { setShowProgress(false); return; }
@@ -200,7 +204,36 @@ const CoachPaymentDetail: React.FC = () => {
                 </div>
               </div>
               {pr.status === 'active' ? (
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2 items-center">
+                  <button
+                    type="button"
+                    onClick={() => setEditOpen(true)}
+                    className="text-[11px] font-black uppercase tracking-widest text-ink-primary/70 hover:text-ink-primary transition"
+                  >
+                    Edit
+                  </button>
+                  {pr.kind === 'one_off' && (
+                    <>
+                      <span className="text-ink-primary/25">|</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const url = `${getShareOrigin()}/pay/${pr.id}`;
+                          try {
+                            await navigator.clipboard.writeText(url);
+                            setCopyState('copied');
+                            window.setTimeout(() => setCopyState('idle'), 2000);
+                          } catch {
+                            window.prompt('Copy this link', url);
+                          }
+                        }}
+                        className="text-[11px] font-black uppercase tracking-widest text-ink-primary/70 hover:text-ink-primary transition"
+                      >
+                        {copyState === 'copied' ? 'Link copied' : 'Copy pay link'}
+                      </button>
+                    </>
+                  )}
+                  <span className="text-ink-primary/25">|</span>
                   <button
                     type="button"
                     onClick={() => closeRequest(false)}
@@ -296,6 +329,43 @@ const CoachPaymentDetail: React.FC = () => {
               </section>
             )}
 
+            {/* Guest payers via the /pay/{id} share link (Ship 1
+                decision #3). Only rendered for one_off since the
+                anon path is one_off-only in v1. Sits between the
+                roster table and the catalog fallback so the coach
+                sees it right where they'd look for a "who paid?"
+                answer. */}
+            {pr.kind === 'one_off' && (pr.guestPaid || []).length > 0 && (
+              <section className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5">
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-soft mb-3">
+                  Guest payers
+                </p>
+                <div className="divide-y divide-line-default/10">
+                  {(pr.guestPaid || []).map((g, i) => {
+                    const when = g.paidAt instanceof Date
+                      ? g.paidAt
+                      : new Date((g.paidAt as any)?.toDate?.() || g.paidAt || 0);
+                    return (
+                      <div key={`${g.stripeSessionId || g.email}-${i}`} className="flex items-center justify-between gap-2 py-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-ink-primary truncate">
+                            {g.name || g.email}
+                            <span className="ml-2 text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-soft align-middle">Guest</span>
+                          </p>
+                          <p className="text-[11px] text-ink-primary/55 truncate">
+                            {g.email}{isFinite(when.getTime()) ? ` • ${when.toLocaleDateString()}` : ''}
+                          </p>
+                        </div>
+                        <p className="text-[13px] font-black text-ink-primary tabular-nums shrink-0">
+                          ${(Number(g.amount || 0) / 100).toFixed(2)}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* Catalog view — items + collected */}
             {pr.kind === 'catalog' && (
               <section className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5">
@@ -323,6 +393,10 @@ const CoachPaymentDetail: React.FC = () => {
           </div>
         )}
       </div>
+
+      {editOpen && pr && (
+        <PaymentRequestEditModal pr={pr} onClose={() => setEditOpen(false)} />
+      )}
     </div>
   );
 };

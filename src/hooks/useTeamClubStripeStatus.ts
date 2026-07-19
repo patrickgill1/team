@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { useLocation } from 'react-router-dom';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from './useAuth';
 import { useTeam } from '../contexts/TeamContext';
@@ -16,6 +15,13 @@ import { useTeam } from '../contexts/TeamContext';
  *   2. personal_{currentUser.uid} fallback for standalone coaches
  *      whose team was never linked to a real club yet.
  *
+ * Uses onSnapshot instead of one-shot getDoc so mobile users returning
+ * from the Stripe Connect hosted flow don't see a stale "Not
+ * connected" banner while the worker's Firestore write is still
+ * propagating to the on-device cache. The live listener catches the
+ * update within ~500ms of the write landing and the banner disappears
+ * without a manual reload. Ref: Ship 1 decision #1 (2026-07-19).
+ *
  * Returns loading=true while the club doc is in-flight so callers can
  * hold the banner off during the initial atomic-render window.
  */
@@ -26,45 +32,36 @@ export function useTeamClubStripeStatus(): {
 } {
   const { currentUser } = useAuth();
   const { selectedTeam } = useTeam();
-  const location = useLocation();
   const teamClubId = selectedTeam?.clubId;
   const uid = currentUser?.uid;
   const derivedClubId = teamClubId || (uid ? `personal_${uid}` : undefined);
-
-  // When the coach lands back here after Stripe (ClubOverview
-  // preserves ?stripe_connected=1 on the returnTo URL), Firestore may
-  // still be within the write-propagation window. Include the flag in
-  // the effect deps so a fresh mount post-redirect re-runs getDoc
-  // instead of showing a stale "Not connected" state.
-  const stripeConnectedFlag = new URLSearchParams(location.search).get('stripe_connected');
 
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
     setIsReady(false);
     setIsLoading(true);
     if (!derivedClubId) {
       setIsLoading(false);
       return;
     }
-    (async () => {
-      try {
-        const snap = await getDoc(doc(db, 'clubs', derivedClubId));
-        if (cancelled) return;
+    const unsub = onSnapshot(
+      doc(db, 'clubs', derivedClubId),
+      (snap) => {
         const data: any = snap.exists() ? snap.data() : null;
         const ready = !!(data && data.stripeAccountId && data.stripeChargesEnabled === true);
         setIsReady(ready);
-      } catch (err) {
-        console.warn('[useTeamClubStripeStatus] club fetch failed', err);
-        if (!cancelled) setIsReady(false);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [derivedClubId, stripeConnectedFlag]);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.warn('[useTeamClubStripeStatus] club listener failed', err);
+        setIsReady(false);
+        setIsLoading(false);
+      },
+    );
+    return () => unsub();
+  }, [derivedClubId]);
 
   return { clubId: derivedClubId, isReady, isLoading };
 }

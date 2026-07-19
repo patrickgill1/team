@@ -2295,12 +2295,22 @@ const PlayerMediaPage: React.FC = () => {
             className="fixed inset-0 bg-black/95 flex flex-col items-center justify-center z-50 p-2 sm:p-4"
             onClick={() => { setSelectedMedia(null); setEditingTags(null); }}
           >
-            {/* Close button — large, always visible */}
+            {/* Close button. w-14 h-14 (56px) exceeds Apple HIG 44pt
+                minimum comfortably. Safe-area-inset-top keeps it clear
+                of the iOS notch on Capacitor shells. bg-black/70 + ring
+                gives real contrast against the dim-video background so
+                the target is visible even mid-playback. */}
             <button
-              onClick={() => { setSelectedMedia(null); setEditingTags(null); }}
-              className="absolute top-3 right-3 z-[60] bg-black/60 hover:bg-black/80 text-white rounded-full w-10 h-10 flex items-center justify-center text-lg"
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setSelectedMedia(null); setEditingTags(null); }}
+              aria-label="Close"
+              className="absolute right-3 z-[60] w-14 h-14 flex items-center justify-center rounded-full bg-black/70 hover:bg-black/85 active:bg-black text-white ring-1 ring-white/25 shadow-lg transition"
+              style={{ top: 'max(0.75rem, env(safe-area-inset-top))' }}
             >
-              ✕
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
             <div className="max-w-4xl w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
               {selectedMedia.type === 'video' ? (

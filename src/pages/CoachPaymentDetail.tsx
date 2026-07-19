@@ -178,6 +178,14 @@ const CoachPaymentDetail: React.FC = () => {
                   </p>
                   <h2 className="text-base font-black text-ink-primary leading-tight mt-0.5">{pr.title}</h2>
                   {pr.description && <p className="text-[12px] text-ink-primary/60 mt-1">{pr.description}</p>}
+                  {/* Who-is-this-for eyebrow. Reuses relevantPlayers so
+                      the count reflects the same 'all' vs Set branching
+                      the roster table below is using. */}
+                  <p className="text-[11px] text-ink-primary/55 mt-1">
+                    {pr.targetPlayerIds === 'all'
+                      ? `For everyone on ${selectedTeam?.name || 'the team'} (${players.length} ${players.length === 1 ? 'player' : 'players'})`
+                      : `For ${relevantPlayers.length} of ${players.length} ${players.length === 1 ? 'player' : 'players'}`}
+                  </p>
                 </div>
                 <div className="text-right shrink-0">
                   {pr.kind === 'one_off' && pr.feeCents != null && (

@@ -420,7 +420,7 @@ const PlayerProfile: React.FC = () => {
         setGrantXpRoster(
           snap.docs
             .map(d => ({ id: d.id, ...(d.data() as any) }))
-            .filter((p: any) => p.isActive !== false) as Player[]
+            .filter((p: any) => p.isActive !== false && isGuestActive(p)) as Player[]
         );
       } catch (err) {
         console.warn('[player-profile] grant-xp roster load failed', err);
@@ -925,14 +925,14 @@ const PlayerProfile: React.FC = () => {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-3">
             <div className={`rounded-2xl p-3 sm:p-4 flex items-start sm:items-center justify-between gap-3 flex-wrap ${
               stillActive
-                ? 'bg-amber-50 ring-1 ring-amber-200'
+                ? 'bg-amber-500/15 ring-1 ring-amber-400/40'
                 : 'bg-line-default/5 ring-1 ring-line-default/15'
             }`}>
               <div className="flex-1 min-w-0">
-                <p className={`text-[10px] font-black uppercase tracking-widest ${stillActive ? 'text-amber-700' : 'text-ink-primary/55'}`}>
+                <p className={`text-[10px] font-black uppercase tracking-widest ${stillActive ? 'text-amber-700 dark:text-amber-200' : 'text-ink-primary/55'}`}>
                   Guest player
                 </p>
-                <p className={`mt-0.5 text-sm font-semibold ${stillActive ? 'text-amber-900' : 'text-ink-primary/70'}`}>
+                <p className={`mt-0.5 text-sm font-semibold ${stillActive ? 'text-amber-800 dark:text-amber-100' : 'text-ink-primary/70'}`}>
                   {stillActive
                     ? (expiryLabel ? `Access through ${expiryLabel}.` : 'Access is open-ended.')
                     : (expiryLabel ? `Access ended ${expiryLabel}.` : 'Access has ended.')}

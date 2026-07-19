@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import type { CatalogItem, PaymentRecurringInterval, PaymentRequest, Player } from '../../types';
+import { isGuestActive } from '../../types';
 import { workerFetch } from '../../utils/workerFetch';
 import { intervalLabel } from '../../utils/paymentIntervals';
 
@@ -83,7 +84,7 @@ const PaymentRequestEditModal: React.FC<PaymentRequestEditModalProps> = ({ pr, o
         const snap = await getDocs(q);
         const list = snap.docs
           .map(d => ({ id: d.id, ...(d.data() as any) }))
-          .filter((p: any) => p.isActive !== false) as Player[];
+          .filter((p: any) => p.isActive !== false && isGuestActive(p)) as Player[];
         list.sort((a, b) => {
           const ja = a.jerseyNumber ?? 999;
           const jb = b.jerseyNumber ?? 999;

@@ -274,7 +274,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                           ? `Guest player · access through ${formatDobShort((player as any).expiresAt)}`
                           : 'Guest player'
                       }
-                      className="inline-flex self-start items-center gap-1 px-2 py-1 rounded-full bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-700 text-[10px] font-black uppercase tracking-wider"
+                      className="inline-flex self-start items-center gap-1 px-2 py-1 rounded-full bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-700 dark:text-amber-200 text-[10px] font-black uppercase tracking-wider"
                     >
                       Guest
                     </span>
@@ -399,7 +399,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   opening the profile. Only when isGuest AND expiresAt
                   is set; open-ended guests get no line here. */}
               {(player as any).isGuest && (player as any).expiresAt && (
-                <p className="text-amber-700 text-[11px] font-bold mt-1 truncate">
+                <p className="text-amber-700 dark:text-amber-200 text-[11px] font-bold mt-1 truncate">
                   Guest through {formatDobShort((player as any).expiresAt)}
                 </p>
               )}

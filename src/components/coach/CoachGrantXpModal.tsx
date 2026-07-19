@@ -16,6 +16,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Player, Team, CoachRewardPreset } from '../../types';
+import { isGuestActive } from '../../types';
 import { workerFetch } from '../../utils/workerFetch';
 
 interface Props {
@@ -84,7 +85,7 @@ const CoachGrantXpModal: React.FC<Props> = ({
   }, [open, defaultSelectedIds]);
 
   const activeRoster = useMemo(
-    () => roster.filter((p: any) => p && p.isActive !== false),
+    () => roster.filter((p: any) => p && p.isActive !== false && isGuestActive(p)),
     [roster]
   );
 

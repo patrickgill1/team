@@ -8,7 +8,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
 import type { CalendarEvent, Player } from '../types';
-import { REQUIRED_COACH_CERT_KINDS } from '../types';
+import { REQUIRED_COACH_CERT_KINDS, isGuestActive } from '../types';
 import CoachRecentMediaCard from '../components/coach/CoachRecentMediaCard';
 import CoachGrantXpModal from '../components/coach/CoachGrantXpModal';
 import XpIntroCard from '../components/coach/XpIntroCard';
@@ -109,7 +109,7 @@ const CoachCockpit: React.FC = () => {
         );
         const snap = await getDocs(q);
         if (cancelled) return;
-        setRoster(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })).filter((p: any) => p.isActive !== false) as Player[]);
+        setRoster(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })).filter((p: any) => p.isActive !== false && isGuestActive(p)) as Player[]);
       } catch (err) {
         console.warn('[coach-cockpit] roster load failed', err);
       }

@@ -29,6 +29,7 @@ import {
 import { db } from '../../utils/firebase';
 import type { MentionableMember } from '../../utils/extractMentions';
 import type { Player, Team } from '../../types';
+import { isGuestActive } from '../../types';
 
 export interface UseKidChatMembers {
   pickerMembers: MentionableMember[];
@@ -74,7 +75,7 @@ export function useKidChatMembers(
     const unsub = onSnapshot(q, (snap) => {
       const rows: Player[] = snap.docs
         .map(d => ({ id: d.id, ...(d.data() as any) }) as Player)
-        .filter(p => (p as any).isActive !== false);
+        .filter(p => (p as any).isActive !== false && isGuestActive(p as any));
       setPlayers(rows);
       setLoading(false);
     }, () => {

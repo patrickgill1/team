@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin } from '../utils/helpers';
 import { useClubId } from '../hooks/useClubId';
 import type { FormDefinition, RegistrationQuestion } from '../types';
+import { isGuestActive } from '../types';
 
 // Manager for club-wide form definitions (Player Waiver, Medical
 // Release, Photo Consent, Uniform Order, etc.). Per-player signature
@@ -497,7 +498,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
           for (const d of s2.docs) if (!m.has(d.id)) m.set(d.id, { id: d.id, ...(d.data() as any) });
           players = Array.from(m.values());
         }
-        players = players.filter((p: any) => p.isActive !== false);
+        players = players.filter((p: any) => p.isActive !== false && isGuestActive(p));
         let unsigned = 0;
         await Promise.all(players.map(async (p) => {
           try {
@@ -531,7 +532,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
         for (const d of s2.docs) if (!m.has(d.id)) m.set(d.id, { id: d.id, ...(d.data() as any) });
         players = Array.from(m.values());
       }
-      players = players.filter((p: any) => p.isActive !== false);
+      players = players.filter((p: any) => p.isActive !== false && isGuestActive(p));
 
       const unsignedParents: string[] = [];
       await Promise.all(players.map(async (p) => {

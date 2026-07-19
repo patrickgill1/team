@@ -72,8 +72,9 @@ export function checkVideoLimit(file: File): VideoLimitDecision {
       ok: false,
       reason: 'too_big',
       message:
-        `That's a ${formatBytes(size)} clip. Cloudflare caps uploads at 500 MB. ` +
-        `Try trimming it in Photos (Edit -> Trim) or exporting a shorter version first.`,
+        `That's a ${formatBytes(size)} clip. We cap uploads at 500 MB to keep highlight ` +
+        `uploads snappy. Try trimming it in your phone's Photos or Gallery app, or export ` +
+        `a shorter version first.`,
     };
   }
   if (size > WARN_VIDEO_BYTES) {

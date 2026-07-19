@@ -1526,34 +1526,38 @@ const PlayerMediaPage: React.FC = () => {
     if (valid.length !== files.length) {
       alert('Some files were skipped. Only images and videos are allowed.');
     }
-    // Videos: shared checkVideoLimit() blocks over-500-MB clips with warm copy
-    // that names the actual file size. Images: local 10 MB cap still applies.
-    const videos = valid.filter(f => f.type.startsWith('video/'));
-    for (const v of videos) {
+    // Videos over the hard cap: block each with warm copy, drop from the
+    // batch, and keep going so a bulk pick with multiple oversized clips
+    // doesn't leave any staged. Images still get their local 10 MB cap.
+    const tooBigVideos = new Set<File>();
+    for (const v of valid.filter(f => f.type.startsWith('video/'))) {
       const decision = checkVideoLimit(v);
       if (!decision.ok) {
         alert(decision.message);
-        setUploadFiles(valid.filter(f => f !== v));
-        return;
+        tooBigVideos.add(v);
       }
     }
-    const oversizedImages = valid.filter(f =>
+    let kept = valid.filter(f => !tooBigVideos.has(f));
+
+    const oversizedImages = kept.filter(f =>
       f.type.startsWith('image/') && f.size > MAX_IMAGE_SIZE
     );
     if (oversizedImages.length > 0) {
       alert(`${oversizedImages.length} photo(s) are too large. Photos must be under 10 MB.`);
-      setUploadFiles(valid.filter(f => !oversizedImages.includes(f)));
-      return;
+      kept = kept.filter(f => !oversizedImages.includes(f));
     }
-    // Warm-warn zone (100-500 MB): confirm before staging so the coach
-    // knows it's a slow upload. Skipping any warned file aborts staging.
-    for (const v of videos) {
+
+    // Warm-warn zone (100-500 MB): confirm per video. Canceling drops just
+    // that clip from the batch, not the entire pick — so a small photo
+    // selected alongside a long video still stages when the coach bails.
+    const skippedWarnVideos = new Set<File>();
+    for (const v of kept.filter(f => f.type.startsWith('video/'))) {
       const decision = checkVideoLimit(v);
-      if (decision.warn && decision.message) {
-        if (!window.confirm(decision.message)) return;
+      if (decision.ok && decision.warn && decision.message) {
+        if (!window.confirm(decision.message)) skippedWarnVideos.add(v);
       }
     }
-    setUploadFiles(valid);
+    setUploadFiles(kept.filter(f => !skippedWarnVideos.has(f)));
   };
 
   const formatFileSize = (bytes: number) => {

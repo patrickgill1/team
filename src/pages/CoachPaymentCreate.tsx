@@ -203,7 +203,7 @@ const CoachPaymentCreate: React.FC = () => {
             coach sees two identical "Set up payments" cards on the same
             page. Ref: verifier finding #2 (2026-07-18). */}
         {!stripeStatusLoading && !stripeIsReady && !errClubId && (
-          <StripeConnectBanner clubId={stripeClubId} />
+          <StripeConnectBanner clubId={stripeClubId} returnTo="/coach/payments" />
         )}
 
         {!kind && (
@@ -536,6 +536,7 @@ const CoachPaymentCreate: React.FC = () => {
                 clubId={errClubId}
                 headline="Set up payments before sending this out"
                 body={err}
+                returnTo="/coach/payments"
               />
             )}
             {err && !errClubId && (

@@ -20,6 +20,12 @@ interface Props {
   headline?: string;
   body?: string;
   ctaLabel?: string;
+  /**
+   * Where to send the coach after the Stripe OAuth round-trip. Same-origin
+   * relative paths only. Defaults to the current pathname+search so the
+   * coach lands back exactly where they hit the banner.
+   */
+  returnTo?: string;
 }
 
 export const StripeConnectBanner: React.FC<Props> = ({
@@ -27,6 +33,7 @@ export const StripeConnectBanner: React.FC<Props> = ({
   headline = 'Set up payments to start collecting',
   body = 'Takes about 3 minutes. Families can then pay directly through the app.',
   ctaLabel = 'Set up payments',
+  returnTo,
 }) => {
   const [busy, setBusy] = useState(false);
   const [localErr, setLocalErr] = useState<string | null>(null);
@@ -42,7 +49,14 @@ export const StripeConnectBanner: React.FC<Props> = ({
         setBusy(false);
         return;
       }
-      const url = `${NOTIFY_URL}/stripe/connect/start?clubId=${encodeURIComponent(clubId)}`;
+      // Thread returnTo through Stripe's OAuth state so the top-level
+      // ClubOverview handler knows where to land the coach after the
+      // exchange (see the connectFinishing effect there). Default to
+      // wherever they clicked so the round-trip feels invisible.
+      const returnPath = returnTo || (window.location.pathname + window.location.search);
+      const url = `${NOTIFY_URL}/stripe/connect/start`
+        + `?clubId=${encodeURIComponent(clubId)}`
+        + `&returnTo=${encodeURIComponent(returnPath)}`;
       const r = await fetch(url);
       const data: any = await r.json().catch(() => ({}));
       if (r.ok && data?.url) {

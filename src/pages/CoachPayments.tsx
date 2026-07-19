@@ -130,7 +130,7 @@ const CoachPayments: React.FC = () => {
               once the club fetch settles — a visible flicker on the Active
               tab. Ref: verifier finding #1 (2026-07-18). */}
           {loaded && !stripeStatusLoading && filtered.length === 0 && tab === 'active' && !stripeIsReady && (
-            <StripeConnectBanner clubId={stripeClubId} />
+            <StripeConnectBanner clubId={stripeClubId} returnTo="/coach/payments" />
           )}
           {loaded && !stripeStatusLoading && filtered.length === 0 && (tab !== 'active' || stripeIsReady) && (
             <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-6 text-center">

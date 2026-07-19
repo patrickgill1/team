@@ -77,6 +77,55 @@ const ClubOverview: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // Stripe Connect OAuth return - top-level handler. Stripe redirects
+  // to /club?stripe_connected=1&state=clubId&code=AUTH_CODE. Previously
+  // this useEffect lived inside PaymentsTab, which meant it only fired
+  // if the coach happened to have the Payments tab active on landing.
+  // Default tab is Overview, so the exchange never ran and
+  // stripeAccountId never got stamped on the club doc, leaving the
+  // "Set up payments" banner stuck even after a successful Stripe
+  // onboarding. Lifting to top level so it fires regardless of tab.
+  useEffect(() => {
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+    const flag = searchParams.get('stripe_connected');
+    if (!code || !state || !flag || !scopedClubId || state !== scopedClubId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
+        if (!hasWorkerConfig()) return;
+        const r = await workerFetch('/stripe/connect/finish', {
+          method: 'POST',
+          body: JSON.stringify({ code, clubId: scopedClubId }),
+        });
+        const data: any = await r.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!r.ok) {
+          alert(data?.error || 'Payments setup failed to finish. Reach out if it keeps failing.');
+          return;
+        }
+        // Clean the URL so a refresh doesn't re-fire the exchange.
+        const next = new URLSearchParams(searchParams);
+        next.delete('code');
+        next.delete('state');
+        next.delete('stripe_connected');
+        // Snap to the Payments tab so the coach sees the connected
+        // state (charges enabled, payout schedule, etc) immediately
+        // instead of landing on Overview and wondering if it worked.
+        next.set('tab', 'payments');
+        setSearchParams(next, { replace: true });
+        setTab('payments');
+        // Reload the club doc so the checklist re-computes.
+        try { await reload(); } catch { /* ignore */ }
+      } catch (err) {
+        console.warn('[connect/finish] top-level handler err', err);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopedClubId, searchParams]);
+
   const reload = async () => {
     setLoading(true);
     try {
@@ -905,41 +954,13 @@ const PaymentsTab: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [connectFinishing, setConnectFinishing] = React.useState(false);
 
-  // Stripe Connect OAuth return — Stripe sends parents back to
-  // /club?stripe_connected=1&state=clubId&code=AUTH_CODE. We post the
-  // code to the worker, which exchanges it for a real account ID.
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const state = params.get('state');
-    const flag = params.get('stripe_connected');
-    if (!code || !state || !flag || !clubId || state !== clubId) return;
-    setConnectFinishing(true);
-    (async () => {
-      try {
-        const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
-        if (!hasWorkerConfig()) { alert('Worker not configured.'); return; }
-        const r = await workerFetch('/stripe/connect/finish', {
-          method: 'POST',
-          body: JSON.stringify({ code, clubId }),
-        });
-        const data: any = await r.json().catch(() => ({}));
-        if (!r.ok) {
-          alert(data?.error || 'Payments setup failed to finish.');
-          return;
-        }
-        // Clean the URL so a refresh doesn't re-fire the exchange.
-        window.history.replaceState({}, '', '/club');
-        // Reload the club doc so the new state shows.
-        const { doc, getDoc } = await import('firebase/firestore');
-        const { db } = await import('../utils/firebase');
-        const snap = await getDoc(doc(db, 'clubs', clubId));
-        if (snap.exists()) setClub({ id: snap.id, ...(snap.data() as any) });
-      } finally {
-        setConnectFinishing(false);
-      }
-    })();
-  }, [clubId]);
+  // Stripe Connect OAuth return handler moved to top-level ClubOverview
+  // component. Previously here, but that meant it only fired if the
+  // coach had the Payments tab active on landing - default tab is
+  // Overview so the exchange never ran. Handler now runs on every
+  // /club load regardless of active tab, then auto-switches to
+  // Payments so the coach sees the connected state. See ClubOverview
+  // top-level useEffect on scopedClubId + searchParams.
 
   React.useEffect(() => {
     if (!clubId) { setLoading(false); return; }

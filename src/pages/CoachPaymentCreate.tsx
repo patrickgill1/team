@@ -1,12 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoachOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import { grossUpCents, coachNetCents } from '../utils/pricing';
 import { intervalLabel } from '../utils/paymentIntervals';
-import type { PaymentRecurringInterval, CatalogItem } from '../types';
+import type { PaymentRecurringInterval, CatalogItem, Player } from '../types';
 import { workerFetch } from '../utils/workerFetch';
 
 /**
@@ -42,6 +44,44 @@ const CoachPaymentCreate: React.FC = () => {
   const [items, setItems] = useState<CatalogItem[]>([{ id: `it_${Date.now()}`, name: '', priceCents: 0 }]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Roster + target-players picker state. Default mode is 'all' so the
+  // existing "Everyone on the team" behavior is preserved when the coach
+  // never touches the picker. When they flip to 'specific', every roster
+  // player starts CHECKED (coach unchecks to exclude) so the fast path
+  // stays "send it to almost everyone".
+  const [roster, setRoster] = useState<Player[]>([]);
+  const [targetMode, setTargetMode] = useState<'all' | 'specific'>('all');
+  const [pickedIds, setPickedIds] = useState<Set<string>>(new Set());
+
+  // Load active roster for the selected team so the picker can show real
+  // photos + jersey numbers. Mirrors the pattern already used in
+  // CoachPaymentDetail.tsx so any teamId-scoping quirks stay identical.
+  useEffect(() => {
+    if (!selectedTeamId) { setRoster([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const q = query(collection(db, 'players'), where('teamIds', 'array-contains', selectedTeamId));
+        const snap = await getDocs(q);
+        const list = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((p: any) => p.isActive !== false) as Player[];
+        list.sort((a, b) => {
+          const ja = a.jerseyNumber ?? 999;
+          const jb = b.jerseyNumber ?? 999;
+          if (ja !== jb) return ja - jb;
+          return (a.name || '').localeCompare(b.name || '');
+        });
+        if (!cancelled) {
+          setRoster(list);
+          setPickedIds(new Set(list.map(p => p.id)));
+        }
+      } catch (err) {
+        console.warn('[coach-payment-create] roster load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedTeamId]);
 
   const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
 
@@ -69,11 +109,15 @@ const CoachPaymentCreate: React.FC = () => {
 
   const canSubmit = useMemo(() => {
     if (!kind || !title.trim()) return false;
+    // Specific-players mode requires at least one player checked or the
+    // request would ship with an empty targetPlayerIds[] and nobody would
+    // ever see it.
+    if (targetMode === 'specific' && pickedIds.size === 0) return false;
     if (kind === 'one_off') return feeCents >= 100;
     if (kind === 'recurring') return intervalCents >= 100;
     if (kind === 'catalog') return items.some(i => i.name.trim() && i.priceCents > 0);
     return false;
-  }, [kind, title, feeCents, intervalCents, items]);
+  }, [kind, title, feeCents, intervalCents, items, targetMode, pickedIds]);
 
   if (!coachOnThisTeam) return <Navigate to="/coach" replace />;
 
@@ -87,6 +131,12 @@ const CoachPaymentCreate: React.FC = () => {
         kind,
         title: title.trim(),
         feeCoveredBy,
+        targetPlayerIds:
+          targetMode === 'all'
+            ? 'all'
+            : roster
+                .map(p => p.id)
+                .filter(id => pickedIds.has(id)),
       };
       if (description.trim()) body.description = description.trim();
       if (kind === 'one_off') body.feeCents = feeCents;
@@ -324,6 +374,124 @@ const CoachPaymentCreate: React.FC = () => {
                   {feeCoveredBy === 'player'
                     ? `Parents will see $${(previewParentPrice / 100).toFixed(2)}${kind === 'recurring' ? ` ${intervalLabel(interval)}` : ''}. You net $${(previewCoachNet / 100).toFixed(2)}.`
                     : `Parents will see $${(previewParentPrice / 100).toFixed(2)}${kind === 'recurring' ? ` ${intervalLabel(interval)}` : ''}. You net $${(previewCoachNet / 100).toFixed(2)} after processing.`}
+                </div>
+              )}
+            </div>
+
+            {/* Who is this for — target-players picker. Default is
+                Everyone; flipping to specific reveals the roster with
+                every player pre-checked so the coach unchecks to
+                exclude. Coach-only surface (route already guards). */}
+            <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4">
+              <p className="text-[11px] font-black uppercase tracking-widest text-ink-primary/60 mb-2">Who is this for?</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTargetMode('all')}
+                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${
+                    targetMode === 'all'
+                      ? 'bg-brand-primary text-white'
+                      : 'bg-line-default/[0.05] text-ink-primary/60 hover:text-ink-primary'
+                  }`}
+                >
+                  Everyone
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetMode('specific')}
+                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${
+                    targetMode === 'specific'
+                      ? 'bg-brand-primary text-white'
+                      : 'bg-line-default/[0.05] text-ink-primary/60 hover:text-ink-primary'
+                  }`}
+                >
+                  Pick specific players
+                </button>
+              </div>
+
+              {targetMode === 'all' && (
+                <p className="mt-3 text-[12px] text-ink-primary/60 leading-snug">
+                  Every rostered family sees this request. Add or remove players from the roster and the list keeps up.
+                </p>
+              )}
+
+              {targetMode === 'specific' && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-[12px] text-ink-primary/70 leading-snug">
+                    Skip a family or bill a subset. Only checked players get billed and pinged.
+                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] text-ink-primary/55">
+                      {pickedIds.size} of {roster.length} selected
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPickedIds(new Set(roster.map(p => p.id)))}
+                        className="text-[11px] font-black uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary transition"
+                      >
+                        Select all
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPickedIds(new Set())}
+                        className="text-[11px] font-black uppercase tracking-widest text-ink-primary/50 hover:text-ink-primary transition"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                  {roster.length === 0 ? (
+                    <p className="text-[12px] text-ink-primary/55 py-2">
+                      No active players on this roster yet.
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-line-default/10 rounded-xl bg-surface-base ring-1 ring-line-default/15 max-h-72 overflow-y-auto">
+                      {roster.map(p => {
+                        const checked = pickedIds.has(p.id);
+                        const photoUrl = (p as any).profilePhotoUrl as string | undefined;
+                        return (
+                          <li key={p.id}>
+                            <label className="flex items-center gap-3 p-2 sm:p-3 cursor-pointer select-none hover:bg-line-default/[0.04]">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={e => {
+                                  setPickedIds(prev => {
+                                    const next = new Set(prev);
+                                    if (e.target.checked) next.add(p.id);
+                                    else next.delete(p.id);
+                                    return next;
+                                  });
+                                }}
+                                className="w-4 h-4 accent-brand-primary rounded shrink-0"
+                              />
+                              {photoUrl ? (
+                                <img
+                                  src={photoUrl}
+                                  alt={p.name}
+                                  className="w-8 h-8 rounded-full object-cover ring-1 ring-brand-primary-soft shrink-0"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-brand-primary/15 flex items-center justify-center shrink-0">
+                                  <span className="text-[11px] font-black text-brand-primary">
+                                    {p.jerseyNumber != null ? `#${p.jerseyNumber}` : (p.name || '?').slice(0, 1).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-black text-ink-primary truncate">{p.name}</p>
+                                {p.jerseyNumber != null && (
+                                  <p className="text-[11px] text-ink-primary/55">#{p.jerseyNumber}</p>
+                                )}
+                              </div>
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               )}
             </div>

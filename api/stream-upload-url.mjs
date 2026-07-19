@@ -88,19 +88,19 @@ export default async function handler(req, res) {
           // ignores this flag if set at create-time, but kept for clarity.)
           requireSignedURLs: false,
           // Whitelist the origins the iframe.cloudflarestream.com player
-          // can embed the manifest from. Without this list, Stream's
-          // manifest endpoint (customer-{acct}.cloudflarestream.com) emits
-          // no Access-Control-Allow-Origin and the browser blocks the
-          // manifest fetch as a CORS violation, leaving the player stuck
-          // on "Failed to fetch" for anyone loading the iframe from our
-          // domain. Wildcards are supported by CF for the *.vercel.app
-          // preview subdomain family.
-          allowedOrigins: [
-            'app.goalkickr.com',
-            'goalkickr.com',
-            'localhost',
-            '*.vercel.app',
-          ],
+          // can embed the manifest from. Without any allowedOrigins, the
+          // customer-{acct}.cloudflarestream.com manifest endpoint emits
+          // no Access-Control-Allow-Origin header and the browser blocks
+          // the fetch as a CORS violation — coach sees "Failed to fetch."
+          //
+          // Wildcard "*" because our clients live on multiple origins we
+          // can't fully enumerate: app.goalkickr.com (web), capacitor://
+          // localhost (iOS native WebView), https://localhost (Android),
+          // *.vercel.app previews. CF Stream matches scheme-strictly, so a
+          // plain "localhost" entry does NOT cover capacitor://localhost.
+          // Our security boundary is the unguessable video UID (same
+          // model as YouTube's unlisted video IDs), not origin ACLs.
+          allowedOrigins: ['*'],
         }),
       }
     );

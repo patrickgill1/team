@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CalendarEvent } from '../../types';
+import { isGuestActive } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
@@ -193,7 +194,7 @@ const Calendar: React.FC<CalendarProps> = ({
         ));
         const rows = snap.docs
           .map(d => ({ id: d.id, ...(d.data() as any) }))
-          .filter((p: any) => p.isActive !== false)
+          .filter((p: any) => p.isActive !== false && isGuestActive(p))
           .filter((p: any) =>
             (Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) ||
             p.teamId === selectedTeamId

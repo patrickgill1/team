@@ -4,7 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { useTeamAudience } from '../hooks/useTeamAudience';
-import { Player, PlayerMedia, DevelopmentPlan, Season } from '../types';
+import { Player, PlayerMedia, DevelopmentPlan, Season, isGuestActive } from '../types';
+import { formatDobShort } from '../utils/dobDate';
 import { isCoachOfTeam } from '../utils/helpers';
 import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
@@ -218,6 +219,12 @@ const PlayerProfile: React.FC = () => {
   const [grantXpRoster, setGrantXpRoster] = useState<Player[]>([]);
   const [downloading, setDownloading] = useState(false);
   const [downloadPercent, setDownloadPercent] = useState(0);
+  // Guest-player promotion — coach flips isGuest:false via worker,
+  // clears the expiration window, keeps every stat and highlight
+  // intact. Confirmation modal so a stray tap doesn't accidentally
+  // convert a Vegas Cup ringer into a permanent squad member.
+  const [showPromoteGuest, setShowPromoteGuest] = useState(false);
+  const [promotingGuest, setPromotingGuest] = useState(false);
 
   const handleDownload = async (item: PlayerMedia) => {
     if (downloading) return;
@@ -413,7 +420,7 @@ const PlayerProfile: React.FC = () => {
         setGrantXpRoster(
           snap.docs
             .map(d => ({ id: d.id, ...(d.data() as any) }))
-            .filter((p: any) => p.isActive !== false) as Player[]
+            .filter((p: any) => p.isActive !== false && isGuestActive(p)) as Player[]
         );
       } catch (err) {
         console.warn('[player-profile] grant-xp roster load failed', err);
@@ -898,6 +905,54 @@ const PlayerProfile: React.FC = () => {
             attendancePct={attendance.percent}
             jugglesBest={(player as any).juggles?.best || 0}
           />
+        );
+      })()}
+
+      {/* Guest-player banner. Warm strip that tells any viewer (coach,
+          parent, teammate) that this player is a temporary squad
+          member, plus a Promote CTA for coaches. Renders whether the
+          window is still open OR already expired — the copy shifts and
+          the color pivots so a coach scanning the profile can tell at
+          a glance which state they're in. */}
+      {(player as any).isGuest && (() => {
+        const canCoach = !!userData && isCoachOfTeam(userData, selectedTeam);
+        const stillActive = isGuestActive(player as any);
+        const expiryLabel = (player as any).expiresAt
+          ? formatDobShort((player as any).expiresAt)
+          : '';
+        const reason = ((player as any).guestReason || '').trim();
+        return (
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-3">
+            <div className={`rounded-2xl p-3 sm:p-4 flex items-start sm:items-center justify-between gap-3 flex-wrap ${
+              stillActive
+                ? 'bg-amber-500/15 ring-1 ring-amber-400/40'
+                : 'bg-line-default/5 ring-1 ring-line-default/15'
+            }`}>
+              <div className="flex-1 min-w-0">
+                <p className={`text-[10px] font-black uppercase tracking-widest ${stillActive ? 'text-amber-700 dark:text-amber-200' : 'text-ink-primary/55'}`}>
+                  Guest player
+                </p>
+                <p className={`mt-0.5 text-sm font-semibold ${stillActive ? 'text-amber-800 dark:text-amber-100' : 'text-ink-primary/70'}`}>
+                  {stillActive
+                    ? (expiryLabel ? `Access through ${expiryLabel}.` : 'Access is open-ended.')
+                    : (expiryLabel ? `Access ended ${expiryLabel}.` : 'Access has ended.')}
+                  {reason && <span className="text-ink-primary/60 font-medium"> · {reason}</span>}
+                </p>
+                <p className="text-[11px] text-ink-primary/55 mt-0.5">
+                  Full team access during the window. Promote to a permanent player anytime; stats and history stay put.
+                </p>
+              </div>
+              {canCoach && (
+                <button
+                  type="button"
+                  onClick={() => setShowPromoteGuest(true)}
+                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-brand-primary text-white ring-1 ring-brand-primary/40 shadow-sm text-[11px] font-black uppercase tracking-[0.14em] hover:brightness-110 transition whitespace-nowrap"
+                >
+                  Promote to full player
+                </button>
+              )}
+            </div>
+          </div>
         );
       })()}
 
@@ -1531,6 +1586,62 @@ const PlayerProfile: React.FC = () => {
         existingPlayers={[]}
         onPlayerAdded={() => { setEditOpen(false); void loadProfile(); }}
       />
+
+      {/* Promote-to-full-player confirmation. Simple two-button modal
+          matches the roster archive dialog's shape so the coach's
+          muscle memory carries over. */}
+      {showPromoteGuest && player && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="card-modern max-w-md w-full p-6 bg-surface-elevated">
+            <h3 className="text-lg font-black text-ink-primary mb-2">Promote to full player?</h3>
+            <p className="text-sm text-ink-primary/70 mb-6">
+              <strong>{player.name}</strong> becomes a permanent squad member. Their access window, stats, highlights, and everything else stay right where they are. You can flip them back to a guest later if plans change.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowPromoteGuest(false)}
+                disabled={promotingGuest}
+                className="flex-1 bg-surface-input hover:bg-surface-raised text-ink-primary font-semibold py-2 px-4 rounded-xl transition disabled:opacity-50"
+              >
+                Not yet
+              </button>
+              <button
+                onClick={async () => {
+                  if (!player || !selectedTeamId) return;
+                  setPromotingGuest(true);
+                  try {
+                    const { workerFetch } = await import('../utils/workerFetch');
+                    const res = await workerFetch('/players/promote-guest', {
+                      method: 'POST',
+                      body: JSON.stringify({ teamId: selectedTeamId, playerId: player.id }),
+                    });
+                    const data: any = await res.json().catch(() => ({}));
+                    if (!res.ok || !data?.ok) throw new Error(data?.error || `promote-${res.status}`);
+                    // Local echo so the banner disappears immediately
+                    // even before loadProfile finishes.
+                    setPlayer(prev => prev ? ({ ...prev, isGuest: false, expiresAt: undefined, guestReason: undefined } as Player) : prev);
+                    setShowPromoteGuest(false);
+                    void loadProfile();
+                  } catch (err) {
+                    console.error('Promote guest failed', err);
+                    alert('Could not promote this player. Try again.');
+                  } finally {
+                    setPromotingGuest(false);
+                  }
+                }}
+                disabled={promotingGuest}
+                className="flex-1 bg-brand-primary hover:brightness-110 text-white font-semibold py-2 px-4 rounded-xl transition disabled:opacity-50 flex items-center justify-center"
+              >
+                {promotingGuest ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                ) : (
+                  'Promote'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

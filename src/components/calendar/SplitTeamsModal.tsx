@@ -4,6 +4,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import type { CalendarEvent, Player } from '../../types';
+import { isGuestActive } from '../../types';
 import {
   splitTeams,
   averageScore,
@@ -55,7 +56,7 @@ const SplitTeamsModal: React.FC<Props> = ({ event, onClose, onSave }) => {
         if (cancelled) return;
         const list = snap.docs
           .map(d => ({ id: d.id, ...(d.data() as any) } as Player))
-          .filter(p => (p as any).isActive !== false);
+          .filter(p => (p as any).isActive !== false && isGuestActive(p as any));
         setRoster(list);
       } catch (err) {
         console.error('roster load failed', err);

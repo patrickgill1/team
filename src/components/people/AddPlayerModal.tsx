@@ -47,6 +47,21 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
   // becomes a self-signup invite that links the user as both
   // parent (for permissions) AND the player themself (for UI).
   const [isAdultPlayer, setIsAdultPlayer] = useState(false);
+  // Guest player mode (tournament call-ups, tryouts, one-off ringers).
+  // Guests get FULL team-member access during the window — chat,
+  // roster, media, RSVP, POTM, XP visibility — not a sandboxed shell.
+  // Coach can promote to a full player anytime, keeping stats intact.
+  const [isGuest, setIsGuest] = useState(false);
+  const [guestExpiresAt, setGuestExpiresAt] = useState<string>(() => {
+    // Default expiry: today + 14 days, formatted YYYY-MM-DD for the
+    // native date input. Local calendar getters (not toISOString) so a
+    // Denver coach doesn't see the date shift by one on save.
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  });
+  const [guestReason, setGuestReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ playerName: string; inviteUrl?: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -76,6 +91,18 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
       // via the worker (coach-of-team verified server-side).
       const { workerFetch } = await import('../../utils/workerFetch');
       const primaryTeamId = teamIds[0];
+      // Guest fields: only ship them when the toggle is on. Worker
+      // treats missing == false so no accidental guest-tagging.
+      // expiresAt is passed as an ISO date-only string; worker parses
+      // it to a Date at write time using local calendar (per
+      // dobDate.ts convention: store noon-UTC to avoid tz drift).
+      const guestPayload = isGuest
+        ? {
+            isGuest: true,
+            guestExpiresAt: guestExpiresAt || null,
+            guestReason: guestReason.trim() ? guestReason.trim().slice(0, 80) : undefined,
+          }
+        : {};
       const createRes = await workerFetch('/players/create', {
         method: 'POST',
         body: JSON.stringify({
@@ -85,6 +112,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
           positions: position ? [position] : undefined,
           parentEmails: parentEmail.trim() ? [parentEmail.trim().toLowerCase()] : undefined,
           isAdultPlayer: !!isAdultPlayer,
+          ...guestPayload,
         }),
       });
       const createData: any = await createRes.json().catch(() => ({}));
@@ -269,6 +297,50 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
               </div>
             </div>
           </label>
+
+          {/* Guest-player toggle. Turns a permanent add into a
+              tournament / trial / call-up with an access window. Guest
+              gets full team-member access during the window; coach can
+              promote to a full player anytime. */}
+          <label className="flex items-start gap-2 p-3 rounded-lg ring-1 ring-line-default/10 bg-surface-base cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isGuest}
+              onChange={e => setIsGuest(e.target.checked)}
+              className="mt-0.5 accent-brand-primary"
+            />
+            <div className="flex-1">
+              <div className="text-xs font-bold text-ink-primary">Guest player</div>
+              <div className="text-[10px] text-ink-primary/55 mt-0.5">
+                Tournament call-up, tryout, or one-off ringer. Full team access until the end date. Promote to a full player anytime.
+              </div>
+            </div>
+          </label>
+          {isGuest && (
+            <div className="rounded-lg ring-1 ring-line-default/10 p-3 space-y-2 bg-surface-base">
+              <FormField label="Access ends on">
+                <input
+                  type="date"
+                  value={guestExpiresAt}
+                  onChange={e => setGuestExpiresAt(e.target.value)}
+                  className={fieldInputClass}
+                />
+              </FormField>
+              <FormField label="Reason (optional)">
+                <input
+                  type="text"
+                  value={guestReason}
+                  onChange={e => setGuestReason(e.target.value)}
+                  placeholder="Vegas Cup 2026, tryout, call-up"
+                  maxLength={80}
+                  className={fieldInputClass}
+                />
+              </FormField>
+              <p className="text-[10px] text-ink-primary/50">
+                After the end date, this guest is hidden from the active roster unless you flip on "Show past guests." Their profile, stats, and history stay put.
+              </p>
+            </div>
+          )}
 
           <div className="rounded-lg ring-1 ring-line-default/10 p-3 space-y-2 bg-surface-base">
             <label className="flex items-center gap-2 cursor-pointer">

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { collection, doc, getDocs, query, where, writeBatch, serverTimestamp, addDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import type { Player, Season } from '../../types';
+import { isGuestActive } from '../../types';
 import { clearActiveSeasonCache, getActiveSeasonForTeam } from '../../utils/seasons';
 
 /**
@@ -75,7 +76,7 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
         const snap = await getDocs(query(collection(db, 'players'), where('teamIds', 'array-contains', teamId)));
         const list: Player[] = snap.docs
           .map((d) => ({ id: d.id, ...(d.data() as any) }))
-          .filter((p: any) => p.isActive !== false);
+          .filter((p: any) => p.isActive !== false && isGuestActive(p));
         if (cancelled) return;
         setPlayers(list);
         setKeepIds(new Set(list.map((p) => p.id))); // default: keep all

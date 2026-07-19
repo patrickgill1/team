@@ -651,6 +651,54 @@ export interface Player {
    *  Bumps on reveal-modal dismiss so returning kids don't dogpile on
    *  every historical badge — one reveal per earn, ship-forward only. */
   lastSeenBadgeAt?: Date;
+  /** Guest-player flag. Missing / false = permanent squad member. True
+   *  = a temporary add for a tournament / trial / call-up. Guests get
+   *  the full team-member experience during their window (chat, roster,
+   *  media, events, RSVP, POTM, XP visibility) — no sandboxed shell.
+   *  When `expiresAt` passes, roster-visibility helpers hide the guest
+   *  by default; coach can promote them to a full player anytime,
+   *  clearing this flag and preserving stats/history intact. */
+  isGuest?: boolean;
+  /** Last day of the guest's access window. Missing = no expiration
+   *  set (rare — surfaces as an open-ended guest until promoted or
+   *  archived). Set by the coach on add; can be extended by clearing
+   *  and re-adding or via a future "extend window" flow. */
+  expiresAt?: Date;
+  /** Optional short coach note describing why this guest is here —
+   *  "Vegas Cup 2026", "trial", "call-up". Free text, ≤80 chars. */
+  guestReason?: string;
+}
+
+/** Returns true when a guest player is still inside their access
+ *  window (or has no expiration set). Non-guest players always return
+ *  true — this helper is safe to combine with the existing isActive
+ *  check without branching on isGuest at every call site.
+ *
+ *  Usage:
+ *    players.filter(p => p.isActive !== false && isGuestActive(p))
+ *
+ *  Callers that want to *include* expired guests (coach's Archived
+ *  toggle) skip this helper. */
+export function isGuestActive(
+  player: Pick<Player, 'isGuest' | 'expiresAt'> | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!player) return false;
+  if (!player.isGuest) return true;
+  if (!player.expiresAt) return true;
+  const raw: any = player.expiresAt;
+  const d: Date =
+    raw instanceof Date
+      ? raw
+      : typeof raw?.toDate === 'function'
+        ? raw.toDate()
+        : new Date(raw);
+  if (isNaN(d.getTime())) return true;
+  // Guest is "still active" through the END of the expiration day —
+  // Vegas Cup wraps late Sunday, coach shouldn't have to babysit the
+  // roster before the last game. Compare against end-of-day local.
+  const endOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+  return endOfDay.getTime() >= now.getTime();
 }
 
 /** One badge on a player. Keyed by slug (e.g. 'coach_pick',

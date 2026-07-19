@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
-import { Player, CalendarEvent, PlayerMedia as PlayerMediaType } from '../types';
+import { Player, CalendarEvent, PlayerMedia as PlayerMediaType, isGuestActive } from '../types';
 import { formatDateTime, isCoachOfTeam } from '../utils/helpers';
 import { computeXpLevel } from '../utils/xpLevel';
 import { badgeImageSrc, badgeLabel } from '../utils/badgeMeta';
@@ -889,7 +889,7 @@ const Dashboard: React.FC = () => {
         if (cancelled) return;
         const list = snap.docs
           .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
-          .filter((p: any) => p.isActive !== false)
+          .filter((p: any) => p.isActive !== false && isGuestActive(p))
           .filter((p: any) => Array.isArray(p.teamIds) ? p.teamIds.includes(nextEvent.teamId) : true)
           .map((p: any) => ({ id: p.id, name: p.name as string }))
           .sort((a, b) => a.name.localeCompare(b.name));

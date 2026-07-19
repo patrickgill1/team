@@ -633,6 +633,30 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // ── Trip primitive (2026-07-19) ────────────────────────────
+    //
+    // Coach-owned stat-scoping container (tournaments / weekend trips).
+    // Reads: team-scoped. Only signed-in members of the trip's team
+    // can read the doc directly (get). LIST stays open per the
+    // documented Firestore workaround — clients MUST include a
+    // teamId equality filter (the /coach/trips + PlayerTripsCard
+    // queries do). PublicTrip page's Path A relies on this get()
+    // returning permission-denied for non-team members so it falls
+    // through to the shareToken worker path.
+    //
+    // A public read-only recap URL at /trip/:id?token=... is served
+    // through the worker /trips/public-info endpoint using shareToken.
+    // Writes: worker-only (/trips/create, /trips/update, /trips/archive,
+    // /trips/attend, /trips/unattend). Coach-of-team check runs server
+    // side there.
+    match /trips/{tripId} {
+      allow get: if isAuthed()
+        && resource.data.teamId is string
+        && resource.data.teamId in userDoc().teamIds;
+      allow list: if isAuthed();
+      allow create, update, delete: if false;
+    }
+
     // ── League MVP (2026-07-11) ────────────────────────────────
     // Rules are permissive for public league discovery (public
     // fixtures + standings are the whole point). All writes route

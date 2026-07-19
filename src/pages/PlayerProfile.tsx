@@ -27,6 +27,7 @@ import RecognitionCenter from '../components/player/RecognitionCenter';
 import DevelopmentPlanCard from '../components/player/DevelopmentPlanCard';
 import { filterMediaForSeason } from '../utils/mediaFilters';
 import SeasonStatsCard from '../components/player/SeasonStatsCard';
+import PlayerTripsCard from '../components/player/PlayerTripsCard';
 import AddPlayer from '../components/player/AddPlayer';
 import EmptyState from '../components/common/EmptyState';
 import DataGate from '../components/common/DataGate';
@@ -1213,6 +1214,15 @@ const PlayerProfile: React.FC = () => {
               selectedTeamId={selectedTeamId}
               scope={statsScope}
               onScopeChange={setStatsScope}
+            />
+
+            {/* TOURNAMENTS — per-trip stat totals for anything logged
+                during a Trip window. Hidden entirely when the player
+                has no trip-tagged stats. Regulation season stats above
+                stay unaffected. */}
+            <PlayerTripsCard
+              playerId={playerId!}
+              canLinkToTrip={!!userData && isCoachOfTeam(userData, selectedTeam)}
             />
 
             {/* PERSONAL RECORDS — number receipts pinned to the same

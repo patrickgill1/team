@@ -1755,6 +1755,11 @@ export interface GameStat {
   teamId: string;
   createdAt: Date;
   updatedAt?: Date;
+  /** Trip scoping. When set, this stat belongs to a Trip (tournament)
+   *  and is EXCLUDED from season aggregates. Read filters route it
+   *  into the Trip bucket instead. Set by tripAttribution.resolveTripIdForGame
+   *  at write time. Missing / null = counts toward the season. */
+  tripId?: string;
 }
 
 export interface CalendarEvent {
@@ -1917,6 +1922,18 @@ export interface CalendarEvent {
    *  Defaults to true for type='game'; coaches can uncheck for a
    *  scrimmage. Only meaningful when type='game'. */
   autoCreatePotm?: boolean;
+  /** Trip primitive attribution. When set, this game belongs to a
+   *  Trip (tournament) — all stats written against it will inherit
+   *  this tripId and be excluded from season aggregates. Auto-stamped
+   *  by tripAttribution.resolveTripIdForGame on first stat write when
+   *  the game falls inside an active trip window for its team. */
+  tripId?: string;
+  /** Coach's manual attribution override on this game. Wins over
+   *  auto-detection. 'season' = force season bucket even if the date
+   *  is inside a trip window. 'trip' = honor tripId set explicitly.
+   *  'none' = count toward neither (rare — scrimmage). Absent =
+   *  auto-detect (the default). */
+  tripAssignmentOverride?: 'season' | 'trip' | 'none';
   /** Counts this game's stats + POTM toward season aggregates.
    *  Defaults to true. Coaches flip false for scrimmages / tournaments
    *  they want to run in the app but not have skew season leaderboards.
@@ -2461,6 +2478,48 @@ export interface Game {
   stats?: GameStat[];
   createdAt: Date;
   updatedAt?: Date;
+  /** Mirror of CalendarEvent.tripId — see Trip primitive. */
+  tripId?: string;
+  tripAssignmentOverride?: 'season' | 'trip' | 'none';
+}
+
+// ================================
+// TRIP — stat-scoping container for tournaments / weekend trips.
+// One doc per trip. Auto-attributes stats written during the window
+// to the trip bucket (excluded from season aggregates). Coach picks
+// the traveling roster via attendingPlayerIds.
+// ================================
+
+export interface Trip {
+  id: string;
+  teamId: string;
+  clubId?: string;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  /** Standing soft-delete pattern (never deleteDocument). Coaches
+   *  archive trips instead — see `status`. `isActive: false` is a
+   *  hard hide (rarely used). */
+  isActive: boolean;
+  /** Coach-typed name. e.g. "Vegas Cup 2026". */
+  name: string;
+  /** Trip window start. Interpreted at America/Denver start-of-day. */
+  startDate: Date;
+  /** Trip window end (inclusive). Interpreted at America/Denver
+   *  end-of-day so an 11:59 PM Sunday game still counts. */
+  endDate: Date;
+  /** Optional coach notes / description. */
+  description?: string;
+  /** Player IDs on the traveling roster — subset of team players +
+   *  guest players. Coach picks who's actually going. */
+  attendingPlayerIds: string[];
+  /** Lifecycle flag. 'active' = current or recent; 'archived' = coach
+   *  moved past it. Distinct from `isActive` (soft-delete). */
+  status: 'active' | 'archived';
+  /** Unguessable public token that unlocks the read-only recap URL
+   *  at /trip/:id?token=…. Minted at creation. */
+  shareToken?: string;
 }
 
 // ================================
@@ -3523,7 +3582,8 @@ export const COLLECTIONS = {
   DEVELOPMENT_PLANS: 'development_plans',
   PLAYER_MEDIA: 'player_media',
   COACH_INVITES: 'coach_invites',
-  PAYMENT_REQUESTS: 'payment_requests'
+  PAYMENT_REQUESTS: 'payment_requests',
+  TRIPS: 'trips'
 } as const;
 
 // ================================

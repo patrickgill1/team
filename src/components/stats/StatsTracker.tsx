@@ -134,6 +134,22 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
     try {
       const filteredKeyPlays = keyPlays.filter(play => play.trim() !== '');
 
+      // Resolve tripId once for this write. Prefer the event-doc path
+      // (real gameId → look up event.date + event.tripAssignmentOverride);
+      // fall back to "now" resolution for synthetic gameIds. When a
+      // tripId comes back, this stat write is TRIP-scoped: don't bump
+      // the player.stats season aggregate and don't fire first-stat
+      // badges (kept for the regulation journey). See GameDay endGame
+      // for the sibling pattern.
+      const { resolveTripIdByEventId, resolveTripIdForGame } = await import('../../utils/tripAttribution');
+      let resolvedTripId: string | undefined;
+      try {
+        const r = gameId
+          ? await resolveTripIdByEventId(gameId, selectedTeamId)
+          : await resolveTripIdForGame({ teamId: selectedTeamId, gameDate: new Date() });
+        resolvedTripId = r.tripId;
+      } catch { /* non-fatal — stat still writes, just to season */ }
+
       // Create game stat record
       const gameStatData: Omit<GameStat, 'id' | 'createdAt'> = {
         playerId: selectedPlayer,
@@ -151,8 +167,9 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
         keyPlays: filteredKeyPlays,
         recordedBy: userData.uid,
         recordedByName: userData.name,
-        updatedAt: new Date()
-      };
+        updatedAt: new Date(),
+        ...(resolvedTripId ? { tripId: resolvedTripId } : {}),
+      } as any;
 
       const statId = await addGameStat(gameStatData);
 
@@ -171,13 +188,19 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
         cleanSheets: currentStats.cleanSheets || 0
       };
 
-      await updatePlayerStats(selectedPlayer, updatedStats);
+      // Trip stats DON'T bump player.stats — keeps that aggregate
+      // regulation-only by default (matches GameDay endGame behavior).
+      if (!resolvedTripId) {
+        await updatePlayerStats(selectedPlayer, updatedStats);
+      }
       // Fire first-stat badges on 0→N crossings. Non-fatal.
       // 2026-07-14: skipGrants suppresses this for catch-up / historical
       // entries so a coach filling in past games doesn't burn the
       // player's real "first goal" moment. Stats still land; XP+badges
       // just don't fire.
-      if (!skipGrants) {
+      // Trip stats also suppress badges so a kid's "first goal" moment
+      // isn't burned on a tournament goal.
+      if (!skipGrants && !resolvedTripId) {
         try {
           const { maybeGrantFirstStatBadges } = await import('../../utils/badgeGrants');
           void maybeGrantFirstStatBadges(

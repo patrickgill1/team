@@ -326,11 +326,26 @@ const getUserData = useCallback(async (uid: string) => {
   const getTeamPlayerStatsMap = useCallback(async (
     teamId: string,
     seasonId?: string | null,
+    tripScope?: { tripId?: string | null; excludeTrips?: boolean } | null,
   ): Promise<Record<string, Player['stats']>> => {
     const records = await getDocuments('stats', [where('teamId', '==', teamId)]);
-    const filtered = seasonId
+    // 2026-07-19 Trip primitive: layer a tripId filter on top of season.
+    //   - tripScope.tripId set → include ONLY rows tagged with that trip
+    //     (feeds Trip detail + Player Profile "Tournaments" section).
+    //   - tripScope.excludeTrips === true (or undefined + no tripId) →
+    //     regulation-only view: drop any row that carries a tripId.
+    //   - null / omitted → back-compat: still drops tripId rows so
+    //     existing "Season 2026" surfaces stay pure without a caller
+    //     change.
+    let filtered = seasonId
       ? (records as any[]).filter((r) => (r?.seasonId || null) === seasonId)
       : (records as any[]);
+    if (tripScope?.tripId) {
+      filtered = (filtered as any[]).filter((r) => r?.tripId === tripScope.tripId);
+    } else {
+      // Default: exclude any tripId-tagged rows from the season bucket.
+      filtered = (filtered as any[]).filter((r) => !r?.tripId);
+    }
     const map: Record<string, any> = {};
     for (const r of filtered as any[]) {
       const pid = r.playerId;

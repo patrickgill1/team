@@ -395,6 +395,16 @@ const Stats: React.FC = () => {
                 return;
               }
               try {
+                // Resolve tripId so a correction made during a Trip
+                // window lands in the trip bucket (and NOT in the
+                // season aggregate). Coach fixing a stat mistake on a
+                // tournament goal keeps that goal off Season 2026.
+                let adjustTripId: string | undefined;
+                try {
+                  const { resolveTripIdForGame } = await import('../utils/tripAttribution');
+                  const r = await resolveTripIdForGame({ teamId: selectedTeamId, gameDate: new Date() });
+                  adjustTripId = r.tripId;
+                } catch { /* non-fatal */ }
                 // Write a correction record so the per-team aggregator picks
                 // up the change for shared players. The 'adjust_' gameId
                 // prefix tells the aggregator to apply gamesPlayed as a
@@ -417,13 +427,16 @@ const Stats: React.FC = () => {
                   recordedByName: userData?.name || 'Coach',
                   teamId: selectedTeamId,
                   isCorrection: true,
+                  ...(adjustTripId ? { tripId: adjustTripId } : {}),
                 });
                 await addGameStat(adjustPayload as any);
                 // Also update the global aggregate for non-shared players /
                 // legacy displays. For shared players this is a best-effort
                 // mirror; team-scoped views will use the correction record.
+                // Trip-scoped corrections skip the global mirror entirely
+                // so the season aggregate stays regulation-only.
                 const isShared = Array.isArray((player as any).teamIds) && (player as any).teamIds.length > 1;
-                if (!isShared) {
+                if (!isShared && !adjustTripId) {
                   await updatePlayerStats(player.id, next as any);
                 }
               } catch (err) {

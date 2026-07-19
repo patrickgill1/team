@@ -120,6 +120,10 @@ const CoachPayments = React.lazy(() => import('./pages/CoachPayments'));
 const CoachPaymentCreate = React.lazy(() => import('./pages/CoachPaymentCreate'));
 const CoachPaymentDetail = React.lazy(() => import('./pages/CoachPaymentDetail'));
 const Payments = React.lazy(() => import('./pages/Payments'));
+const CoachTrips = React.lazy(() => import('./pages/CoachTrips'));
+const CoachTripCreate = React.lazy(() => import('./pages/CoachTripCreate'));
+const CoachTripDetail = React.lazy(() => import('./pages/CoachTripDetail'));
+const PublicTrip = React.lazy(() => import('./pages/PublicTrip'));
 
 const prefetchCoreRoutes = (() => {
   let started = false;
@@ -546,6 +550,9 @@ function App() {
                   payment_requests; worker /payments/checkout-anon
                   gates the actual Stripe redirect. */}
               <Route path="/pay/:id" element={<PayLink />} />
+              {/* Trip recap share link. Anonymous. shareToken in the
+                  query auths against /trips/public-info at the worker. */}
+              <Route path="/trip/:id" element={<PublicTrip />} />
               <Route path="/p/:playerId" element={<PublicPlayerCard />} />
               <Route path="/f/:teamId" element={<PublicFixtures />} />
               <Route path="/l/:leagueId" element={<PublicLeague />} />
@@ -738,6 +745,28 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Payments />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/coach/trips" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CoachTrips />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/coach/trips/new" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CoachTripCreate />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/coach/trips/:id" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CoachTripDetail />
                 </AppLayout>
               </ProtectedRoute>
             } />

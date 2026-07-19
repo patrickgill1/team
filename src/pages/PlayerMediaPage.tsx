@@ -1210,6 +1210,11 @@ const PlayerMediaPage: React.FC = () => {
 
       // Stats credits: only meaningful when 'Goal' tag is on
       const m = selectedMedia as any;
+      // countsForStats respects the upload-time toggle. Undefined = true
+      // for backwards-compat with pre-toggle docs. When the coach uploaded
+      // with the toggle OFF, we preserve attribution + never bump stats,
+      // regardless of what the edit modal does to tags/scorer/assists.
+      const mediaCountsForStats = m.countsForStats !== false;
       const wasGoalClip = !!m.statsCredited && !!m.goalScorerId;
       const wasCreditedAssistIds: string[] = m.statsCreditedAssistIds || (wasGoalClip ? (m.assistByIds || []) : []);
       const isOwnGoal = editingTags.includes('Own Goal');
@@ -1247,10 +1252,13 @@ const PlayerMediaPage: React.FC = () => {
             ? { goalScorerId: m.goalScorerId, assistByIds: wasCreditedAssistIds }
             : {});
 
-      // 3. Apply credits forward.
+      // 3. Apply credits forward. Skip the whole forward path when the doc
+      // was uploaded with countsForStats=false — attribution rides on the
+      // doc for display, but the coach opted out of stats/XP/badges at
+      // upload time and a no-op resave must not silently credit them.
       let willBumpScorerId: string | undefined;
       let willBumpAssistIds: string[] = [];
-      if ((newScorerId || newAssistIds.length > 0) && newGameId) {
+      if (mediaCountsForStats && (newScorerId || newAssistIds.length > 0) && newGameId) {
         try {
           const { attachClipCreditsToGame } = await import('../utils/clipGameLink');
           const scorer = newScorerId ? players.find(p => p.id === newScorerId) : undefined;
@@ -1289,7 +1297,7 @@ const PlayerMediaPage: React.FC = () => {
           willBumpScorerId = newScorerId;
           willBumpAssistIds = newAssistIds;
         }
-      } else if (newScorerId || newAssistIds.length > 0) {
+      } else if (mediaCountsForStats && (newScorerId || newAssistIds.length > 0)) {
         willBumpScorerId = newScorerId;
         willBumpAssistIds = newAssistIds;
       }
@@ -1310,6 +1318,11 @@ const PlayerMediaPage: React.FC = () => {
         statsCreditedAssistIds: willBumpAssistIds,
         gameId: newGameId || null,
         isOwnGoal: isOwnGoal ? true : null,
+        // Preserve the upload-time toggle when it was explicitly set. An
+        // explicit false stays false so the next edit-save round-trip
+        // keeps skipping the stat bump; legacy undefined stays undefined
+        // (reads as true, matches pre-toggle behavior).
+        ...(m.countsForStats === false ? { countsForStats: false } : {}),
       };
       await updateDocument(collection, docId, update);
 
@@ -2143,8 +2156,8 @@ const PlayerMediaPage: React.FC = () => {
                             <div className="text-sm font-bold text-ink-primary leading-tight">Count toward stats</div>
                             <p className="text-xs text-ink-primary/60 mt-0.5 leading-snug">
                               {uploadCountsForStats
-                                ? 'On: this bumps the season stat line, awards XP, and can grant badges.'
-                                : 'Off: attribution still shows on the clip. No stat entry, no XP, no badges.'}
+                                ? 'Adds to their season stats. Earns XP, may unlock a badge.'
+                                : 'Just a highlight. No stats change, and the scorer chip still shows on the clip.'}
                             </p>
                           </div>
                         </div>

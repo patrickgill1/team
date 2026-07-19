@@ -618,6 +618,13 @@ service cloud.firestore {
     // and the Stripe webhook stamp paidUids / stripeSubscriptionIds /
     // purchases[]. Parents never touch these fields directly.
     match /payment_requests/{paymentRequestId} {
+      // Signed-in coaches + parents on the team get list + get.
+      // Anonymous guests hitting /pay/{id} DO NOT read the doc
+      // directly — Firestore rules can't project fields, and the doc
+      // carries prior-payer PII (guestPaid[] emails/names, paidUids,
+      // stripeSubscriptionIds, purchases[].uid). The /pay/{id} page
+      // reads a projected safe subset through the worker's
+      // /payments/pay-link-info endpoint instead.
       allow get, list: if request.auth != null;
       allow create, update, delete: if false;
     }

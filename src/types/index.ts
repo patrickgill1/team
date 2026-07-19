@@ -3431,6 +3431,25 @@ export interface PaymentRequest {
   // ── catalog ──────────────────────────────────────────────────
   items?: CatalogItem[];
   purchases?: CatalogPurchase[];
+
+  // ── anon pay link (Ship 1 decision #3, 2026-07-19) ───────────
+  /** Guests who paid via the anon /pay/{id} link. Only populated
+   *  for kind: 'one_off' in v1. Recurring + catalog require accounts.
+   *  Written server-side from the Stripe webhook when metadata
+   *  paymentKind === 'one_off_anon'. */
+  guestPaid?: GuestPayment[];
+}
+
+/** One row in payment_request.guestPaid[] for /pay/{id} anon
+ *  checkouts. No uid — guest hasn't signed up. Email is required
+ *  (Stripe uses it for the receipt); name is optional. */
+export interface GuestPayment {
+  email: string;
+  name?: string;
+  amount: number;
+  paidAt: Date;
+  stripePaymentIntentId?: string;
+  stripeSessionId?: string;
 }
 
 // ================================

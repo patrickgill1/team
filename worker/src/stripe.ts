@@ -1047,6 +1047,36 @@ async function resolvePaymentClub(projectId: string, sa: ServiceAccount, clubId:
   return { stripeAccountId, platformFeeBps };
 }
 
+// Shared team-name lookup so the Stripe hosted page can say "Team
+// dues from Coach Patrick, Fire FC U12" instead of just the bare
+// title. Fails silently to '' so a missing team doc doesn't break
+// checkout. Kept small; called from every session builder.
+async function resolveTeamName(projectId: string, sa: ServiceAccount, teamId: string): Promise<string> {
+  if (!teamId) return '';
+  try {
+    const team = await getDocument(projectId, `teams/${teamId}`, sa);
+    return String(team?.data?.name || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+// Build the `product_data.description` line parents see on the
+// Stripe hosted checkout page. Empty string if we have nothing warm
+// to say (Stripe accepts an empty description as absence). Length
+// stays well under Stripe's 250-char cap.
+function buildProductDescription(args: { title: string; coachName?: string; teamName?: string }): string {
+  const parts: string[] = [];
+  if (args.title) parts.push(args.title);
+  const from: string[] = [];
+  if (args.coachName) from.push(`Coach ${args.coachName}`);
+  if (args.teamName) from.push(args.teamName);
+  // Comma join, not em dash — Patrick's copy rule forbids em dashes in
+  // user-facing text, and the Stripe hosted page is user-facing.
+  if (from.length > 0) parts.push(`From ${from.join(', ')}`);
+  return parts.join(' • ').slice(0, 240);
+}
+
 // POST /payments/checkout — one_off + catalog. Body:
 //   { paymentRequestId, uid, items?: [{ itemId, quantity }],
 //     playerIds?: string[], successUrl?, cancelUrl?, customerEmail? }
@@ -1138,6 +1168,13 @@ export async function handlePaymentCheckout(payload: any, env: StripeEnv): Promi
   const cancelUrl = String(payload?.cancelUrl || `${env.APP_ORIGIN}/payments`);
   const customerEmail = payload?.customerEmail ? String(payload.customerEmail) : undefined;
 
+  const teamName = await resolveTeamName(projectId, sa, String(pr.data.teamId || ''));
+  const coachName = String(pr.data.createdByName || '').trim();
+  const productDescription = buildProductDescription({
+    title: String(pr.data.title || ''),
+    coachName,
+    teamName,
+  });
   const sessionParams: Record<string, any> = {
     mode: 'payment',
     success_url: successUrl,
@@ -1150,10 +1187,17 @@ export async function handlePaymentCheckout(payload: any, env: StripeEnv): Promi
     'metadata[clubId]': String(pr.data.clubId || ''),
     'metadata[feeCoveredBy]': feeCoveredBy,
     'metadata[chargedCents]': String(chargedTotal),
+    // Ship 1 decision #4 — warm Stripe copy so the hosted page
+    // stays on-brand and parents can be reached if there's an issue.
+    'custom_text[submit][message]': 'Thanks for supporting the team.',
+    'phone_number_collection[enabled]': 'true',
   };
   lines.forEach((l, i) => {
     sessionParams[`line_items[${i}][price_data][currency]`] = 'usd';
     sessionParams[`line_items[${i}][price_data][product_data][name]`] = l.name;
+    if (productDescription) {
+      sessionParams[`line_items[${i}][price_data][product_data][description]`] = productDescription;
+    }
     sessionParams[`line_items[${i}][price_data][unit_amount]`] = l.unitCents;
     sessionParams[`line_items[${i}][quantity]`] = l.quantity;
   });
@@ -1171,6 +1215,171 @@ export async function handlePaymentCheckout(payload: any, env: StripeEnv): Promi
     return json({ ok: true, url: session.url, sessionId: session.id });
   } catch (err: any) {
     console.error('payments-checkout error', err);
+    return json({ ok: false, error: 'stripe_error', detail: String(err?.message || err).slice(0, 300) }, 502);
+  }
+}
+
+// POST /payments/checkout-anon — anonymous one_off checkout for the
+// /pay/{requestId} shareable link (Ship 1 decision #3). Guests type
+// their email + optional name, and Stripe fires a payment_intent
+// carrying metadata { paymentKind: 'one_off_anon', requestId,
+// guestEmail, guestName }. Webhook appends the row to guestPaid[].
+// Only accepts kind: 'one_off' — recurring + catalog need accounts.
+//
+// Anonymous by design; no auth check upstream. Rate limiting is a
+// best-effort in-memory Map keyed by ip+requestId with a 1h TTL to
+// keep the surface honest without pulling in KV. If we get real
+// abuse the mitigation is to require a KV binding here.
+const anonAttemptWindow = 60 * 60 * 1000;
+const anonAttemptCap = 5;
+const anonAttempts = new Map<string, number[]>();
+
+function anonRateLimit(ip: string, requestId: string): boolean {
+  const key = `${ip}::${requestId}`;
+  const now = Date.now();
+  const hits = (anonAttempts.get(key) || []).filter(t => now - t < anonAttemptWindow);
+  if (hits.length >= anonAttemptCap) {
+    anonAttempts.set(key, hits);
+    return false;
+  }
+  hits.push(now);
+  anonAttempts.set(key, hits);
+  return true;
+}
+
+// POST /payments/pay-link-info — anonymous fetch for the /pay/{id}
+// share page. Returns ONLY the safe, share-friendly subset of the
+// payment_request doc — the raw doc is off-limits to unauthenticated
+// callers because it also holds guestPaid[] (guest emails + names),
+// paidUids, stripeSubscriptionIds, and purchases[].uid, which are
+// prior-payer PII no guest with a link should see. Firestore rules
+// don't do field projection, so we project here in the worker and
+// keep the doc auth-gated at the rules level.
+export async function handlePayLinkInfo(payload: any, env: StripeEnv): Promise<Response> {
+  const paymentRequestId = String(payload?.paymentRequestId || '').trim();
+  if (!paymentRequestId) return json({ ok: false, error: 'missing-paymentRequestId' }, 400);
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
+
+  const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa).catch(() => null);
+  if (!pr?.data) return json({ ok: false, error: 'not-found' }, 404);
+  if (pr.data.status !== 'active' || pr.data.isActive === false || pr.data.kind !== 'one_off') {
+    return json({ ok: false, error: 'not-shareable' }, 409);
+  }
+
+  // Warm header line — the club name is public-ish (it's on the app
+  // header and public league pages), so we fetch and project it here
+  // so PayLink never has to touch Firestore itself.
+  let clubName: string | undefined;
+  try {
+    const club = await getDocument(projectId, `clubs/${String(pr.data.clubId || '')}`, sa);
+    const nm = String(club?.data?.name || '').trim();
+    if (nm) clubName = nm;
+  } catch { /* ignore */ }
+
+  return json({
+    ok: true,
+    request: {
+      id: paymentRequestId,
+      title: String(pr.data.title || 'Team payment'),
+      description: pr.data.description ? String(pr.data.description) : undefined,
+      kind: 'one_off',
+      feeCents: Number(pr.data.feeCents || 0) || undefined,
+      createdByName: pr.data.createdByName ? String(pr.data.createdByName) : undefined,
+      clubName,
+    },
+  });
+}
+
+export async function handlePaymentCheckoutAnon(payload: any, env: StripeEnv, req?: Request): Promise<Response> {
+  const paymentRequestId = String(payload?.paymentRequestId || '').trim();
+  if (!paymentRequestId) return json({ ok: false, error: 'missing-paymentRequestId' }, 400);
+  const emailRaw = String(payload?.email || '').trim().toLowerCase();
+  if (!emailRaw || !/^\S+@\S+\.\S+$/.test(emailRaw) || emailRaw.length > 200) {
+    return json({ ok: false, error: 'bad-email' }, 400);
+  }
+  const guestName = String(payload?.name || '').trim().slice(0, 80) || undefined;
+
+  // Best-effort rate limit — 5 attempts per hour per (ip, requestId).
+  const ip = (req?.headers.get('cf-connecting-ip') || req?.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim();
+  if (!anonRateLimit(ip, paymentRequestId)) {
+    return json({ ok: false, error: 'too-many-attempts', hint: 'Give it a few minutes and try again.' }, 429);
+  }
+
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
+
+  const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa);
+  if (!pr?.data) return json({ ok: false, error: 'payment-request-not-found' }, 404);
+  if (pr.data.status !== 'active' || pr.data.isActive === false) {
+    return json({ ok: false, error: 'payment-request-closed' }, 409);
+  }
+  const kind = String(pr.data.kind || '');
+  if (kind !== 'one_off') {
+    return json({ ok: false, error: 'wrong-kind', hint: 'Guest links only work for one-time collections.' }, 400);
+  }
+
+  const clubInfo = await resolvePaymentClub(projectId, sa, String(pr.data.clubId || ''));
+  if (!clubInfo) return json({ ok: false, error: 'club-not-stripe-ready' }, 409);
+  const { stripeAccountId, platformFeeBps } = clubInfo;
+
+  const { grossUpCents } = await import('./pricing');
+  const feeCoveredBy: 'player' | 'coach' = pr.data.feeCoveredBy === 'coach' ? 'coach' : 'player';
+  const feeCents = Number(pr.data.feeCents || 0);
+  if (feeCents <= 0) return json({ ok: false, error: 'no-fee-set' }, 400);
+  const chargedTotal = feeCoveredBy === 'player' ? grossUpCents(feeCents, platformFeeBps) : feeCents;
+  const applicationFeeAmount = platformFeeBps > 0 ? Math.round((chargedTotal * platformFeeBps) / 10000) : 0;
+
+  const successUrl = String(payload?.successUrl || `${env.APP_ORIGIN}/pay/${encodeURIComponent(paymentRequestId)}?paid=1`);
+  const cancelUrl = String(payload?.cancelUrl || `${env.APP_ORIGIN}/pay/${encodeURIComponent(paymentRequestId)}`);
+
+  const teamName = await resolveTeamName(projectId, sa, String(pr.data.teamId || ''));
+  const coachName = String(pr.data.createdByName || '').trim();
+  const productDescription = buildProductDescription({
+    title: String(pr.data.title || ''),
+    coachName,
+    teamName,
+  });
+
+  const sessionParams: Record<string, any> = {
+    mode: 'payment',
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    customer_email: emailRaw,
+    'custom_text[submit][message]': 'Thanks for supporting the team.',
+    'phone_number_collection[enabled]': 'true',
+    'line_items[0][price_data][currency]': 'usd',
+    'line_items[0][price_data][product_data][name]': String(pr.data.title || 'Team payment'),
+    ...(productDescription ? { 'line_items[0][price_data][product_data][description]': productDescription } : {}),
+    'line_items[0][price_data][unit_amount]': chargedTotal,
+    'line_items[0][quantity]': 1,
+    'metadata[kind]': 'payment_request',
+    'metadata[paymentKind]': 'one_off_anon',
+    'metadata[paymentRequestId]': paymentRequestId,
+    'metadata[teamId]': String(pr.data.teamId || ''),
+    'metadata[clubId]': String(pr.data.clubId || ''),
+    'metadata[feeCoveredBy]': feeCoveredBy,
+    'metadata[chargedCents]': String(chargedTotal),
+    'metadata[guestEmail]': emailRaw,
+    ...(guestName ? { 'metadata[guestName]': guestName } : {}),
+    'payment_intent_data[metadata][kind]': 'payment_request',
+    'payment_intent_data[metadata][paymentKind]': 'one_off_anon',
+    'payment_intent_data[metadata][paymentRequestId]': paymentRequestId,
+    'payment_intent_data[metadata][guestEmail]': emailRaw,
+    ...(guestName ? { 'payment_intent_data[metadata][guestName]': guestName } : {}),
+  };
+  if (applicationFeeAmount > 0) {
+    sessionParams['payment_intent_data[application_fee_amount]'] = applicationFeeAmount;
+    sessionParams['metadata[platformFeeCents]'] = String(applicationFeeAmount);
+  }
+
+  try {
+    const session = await stripeRequest(env, '/checkout/sessions', sessionParams, { stripeAccount: stripeAccountId });
+    return json({ ok: true, url: session.url, sessionId: session.id });
+  } catch (err: any) {
+    console.error('payments-checkout-anon error', err);
     return json({ ok: false, error: 'stripe_error', detail: String(err?.message || err).slice(0, 300) }, 502);
   }
 }
@@ -1223,12 +1432,22 @@ export async function handlePaymentSubscriptionCheckout(payload: any, env: Strip
     // inline, so we skip the explicit product create step — subscription
     // mode requires a recurring price, and price_data.recurring is
     // enough.
+    const teamName = await resolveTeamName(projectId, sa, String(pr.data.teamId || ''));
+    const coachName = String(pr.data.createdByName || '').trim();
+    const productDescription = buildProductDescription({
+      title: String(pr.data.title || ''),
+      coachName,
+      teamName,
+    });
     const sessionParams: Record<string, any> = {
       mode: 'subscription',
       success_url: successUrl,
       cancel_url: cancelUrl,
+      'custom_text[submit][message]': 'Thanks for supporting the team.',
+      'phone_number_collection[enabled]': 'true',
       'line_items[0][price_data][currency]': 'usd',
       'line_items[0][price_data][product_data][name]': `${pr.data.title || 'Team dues'}`,
+      ...(productDescription ? { 'line_items[0][price_data][product_data][description]': productDescription } : {}),
       'line_items[0][price_data][unit_amount]': chargedPer,
       'line_items[0][price_data][recurring][interval]': stripeIvl.interval,
       'line_items[0][price_data][recurring][interval_count]': stripeIvl.interval_count,
@@ -1378,7 +1597,11 @@ async function reflectPaymentSuccess(
   const paymentRequestId = meta.paymentRequestId;
   const uid = meta.uid;
   const paymentKind = meta.paymentKind;
-  if (!paymentRequestId || !uid) return;
+  if (!paymentRequestId) return;
+  // Anon guest checkout has no uid (guest never signs in). Every other
+  // paymentKind must carry uid or we can't credit the payer, so we
+  // gate uid AFTER dispatching the anon branch.
+  if (paymentKind !== 'one_off_anon' && !uid) return;
 
   const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa).catch(() => null);
   if (!pr?.data) return;
@@ -1388,6 +1611,44 @@ async function reflectPaymentSuccess(
     await commitDocumentTransforms(projectId, `payment_requests/${paymentRequestId}`, [
       { fieldPath: 'paidUids', kind: 'arrayUnion', value: uid },
     ], { updatedAt: new Date() }, sa);
+  } else if (paymentKind === 'one_off_anon') {
+    // Anon /pay/{id} guest checkout. Append to guestPaid[] on the
+    // request doc. Idempotent via stripeSessionId — a webhook retry
+    // never doubles the row. No uid on the row (guest has no account).
+    const guestEmail = String(meta.guestEmail || '').trim().toLowerCase();
+    if (!guestEmail) return;
+    const guestName = meta.guestName ? String(meta.guestName) : undefined;
+    const chargedCents = Number(session.amount_total || meta.chargedCents || 0);
+    const rows: any[] = Array.isArray(pr.data.guestPaid) ? pr.data.guestPaid : [];
+    if (rows.some((r: any) => r?.stripeSessionId === session.id)) return;
+    const nextRow: any = {
+      email: guestEmail,
+      amount: chargedCents,
+      paidAt: new Date(),
+      stripeSessionId: session.id,
+    };
+    if (guestName) nextRow.name = guestName;
+    if (session.payment_intent) nextRow.stripePaymentIntentId = String(session.payment_intent);
+    await patchDocument(projectId, `payment_requests/${paymentRequestId}`, {
+      guestPaid: [...rows, nextRow],
+      updatedAt: new Date(),
+    }, sa);
+    // Coach push for guest pays. No parent-side push (they don't have
+    // an account). Skip early — fall-through would look up
+    // users/{uid} and 404.
+    try {
+      const { pushPaymentConfirmed } = await import('./paymentRequests');
+      await pushPaymentConfirmed(projectId, sa, env, {
+        paymentRequestId,
+        payerUid: '',
+        payerName: guestName || guestEmail,
+        amountCents: chargedCents,
+        kind: 'one_off',
+      });
+    } catch (err) {
+      console.warn('[payments] anon push after session.completed failed', err);
+    }
+    return;
   } else if (paymentKind === 'catalog') {
     let cart: Array<{ itemId: string; quantity: number }> = [];
     try { cart = meta.cart ? JSON.parse(meta.cart) : []; } catch { cart = []; }

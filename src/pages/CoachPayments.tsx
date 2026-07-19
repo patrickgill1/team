@@ -166,7 +166,8 @@ const PaymentRow: React.FC<{ r: PaymentRequest }> = ({ r }) => {
     if (r.kind === 'one_off') {
       const paidCount = (r.paidUids?.length || 0)
         + (r.paidByCoach?.length || 0)
-        + (r.paidByCoachPlayerIds?.length || 0);
+        + (r.paidByCoachPlayerIds?.length || 0)
+        + (r.guestPaid?.length || 0);
       const targetSize = r.targetPlayerIds === 'all' ? undefined : r.targetPlayerIds.length;
       return {
         badge: 'One-time',

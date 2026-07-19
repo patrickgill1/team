@@ -133,6 +133,12 @@ const PlayerMediaPage: React.FC = () => {
   const [uploadTaggedPlayers, setUploadTaggedPlayers] = useState<string[]>([]);
   const [uploadGoalScorerId, setUploadGoalScorerId] = useState<string>('');
   const [uploadAssistByIds, setUploadAssistByIds] = useState<string[]>([]);
+  // Coach-only toggle. Default ON preserves prior behavior (every credited clip
+  // bumped stats + XP + badges). When OFF, we still write goalScorerId +
+  // assistByIds to the doc so highlight captions show who scored/assisted, but
+  // skip applyStatsDiff, attachClipCreditsToGame, updatePlayerStats, and
+  // maybeGrantFirstStatBadges. Practice-game / friendly / demo scenarios.
+  const [uploadCountsForStats, setUploadCountsForStats] = useState<boolean>(true);
   const [uploadGameId, setUploadGameId] = useState<string>('');
   const [editingGameId, setEditingGameId] = useState<string>('');
   const [recentGames, setRecentGames] = useState<{ id: string; label: string }[]>([]);
@@ -565,6 +571,11 @@ const PlayerMediaPage: React.FC = () => {
         const momentTypeToSave: MomentType | undefined =
           isUserCoach && uploadMomentType ? (uploadMomentType as MomentType) : undefined;
 
+        // Attribution fields ride with the doc from the initial write. Even when
+        // countsForStats is false, we want the scorer/assist chips to render on
+        // the clip so highlight captions read correctly. Only the stat side
+        // effects (applyStatsDiff / attach / updatePlayerStats / badges) get
+        // skipped by the toggle below.
         const mediaPayload: any = {
           playerId: uploadPlayerId,
           playerName: player.name,
@@ -581,6 +592,9 @@ const PlayerMediaPage: React.FC = () => {
           taggedPlayerIds: uploadTaggedPlayers.length > 0 ? uploadTaggedPlayers : undefined,
           gameId: uploadGameId || undefined,
           isOwnGoal: isOwnGoal ? true : undefined,
+          ...(isGoalClip && scorerId ? { goalScorerId: scorerId } : {}),
+          ...(isGoalClip && assistIds.length > 0 ? { assistByIds: assistIds } : {}),
+          ...(isGoalClip ? { countsForStats: uploadCountsForStats } : {}),
           ...(momentTypeToSave ? { momentType: momentTypeToSave } : {}),
           ...(streamUid ? { streamUid } : {}),
           updatedAt: new Date(),
@@ -605,7 +619,11 @@ const PlayerMediaPage: React.FC = () => {
         // We only credit the FIRST file of a multi-file upload to avoid double-
         // counting when a coach drops in 5 angles of the same goal.
         // Trigger when there's a scorer OR (own-goal case) when assists exist.
-        if (i === 0 && (scorerId || assistIds.length > 0)) {
+        // When countsForStats is false, we preserve attribution (goalScorerId +
+        // assistByIds on the doc, written above in mediaPayload) so highlight
+        // cards can still show who scored and assisted, but skip every stat
+        // side effect: no attach, no season bump, no XP, no badges.
+        if (i === 0 && (scorerId || assistIds.length > 0) && uploadCountsForStats) {
           let attachedScorer = false;
           let attachedAssistIds: string[] = [];
           let needsBumpScorer = true;
@@ -662,12 +680,13 @@ const PlayerMediaPage: React.FC = () => {
             });
           }
 
-          // Persist the credit fields on the media doc. statsCredited reflects
-          // what *this clip* directly bumped (used to roll back on delete/edit).
+          // Persist the credit-tracking fields on the media doc. statsCredited
+          // reflects what *this clip* directly bumped (used to roll back on
+          // delete/edit). goalScorerId + assistByIds already rode with the
+          // initial write (mediaPayload above) so display attribution survives
+          // when countsForStats is toggled off.
           try {
             await updateDocument('player_media', newMediaId, {
-              goalScorerId: scorerId,
-              assistByIds: assistIds.length > 0 ? assistIds : [],
               statsCredited: !!(willBumpScorer && scorerId),
               statsCreditedAssistIds: willBumpAssistIds,
             } as any);
@@ -1057,6 +1076,7 @@ const PlayerMediaPage: React.FC = () => {
     setUploadAssistByIds([]);
     setUploadGameId('');
     setUploadMomentType('');
+    setUploadCountsForStats(true);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -2101,6 +2121,34 @@ const PlayerMediaPage: React.FC = () => {
                         </div>
                         <p className="text-xs text-ink-primary/50 mt-1">Each pick gets +1 to their assists.</p>
                       </div>
+                      {isUserCoach && (
+                        <div className="flex items-start gap-3 pt-3 border-t border-line-default/15">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={uploadCountsForStats}
+                            aria-label="Count toward stats"
+                            onClick={() => setUploadCountsForStats(v => !v)}
+                            className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                              uploadCountsForStats ? 'bg-brand-primary' : 'bg-line-default/25'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition ${
+                                uploadCountsForStats ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-ink-primary leading-tight">Count toward stats</div>
+                            <p className="text-xs text-ink-primary/60 mt-0.5 leading-snug">
+                              {uploadCountsForStats
+                                ? 'On: this bumps the season stat line, awards XP, and can grant badges.'
+                                : 'Off: attribution still shows on the clip. No stat entry, no XP, no badges.'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   {recentGames.length > 0 && (

@@ -3025,6 +3025,11 @@ export interface PlayerMedia {
   goalScorerId?: string;       // who scored the goal
   assistByIds?: string[];      // who assisted (max 2 typical)
   statsCredited?: boolean;     // true if this clip has bumped player stats
+  // Coach-controlled flag: when explicitly false, this clip preserves scorer/assist
+  // attribution on the doc (for highlight captions) but skips every stat side effect —
+  // no season stat bump, no XP, no badges. Undefined/missing reads as true
+  // (backwards-compat with pre-3.9.334 docs where every credited clip counted).
+  countsForStats?: boolean;
   // Marks the clip as documenting an opponent own goal: team scored, but no
   // player on our roster gets the goal credit. Assists may still be awarded
   // (e.g. the kicker who forced the deflection).

@@ -133,6 +133,12 @@ const PlayerMediaPage: React.FC = () => {
   const [uploadTaggedPlayers, setUploadTaggedPlayers] = useState<string[]>([]);
   const [uploadGoalScorerId, setUploadGoalScorerId] = useState<string>('');
   const [uploadAssistByIds, setUploadAssistByIds] = useState<string[]>([]);
+  // Coach-only toggle. Default ON preserves prior behavior (every credited clip
+  // bumped stats + XP + badges). When OFF, we still write goalScorerId +
+  // assistByIds to the doc so highlight captions show who scored/assisted, but
+  // skip applyStatsDiff, attachClipCreditsToGame, updatePlayerStats, and
+  // maybeGrantFirstStatBadges. Practice-game / friendly / demo scenarios.
+  const [uploadCountsForStats, setUploadCountsForStats] = useState<boolean>(true);
   const [uploadGameId, setUploadGameId] = useState<string>('');
   const [editingGameId, setEditingGameId] = useState<string>('');
   const [recentGames, setRecentGames] = useState<{ id: string; label: string }[]>([]);
@@ -565,6 +571,11 @@ const PlayerMediaPage: React.FC = () => {
         const momentTypeToSave: MomentType | undefined =
           isUserCoach && uploadMomentType ? (uploadMomentType as MomentType) : undefined;
 
+        // Attribution fields ride with the doc from the initial write. Even when
+        // countsForStats is false, we want the scorer/assist chips to render on
+        // the clip so highlight captions read correctly. Only the stat side
+        // effects (applyStatsDiff / attach / updatePlayerStats / badges) get
+        // skipped by the toggle below.
         const mediaPayload: any = {
           playerId: uploadPlayerId,
           playerName: player.name,
@@ -581,6 +592,9 @@ const PlayerMediaPage: React.FC = () => {
           taggedPlayerIds: uploadTaggedPlayers.length > 0 ? uploadTaggedPlayers : undefined,
           gameId: uploadGameId || undefined,
           isOwnGoal: isOwnGoal ? true : undefined,
+          ...(isGoalClip && scorerId ? { goalScorerId: scorerId } : {}),
+          ...(isGoalClip && assistIds.length > 0 ? { assistByIds: assistIds } : {}),
+          ...(isGoalClip ? { countsForStats: uploadCountsForStats } : {}),
           ...(momentTypeToSave ? { momentType: momentTypeToSave } : {}),
           ...(streamUid ? { streamUid } : {}),
           updatedAt: new Date(),
@@ -605,7 +619,11 @@ const PlayerMediaPage: React.FC = () => {
         // We only credit the FIRST file of a multi-file upload to avoid double-
         // counting when a coach drops in 5 angles of the same goal.
         // Trigger when there's a scorer OR (own-goal case) when assists exist.
-        if (i === 0 && (scorerId || assistIds.length > 0)) {
+        // When countsForStats is false, we preserve attribution (goalScorerId +
+        // assistByIds on the doc, written above in mediaPayload) so highlight
+        // cards can still show who scored and assisted, but skip every stat
+        // side effect: no attach, no season bump, no XP, no badges.
+        if (i === 0 && (scorerId || assistIds.length > 0) && uploadCountsForStats) {
           let attachedScorer = false;
           let attachedAssistIds: string[] = [];
           let needsBumpScorer = true;
@@ -662,12 +680,13 @@ const PlayerMediaPage: React.FC = () => {
             });
           }
 
-          // Persist the credit fields on the media doc. statsCredited reflects
-          // what *this clip* directly bumped (used to roll back on delete/edit).
+          // Persist the credit-tracking fields on the media doc. statsCredited
+          // reflects what *this clip* directly bumped (used to roll back on
+          // delete/edit). goalScorerId + assistByIds already rode with the
+          // initial write (mediaPayload above) so display attribution survives
+          // when countsForStats is toggled off.
           try {
             await updateDocument('player_media', newMediaId, {
-              goalScorerId: scorerId,
-              assistByIds: assistIds.length > 0 ? assistIds : [],
               statsCredited: !!(willBumpScorer && scorerId),
               statsCreditedAssistIds: willBumpAssistIds,
             } as any);
@@ -1057,6 +1076,7 @@ const PlayerMediaPage: React.FC = () => {
     setUploadAssistByIds([]);
     setUploadGameId('');
     setUploadMomentType('');
+    setUploadCountsForStats(true);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -1190,6 +1210,11 @@ const PlayerMediaPage: React.FC = () => {
 
       // Stats credits: only meaningful when 'Goal' tag is on
       const m = selectedMedia as any;
+      // countsForStats respects the upload-time toggle. Undefined = true
+      // for backwards-compat with pre-toggle docs. When the coach uploaded
+      // with the toggle OFF, we preserve attribution + never bump stats,
+      // regardless of what the edit modal does to tags/scorer/assists.
+      const mediaCountsForStats = m.countsForStats !== false;
       const wasGoalClip = !!m.statsCredited && !!m.goalScorerId;
       const wasCreditedAssistIds: string[] = m.statsCreditedAssistIds || (wasGoalClip ? (m.assistByIds || []) : []);
       const isOwnGoal = editingTags.includes('Own Goal');
@@ -1227,10 +1252,13 @@ const PlayerMediaPage: React.FC = () => {
             ? { goalScorerId: m.goalScorerId, assistByIds: wasCreditedAssistIds }
             : {});
 
-      // 3. Apply credits forward.
+      // 3. Apply credits forward. Skip the whole forward path when the doc
+      // was uploaded with countsForStats=false — attribution rides on the
+      // doc for display, but the coach opted out of stats/XP/badges at
+      // upload time and a no-op resave must not silently credit them.
       let willBumpScorerId: string | undefined;
       let willBumpAssistIds: string[] = [];
-      if ((newScorerId || newAssistIds.length > 0) && newGameId) {
+      if (mediaCountsForStats && (newScorerId || newAssistIds.length > 0) && newGameId) {
         try {
           const { attachClipCreditsToGame } = await import('../utils/clipGameLink');
           const scorer = newScorerId ? players.find(p => p.id === newScorerId) : undefined;
@@ -1269,7 +1297,7 @@ const PlayerMediaPage: React.FC = () => {
           willBumpScorerId = newScorerId;
           willBumpAssistIds = newAssistIds;
         }
-      } else if (newScorerId || newAssistIds.length > 0) {
+      } else if (mediaCountsForStats && (newScorerId || newAssistIds.length > 0)) {
         willBumpScorerId = newScorerId;
         willBumpAssistIds = newAssistIds;
       }
@@ -1290,6 +1318,11 @@ const PlayerMediaPage: React.FC = () => {
         statsCreditedAssistIds: willBumpAssistIds,
         gameId: newGameId || null,
         isOwnGoal: isOwnGoal ? true : null,
+        // Preserve the upload-time toggle when it was explicitly set. An
+        // explicit false stays false so the next edit-save round-trip
+        // keeps skipping the stat bump; legacy undefined stays undefined
+        // (reads as true, matches pre-toggle behavior).
+        ...(m.countsForStats === false ? { countsForStats: false } : {}),
       };
       await updateDocument(collection, docId, update);
 
@@ -2101,6 +2134,34 @@ const PlayerMediaPage: React.FC = () => {
                         </div>
                         <p className="text-xs text-ink-primary/50 mt-1">Each pick gets +1 to their assists.</p>
                       </div>
+                      {isUserCoach && (
+                        <div className="flex items-start gap-3 pt-3 border-t border-line-default/15">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={uploadCountsForStats}
+                            aria-label="Count toward stats"
+                            onClick={() => setUploadCountsForStats(v => !v)}
+                            className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                              uploadCountsForStats ? 'bg-brand-primary' : 'bg-line-default/25'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition ${
+                                uploadCountsForStats ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-ink-primary leading-tight">Count toward stats</div>
+                            <p className="text-xs text-ink-primary/60 mt-0.5 leading-snug">
+                              {uploadCountsForStats
+                                ? 'Adds to their season stats. Earns XP, may unlock a badge.'
+                                : 'Just a highlight. No stats change, and the scorer chip still shows on the clip.'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   {recentGames.length > 0 && (

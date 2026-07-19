@@ -108,7 +108,19 @@ export function streamHlsUrl(uid: string): string {
 
 export function streamIframeUrl(
   uid: string,
-  opts: { autoplay?: boolean; muted?: boolean; loop?: boolean; poster?: string } = {}
+  opts: {
+    autoplay?: boolean;
+    muted?: boolean;
+    loop?: boolean;
+    poster?: string;
+    /** Optional cache-buster appended as `_=<number>` on the iframe URL.
+     *  Forces a fresh iframe DOM + fresh SDK-issued manifest fetches,
+     *  sidestepping any browser negative-cache entry the manifest
+     *  endpoint might have picked up during the pre-ready CORS window.
+     *  Only set this once we've confirmed readiness via /api/stream-status
+     *  — a cache-bust on an unready video just re-runs the failure. */
+    cacheBust?: number;
+  } = {}
 ): string {
   const qs = new URLSearchParams();
   if (opts.autoplay) qs.set('autoplay', 'true');
@@ -118,6 +130,9 @@ export function streamIframeUrl(
   if (opts.muted) qs.set('muted', 'true');
   if (opts.loop) qs.set('loop', 'true');
   if (opts.poster) qs.set('poster', opts.poster);
+  if (typeof opts.cacheBust === 'number' && opts.cacheBust > 0) {
+    qs.set('_', String(opts.cacheBust));
+  }
   const q = qs.toString();
   // Universal embed — works without the customer subdomain.
   return `https://iframe.cloudflarestream.com/${uid}${q ? `?${q}` : ''}`;
@@ -165,6 +180,40 @@ export async function getStreamDownloadUrl(uid: string): Promise<StreamDownloadS
     return { ready: true, url: json.url, percent: 100 };
   }
   return { ready: false, url: '', percent: Number(json.percentComplete) || 0 };
+}
+
+/** Poll Cloudflare for a video's readiness. Powers useStreamReadiness.
+ *  The server ALSO re-patches allowedOrigins to ["*"] if the video was
+ *  created before that fix landed — belt-and-suspenders for any coach
+ *  who caught the racing deploy. */
+export interface StreamStatus {
+  ready: boolean;
+  pctComplete: number;
+  state?: string;
+  notFound?: boolean;
+}
+
+export async function getStreamStatus(uid: string): Promise<StreamStatus> {
+  if (!uid) return { ready: true, pctComplete: 100 };
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not signed in');
+  const token = await user.getIdToken();
+  const { getShareOrigin } = await import('./origin');
+  const res = await fetch(
+    `${getShareOrigin()}/api/stream-status?uid=${encodeURIComponent(uid)}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Stream status failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+  const json = await res.json();
+  return {
+    ready: Boolean(json.ready),
+    pctComplete: Number(json.pctComplete) || 0,
+    state: typeof json.state === 'string' ? json.state : undefined,
+    notFound: Boolean(json.notFound),
+  };
 }
 
 /** Delete a Cloudflare Stream video by uid. Fires against

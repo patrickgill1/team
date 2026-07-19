@@ -12,8 +12,8 @@
 // While a freshly uploaded video is still being transcoded, the iframe shows
 // CF's own "video is being processed" UI.
 
-import React, { useEffect, useRef } from 'react';
-import { streamIframeUrl } from '../../utils/streamUpload';
+import React, { useEffect, useRef, useState } from 'react';
+import CloudflareStreamIframe from './CloudflareStreamIframe';
 
 interface StreamPlayerProps {
   uid: string;
@@ -26,6 +26,12 @@ interface StreamPlayerProps {
   loop?: boolean;
   poster?: string;
   title?: string;
+  // When true, the host doc already has streamReady:true persisted (or
+  // the caller otherwise knows the video is finished transcoding). Skips
+  // the status poll — instant iframe mount. Default false: any video
+  // freshly uploaded shows a warm "Processing" card until CF is ready,
+  // so we never race the SDK against the CORS window.
+  streamReady?: boolean;
   // Fires when playback reaches the end. Powered by the Cloudflare Stream
   // Player SDK (lazy-loaded the first time it's needed).
   onEnded?: () => void;
@@ -72,9 +78,16 @@ const StreamPlayer: React.FC<StreamPlayerProps> = ({
   loop = false,
   poster,
   title,
+  streamReady = false,
   onEnded,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  // The SDK can only attach once the iframe is actually in the DOM. We
+  // gate the iframe on readiness, so the SDK attach must ALSO wait for
+  // the mount — we look up the ref lazily inside the effect and re-run
+  // whenever the ref becomes non-null (via the readiness prop) so
+  // auto-advance keeps working after the Processing card flips.
+  const [sdkAttachTick, setSdkAttachTick] = useState(0);
 
   useEffect(() => {
     if (!onEnded || !iframeRef.current) return;
@@ -93,18 +106,23 @@ const StreamPlayer: React.FC<StreamPlayerProps> = ({
         try { player.removeEventListener('ended', onEnded); } catch { /* ignore */ }
       }
     };
-  }, [uid, onEnded]);
+    // sdkAttachTick bumps when the iframe mounts (after readiness flip)
+    // so the SDK attaches to the real iframe, not the Processing card.
+  }, [uid, onEnded, sdkAttachTick]);
 
   return (
     <div className={`relative w-full bg-black overflow-hidden ${className}`} style={{ aspectRatio: '16 / 9' }}>
-      <iframe
+      <CloudflareStreamIframe
         ref={iframeRef}
-        src={streamIframeUrl(uid, { autoplay, muted, loop, poster })}
-        title={title || 'Video'}
-        loading="lazy"
-        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-        allowFullScreen
-        className="absolute inset-0 w-full h-full border-0"
+        uid={uid}
+        streamReady={streamReady}
+        autoplay={autoplay}
+        muted={muted}
+        loop={loop}
+        poster={poster}
+        title={title}
+        iframeClassName="absolute inset-0 w-full h-full border-0"
+        onReady={() => setSdkAttachTick((n) => n + 1)}
       />
     </div>
   );

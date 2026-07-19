@@ -5,7 +5,8 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Drill } from '../types';
 import { isCoachOfTeam } from '../utils/helpers';
-import { uploadToStream, streamIframeUrl, streamThumbnailUrl } from '../utils/streamUpload';
+import { uploadToStream, streamThumbnailUrl } from '../utils/streamUpload';
+import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 import {
   loadLibraryDrills, rateDrill, saveDrillFromLibrary, toggleShareToLibrary,
   isAutoHidden, isFeatured,
@@ -867,13 +868,12 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
             )}
             {drill?.streamUid && !stagedStreamUid && !uploading && (
               <div className="mt-2 aspect-video w-full rounded-lg overflow-hidden bg-black">
-                <iframe
-                  src={streamIframeUrl(drill.streamUid)}
+                <CloudflareStreamIframe
+                  uid={drill.streamUid}
+                  streamReady={drill.streamReady === true}
                   title="Drill reference video"
-                  loading="lazy"
                   allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
-                  allowFullScreen
-                  className="w-full h-full block border-0"
+                  iframeClassName="w-full h-full block border-0"
                 />
               </div>
             )}
@@ -1301,11 +1301,10 @@ const DrillPreviewSheet: React.FC<{
 
         {drill.streamUid && drill.streamReady ? (
           <div className="aspect-video w-full bg-black">
-            <iframe
-              src={streamIframeUrl(drill.streamUid)}
-              className="w-full h-full"
-              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-              allowFullScreen
+            <CloudflareStreamIframe
+              uid={drill.streamUid}
+              streamReady={true}
+              iframeClassName="w-full h-full"
               title={`${drill.title} video`}
             />
           </div>

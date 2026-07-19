@@ -4,7 +4,7 @@ import { doc, getDoc, serverTimestamp, updateDoc, addDoc, collection, setDoc } f
 import { db } from '../utils/firebase';
 import { logActivity } from '../utils/activityLog';
 import { sendEmail, sendPushToParentEmails, tplWelcomeAfterOffer } from '../utils/notify';
-import { streamIframeUrl } from '../utils/streamUpload';
+import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 import Logo from '../components/common/Logo';
 import type { FormDefinition, OfferLetter, Registration } from '../types';
 
@@ -334,12 +334,16 @@ const Offer: React.FC = () => {
         <div className="bg-line-default/[0.04] backdrop-blur-2xl ring-1 ring-line-default/10 rounded-3xl p-6 sm:p-8 space-y-5">
           {offer.videoStreamUid && (
             <div className="rounded-2xl overflow-hidden ring-1 ring-line-default/10 bg-black aspect-video">
-              <iframe
-                src={streamIframeUrl(offer.videoStreamUid)}
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-                allowFullScreen
+              {/* Anonymous parent viewer; readiness poll would 401.
+                  SendOfferModal stamps videoStreamReady:true on the
+                  offer at upload time (see its handleSend), so we
+                  short-circuit the poll and trust the flag. */}
+              <CloudflareStreamIframe
+                uid={offer.videoStreamUid}
+                streamReady={(offer as any).videoStreamReady === true}
                 title="Welcome from coach"
-                className="w-full h-full"
+                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                iframeClassName="w-full h-full block border-0"
               />
             </div>
           )}

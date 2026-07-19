@@ -5,7 +5,7 @@ import { sendEmail, sendPushToParentEmails, type CoachSignature } from '../../ut
 import { logActivity } from '../../utils/activityLog';
 import { getShareOrigin } from '../../utils/origin';
 import type { OfferLetter, OfferTemplate, Registration } from '../../types';
-import { uploadToStream, streamIframeUrl } from '../../utils/streamUpload';
+import { uploadToStream } from '../../utils/streamUpload';
 
 // Coach-facing "Offer a roster spot" modal. Composes the offer text +
 // position + jersey, picks a team the coach owns, generates a unique

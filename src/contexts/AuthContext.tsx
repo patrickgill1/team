@@ -224,34 +224,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const provider = new GoogleAuthProvider();
         provider.addScope('email');
         provider.addScope('profile');
-        // Mobile browsers (iOS Safari + Chrome iOS especially) break
-        // the signInWithPopup flow: the popup either won't post the
-        // result back to the parent window, or the parent is GC'd
-        // when the new tab takes focus. Use signInWithRedirect on
-        // anything that smells like mobile web; the desktop popup
-        // stays for keyboard-and-mouse contexts where it works well.
-        const isMobileWeb = typeof navigator !== 'undefined'
-          && /Android|iPhone|iPad|iPod|Mobile/.test(navigator.userAgent);
-        if (isMobileWeb) {
-          // Stash both the invite team id AND the explicit role
-          // choice so we can pick them back up on return — the
-          // redirect navigates the whole tab away. Without the
-          // role stash, the redirect-return path defaults everyone
-          // to coach and silently overrides the landing choice.
-          if (inviteTeamId) {
-            try { sessionStorage.setItem('firefc.pendingInviteTeamId', inviteTeamId); } catch { /* ignore */ }
-          }
-          if (wantRole === 'coach' || wantRole === 'parent') {
-            try { sessionStorage.setItem('firefc.pendingWantRole', wantRole); } catch { /* ignore */ }
-          }
-          await signInWithRedirect(auth, provider);
-          // signInWithRedirect navigates away; control returns via
-          // getRedirectResult in handleGoogleRedirectReturn (mounted
-          // below). Nothing more to do here.
-          return;
+        // Web sign-in uses signInWithRedirect on both mobile AND
+        // desktop. Chrome's Cross-Origin-Opener-Policy default
+        // (same-origin) blocks the popup callback so the parent
+        // never learns the popup closed successfully and Firebase
+        // throws auth/popup-closed-by-user, dropping the user
+        // straight back to the login screen. Redirect avoids the
+        // whole popup-parent handshake and is the recommended web
+        // flow in 2026. The desktop-popup path is retired.
+        //
+        // Stash both the invite team id AND the explicit role
+        // choice so we can pick them back up on return; the
+        // redirect navigates the whole tab away. Without the role
+        // stash, the return path defaults everyone to coach and
+        // silently overrides the landing choice.
+        if (inviteTeamId) {
+          try { sessionStorage.setItem('firefc.pendingInviteTeamId', inviteTeamId); } catch { /* ignore */ }
         }
-        const result = await signInWithPopup(auth, provider);
-        user = result.user;
+        if (wantRole === 'coach' || wantRole === 'parent') {
+          try { sessionStorage.setItem('firefc.pendingWantRole', wantRole); } catch { /* ignore */ }
+        }
+        await signInWithRedirect(auth, provider);
+        // signInWithRedirect navigates away; control returns via
+        // getRedirectResult in handleGoogleRedirectReturn (mounted
+        // below). Nothing more to do here.
+        return;
       }
       
       debug('Google sign-in successful:', user.uid, user.email);

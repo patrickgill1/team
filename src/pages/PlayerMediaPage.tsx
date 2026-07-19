@@ -1968,7 +1968,7 @@ const PlayerMediaPage: React.FC = () => {
         {/* Upload Modal */}
         {showUploadModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-surface-elevated rounded-xl shadow-xl max-w-lg w-full">
+            <div className="bg-surface-elevated rounded-xl shadow-xl max-w-lg w-full max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain">
               <div className="p-6">
                 <h2 className="text-xl font-bold text-ink-primary mb-4">Upload Player Media</h2>
                 <div className="space-y-4">

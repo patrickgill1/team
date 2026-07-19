@@ -52,6 +52,10 @@ const CoachPaymentCreate: React.FC = () => {
   const [roster, setRoster] = useState<Player[]>([]);
   const [targetMode, setTargetMode] = useState<'all' | 'specific'>('all');
   const [pickedIds, setPickedIds] = useState<Set<string>>(new Set());
+  // Track profile photos that 404 / fail to load so the row falls back to
+  // the initials/jersey chip instead of an empty 32x32 slot. Without this
+  // a broken img just hides itself and the coach sees a nameless blob.
+  const [brokenPhotoIds, setBrokenPhotoIds] = useState<Set<string>>(new Set());
 
   // Load active roster for the selected team so the picker can show real
   // photos + jersey numbers. Mirrors the pattern already used in
@@ -418,7 +422,9 @@ const CoachPaymentCreate: React.FC = () => {
               {targetMode === 'specific' && (
                 <div className="mt-3 space-y-2">
                   <p className="text-[12px] text-ink-primary/70 leading-snug">
-                    Skip a family or bill a subset. Only checked players get billed and pinged.
+                    {kind === 'catalog'
+                      ? 'Skip a family or share with a subset. Only checked players see this store.'
+                      : 'Skip a family or bill a subset. Only checked players get billed and pinged.'}
                   </p>
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] text-ink-primary/55">
@@ -449,7 +455,8 @@ const CoachPaymentCreate: React.FC = () => {
                     <ul className="divide-y divide-line-default/10 rounded-xl bg-surface-base ring-1 ring-line-default/15 max-h-72 overflow-y-auto">
                       {roster.map(p => {
                         const checked = pickedIds.has(p.id);
-                        const photoUrl = (p as any).profilePhotoUrl as string | undefined;
+                        const rawPhotoUrl = (p as any).profilePhotoUrl as string | undefined;
+                        const photoUrl = rawPhotoUrl && !brokenPhotoIds.has(p.id) ? rawPhotoUrl : undefined;
                         return (
                           <li key={p.id}>
                             <label className="flex items-center gap-3 p-2 sm:p-3 cursor-pointer select-none hover:bg-line-default/[0.04]">
@@ -471,7 +478,14 @@ const CoachPaymentCreate: React.FC = () => {
                                   src={photoUrl}
                                   alt={p.name}
                                   className="w-8 h-8 rounded-full object-cover ring-1 ring-brand-primary-soft shrink-0"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                  onError={() => {
+                                    setBrokenPhotoIds(prev => {
+                                      if (prev.has(p.id)) return prev;
+                                      const next = new Set(prev);
+                                      next.add(p.id);
+                                      return next;
+                                    });
+                                  }}
                                 />
                               ) : (
                                 <div className="w-8 h-8 rounded-full bg-brand-primary/15 flex items-center justify-center shrink-0">

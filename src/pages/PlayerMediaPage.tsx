@@ -1770,16 +1770,25 @@ const PlayerMediaPage: React.FC = () => {
                         onClick={() => setSelectedPlayerId(player.id)}
                         className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === player.id ? 'scale-105' : ''}`}
                       >
-                        <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-surface-raised to-surface-elevated ring-2 ring-offset-2 ring-offset-surface-base ${selectedPlayerId === player.id ? 'ring-brand-primary-soft' : 'ring-transparent'}`}>
-                          {player.profilePhotoUrl ? (
-                            <img src={player.profilePhotoUrl} alt={player.name} className="w-full h-full object-cover" loading="lazy" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-white text-xl font-black">
-                              {player.jerseyNumber || player.name.charAt(0)}
-                            </div>
-                          )}
+                        <div className="relative">
+                          {/* Circle with overflow-hidden clips the image.
+                              Jersey badge sits on the outer relative
+                              wrapper so it can sit half-outside the
+                              circle without getting clipped. Prior
+                              version had the badge inside the
+                              overflow-hidden div which cut the badge
+                              off at the photo edge. */}
+                          <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-surface-raised to-surface-elevated ring-2 ring-offset-2 ring-offset-surface-base ${selectedPlayerId === player.id ? 'ring-brand-primary-soft' : 'ring-transparent'}`}>
+                            {player.profilePhotoUrl ? (
+                              <img src={player.profilePhotoUrl} alt={player.name} className="w-full h-full object-cover" loading="lazy" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-white text-xl font-black">
+                                {player.jerseyNumber || player.name.charAt(0)}
+                              </div>
+                            )}
+                          </div>
                           {player.profilePhotoUrl && player.jerseyNumber != null && (
-                            <span className="absolute -bottom-0.5 -right-0.5 bg-brand-primary text-ink-primary rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center text-[11px] font-black shadow ring-2 ring-charcoal-950">
+                            <span className="absolute -bottom-1 -right-1 bg-brand-primary text-white rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center text-[11px] font-black shadow-md ring-2 ring-surface-base">
                               {player.jerseyNumber}
                             </span>
                           )}

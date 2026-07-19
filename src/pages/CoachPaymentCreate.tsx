@@ -198,7 +198,11 @@ const CoachPaymentCreate: React.FC = () => {
           &larr; Back
         </Link>
 
-        {!stripeStatusLoading && !stripeIsReady && (
+        {/* Top-of-form banner is suppressed once the submit path has
+            surfaced its own contextual banner via errClubId. Otherwise the
+            coach sees two identical "Set up payments" cards on the same
+            page. Ref: verifier finding #2 (2026-07-18). */}
+        {!stripeStatusLoading && !stripeIsReady && !errClubId && (
           <StripeConnectBanner clubId={stripeClubId} />
         )}
 

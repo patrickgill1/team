@@ -5,7 +5,7 @@ import { sendEmail, sendPushToParentEmails, type CoachSignature } from '../../ut
 import { logActivity } from '../../utils/activityLog';
 import { getShareOrigin } from '../../utils/origin';
 import type { OfferLetter, OfferTemplate, Registration } from '../../types';
-import { uploadToStream } from '../../utils/streamUpload';
+import { uploadToStream, checkVideoLimit } from '../../utils/streamUpload';
 
 // Coach-facing "Offer a roster spot" modal. Composes the offer text +
 // position + jersey, picks a team the coach owns, generates a unique
@@ -358,6 +358,21 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
+                    // Client-side 500 MB cap. Warm reject / warn come from
+                    // the shared helper so every upload surface reads the
+                    // same thresholds.
+                    const decision = checkVideoLimit(file);
+                    if (!decision.ok) {
+                      setError(decision.message || 'That clip is too large.');
+                      if (e.target) e.target.value = '';
+                      return;
+                    }
+                    if (decision.warn && decision.message) {
+                      if (!window.confirm(decision.message)) {
+                        if (e.target) e.target.value = '';
+                        return;
+                      }
+                    }
                     setUploadingVideo(true); setUploadProgress(0); setError(null);
                     try {
                       const res = await uploadToStream(file, { name: `Offer video — ${registration.player.firstName}` }, (pct) => setUploadProgress(pct));

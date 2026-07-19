@@ -8,6 +8,85 @@
 
 import { auth } from './firebase';
 
+// -----------------------------------------------------------------------------
+// Pre-upload size guard
+// -----------------------------------------------------------------------------
+// Cloudflare Stream's direct-upload endpoint accepts single POSTs up to 30 GB,
+// but a 45-minute upload of an accidental 22 GB clip is a bandwidth + coach
+// time hole. We enforce a friendly cap on the client BEFORE any XHR fires so
+// no serverless invocation happens and no CF bandwidth is burned.
+//
+// Every video upload call site imports checkVideoLimit and pops the warm
+// message from the returned decision. Do NOT duplicate the threshold constants
+// at call sites — always read from here.
+
+/** Hard cap on client-side video uploads. Enforced before uploadToStream. */
+export const MAX_VIDEO_BYTES = 500 * 1024 * 1024; // 500 MB
+
+/** Above this size we confirm with the coach before starting the upload. */
+export const WARN_VIDEO_BYTES = 100 * 1024 * 1024; // 100 MB
+
+/** Format a byte count the way iOS Photos does: "5.2 MB", "340 MB", "22 GB". */
+export function formatBytes(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return '0 KB';
+  const KB = 1024;
+  const MB = KB * 1024;
+  const GB = MB * 1024;
+  if (n >= GB) {
+    const v = n / GB;
+    return `${v >= 10 ? v.toFixed(0) : v.toFixed(1)} GB`;
+  }
+  if (n >= MB) {
+    const v = n / MB;
+    return `${v >= 10 ? v.toFixed(0) : v.toFixed(1)} MB`;
+  }
+  const v = n / KB;
+  return `${v >= 10 ? v.toFixed(0) : v.toFixed(1)} KB`;
+}
+
+export interface VideoLimitDecision {
+  /** false = block the upload. true = allow (possibly after a warn confirm). */
+  ok: boolean;
+  /** When ok is true, whether the caller should confirm with the coach first. */
+  warn?: boolean;
+  /** Machine-readable reason when ok is false. */
+  reason?: 'too_big';
+  /** Warm, coach-native copy for the reject or confirm surface. */
+  message?: string;
+}
+
+/**
+ * Decide whether a picked video file is safe to upload.
+ *
+ * - > MAX_VIDEO_BYTES: ok=false, block with a warm "try trimming it in Photos"
+ *   message that names the actual clip size so the coach realizes they picked
+ *   the wrong file.
+ * - > WARN_VIDEO_BYTES and <= MAX_VIDEO_BYTES: ok=true, warn=true — caller
+ *   should confirm with the coach that a slow upload is fine.
+ * - <= WARN_VIDEO_BYTES: ok=true, no message — silent pass-through.
+ */
+export function checkVideoLimit(file: File): VideoLimitDecision {
+  const size = file?.size ?? 0;
+  if (size > MAX_VIDEO_BYTES) {
+    return {
+      ok: false,
+      reason: 'too_big',
+      message:
+        `That's a ${formatBytes(size)} clip. We cap uploads at 500 MB to keep highlight ` +
+        `uploads snappy. Try trimming it in your phone's Photos or Gallery app, or export ` +
+        `a shorter version first.`,
+    };
+  }
+  if (size > WARN_VIDEO_BYTES) {
+    return {
+      ok: true,
+      warn: true,
+      message: `This clip is ${formatBytes(size)}. Upload may take a few minutes. Continue?`,
+    };
+  }
+  return { ok: true };
+}
+
 export interface StreamUploadResult {
   uid: string;
   // Convenience hosted URLs Stream serves once the video is ready.

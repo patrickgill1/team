@@ -3002,7 +3002,16 @@ export interface PlayerMedia {
   // The legacy `url` may still point at the original R2 MP4 for backwards
   // compatibility; players prefer Stream when present.
   streamUid?: string;
+  /** Flipped to true once Cloudflare finishes transcoding (either at
+   *  upload time via the useStreamReadiness poll or later, when the
+   *  first viewer's client observes ready). Once true, every future
+   *  viewer mounts the iframe immediately with no readiness poll —
+   *  avoids the CF pre-ready CORS window. Undefined on backfilled
+   *  clips means "unknown, ask the poll." */
   streamReady?: boolean;
+  /** Timestamp at which streamReady flipped to true. Debug + future
+   *  analytics on end-to-end upload latency. */
+  streamReadyAt?: Date;
   // Override Stream's default thumbnail timestamp (Stream defaults to t=0
   // which often lands on a fade-in/transition frame). Stored in seconds.
   posterTimeSeconds?: number;

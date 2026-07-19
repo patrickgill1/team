@@ -6,7 +6,7 @@ import type { Player, PlayerMedia, PlayerStats } from '../types';
 import { getShareOrigin } from '../utils/origin';
 import { getPlayerPositionsLabel } from '../utils/helpers';
 import { getPlayerLifetimeStats } from '../utils/seasons';
-import { streamIframeUrl } from '../utils/streamUpload';
+import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 
 // Public-facing player card. Gated by player.publicShare.enabled
 // on the Firestore rule side AND a defensive check here. Anyone
@@ -37,6 +37,7 @@ interface PublicHighlight {
   source?: string;
   embedUrl?: string;
   streamUid?: string;
+  streamReady?: boolean;
   thumbnailUrl?: string;
   posterTimeSeconds?: number;
   type: 'photo' | 'video';
@@ -124,6 +125,7 @@ const PublicPlayerCard: React.FC = () => {
               source: m.source,
               embedUrl: m.embedUrl,
               streamUid: m.streamUid,
+              streamReady: m.streamReady,
               thumbnailUrl: m.thumbnailUrl,
               posterTimeSeconds: m.posterTimeSeconds,
               type: m.type,
@@ -286,13 +288,17 @@ const HighlightTile: React.FC<{ h: PublicHighlight }> = ({ h }) => {
     if (h.streamUid) {
       return (
         <div className="aspect-video bg-surface-base">
-          <iframe
-            src={streamIframeUrl(h.streamUid)}
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-            allowFullScreen
+          {/* Public card = anonymous viewer; the readiness poll would
+              401 against the auth-gated /api/stream-status. The filter
+              in the fetch above already excludes videos flagged
+              streamReady:false, so we trust the persisted state and
+              skip the poll. Backfilled clips (streamReady undefined)
+              land here too; they've been ready for weeks. */}
+          <CloudflareStreamIframe
+            uid={h.streamUid}
+            streamReady={true}
             title={h.caption || 'Highlight'}
-            className="w-full h-full"
-            loading="lazy"
+            iframeClassName="w-full h-full block border-0"
           />
         </div>
       );

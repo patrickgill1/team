@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { downloadFile } from '../utils/downloadFile';
-import { streamIframeUrl, getStreamDownloadUrl } from '../utils/streamUpload';
+import { getStreamDownloadUrl } from '../utils/streamUpload';
+import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 
 const SharedMedia: React.FC = () => {
   const { mediaId } = useParams<{ mediaId: string }>();
@@ -154,14 +155,16 @@ const SharedMedia: React.FC = () => {
           {isVideo ? (
             media.streamUid ? (
               <div className="w-full aspect-video rounded-lg overflow-hidden bg-black">
-                <iframe
+                {/* Share links are typically opened well after upload.
+                    Trust the persisted streamReady flag; if the doc was
+                    written before the flag existed (backfilled clips)
+                    the video is definitely ready by now. */}
+                <CloudflareStreamIframe
                   key={media.streamUid}
-                  src={streamIframeUrl(media.streamUid)}
+                  uid={media.streamUid}
+                  streamReady={media.streamReady !== false}
                   title={media.caption || 'Video'}
-                  loading="lazy"
-                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                  allowFullScreen
-                  className="w-full h-full block border-0"
+                  iframeClassName="w-full h-full block border-0"
                 />
               </div>
             ) : (

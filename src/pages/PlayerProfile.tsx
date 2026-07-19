@@ -34,7 +34,8 @@ import { computePlayerAttendance } from '../utils/attendance';
 import { getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
 import { getShareOrigin } from '../utils/origin';
 import { downloadFile } from '../utils/downloadFile';
-import { streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
+import { streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
+import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 
 interface MatchVoting {
   id: string;
@@ -1414,14 +1415,12 @@ const PlayerProfile: React.FC = () => {
             {lightboxItem.type === 'video' ? (
               lightboxItem.streamUid ? (
                 <div className="w-full max-w-[min(100%,calc(80vh*16/9))] aspect-video rounded-lg overflow-hidden bg-black">
-                  <iframe
+                  <CloudflareStreamIframe
                     key={lightboxItem.streamUid}
-                    src={streamIframeUrl(lightboxItem.streamUid, { autoplay: true })}
+                    uid={lightboxItem.streamUid}
+                    streamReady={(lightboxItem as any).streamReady === true}
+                    autoplay
                     title={lightboxItem.caption || lightboxItem.playerName}
-                    loading="lazy"
-                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                    allowFullScreen
-                    className="w-full h-full block border-0"
                   />
                 </div>
               ) : (

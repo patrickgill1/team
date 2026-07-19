@@ -6,7 +6,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink, Drill, PlanComment } from '../types';
 import DrillPickerModal from '../components/development/DrillPickerModal';
 import CoachSawThisPill from '../components/coach/CoachSawThisPill';
-import { streamIframeUrl } from '../utils/streamUpload';
+import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 import { coachVerifyLogEntry } from '../utils/devPlanActions';
 import { isCoachOfTeam, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
@@ -2032,7 +2032,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                         to the goal's own snapshot if the drill is
                         deleted or can't be matched. */}
                     {(() => {
-                      const { streamUid } = resolveGoalVideo(goal);
+                      const { streamUid, streamReady } = resolveGoalVideo(goal);
                       if (!streamUid) return null;
                       return (
                         <div className="mt-3">
@@ -2041,13 +2041,12 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             <span>Demo video</span>
                           </p>
                           <div className="aspect-video w-full rounded-lg overflow-hidden bg-black ring-1 ring-line-default/10">
-                            <iframe
-                              src={streamIframeUrl(streamUid)}
+                            <CloudflareStreamIframe
+                              uid={streamUid}
+                              streamReady={streamReady === true}
                               title={`${goal.title} — demo`}
-                              loading="lazy"
                               allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
-                              allowFullScreen
-                              className="w-full h-full block border-0"
+                              iframeClassName="w-full h-full block border-0"
                             />
                           </div>
                         </div>

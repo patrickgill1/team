@@ -14,7 +14,8 @@ import TrialGateModal from '../components/common/TrialGateModal';
 import DataGate from '../components/common/DataGate';
 import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/videoCompression';
 import { uploadToR2 } from '../utils/r2Upload';
-import { uploadToStream, streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
+import { uploadToStream, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
+import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 import { checkUploadQuota, probeVideoDuration, incrementTeamVideoUsage, type QuotaCheck } from '../utils/videoQuota';
 import VideoQuotaModal from '../components/common/VideoQuotaModal';
 import { downloadFile } from '../utils/downloadFile';
@@ -2351,15 +2352,27 @@ const PlayerMediaPage: React.FC = () => {
                   </div>
                 ) : selectedMedia.streamUid ? (
                   <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))] aspect-video rounded-lg overflow-hidden bg-black">
-                    <iframe
+                    <CloudflareStreamIframe
                       ref={lightboxIframeRef}
                       key={selectedMedia.streamUid}
-                      src={streamIframeUrl(selectedMedia.streamUid, { autoplay: true })}
+                      uid={selectedMedia.streamUid}
+                      streamReady={selectedMedia.streamReady === true}
+                      autoplay
                       title={selectedMedia.caption || selectedMedia.playerName}
-                      loading="lazy"
-                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                      allowFullScreen
-                      className="w-full h-full block border-0"
+                      onReady={async () => {
+                        // First viewer to see transcode-complete: stamp
+                        // streamReady:true on the doc so every future
+                        // viewer skips the readiness poll entirely.
+                        if (selectedMedia.streamReady === true) return;
+                        try {
+                          await updateDocument('player_media', selectedMedia.id, {
+                            streamReady: true,
+                            streamReadyAt: new Date(),
+                          });
+                        } catch (err) {
+                          console.warn('stamp streamReady failed', err);
+                        }
+                      }}
                     />
                   </div>
                 ) : (

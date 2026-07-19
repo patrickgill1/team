@@ -87,6 +87,20 @@ export default async function handler(req, res) {
           // (Re-enable on the video once it finishes processing — Stream
           // ignores this flag if set at create-time, but kept for clarity.)
           requireSignedURLs: false,
+          // Whitelist the origins the iframe.cloudflarestream.com player
+          // can embed the manifest from. Without this list, Stream's
+          // manifest endpoint (customer-{acct}.cloudflarestream.com) emits
+          // no Access-Control-Allow-Origin and the browser blocks the
+          // manifest fetch as a CORS violation, leaving the player stuck
+          // on "Failed to fetch" for anyone loading the iframe from our
+          // domain. Wildcards are supported by CF for the *.vercel.app
+          // preview subdomain family.
+          allowedOrigins: [
+            'app.goalkickr.com',
+            'goalkickr.com',
+            'localhost',
+            '*.vercel.app',
+          ],
         }),
       }
     );

@@ -7,7 +7,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { FullGame } from '../types';
 import { canManageTeamMedia, formatDate } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
-import { uploadToStream, streamThumbnailUrl } from '../utils/streamUpload';
+import { uploadToStream, streamThumbnailUrl, checkVideoLimit } from '../utils/streamUpload';
 import { canUploadFullGameFile } from '../utils/videoQuota';
 import { checkUploadQuota, probeVideoDuration, incrementTeamVideoUsage, type QuotaCheck } from '../utils/videoQuota';
 import VideoQuotaModal from '../components/common/VideoQuotaModal';
@@ -201,6 +201,18 @@ const FullGames: React.FC = () => {
       if (formFile && !formFile.type.startsWith('video/')) {
         alert('Please choose a video file (MP4, MOV, etc.).');
         return;
+      }
+      // Shared 500 MB client cap. Blocks before any XHR / serverless
+      // invocation. Under 100 MB is silent; 100-500 MB confirms.
+      if (formFile) {
+        const decision = checkVideoLimit(formFile);
+        if (!decision.ok) {
+          alert(decision.message);
+          return;
+        }
+        if (decision.warn && decision.message) {
+          if (!window.confirm(decision.message)) return;
+        }
       }
       payload.source = 'stream';
       // Clear youtube fields when switching

@@ -14,7 +14,7 @@ import TrialGateModal from '../components/common/TrialGateModal';
 import DataGate from '../components/common/DataGate';
 import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/videoCompression';
 import { uploadToR2 } from '../utils/r2Upload';
-import { uploadToStream, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
+import { uploadToStream, streamThumbnailUrl, getStreamDownloadUrl, checkVideoLimit } from '../utils/streamUpload';
 import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 import { checkUploadQuota, probeVideoDuration, incrementTeamVideoUsage, type QuotaCheck } from '../utils/videoQuota';
 import VideoQuotaModal from '../components/common/VideoQuotaModal';
@@ -1094,13 +1094,24 @@ const PlayerMediaPage: React.FC = () => {
       alert('Please choose a video file.');
       return;
     }
-    if (file.size > MAX_VIDEO_SIZE) {
-      alert(`File too large. Max ${MAX_VIDEO_SIZE / 1024 / 1024}MB.`);
+    const decision = checkVideoLimit(file);
+    if (!decision.ok) {
+      alert(decision.message);
+      if (replaceFileInputRef.current) replaceFileInputRef.current.value = '';
       return;
+    }
+    // Warm-warn zone: mention the size once, up front. The confirm below
+    // still fires with the replace-specific "likes/tags preserved" wording,
+    // so we don't double-prompt if the file is under the warn threshold.
+    if (decision.warn && decision.message) {
+      if (!window.confirm(decision.message)) {
+        if (replaceFileInputRef.current) replaceFileInputRef.current.value = '';
+        return;
+      }
     }
 
     const ok = window.confirm(
-      `Replace this video with "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)}MB)?\n\nLikes, tags, and caption will be preserved.`
+      `Replace this video with "${file.name}"?\n\nLikes, tags, and caption will be preserved.`
     );
     if (!ok) {
       if (replaceFileInputRef.current) replaceFileInputRef.current.value = '';
@@ -1471,7 +1482,7 @@ const PlayerMediaPage: React.FC = () => {
     .filter(p => p.count > 0)
     .sort((a, b) => b.count - a.count);
 
-  const MAX_VIDEO_SIZE = 350 * 1024 * 1024; // 350MB (will be compressed before upload)
+  // Video size cap lives in src/utils/streamUpload.ts (checkVideoLimit).
   const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
   const compressImage = (file: File): Promise<File> => {
@@ -1515,15 +1526,32 @@ const PlayerMediaPage: React.FC = () => {
     if (valid.length !== files.length) {
       alert('Some files were skipped. Only images and videos are allowed.');
     }
-    // Check file sizes
-    const oversized = valid.filter(f => 
-      (f.type.startsWith('video/') && f.size > MAX_VIDEO_SIZE) ||
-      (f.type.startsWith('image/') && f.size > MAX_IMAGE_SIZE)
+    // Videos: shared checkVideoLimit() blocks over-500-MB clips with warm copy
+    // that names the actual file size. Images: local 10 MB cap still applies.
+    const videos = valid.filter(f => f.type.startsWith('video/'));
+    for (const v of videos) {
+      const decision = checkVideoLimit(v);
+      if (!decision.ok) {
+        alert(decision.message);
+        setUploadFiles(valid.filter(f => f !== v));
+        return;
+      }
+    }
+    const oversizedImages = valid.filter(f =>
+      f.type.startsWith('image/') && f.size > MAX_IMAGE_SIZE
     );
-    if (oversized.length > 0) {
-      alert(`${oversized.length} file(s) are too large. Videos must be under 350MB, images under 10MB.`);
-      setUploadFiles(valid.filter(f => !oversized.includes(f)));
+    if (oversizedImages.length > 0) {
+      alert(`${oversizedImages.length} photo(s) are too large. Photos must be under 10 MB.`);
+      setUploadFiles(valid.filter(f => !oversizedImages.includes(f)));
       return;
+    }
+    // Warm-warn zone (100-500 MB): confirm before staging so the coach
+    // knows it's a slow upload. Skipping any warned file aborts staging.
+    for (const v of videos) {
+      const decision = checkVideoLimit(v);
+      if (decision.warn && decision.message) {
+        if (!window.confirm(decision.message)) return;
+      }
     }
     setUploadFiles(valid);
   };

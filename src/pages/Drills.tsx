@@ -5,7 +5,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Drill } from '../types';
 import { isCoachOfTeam } from '../utils/helpers';
-import { uploadToStream, streamThumbnailUrl } from '../utils/streamUpload';
+import { uploadToStream, streamThumbnailUrl, checkVideoLimit } from '../utils/streamUpload';
 import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 import {
   loadLibraryDrills, rateDrill, saveDrillFromLibrary, toggleShareToLibrary,
@@ -634,6 +634,15 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
 
   const handleUploadFile = async (file: File) => {
     if (!file) return;
+    // Client-side size guard. No XHR fires when the clip is over cap.
+    const decision = checkVideoLimit(file);
+    if (!decision.ok) {
+      alert(decision.message);
+      return;
+    }
+    if (decision.warn && decision.message) {
+      if (!window.confirm(decision.message)) return;
+    }
     setPendingFile(file);
     setUploading(true);
     setUploadPct(0);
@@ -646,7 +655,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
       setStagedStreamUid(result.uid);
     } catch (err) {
       console.error('Stream upload failed', err);
-      alert('Upload failed — try again.');
+      alert('Upload failed. Try again.');
       setPendingFile(null);
     } finally {
       setUploading(false);

@@ -1048,7 +1048,7 @@ async function resolvePaymentClub(projectId: string, sa: ServiceAccount, clubId:
 }
 
 // Shared team-name lookup so the Stripe hosted page can say "Team
-// dues from Coach Patrick — Fire FC U12" instead of just the bare
+// dues from Coach Patrick, Fire FC U12" instead of just the bare
 // title. Fails silently to '' so a missing team doc doesn't break
 // checkout. Kept small; called from every session builder.
 async function resolveTeamName(projectId: string, sa: ServiceAccount, teamId: string): Promise<string> {
@@ -1071,7 +1071,9 @@ function buildProductDescription(args: { title: string; coachName?: string; team
   const from: string[] = [];
   if (args.coachName) from.push(`Coach ${args.coachName}`);
   if (args.teamName) from.push(args.teamName);
-  if (from.length > 0) parts.push(`From ${from.join(' — ')}`);
+  // Comma join, not em dash — Patrick's copy rule forbids em dashes in
+  // user-facing text, and the Stripe hosted page is user-facing.
+  if (from.length > 0) parts.push(`From ${from.join(', ')}`);
   return parts.join(' • ').slice(0, 240);
 }
 
@@ -1243,6 +1245,51 @@ function anonRateLimit(ip: string, requestId: string): boolean {
   hits.push(now);
   anonAttempts.set(key, hits);
   return true;
+}
+
+// POST /payments/pay-link-info — anonymous fetch for the /pay/{id}
+// share page. Returns ONLY the safe, share-friendly subset of the
+// payment_request doc — the raw doc is off-limits to unauthenticated
+// callers because it also holds guestPaid[] (guest emails + names),
+// paidUids, stripeSubscriptionIds, and purchases[].uid, which are
+// prior-payer PII no guest with a link should see. Firestore rules
+// don't do field projection, so we project here in the worker and
+// keep the doc auth-gated at the rules level.
+export async function handlePayLinkInfo(payload: any, env: StripeEnv): Promise<Response> {
+  const paymentRequestId = String(payload?.paymentRequestId || '').trim();
+  if (!paymentRequestId) return json({ ok: false, error: 'missing-paymentRequestId' }, 400);
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
+
+  const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa).catch(() => null);
+  if (!pr?.data) return json({ ok: false, error: 'not-found' }, 404);
+  if (pr.data.status !== 'active' || pr.data.isActive === false || pr.data.kind !== 'one_off') {
+    return json({ ok: false, error: 'not-shareable' }, 409);
+  }
+
+  // Warm header line — the club name is public-ish (it's on the app
+  // header and public league pages), so we fetch and project it here
+  // so PayLink never has to touch Firestore itself.
+  let clubName: string | undefined;
+  try {
+    const club = await getDocument(projectId, `clubs/${String(pr.data.clubId || '')}`, sa);
+    const nm = String(club?.data?.name || '').trim();
+    if (nm) clubName = nm;
+  } catch { /* ignore */ }
+
+  return json({
+    ok: true,
+    request: {
+      id: paymentRequestId,
+      title: String(pr.data.title || 'Team payment'),
+      description: pr.data.description ? String(pr.data.description) : undefined,
+      kind: 'one_off',
+      feeCents: Number(pr.data.feeCents || 0) || undefined,
+      createdByName: pr.data.createdByName ? String(pr.data.createdByName) : undefined,
+      clubName,
+    },
+  });
 }
 
 export async function handlePaymentCheckoutAnon(payload: any, env: StripeEnv, req?: Request): Promise<Response> {
@@ -1550,7 +1597,11 @@ async function reflectPaymentSuccess(
   const paymentRequestId = meta.paymentRequestId;
   const uid = meta.uid;
   const paymentKind = meta.paymentKind;
-  if (!paymentRequestId || !uid) return;
+  if (!paymentRequestId) return;
+  // Anon guest checkout has no uid (guest never signs in). Every other
+  // paymentKind must carry uid or we can't credit the payer, so we
+  // gate uid AFTER dispatching the anon branch.
+  if (paymentKind !== 'one_off_anon' && !uid) return;
 
   const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa).catch(() => null);
   if (!pr?.data) return;

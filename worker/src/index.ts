@@ -68,6 +68,7 @@ import {
 import {
   handlePaymentCheckout,
   handlePaymentCheckoutAnon,
+  handlePayLinkInfo,
   handlePaymentSubscriptionCheckout,
   handlePaymentSubscriptionCancel,
   handlePaymentRefund,
@@ -307,6 +308,19 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       let payload: any = {};
       try { payload = await req.json(); } catch {}
       const res = await handlePaymentCheckoutAnon(payload, env, req);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // POST /payments/pay-link-info — anonymous read for the /pay/{id}
+    // share page. Returns only the safe subset (title, description,
+    // amount, club/coach name). Prevents leaking prior-payer PII that
+    // sits on the raw payment_request doc. Anonymous by design.
+    if (url.pathname === '/payments/pay-link-info' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handlePayLinkInfo(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

@@ -1,9 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../utils/firebase';
 import { workerOrigin } from '../utils/workerFetch';
-import type { PaymentRequest } from '../types';
 
 /**
  * /pay/{requestId} — anonymous "guest pay" surface (Ship 1 decision #3).
@@ -14,10 +11,14 @@ import type { PaymentRequest } from '../types';
  * email+name form. Submitting POSTs to /payments/checkout-anon and
  * redirects to Stripe.
  *
- * Firestore rules allow anon single-doc reads on active,
- * still-billable payment_requests, so this page never asks the
- * guest to sign in. Only one_off requests are supported in v1 —
- * recurring + catalog require accounts.
+ * IMPORTANT: The page never reads Firestore directly. The raw
+ * payment_request doc carries prior-payer PII (guestPaid[] emails,
+ * paidUids, stripeSubscriptionIds, purchases[].uid), and Firestore
+ * rules can't do field projection. Instead we call the worker's
+ * anonymous /payments/pay-link-info endpoint, which returns only the
+ * safe subset (title, description, amount, club/coach name). Only
+ * one_off requests are supported in v1 — recurring + catalog require
+ * accounts.
  *
  * Copy voice: warm, soccer-native, never "invoice / billing".
  */
@@ -51,39 +52,40 @@ const PayLink: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        const snap = await getDoc(doc(db, 'payment_requests', id));
-        if (cancelled) return;
-        if (!snap.exists()) {
+        const origin = workerOrigin();
+        if (!origin) {
           setLoadState('not-found');
           return;
         }
-        const data: any = snap.data();
-        if (data.status !== 'active' || data.isActive === false || data.kind !== 'one_off') {
-          setLoadState('not-shareable');
+        const res = await fetch(`${origin}/payments/pay-link-info`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ paymentRequestId: id }),
+        });
+        if (cancelled) return;
+        const data: any = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok || !data?.request) {
+          // 409 -> not shareable (closed / wrong kind); everything
+          // else reads as "link doesn't resolve".
+          setLoadState(res.status === 409 ? 'not-shareable' : 'not-found');
           return;
         }
-        // Best-effort club-name fetch for the header. Not fatal if
-        // it fails — the anon page still works with just the title.
-        let clubName: string | undefined;
-        try {
-          const clubSnap = await getDoc(doc(db, 'clubs', String(data.clubId || '')));
-          if (clubSnap.exists()) clubName = String((clubSnap.data() as any).name || '') || undefined;
-        } catch { /* ignore */ }
+        const r = data.request;
         setPr({
-          id: snap.id,
-          title: String(data.title || 'Team payment'),
-          description: data.description ? String(data.description) : undefined,
-          kind: String(data.kind),
-          status: String(data.status),
-          feeCents: Number(data.feeCents || 0) || undefined,
-          clubName,
-          clubId: String(data.clubId || ''),
-          createdByName: data.createdByName ? String(data.createdByName) : undefined,
+          id: String(r.id || id),
+          title: String(r.title || 'Team payment'),
+          description: r.description ? String(r.description) : undefined,
+          kind: String(r.kind || 'one_off'),
+          status: 'active',
+          feeCents: Number(r.feeCents || 0) || undefined,
+          clubName: r.clubName ? String(r.clubName) : undefined,
+          clubId: '',
+          createdByName: r.createdByName ? String(r.createdByName) : undefined,
         });
         setLoadState('ready');
       } catch (e) {
         console.warn('[pay-link] load failed', e);
-        setLoadState('not-found');
+        if (!cancelled) setLoadState('not-found');
       }
     })();
     return () => { cancelled = true; };

@@ -45,6 +45,7 @@ const PaymentRequestEditModal: React.FC<PaymentRequestEditModalProps> = ({ pr, o
   const [items, setItems] = useState<CatalogItem[]>(pr.items || []);
 
   const [roster, setRoster] = useState<Player[]>([]);
+  const [rosterLoaded, setRosterLoaded] = useState(false);
   const [targetMode, setTargetMode] = useState<'all' | 'specific'>(
     pr.targetPlayerIds === 'all' ? 'all' : 'specific'
   );
@@ -89,9 +90,17 @@ const PaymentRequestEditModal: React.FC<PaymentRequestEditModalProps> = ({ pr, o
           if (ja !== jb) return ja - jb;
           return (a.name || '').localeCompare(b.name || '');
         });
-        if (!cancelled) setRoster(list);
+        if (!cancelled) {
+          setRoster(list);
+          setRosterLoaded(true);
+        }
       } catch (e) {
         console.warn('[edit-payment] roster load failed', e);
+        // Even on failure, unblock Save so the coach can still edit
+        // title/description. The submit path below skips
+        // targetPlayerIds when the roster never landed so we don't
+        // clobber the target list with [].
+        if (!cancelled) setRosterLoaded(true);
       }
     })();
     return () => { cancelled = true; };
@@ -148,12 +157,20 @@ const PaymentRequestEditModal: React.FC<PaymentRequestEditModalProps> = ({ pr, o
             }));
         }
       }
-      body.targetPlayerIds =
-        targetMode === 'all'
-          ? 'all'
-          : roster
-              .map(p => p.id)
-              .filter(id => pickedIds.has(id) || paidPlayerIds.has(id));
+      // Only send targetPlayerIds when we actually have a fresh roster
+      // to compute against. The pre-load window would otherwise post
+      // [] and either (a) fail server-side with cannot_remove_paid_target
+      // for requests that have paid families or (b) silently un-target
+      // everyone on requests that don't. Coach can still edit
+      // title/description without a roster.
+      if (rosterLoaded && roster.length > 0) {
+        body.targetPlayerIds =
+          targetMode === 'all'
+            ? 'all'
+            : roster
+                .map(p => p.id)
+                .filter(id => pickedIds.has(id) || paidPlayerIds.has(id));
+      }
       const res = await workerFetch('/payments/update', {
         method: 'POST',
         body: JSON.stringify(body),

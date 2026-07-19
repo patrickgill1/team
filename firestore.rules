@@ -618,15 +618,14 @@ service cloud.firestore {
     // and the Stripe webhook stamp paidUids / stripeSubscriptionIds /
     // purchases[]. Parents never touch these fields directly.
     match /payment_requests/{paymentRequestId} {
-      // Signed-in coaches + parents get list + get. Anonymous
-      // callers (the /pay/{id} guest link) get single-doc GET only
-      // — and only for active, still-billable requests. list stays
-      // auth-gated so unauthenticated crawlers can't enumerate a
-      // team's payments. Ref: Ship 1 decision #3 (2026-07-19).
-      allow get: if request.auth != null
-                 || (resource.data.status == 'active'
-                     && resource.data.isActive == true);
-      allow list: if request.auth != null;
+      // Signed-in coaches + parents on the team get list + get.
+      // Anonymous guests hitting /pay/{id} DO NOT read the doc
+      // directly — Firestore rules can't project fields, and the doc
+      // carries prior-payer PII (guestPaid[] emails/names, paidUids,
+      // stripeSubscriptionIds, purchases[].uid). The /pay/{id} page
+      // reads a projected safe subset through the worker's
+      // /payments/pay-link-info endpoint instead.
+      allow get, list: if request.auth != null;
       allow create, update, delete: if false;
     }
     match /payment_requests/{paymentRequestId}/invoices/{invoiceId} {

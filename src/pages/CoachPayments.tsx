@@ -8,6 +8,8 @@ import { isCoachOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import type { PaymentRequest } from '../types';
 import { intervalShort } from '../utils/paymentIntervals';
+import { useTeamClubStripeStatus } from '../hooks/useTeamClubStripeStatus';
+import StripeConnectBanner from '../components/coach/StripeConnectBanner';
 
 /**
  * Coach Payments — /coach/payments
@@ -62,6 +64,7 @@ const CoachPayments: React.FC = () => {
   }, [selectedTeamId]);
 
   const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
+  const { clubId: stripeClubId, isReady: stripeIsReady, isLoading: stripeStatusLoading } = useTeamClubStripeStatus();
 
   const filtered = useMemo(() => {
     return requests.filter(r => {
@@ -121,7 +124,10 @@ const CoachPayments: React.FC = () => {
         )}
 
         <div className={`transition-opacity duration-300 ease-out ${loaded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          {loaded && filtered.length === 0 && (
+          {loaded && filtered.length === 0 && tab === 'active' && !stripeStatusLoading && !stripeIsReady && (
+            <StripeConnectBanner clubId={stripeClubId} />
+          )}
+          {loaded && filtered.length === 0 && (tab !== 'active' || stripeStatusLoading || stripeIsReady) && (
             <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-6 text-center">
               <p className="text-ink-primary/85 font-black text-sm">Nothing to collect yet.</p>
               <p className="text-ink-primary/55 text-xs mt-1">

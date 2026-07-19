@@ -10,6 +10,8 @@ import { grossUpCents, coachNetCents } from '../utils/pricing';
 import { intervalLabel } from '../utils/paymentIntervals';
 import type { PaymentRecurringInterval, CatalogItem, Player } from '../types';
 import { workerFetch } from '../utils/workerFetch';
+import { useTeamClubStripeStatus } from '../hooks/useTeamClubStripeStatus';
+import StripeConnectBanner from '../components/coach/StripeConnectBanner';
 
 /**
  * Coach Payment Create — /coach/payments/new
@@ -44,6 +46,11 @@ const CoachPaymentCreate: React.FC = () => {
   const [items, setItems] = useState<CatalogItem[]>([{ id: `it_${Date.now()}`, name: '', priceCents: 0 }]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // When /payments/create returns club-not-stripe-ready the worker
+  // hands back the exact clubId to onboard. Stash it so the fallback
+  // banner uses the authoritative id instead of re-deriving.
+  const [errClubId, setErrClubId] = useState<string | null>(null);
+  const { clubId: stripeClubId, isReady: stripeIsReady, isLoading: stripeStatusLoading } = useTeamClubStripeStatus();
   // Roster + target-players picker state. Default mode is 'all' so the
   // existing "Everyone on the team" behavior is preserved when the coach
   // never touches the picker. When they flip to 'specific', every roster
@@ -129,6 +136,7 @@ const CoachPaymentCreate: React.FC = () => {
     if (!kind || !selectedTeamId) return;
     setBusy(true);
     setErr(null);
+    setErrClubId(null);
     try {
       const body: any = {
         teamId: selectedTeamId,
@@ -163,7 +171,12 @@ const CoachPaymentCreate: React.FC = () => {
       });
       const data: any = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) {
-        setErr(data?.hint || data?.error || 'Could not create. Try again.');
+        if (data?.error === 'club-not-stripe-ready') {
+          setErrClubId(String(data?.clubId || stripeClubId || ''));
+          setErr(data?.hint || 'Set up payments first so families can pay.');
+        } else {
+          setErr(data?.hint || data?.error || 'Could not create. Try again.');
+        }
         setBusy(false);
         return;
       }
@@ -184,6 +197,10 @@ const CoachPaymentCreate: React.FC = () => {
         <Link to="/coach/payments" className="text-brand-primary-soft text-xs font-black uppercase tracking-widest hover:text-brand-primary">
           &larr; Back
         </Link>
+
+        {!stripeStatusLoading && !stripeIsReady && (
+          <StripeConnectBanner clubId={stripeClubId} />
+        )}
 
         {!kind && (
           <div className="space-y-3">
@@ -510,7 +527,14 @@ const CoachPaymentCreate: React.FC = () => {
               )}
             </div>
 
-            {err && (
+            {err && errClubId && (
+              <StripeConnectBanner
+                clubId={errClubId}
+                headline="Set up payments before sending this out"
+                body={err}
+              />
+            )}
+            {err && !errClubId && (
               <p className="text-xs text-rose-400">{err}</p>
             )}
 

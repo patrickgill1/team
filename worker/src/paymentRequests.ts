@@ -143,7 +143,8 @@ export async function handleCreatePaymentRequest(
     return json({
       ok: false,
       error: 'club-not-stripe-ready',
-      hint: 'Connect Stripe from Team HQ first so families can actually pay.',
+      clubId,
+      hint: 'Set up payments first. Just takes a few minutes and families can then pay right through the app.',
     }, 409);
   }
 

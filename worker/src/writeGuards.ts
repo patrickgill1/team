@@ -2741,6 +2741,23 @@ async function handlePlayersCreate(req: Request, env: Env, payload: any): Promis
   if (typeof payload?.jerseyNumber === 'number') fields.jerseyNumber = payload.jerseyNumber;
   if (Array.isArray(payload?.positions)) fields.positions = payload.positions.slice(0, 5);
   if (payload?.isAdultPlayer === true) fields.isAdultPlayer = true;
+  // Guest player fields — tournament / trial / call-up path. Missing
+  // == false everywhere; only stamp when the coach explicitly toggled.
+  // expiresAt is parsed from YYYY-MM-DD (native <input type="date">)
+  // into UTC-noon of that calendar day, same convention as DOB storage
+  // (see src/utils/dobDate.ts), so isGuestActive() comparisons don't
+  // shift by a day for Denver users.
+  if (payload?.isGuest === true) {
+    fields.isGuest = true;
+    const raw = payload?.guestExpiresAt;
+    if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      const [y, m, d] = raw.split('-').map(n => parseInt(n, 10));
+      if (y && m && d) fields.expiresAt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    }
+    if (typeof payload?.guestReason === 'string' && payload.guestReason.trim()) {
+      fields.guestReason = String(payload.guestReason).slice(0, 80);
+    }
+  }
   const playerId = await createDocument(pid, 'players', fields, sa);
   await commitDocumentTransforms(
     pid,
@@ -2878,6 +2895,45 @@ async function handlePlayersSetActive(req: Request, env: Env, payload: any): Pro
   };
   if (payload?.isActive === false) patch.deletedAt = new Date();
   else patch.deletedAt = null;
+  await patchDocument(pid, `players/${playerId}`, patch, sa);
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /players/promote-guest — flip a guest player into a permanent
+// squad member. Clears isGuest / expiresAt / guestReason. Stats,
+// media, invites, XP, badges — all preserved. The guest's parent
+// (via existing invite claim) also keeps their team access, which is
+// the intended outcome: the tournament ringer sticks around.
+//
+// Auth: coach-of-team on any team the player is on.
+// Body:  { teamId, playerId }
+// ────────────────────────────────────────────────────────────────
+async function handlePlayersPromoteGuest(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  const playerId = String(payload?.playerId || '');
+  if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+  const player = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+  if (!player?.data) return json({ ok: false, error: 'player_not_found' }, 404);
+  // Defense-in-depth: verify the target player is actually on the team
+  // whose coach is calling. requireCoachOfTeam(teamId) above proves the
+  // caller is a coach of teamId; this check proves the player belongs
+  // to that team, so a rogue coach can't promote a guest on some other
+  // team by supplying their own teamId.
+  const pTeamIds: string[] = Array.isArray(player.data.teamIds) && player.data.teamIds.length > 0
+    ? player.data.teamIds
+    : (player.data.teamId ? [player.data.teamId] : []);
+  if (!pTeamIds.includes(teamId)) {
+    return json({ ok: false, error: 'player_not_on_team' }, 403);
+  }
+  const patch: Record<string, any> = {
+    isGuest: false,
+    expiresAt: null,
+    guestReason: null,
+    updatedAt: new Date(),
+  };
   await patchDocument(pid, `players/${playerId}`, patch, sa);
   return json({ ok: true });
 }
@@ -4975,6 +5031,7 @@ export async function routeWriteGuard(
     case '/players/toggle-self-parent': return handlePlayersToggleSelfParent(req, env, payload);
     case '/players/set-kid-mode':  return handlePlayersSetKidMode(req, env, payload);
     case '/players/set-teams':     return handlePlayersSetTeams(req, env, payload);
+    case '/players/promote-guest': return handlePlayersPromoteGuest(req, env, payload);
     case '/club/set-admin':        return handleClubSetAdmin(req, env, payload);
     case '/club/remove-admin':     return handleClubRemoveAdmin(req, env, payload);
     case '/xp/award-whisper':      return handleXpAwardWhisper(req, env, payload);

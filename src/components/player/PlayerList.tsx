@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Player } from '../../types';
+import { Player, isGuestActive } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
@@ -29,6 +29,12 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
   const [isLoading, setIsLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false);
   const [inactivePlayers, setInactivePlayers] = useState<Player[]>([]);
+  // Guest visibility toggle. Default ON so tournament call-ups show up
+  // in the squad view during their window; off hides all guests. The
+  // "Past" (isActive:false) toggle already picks up expired guests via
+  // the coach-side archive sweep — this chip is just the live-window
+  // filter for a coach who wants a clean permanent-only roster view.
+  const [showGuests, setShowGuests] = useState(true);
   // Attendance % per player, batched from a single team-events fetch
   // so N cards don't do N identical queries. Recomputed when the roster
   // changes; null until first compute lands (card just skips the chip).
@@ -135,7 +141,13 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
     const q = query(collection(db, 'players'), where('teamIds', 'array-contains', selectedTeamId));
     const unsub = onSnapshot(q, (snap) => {
       const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
-      const teamPlayers = all.filter((p: any) => p.isActive === false);
+      // "Past" bucket = archived players + expired guests. Expired
+      // guests belong here so a coach who wants to promote or extend
+      // them after the tournament ends can find them without
+      // re-hitting the DB. isGuestActive() returns false for guests
+      // past their expiresAt; combine with the classic isActive===false
+      // check so the two lists are disjoint from the active roster.
+      const teamPlayers = all.filter((p: any) => p.isActive === false || !isGuestActive(p));
       teamPlayers.sort((a: any, b: any) => (a.jerseyNumber || 999) - (b.jerseyNumber || 999));
       setInactivePlayers(teamPlayers.map((p: any) => ({
         ...p,
@@ -152,6 +164,11 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
       const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            player.jerseyNumber?.toString().includes(searchTerm);
       const matchesPosition = !positionFilter || player.position === positionFilter;
+      // Guest visibility: always drop expired guests from the active
+      // roster (they belong in the Past view). When the "guests" chip
+      // is off, drop live guests too.
+      if (!isGuestActive(player)) return false;
+      if (!showGuests && (player as any).isGuest) return false;
       return matchesSearch && matchesPosition;
     });
 
@@ -293,6 +310,22 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
 
         {isUserCoach && (
           <div className="flex items-center gap-2">
+            {/* Guest visibility chip — only surfaces when at least one
+                guest is currently on the roster so it doesn't add
+                noise to squads that never use the feature. */}
+            {players.some(p => (p as any).isGuest && isGuestActive(p)) && (
+              <button
+                onClick={() => setShowGuests(v => !v)}
+                className={`px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-md border ${
+                  showGuests
+                    ? 'bg-brand-primary-soft/20 text-brand-primary border-brand-primary-soft/40'
+                    : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                }`}
+                title={showGuests ? 'Hide guest players from this view' : 'Show guest players in this view'}
+              >
+                Guests
+              </button>
+            )}
             <button
               onClick={() => setShowInactive((v) => !v)}
               className={`px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-md border ${

@@ -8,7 +8,7 @@ import { isCoachOfTeam, isStaffOfTeam } from '../../utils/helpers';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { createPlayerInvite } from '../../utils/invites';
-import { computeDobAge } from '../../utils/dobDate';
+import { computeDobAge, formatDobShort } from '../../utils/dobDate';
 import InviteShareModal from '../common/InviteShareModal';
 import { reactivatePlayerForCurrentSeason } from '../../utils/seasons';
 import { badgeImageSrc, badgeSrcSet, badgeLabel } from '../../utils/badgeMeta';
@@ -258,9 +258,27 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             const overflow = Math.max(0, totalBadges - badgeSlugs.length);
             return (
               <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="inline-flex self-start items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 text-[10px] font-bold uppercase tracking-wider backdrop-blur">
-                  <span className={`w-2 h-2 rounded-full ${player.position ? positionDot(player.position) : 'bg-line-default/40'}`} />
-                  {player.position || 'Unassigned'}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="inline-flex self-start items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 text-[10px] font-bold uppercase tracking-wider backdrop-blur">
+                    <span className={`w-2 h-2 rounded-full ${player.position ? positionDot(player.position) : 'bg-line-default/40'}`} />
+                    {player.position || 'Unassigned'}
+                  </div>
+                  {/* Guest pill — subtle amber to signal "temporary
+                      squad member" without shouting. Sits next to the
+                      position chip so it reads as part of the identity
+                      row, not a badge overlay. */}
+                  {(player as any).isGuest && (
+                    <span
+                      title={
+                        (player as any).expiresAt
+                          ? `Guest player · access through ${formatDobShort((player as any).expiresAt)}`
+                          : 'Guest player'
+                      }
+                      className="inline-flex self-start items-center gap-1 px-2 py-1 rounded-full bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-700 text-[10px] font-black uppercase tracking-wider"
+                    >
+                      Guest
+                    </span>
+                  )}
                 </div>
                 {badgeSlugs.length > 0 && (
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -375,6 +393,17 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   Muted a step further so identity stays the anchor.
                   Renders nothing when nothing is set — small rosters
                   don't look sparse. */}
+              {/* Guest window — "Guest through Aug 12" reads as a
+                  soccer-native subtitle for tournament ringers, so a
+                  coach glancing at the roster sees the expiry without
+                  opening the profile. Only when isGuest AND expiresAt
+                  is set; open-ended guests get no line here. */}
+              {(player as any).isGuest && (player as any).expiresAt && (
+                <p className="text-amber-700 text-[11px] font-bold mt-1 truncate">
+                  Guest through {formatDobShort((player as any).expiresAt)}
+                </p>
+              )}
+
               {(() => {
                 const vitals: string[] = [];
                 if ((player as any).favoritePlayer) vitals.push(`♥ ${(player as any).favoritePlayer}`);

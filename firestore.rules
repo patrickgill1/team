@@ -636,15 +636,24 @@ service cloud.firestore {
     // ── Trip primitive (2026-07-19) ────────────────────────────
     //
     // Coach-owned stat-scoping container (tournaments / weekend trips).
-    // Reads: any signed-in team member can see trips for their team.
+    // Reads: team-scoped. Only signed-in members of the trip's team
+    // can read the doc directly (get). LIST stays open per the
+    // documented Firestore workaround — clients MUST include a
+    // teamId equality filter (the /coach/trips + PlayerTripsCard
+    // queries do). PublicTrip page's Path A relies on this get()
+    // returning permission-denied for non-team members so it falls
+    // through to the shareToken worker path.
+    //
     // A public read-only recap URL at /trip/:id?token=... is served
-    // through the worker /trips/public-info endpoint using shareToken
-    // (rules stay simple — no anon direct reads).
+    // through the worker /trips/public-info endpoint using shareToken.
     // Writes: worker-only (/trips/create, /trips/update, /trips/archive,
     // /trips/attend, /trips/unattend). Coach-of-team check runs server
     // side there.
     match /trips/{tripId} {
-      allow get, list: if request.auth != null;
+      allow get: if isAuthed()
+        && resource.data.teamId is string
+        && resource.data.teamId in userDoc().teamIds;
+      allow list: if isAuthed();
       allow create, update, delete: if false;
     }
 

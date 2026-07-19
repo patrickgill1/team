@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoachOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
+import { findOverlappingTripIds } from '../utils/tripAttribution';
 import type { Trip } from '../types';
 
 /**
@@ -77,6 +78,18 @@ const CoachTrips: React.FC = () => {
 
   const filtered = useMemo(() => trips.filter(t => t.status === tab), [trips, tab]);
 
+  // Detect Denver-tz window overlaps across ACTIVE trips only —
+  // archived trips can't swallow new stats so they don't matter here.
+  // A row belonging to an overlap gets a badge + the top-of-list banner
+  // renders once so the coach knows to archive the stale one before
+  // the auto-attribution resolver silently picks one (earliest-start
+  // wins in the resolver).
+  const overlappingIds = useMemo(
+    () => findOverlappingTripIds(trips.filter(t => t.status === 'active')),
+    [trips],
+  );
+  const hasOverlap = overlappingIds.size >= 2 && tab === 'active';
+
   if (!coachOnThisTeam) {
     return <Navigate to="/coach" replace />;
   }
@@ -128,6 +141,16 @@ const CoachTrips: React.FC = () => {
         )}
 
         <div className={`transition-opacity duration-300 ease-out ${loaded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          {hasOverlap && (
+            <div className="rounded-2xl bg-amber-500/10 ring-1 ring-amber-500/30 p-3 sm:p-4 mb-3">
+              <p className="text-[11px] font-black uppercase tracking-widest text-amber-500">
+                Overlapping trips
+              </p>
+              <p className="text-sm text-ink-primary/85 mt-1">
+                Two or more active trips share days. New stats will land on the earliest-start trip — archive whichever one has already wrapped so the buckets stay clean.
+              </p>
+            </div>
+          )}
           {loaded && filtered.length === 0 && (
             <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-6 text-center">
               <p className="text-ink-primary/85 font-black text-sm">
@@ -150,7 +173,7 @@ const CoachTrips: React.FC = () => {
           )}
           <div className="space-y-2">
             {filtered.map(t => (
-              <TripRow key={t.id} t={t} />
+              <TripRow key={t.id} t={t} overlaps={overlappingIds.has(t.id)} />
             ))}
           </div>
         </div>
@@ -173,7 +196,7 @@ const fmtRange = (start: Date, end: Date): string => {
   return `${s} to ${e}`;
 };
 
-const TripRow: React.FC<{ t: Trip }> = ({ t }) => {
+const TripRow: React.FC<{ t: Trip; overlaps?: boolean }> = ({ t, overlaps = false }) => {
   const inWindow = useMemo(() => {
     const now = Date.now();
     return now >= t.startDate.getTime() && now <= t.endDate.getTime();
@@ -182,7 +205,11 @@ const TripRow: React.FC<{ t: Trip }> = ({ t }) => {
   return (
     <Link
       to={`/coach/trips/${t.id}`}
-      className="block rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 hover:ring-brand-primary/30 transition p-4 sm:p-5"
+      className={`block rounded-2xl bg-surface-elevated ring-1 transition p-4 sm:p-5 ${
+        overlaps
+          ? 'ring-amber-500/40 hover:ring-amber-500/60'
+          : 'ring-line-default/15 hover:ring-brand-primary/30'
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -193,6 +220,11 @@ const TripRow: React.FC<{ t: Trip }> = ({ t }) => {
             {inWindow && t.status === 'active' && (
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-500">
                 Live
+              </span>
+            )}
+            {overlaps && t.status === 'active' && (
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">
+                Overlap
               </span>
             )}
             {t.status === 'archived' && (

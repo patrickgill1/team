@@ -87,45 +87,68 @@ export async function getActiveTripsForTeam(teamId: string): Promise<Trip[]> {
   }
 }
 
-/** Timezone-safe (America/Denver) end-of-day for a Date. Because
- *  Firestore stores absolute instants, "endDate 11:59:59 PM Denver"
- *  needs to be computed from the same date-part the coach picked. */
+/** Return America/Denver's UTC offset in hours (6 for MDT, 7 for MST)
+ *  for the calendar day (y, m, day). Computed by asking Intl what hour
+ *  it is in Denver at 12:00 UTC of that day: MST 12:00 UTC = 5am
+ *  Denver → offset 7; MDT 12:00 UTC = 6am Denver → offset 6. 12:00 UTC
+ *  is safely inside the DST regime on both transition days (spring
+ *  forward at 2am, fall back at 2am both flip well before). */
+function denverOffsetHours(y: number, m: number, day: number): number {
+  try {
+    const probe = new Date(Date.UTC(y, m - 1, day, 12, 0, 0));
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Denver',
+      hour: '2-digit', hour12: false,
+    }).formatToParts(probe);
+    const raw = parts.find(p => p.type === 'hour')?.value || '05';
+    // en-US with h12:false can emit "24" for midnight — normalise.
+    const denverHour = Number(raw) % 24;
+    return 12 - denverHour;
+  } catch {
+    return 7; // MST fallback
+  }
+}
+
+function denverYMD(d: Date): { y: number; m: number; day: number } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Denver',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(d);
+  return {
+    y: Number(parts.find(p => p.type === 'year')?.value || 0),
+    m: Number(parts.find(p => p.type === 'month')?.value || 0),
+    day: Number(parts.find(p => p.type === 'day')?.value || 0),
+  };
+}
+
+/** Timezone-safe (America/Denver) end-of-day for a Date. Uses the
+ *  actual Denver UTC offset for that calendar day so an 11:59 PM
+ *  Denver game lands INSIDE the window and an early-morning game the
+ *  next day does NOT get pulled in. */
 function endOfDayDenver(d: Date): Date {
   try {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Denver',
-      year: 'numeric', month: '2-digit', day: '2-digit',
-    }).formatToParts(d);
-    const y = Number(parts.find(p => p.type === 'year')?.value || 0);
-    const m = Number(parts.find(p => p.type === 'month')?.value || 0);
-    const day = Number(parts.find(p => p.type === 'day')?.value || 0);
-    // Construct a Date at 23:59:59.999 UTC for the Denver calendar day.
-    // Denver is UTC-7 (MST) or UTC-6 (MDT). We add a generous 7-hour
-    // buffer so the midnight boundary is inside the window regardless
-    // of DST — a game at Denver 11:59 PM is at most 06:59 UTC next day.
-    return new Date(Date.UTC(y, m - 1, day, 23 + 7, 59, 59, 999));
+    const { y, m, day } = denverYMD(d);
+    const off = denverOffsetHours(y, m, day);
+    // Denver 23:59:59.999 → UTC (23 + off) : 59 : 59 . 999
+    return new Date(Date.UTC(y, m - 1, day, 23 + off, 59, 59, 999));
   } catch {
-    // Fallback — treat as end of the same UTC day.
     const c = new Date(d);
     c.setHours(23, 59, 59, 999);
     return c;
   }
 }
 
-/** Timezone-safe start-of-day (America/Denver) for a Date. */
+/** Timezone-safe start-of-day (America/Denver) for a Date. Returns
+ *  the exact UTC instant of Denver midnight on that calendar day —
+ *  NOT 00:00 UTC (which is 6–7 hours BEFORE Denver midnight and
+ *  would pull the previous-evening's regulation game into the
+ *  window). */
 function startOfDayDenver(d: Date): Date {
   try {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Denver',
-      year: 'numeric', month: '2-digit', day: '2-digit',
-    }).formatToParts(d);
-    const y = Number(parts.find(p => p.type === 'year')?.value || 0);
-    const m = Number(parts.find(p => p.type === 'month')?.value || 0);
-    const day = Number(parts.find(p => p.type === 'day')?.value || 0);
-    // Denver midnight is at UTC 07:00 (MST) or 06:00 (MDT); use 00:00
-    // UTC on the same calendar day as a permissive lower bound so
-    // early-morning games (rare) still land inside the window.
-    return new Date(Date.UTC(y, m - 1, day, 0, 0, 0, 0));
+    const { y, m, day } = denverYMD(d);
+    const off = denverOffsetHours(y, m, day);
+    // Denver 00:00 → UTC (0 + off) : 00 : 00 . 000
+    return new Date(Date.UTC(y, m - 1, day, off, 0, 0, 0));
   } catch {
     const c = new Date(d);
     c.setHours(0, 0, 0, 0);
@@ -229,4 +252,29 @@ export async function resolveTripIdByEventId(
 export function isSeasonStat(row: { tripId?: string | null } | undefined | null): boolean {
   if (!row) return true;
   return !row.tripId;
+}
+
+/** Detect trips whose Denver-tz windows overlap another active trip in
+ *  the same list. Returns the set of tripIds that participate in ANY
+ *  overlap (both / all sides are flagged). Used by CoachTrips to
+ *  surface a banner so the coach can archive the stale one before it
+ *  starts silently swallowing new stats. */
+export function findOverlappingTripIds(trips: Trip[]): Set<string> {
+  const flagged = new Set<string>();
+  const norm = trips.map(t => ({
+    id: t.id,
+    start: startOfDayDenver(t.startDate).getTime(),
+    end: endOfDayDenver(t.endDate).getTime(),
+  }));
+  for (let i = 0; i < norm.length; i++) {
+    for (let j = i + 1; j < norm.length; j++) {
+      const a = norm[i];
+      const b = norm[j];
+      if (a.start <= b.end && b.start <= a.end) {
+        flagged.add(a.id);
+        flagged.add(b.id);
+      }
+    }
+  }
+  return flagged;
 }

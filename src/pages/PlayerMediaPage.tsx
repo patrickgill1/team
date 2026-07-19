@@ -369,6 +369,19 @@ const PlayerMediaPage: React.FC = () => {
     if (newCredits.goalScorerId) bump(newCredits.goalScorerId, 'goals', +1);
     for (const a of newCredits.assistByIds || []) bump(a, 'assists', +1);
 
+    // Resolve tripId ONCE for this batch — every clip credit in a diff
+    // shares the same tagging moment, so a single resolver hit covers
+    // all pids. Trip-attributed clip credits skip the season aggregate
+    // mirror and first-stat badges (same rule as GameDay endGame).
+    let clipTripId: string | undefined;
+    if (selectedTeamId) {
+      try {
+        const { resolveTripIdForGame } = await import('../utils/tripAttribution');
+        const r = await resolveTripIdForGame({ teamId: selectedTeamId, gameDate: new Date() });
+        clipTripId = r.tripId;
+      } catch { /* non-fatal — stays season-scoped */ }
+    }
+
     for (const [pid, d] of Array.from(delta.entries())) {
       if (d.goals === 0 && d.assists === 0) continue;
       const player = players.find(p => p.id === pid);
@@ -380,24 +393,28 @@ const PlayerMediaPage: React.FC = () => {
         assists: Math.max(0, (cur.assists || 0) + d.assists),
       };
       try {
-        await updatePlayerStats(pid, next as any);
-        // Clip-credit can push a player across the 0→1 crossing on
-        // goals/assists (a shared player's first credited goal comes
-        // in via a tagged clip). Fire the same first-stat badge
-        // grant used by GameDay + StatsTracker.
-        try {
-          const { maybeGrantFirstStatBadges } = await import('../utils/badgeGrants');
-          void maybeGrantFirstStatBadges(
-            pid,
-            cur,
-            next,
-            {
-              existingBadges: (player as any).badges,
-              context: 'Clip credit',
-              team: selectedTeam as any,
-            },
-          );
-        } catch { /* non-fatal */ }
+        // Skip the season-aggregate mirror + first-stat badge for
+        // trip-scoped clip credits (kept for the regulation journey).
+        if (!clipTripId) {
+          await updatePlayerStats(pid, next as any);
+          // Clip-credit can push a player across the 0→1 crossing on
+          // goals/assists (a shared player's first credited goal comes
+          // in via a tagged clip). Fire the same first-stat badge
+          // grant used by GameDay + StatsTracker.
+          try {
+            const { maybeGrantFirstStatBadges } = await import('../utils/badgeGrants');
+            void maybeGrantFirstStatBadges(
+              pid,
+              cur,
+              next,
+              {
+                existingBadges: (player as any).badges,
+                context: 'Clip credit',
+                team: selectedTeam as any,
+              },
+            );
+          } catch { /* non-fatal */ }
+        }
       } catch (err) {
         console.error('Failed to update stats for player', pid, err);
       }
@@ -405,6 +422,9 @@ const PlayerMediaPage: React.FC = () => {
       // aggregator (getTeamPlayerStatsMap) sees clip-credited goals/assists
       // for SHARED players. Without this, shared players get +1 to the
       // global aggregate but 0 to the per-team total.
+      // Trip-scoped credits still write the row (with tripId stamped)
+      // so the Tournaments card sums them; they just skip the season
+      // aggregate above.
       if (selectedTeamId && (d.goals !== 0 || d.assists !== 0)) {
         try {
           await addGameStat({
@@ -422,6 +442,7 @@ const PlayerMediaPage: React.FC = () => {
             recordedBy: userData?.uid,
             recordedByName: userData?.name || 'Coach',
             teamId: selectedTeamId,
+            ...(clipTripId ? { tripId: clipTripId } : {}),
           } as any);
         } catch (err) {
           console.error('Failed to write per-team clip stat for player', pid, err);

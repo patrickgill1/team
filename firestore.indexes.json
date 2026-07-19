@@ -17,6 +17,14 @@
       ]
     },
     {
+      "collectionGroup": "stats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "playerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "payment_requests",
       "queryScope": "COLLECTION",
       "fields": [

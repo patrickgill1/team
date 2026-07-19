@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, doc, getDoc, getDocs, orderBy, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import type { GameStat, Trip } from '../../types';
 
@@ -62,10 +62,14 @@ const PlayerTripsCard: React.FC<Props> = ({ playerId, canLinkToTrip = true }) =>
     let cancelled = false;
     (async () => {
       try {
+        // Single equality — no composite index required. We sort the
+        // buckets by trip startDate in memory below (see the sort after
+        // the trip-doc fetch), so the raw stat-row order doesn't
+        // matter. Keeping the query simple also survives an
+        // index-not-yet-built window in prod.
         const q = query(
           collection(db, 'stats'),
           where('playerId', '==', playerId),
-          orderBy('createdAt', 'desc'),
         );
         const snap = await getDocs(q);
         const rows: GameStat[] = snap.docs.map(d => {

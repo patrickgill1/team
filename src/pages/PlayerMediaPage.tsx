@@ -1384,9 +1384,25 @@ const PlayerMediaPage: React.FC = () => {
   // Get all unique tags across media for filter options
   const allMediaTags = Array.from(new Set(media.flatMap(m => m.tags || [])));
 
-  // Filter by selected player (subject OR tagged secondary). 'all' shows everything.
+  // A clip "belongs to" a player if they are attributed on it in ANY of
+  // the four attribution paths: primary subject, tagged-in ("Who's in
+  // this clip?"), goal scorer, or assist. Prior versions only checked
+  // playerId + taggedPlayerIds, which missed anyone who was ONLY the
+  // scorer or assister — so a kid tagged as "Assisted by" on a
+  // teammate's goal clip didn't show up in Browse by Player at all,
+  // and multi-attribution players (scorer on one clip + assist on
+  // another) undercounted.
+  const mediaBelongsToPlayer = (m: PlayerMediaType, playerId: string): boolean => {
+    if (m.playerId === playerId) return true;
+    if ((m.taggedPlayerIds || []).includes(playerId)) return true;
+    if ((m as any).goalScorerId === playerId) return true;
+    if (Array.isArray((m as any).assistByIds) && (m as any).assistByIds.includes(playerId)) return true;
+    return false;
+  };
+
+  // Filter by selected player (any attribution). 'all' shows everything.
   const playerFilteredMedia = (selectedPlayerId && selectedPlayerId !== 'all')
-    ? media.filter(m => m.playerId === selectedPlayerId || (m.taggedPlayerIds || []).includes(selectedPlayerId))
+    ? media.filter(m => mediaBelongsToPlayer(m, selectedPlayerId))
     : media;
   // Split by media type (videos / photos / both) before tags + search.
   // 'highlight' is a filter across BOTH types — anything with a
@@ -1443,11 +1459,13 @@ const PlayerMediaPage: React.FC = () => {
     })
     .sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
     .slice(0, 3);
-  // Players with clip counts (for browse-by-player row)
+  // Players with clip counts (for browse-by-player row). Uses the same
+  // 4-attribution predicate as playerFilteredMedia so counts match what
+  // you see when you tap the chip.
   const playersWithCounts = players
     .map(p => ({
       player: p,
-      count: media.filter(m => m.playerId === p.id || (m.taggedPlayerIds || []).includes(p.id)).length,
+      count: media.filter(m => mediaBelongsToPlayer(m, p.id)).length,
     }))
     .filter(p => p.count > 0)
     .sort((a, b) => b.count - a.count);
@@ -1515,10 +1533,12 @@ const PlayerMediaPage: React.FC = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // Group media by player
+  // Group media by player. Same 4-attribution predicate as counts +
+  // filter so a kid who assisted on someone else's goal is still
+  // listed under their own player group.
   const mediaByPlayer = players.map(player => ({
     player,
-    items: filteredMedia.filter(m => m.playerId === player.id),
+    items: filteredMedia.filter(m => mediaBelongsToPlayer(m, player.id)),
   })).filter(group => group.items.length > 0);
 
   if (loading) return <DataGate when="loading" />;

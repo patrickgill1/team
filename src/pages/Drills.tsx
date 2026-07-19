@@ -680,10 +680,15 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
       } as any];
       payload.videoLinks = links;
     }
-    // Attach freshly uploaded Stream video if there is one.
+    // Attach freshly uploaded Stream video if there is one. Do NOT
+    // stamp streamReady:true here - transcoding is still in flight
+    // for 15-30s after the XHR resolves, and stamping ready causes
+    // CloudflareStreamIframe to skip the readiness poll and mount
+    // the iframe against a still-transcoding video, reproducing the
+    // exact bug we shipped the poll to fix. The readiness hook
+    // stamps streamReady:true on first successful poll.
     if (stagedStreamUid) {
       payload.streamUid = stagedStreamUid;
-      payload.streamReady = true;
     }
     await onSave(payload, isNew);
     setSaving(false);

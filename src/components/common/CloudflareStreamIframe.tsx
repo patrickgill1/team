@@ -127,7 +127,7 @@ const CloudflareStreamIframe = forwardRef<HTMLIFrameElement, CloudflareStreamIfr
       const bodyCopy = timedOut
         ? "This one is taking longer than usual. Give it another minute, then reopen."
         : (processingCopy ||
-            "This clip is still processing. It'll play as soon as Cloudflare finishes the encode, usually 15 to 30 seconds.");
+            "Getting your clip ready. It plays as soon as it finishes, usually 15 to 30 seconds.");
       return (
         <div
           className={`w-full h-full flex items-center justify-center bg-surface-elevated text-ink-primary ${className}`}

@@ -6,6 +6,7 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoachOfTeam, resolveSenderRole } from '../utils/helpers';
+import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 import { uploadToR2 } from '../utils/r2Upload';
 import AppIcon from '../components/common/AppIcon';
 import EmptyState from '../components/common/EmptyState';
@@ -2269,24 +2270,20 @@ const WallAttachment: React.FC<{ a: { url: string; name?: string; type?: string 
   const isVideo = isVideoAttachment(a);
   if (isVideo) {
     if (isStreamAttachment(a.url)) {
-      // Extract the Stream uid if we can — the Stream iframe embed
-      // wants uid, not a direct video URL. Falls back to the raw
-      // URL when it's already a full iframe embed link.
+      // Route Stream attachments through CloudflareStreamIframe so the
+      // iframe waits for CF transcoding to finish before mounting.
+      // Prior version rendered a raw iframe, which raced the transcode
+      // window and lit up the console with CORS errors on every fresh
+      // wall-post upload.
       const uidMatch = a.url.match(/(?:cloudflarestream\.com|videodelivery\.net)\/([A-Za-z0-9]+)/);
-      const embed = uidMatch
-        ? `https://iframe.cloudflarestream.com/${uidMatch[1]}`
-        : a.url;
-      return (
-        <div className={`bg-black ${single ? 'aspect-video w-full' : 'aspect-video w-full'}`}>
-          <iframe
-            src={embed}
-            className="w-full h-full block"
-            allow="accelerometer; gyroscope; encrypted-media; picture-in-picture;"
-            allowFullScreen
-            title={a.name || 'video'}
-          />
-        </div>
-      );
+      const uid = uidMatch ? uidMatch[1] : '';
+      if (uid) {
+        return (
+          <div className={`bg-black ${single ? 'aspect-video w-full' : 'aspect-video w-full'}`}>
+            <CloudflareStreamIframe uid={uid} title={a.name || 'video'} />
+          </div>
+        );
+      }
     }
     return (
       <div className={`bg-black ${single ? '' : 'aspect-video'}`}>

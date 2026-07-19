@@ -158,15 +158,20 @@ export function handleConnectStart(url: URL, env: StripeEnv): Response {
   // for every club instead of needing one per club.
   const redirect = `${env.APP_ORIGIN}/club?stripe_connected=1`;
 
-  // Encode {clubId, returnTo} as base64-JSON. Client decodes on return
-  // to run its clubId security check and pick the destination route.
-  // Base64 keeps it URL-safe through the Stripe round-trip; JSON gives
-  // us room to add fields later without another format break.
+  // Encode {clubId, returnTo} as base64url-JSON. Client decodes on
+  // return to run its clubId security check and pick the destination
+  // route. base64url (not standard base64) keeps the payload safe
+  // through any intermediate form-decoding that would otherwise turn
+  // `+` into space and break atob() on the client. JSON gives us room
+  // to add fields later without another format break.
   // Backwards-compat: any in-flight OAuth session whose `state` was
   // the raw clubId string still passes the client-side check because
   // that decoder falls back to a plain string compare.
   const statePayload = returnToSafe ? { clubId, returnTo: returnToSafe } : { clubId };
-  const state = btoa(JSON.stringify(statePayload));
+  const state = btoa(JSON.stringify(statePayload))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 
   // Default business_type=individual (was 'company'). Company mode
   // forces coaches through EIN + representative + owners screens they

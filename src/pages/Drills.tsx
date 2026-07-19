@@ -352,13 +352,13 @@ const Drills: React.FC = () => {
           )}
         </div>
 
-        {/* Use-case pill row — Team vs Extra Reps. Wrapping flex so it
+        {/* Use-case pill row - Team vs Solo. Wrapping flex so it
             never scrolls sideways. */}
         <div className="flex flex-wrap gap-1.5">
           {([
             { k: 'all' as const,  label: 'All' },
             { k: 'team' as const, label: 'Team' },
-            { k: 'solo' as const, label: 'Extra Reps' },
+            { k: 'solo' as const, label: 'Solo' },
           ]).map(c => (
             <button
               key={c.k}
@@ -474,7 +474,7 @@ const Drills: React.FC = () => {
                       {TOPICS.find(t => t.value === d.topic)?.label || d.topic}
                     </span>
                     {d.useCase === 'solo' && (
-                      <span className="text-[10px] font-extrabold tracking-widest uppercase text-amber-300 bg-amber-500/15 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">Extra Reps</span>
+                      <span className="text-[10px] font-extrabold tracking-widest uppercase text-amber-300 bg-amber-500/15 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">Solo</span>
                     )}
                     {d.source === 'ai' && (
                       <span className="text-[10px] font-extrabold tracking-widest uppercase text-violet-300 bg-violet-500/15 ring-1 ring-violet-200 px-1.5 py-0.5 rounded">AI</span>
@@ -752,14 +752,14 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               </select>
             </Field>
           </div>
-          {/* Use case — drives the headline Team / Extra Reps filter on
-              the library so a coach building a Pathway sees the right
+          {/* Use case - drives the headline Team / Solo filter on the
+              library so a coach building a Pathway sees the right
               content first. */}
           <Field label="Use case">
             <div className="flex flex-wrap gap-1.5">
               {([
                 { k: 'team' as const, label: 'Team practice', hint: 'Group drill, needs multiple players' },
-                { k: 'solo' as const, label: 'Extra Reps', hint: 'Solo / at-home work for one kid' },
+                { k: 'solo' as const, label: 'Solo', hint: 'At-home or one-kid work. Great for development plans.' },
                 { k: 'both' as const, label: 'Both', hint: 'Works either way' },
               ]).map(c => (
                 <button

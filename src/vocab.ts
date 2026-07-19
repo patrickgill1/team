@@ -30,7 +30,7 @@ export const VOCAB = {
   matchCenter:      'Match Center',
   playerCard:       'Player Card',
   playerCards:      'Player Cards',
-  extraReps:        'Extra Reps',
+  extraReps:        'Solo',
   playerPathway:    'Player Pathway',
   coachClipboard:   "Coach's Clipboard",
   squadBuilder:     'Squad Builder',

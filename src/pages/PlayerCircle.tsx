@@ -284,14 +284,25 @@ const PlayerCircle: React.FC = () => {
   const [generating, setGenerating] = useState(false);
   const [activeInvite, setActiveInvite] = useState<Invite | null>(null);
   const [showKudos, setShowKudos] = useState(false);
+  // "Parent of this player" gate — 2026-07-19: mirrors PlayerProfile.
+  // Blocks mom/dad/guardian from cheering their own kid; grandma,
+  // aunt, uncle, sibling still pass. See PlayerProfile for the full
+  // rationale and the legacy 'parent' default trade-off.
+  const viewerRelationship = String((userData as any)?.relationship || '').toLowerCase();
+  const isParentOfActivePlayer = !!userData
+    && !!activePlayer
+    && Array.isArray((activePlayer as any)?.parentIds)
+    && (activePlayer as any).parentIds.includes(userData.uid)
+    && (viewerRelationship === 'parent' || viewerRelationship === 'guardian');
   // Kudos gate — 2026-07-16: any Circle member can cheer, except the
-  // player themselves (adult-player self-praise guard). See PlayerProfile
-  // for the full rationale.
+  // player themselves (adult-player self-praise guard) and, since
+  // 2026-07-19, the player's own mom/dad/guardian.
   const canGiveKudos = !!userData
     && !!activePlayer
     && Array.isArray((activePlayer as any)?.parentIds)
     && (activePlayer as any).parentIds.includes(userData.uid)
-    && (userData as any)?.selfPlayerId !== activePlayer.id;
+    && (userData as any)?.selfPlayerId !== activePlayer.id
+    && !isParentOfActivePlayer;
 
   const handleInvite = async () => {
     if (!userData || !activePlayer || !selectedTeamId || generating) return;

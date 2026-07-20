@@ -834,16 +834,31 @@ const PlayerProfile: React.FC = () => {
     .filter(m => !selectedTeamId || (m as any).teamId === selectedTeamId)
     .slice(0, 6);
 
+  // "Parent of this player" gate — 2026-07-19: block a biological /
+  // legal parent from cheering their own kid. Grandma, aunt, uncle,
+  // sibling, and family friends still pass (Circle mission per
+  // project_player_circle_mission). Signal is user.relationship set
+  // explicitly to a parent-role value. Per feedback_circle_relationship
+  // _default the legacy 'parent' default is ambiguous, so grandmas
+  // whose relationship was never picked will be incorrectly blocked
+  // here (see punts on the shipping note); explicit relationship on
+  // signup is the honest fix.
+  const viewerRelationship = String((userData as any)?.relationship || '').toLowerCase();
+  const isParentOfThisPlayer = !!userData
+    && Array.isArray((player as any)?.parentIds)
+    && (player as any).parentIds.includes(userData.uid)
+    && (viewerRelationship === 'parent' || viewerRelationship === 'guardian');
   // Kudos gate — 2026-07-16: viewer is in this player's Circle and is
-  // not the player themselves. We used to require an explicit non-parent
-  // relationship, which silently locked out every Circle member whose
-  // relationship was still the legacy 'parent' default. Ship 1 opens
-  // Kudos to any Circle member; self-praise is still blocked via
-  // selfPlayerId (adult players joining their own roster spot).
+  // not the player themselves. Ship 1 opened Kudos to any Circle
+  // member; self-praise is still blocked via selfPlayerId (adult
+  // players joining their own roster spot). 2026-07-19: also blocked
+  // for biological / legal parents so mom and dad can't cheer their
+  // own kid.
   const canGiveKudos = !!userData
     && Array.isArray((player as any)?.parentIds)
     && (player as any).parentIds.includes(userData.uid)
-    && (userData as any)?.selfPlayerId !== player.id;
+    && (userData as any)?.selfPlayerId !== player.id
+    && !isParentOfThisPlayer;
 
   return (
     <div className="min-h-screen bg-surface-base">

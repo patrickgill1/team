@@ -49,10 +49,11 @@ const BADGE_SLOTS: string[] = [
 type RarityTier = 'rookie' | 'pro' | 'elite' | 'legend';
 
 // Rarity bands align with the playerTier() label ladder so a kid
-// who reads "PLAYMAKER" on the dashboard sees the matching card
-// treatment here. Level bands: 1-3 = rookie (FIRST KICK / CALLED UP
-// / STARTER), 4-6 = pro (REGULAR / PLAYMAKER / MATCH WINNER),
-// 7-8 = elite (CAPTAIN / TALISMAN), 9+ = legend (LEGEND).
+// who reads "RISING STAR" on the dashboard sees the matching card
+// treatment here. Level bands: 1-3 = rookie (FIRST KICK / TWO-TOUCH
+// / MATCH FIT), 4-6 = pro (IN FORM / RISING STAR / DIFFERENCE
+// MAKER), 7-8 = elite (UNSTOPPABLE / CLUB HERO), 9+ = legend
+// (LEGEND, then GOAT at 20+).
 function rarityForLevel(level: number): RarityTier {
   if (level >= 9) return 'legend';
   if (level >= 7) return 'elite';
@@ -232,7 +233,7 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onGiveXp }) => {
                   {/* Per-level tier label (Patrick's warm-only progression).
                       rarityStyle still drives the chip's colors + card
                       frame style; we only override the TEXT so a
-                      Level 3 player reads "STARTER" here just like
+                      Level 3 player reads "MATCH FIT" here just like
                       on the dashboard, not the rarity band "Rookie". */}
                   {playerTier(level.level)}
                 </span>

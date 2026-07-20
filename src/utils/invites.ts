@@ -78,7 +78,13 @@ export async function createPlayerInvite(opts: CreatePlayerInviteOpts): Promise<
     usedBy: [],
   };
   if (opts.note) inv.note = opts.note;
-  if (opts.relationship && opts.relationship !== 'parent') inv.relationship = opts.relationship;
+  // 2026-07-19: was dropping opts.relationship==='parent' as a legacy
+  // "no real info" signal, which meant mom/dad accepters ended up
+  // with user.relationship=undefined and the self-Kudos gate couldn't
+  // tell them from grandma-with-undefined. Now we stamp whatever
+  // the caller picked (including 'parent') and let the worker + the
+  // ParentDirectory chip helper handle the display.
+  if (opts.relationship) inv.relationship = opts.relationship;
   if (opts.isAdultPlayer) inv.isAdultPlayer = true;
   await setDoc(doc(db, COLL, id), inv);
   return { ...inv, createdAt: new Date() } as Invite;

@@ -761,11 +761,18 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
   };
   if (inviteType === 'player') {
     op.role = 'parent';
-    // Only stamp a relationship if the invite carried a real one (not the
-    // legacy 'parent' fallback). Leave undefined otherwise so the accepter
-    // can set their own relationship later in Settings.
+    // 2026-07-19: previously only stamped when inviteRel was non-empty
+    // AND non-'parent' (treated 'parent' as a legacy no-info fallback).
+    // That left mom/dad accepters with relationship=undefined, which
+    // downstream self-Kudos + directory gates couldn't distinguish
+    // from a grandma-with-undefined. Now that the PlayerCircle picker
+    // forces the inviter to declare a real relationship (including
+    // 'parent'/'guardian') before generating the invite, we stamp
+    // whatever the invite carried. Legacy invites with no relationship
+    // still leave the field undefined — those users need a Settings
+    // prompt to self-declare (follow-up, not shipped here).
     const inviteRel = invite.relationship ? String(invite.relationship) : '';
-    if (inviteRel && inviteRel !== 'parent') {
+    if (inviteRel) {
       op.relationship = inviteRel;
     }
     op.playerLink = { playerId, isAdultPlayer: invite.isAdultPlayer === true };
@@ -1036,12 +1043,11 @@ async function handleClaimOfferAccept(req: Request, env: Env, payload: any): Pro
   //    the team in their switcher, chat, RSVPs, etc. Silent breakage
   //    of the tryout happy path for every family who accepted.
   //
-  //    Only stamp a relationship if the offer carried a real one
-  //    (not the legacy 'parent' fallback). Offers today don't set
-  //    relationship at send time, so this branch effectively leaves
-  //    it undefined and the accepter can declare their own in
-  //    Settings later (grandparent, guardian, etc). Matches the
-  //    Ship 1 invite-path fix at handleClaimInvite.
+  //    2026-07-19: was dropping offerRel==='parent' as a legacy
+  //    no-info fallback. Now we stamp whatever the offer carried
+  //    (including 'parent'/'guardian') so the self-Kudos gate can
+  //    tell mom/dad apart from grandma-with-undefined. Matches the
+  //    invite-path change at handleClaimInvite.
   if (playerId && teamId) {
     const offerRel = offer.relationship ? String(offer.relationship) : '';
     const membershipOp: any = {
@@ -1054,7 +1060,7 @@ async function handleClaimOfferAccept(req: Request, env: Env, payload: any): Pro
       invitedVia: `offer:${offerId}`,
       playerLink: { playerId },
     };
-    if (offerRel && offerRel !== 'parent') {
+    if (offerRel) {
       membershipOp.relationship = offerRel;
     }
     await applyMembership(membershipOp, pid, sa);

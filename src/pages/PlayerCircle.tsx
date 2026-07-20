@@ -9,6 +9,7 @@ import Header from '../components/common/Header';
 import { createPlayerInvite } from '../utils/invites';
 import InviteShareModal from '../components/common/InviteShareModal';
 import KudosComposerModal from '../components/kudos/KudosComposerModal';
+import { Sheet, Button } from '../components/ui';
 import { buildSidelineShouts, SHOUT_TYPE_LABEL, shoutAccentClass } from '../utils/sidelineShouts';
 import type { Invite, Player } from '../types';
 
@@ -284,23 +285,41 @@ const PlayerCircle: React.FC = () => {
   const [generating, setGenerating] = useState(false);
   const [activeInvite, setActiveInvite] = useState<Invite | null>(null);
   const [showKudos, setShowKudos] = useState(false);
-  // "Parent of this player" gate — 2026-07-19: mirrors PlayerProfile.
-  // Blocks mom/dad/guardian from cheering their own kid; grandma,
-  // aunt, uncle, sibling still pass. See PlayerProfile for the full
-  // rationale and the legacy 'parent' default trade-off.
+  // Relationship picker sheet — 2026-07-19: PlayerCircle invites used to
+  // fire with NO relationship field, which left every accepter (mom,
+  // dad, grandma, uncle) with user.relationship=undefined. That made
+  // downstream gates (self-kudos block, ParentDirectory chip) unable
+  // to tell them apart. Now the inviter picks who they're adding
+  // BEFORE the link is generated so the invite carries the truth.
+  const [showRelPicker, setShowRelPicker] = useState(false);
+  const [pickerRelationship, setPickerRelationship] = useState<
+    'parent' | 'grandparent' | 'aunt_uncle' | 'guardian' | 'sibling' | 'other'
+  >('grandparent');
+  // "Parent of this player" gate — 2026-07-19 v2: mirrors PlayerProfile.
+  // See that file for the full rationale (coach-in-parentIds catch,
+  // legacy relationship=undefined trap, deferred server rule mirror).
   const viewerRelationship = String((userData as any)?.relationship || '').toLowerCase();
-  const isParentOfActivePlayer = !!userData
+  const viewerChildren: string[] = Array.isArray((userData as any)?.children)
+    ? (userData as any).children
+    : [];
+  const viewerIsCoachOfActiveKid = !!activePlayer
+    && (userData as any)?.role === 'coach'
+    && viewerChildren.includes(activePlayer.id);
+  const inActiveParentIds = !!userData
     && !!activePlayer
     && Array.isArray((activePlayer as any)?.parentIds)
-    && (activePlayer as any).parentIds.includes(userData.uid)
-    && (viewerRelationship === 'parent' || viewerRelationship === 'guardian');
+    && (activePlayer as any).parentIds.includes(userData.uid);
+  const isParentOfActivePlayer = inActiveParentIds
+    && (
+      viewerRelationship === 'parent'
+      || viewerRelationship === 'guardian'
+      || viewerIsCoachOfActiveKid
+    );
   // Kudos gate — 2026-07-16: any Circle member can cheer, except the
   // player themselves (adult-player self-praise guard) and, since
-  // 2026-07-19, the player's own mom/dad/guardian.
-  const canGiveKudos = !!userData
+  // 2026-07-19, the player's own mom/dad/guardian and coach-parents.
+  const canGiveKudos = inActiveParentIds
     && !!activePlayer
-    && Array.isArray((activePlayer as any)?.parentIds)
-    && (activePlayer as any).parentIds.includes(userData.uid)
     && (userData as any)?.selfPlayerId !== activePlayer.id
     && !isParentOfActivePlayer;
 
@@ -312,7 +331,9 @@ const PlayerCircle: React.FC = () => {
         teamId: selectedTeamId,
         playerId: activePlayer.id,
         createdBy: userData.uid,
+        relationship: pickerRelationship,
       });
+      setShowRelPicker(false);
       setActiveInvite(invite);
     } catch (err: any) {
       console.error('[circle] invite failed', err);
@@ -431,7 +452,7 @@ const PlayerCircle: React.FC = () => {
             </h2>
             <button
               type="button"
-              onClick={handleInvite}
+              onClick={() => setShowRelPicker(true)}
               disabled={generating}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest bg-brand-primary text-white hover:brightness-110 transition disabled:opacity-60"
             >
@@ -553,6 +574,53 @@ const PlayerCircle: React.FC = () => {
       </div>
 
       {/* Modals */}
+      {activePlayer && (
+        <Sheet
+          open={showRelPicker}
+          onClose={() => { if (!generating) setShowRelPicker(false); }}
+          title={`Who are you adding to ${kidFirst}'s Circle?`}
+        >
+          <div className="p-4 sm:p-5 flex flex-col gap-4">
+            <p className="text-sm text-ink-primary/75 leading-relaxed">
+              Pick their relationship so {kidFirst} sees "Grandma left you a note" instead of a generic tag. You can always add more people after this.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { v: 'parent', label: 'Parent' },
+                { v: 'guardian', label: 'Guardian' },
+                { v: 'grandparent', label: 'Grandparent' },
+                { v: 'aunt_uncle', label: 'Aunt / Uncle' },
+                { v: 'sibling', label: 'Sibling' },
+                { v: 'other', label: 'Other family' },
+              ] as const).map(opt => {
+                const active = pickerRelationship === opt.v;
+                return (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setPickerRelationship(opt.v)}
+                    className={`px-3 py-2.5 rounded-xl text-[13px] font-bold ring-1 transition ${
+                      active
+                        ? 'bg-brand-primary text-white ring-brand-primary'
+                        : 'bg-line-default/[0.04] text-ink-primary ring-line-default/20 hover:bg-line-default/[0.08]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="ghost" onClick={() => setShowRelPicker(false)} disabled={generating}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleInvite} disabled={generating}>
+                {generating ? 'Generating…' : 'Generate link'}
+              </Button>
+            </div>
+          </div>
+        </Sheet>
+      )}
       {activePlayer && (
         <InviteShareModal
           invite={activeInvite}

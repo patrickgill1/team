@@ -1399,6 +1399,17 @@ service cloud.firestore {
     // actual Circle member). One cross-doc get() per write; well
     // within the 10-get rule budget.
     //
+    // 2026-07-19 self-Kudos block (server-authoritative — mirrors the
+    // PlayerProfile/PlayerCircle client gates so a stale bundle or a
+    // devtools submit can't bypass): deny writes when the sender is
+    // this player themself, OR is functionally the player's mom/dad/
+    // guardian, OR is the team's coach who also lives in this kid's
+    // parentIds (coach-parent, whose user.relationship is unset per
+    // type contract). Grandma / aunt / uncle / sibling / other are
+    // still permitted. Rule cost: adds one get() on the sender's
+    // user doc, so 2 gets total per kudos write — well within the
+    // 10-get budget.
+    //
     // UPDATE: worker-only (via admin SDK, bypasses rules) for the
     // coach → convert-to-XP flow which stamps xpAwarded/xpEventId/
     // xpAwardedBy/etc. If a coach tries to update from the client
@@ -1413,7 +1424,15 @@ service cloud.firestore {
         && request.resource.data.senderUid == request.auth.uid
         && request.resource.data.playerId is string
         && exists(/databases/$(database)/documents/players/$(request.resource.data.playerId))
-        && request.auth.uid in get(/databases/$(database)/documents/players/$(request.resource.data.playerId)).data.parentIds;
+        && request.auth.uid in get(/databases/$(database)/documents/players/$(request.resource.data.playerId)).data.parentIds
+        // Self / parent / guardian / coach-parent block. The base
+        // rule above already asserts the sender is in parentIds, so
+        // the coach-parent check just needs to confirm this player
+        // is one of the coach's linked kids (user.children).
+        && userDoc().get('selfPlayerId', '') != request.resource.data.playerId
+        && !(userDoc().get('relationship', '') in ['parent', 'guardian'])
+        && !(userDoc().get('role', '') == 'coach'
+             && request.resource.data.playerId in userDoc().get('children', []));
       allow update: if isPlatformAdmin();
       allow delete: if isAuthed() && (
         resource.data.senderUid == request.auth.uid

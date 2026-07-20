@@ -117,8 +117,14 @@ const CoachCockpit: React.FC = () => {
     return () => { cancelled = true; };
   }, [grantXpOpen, selectedTeamId]);
 
+  // Depend on the certifications array reference — not the whole
+  // userData object — so an unrelated user-doc write (widgetToken,
+  // pinnedChats, name edit, etc. arriving on every AuthContext live
+  // snapshot) doesn't force this memo + the credentials row render
+  // map to recompute mid-scroll.
+  const coachCertifications = (userData as any)?.coachCertifications;
   const certStatus = useMemo(() => {
-    const list = (userData as any)?.coachCertifications || [];
+    const list = coachCertifications || [];
     const byKind = new Map<string, any>();
     for (const c of list) {
       byKind.set(c.kind, c);
@@ -128,7 +134,7 @@ const CoachCockpit: React.FC = () => {
       label: CERT_LABELS[k] || k,
       done: byKind.has(k),
     }));
-  }, [userData]);
+  }, [coachCertifications]);
 
   // Self-attestation: coach taps a row to confirm they hold that
   // credential. Adds/removes a manual cert row on the user doc.
@@ -181,43 +187,48 @@ const CoachCockpit: React.FC = () => {
 
   const certDoneCount = certStatus.filter((c) => c.done).length;
   const certTotal = certStatus.length;
-  const nextEventType = String((nextEvent as any)?.type || '').toLowerCase();
-  const nextEventIsGame = ['game', 'scrimmage', 'tournament'].includes(nextEventType);
-  const coachFlow = nextEvent
-    ? [
-        {
-          label: nextEventIsGame ? 'Open Game Day mode' : 'Review event details',
-          hint: nextEventIsGame ? 'Score, lineup, rotation bell, and recap.' : 'RSVPs, notes, location, and discussion.',
-          to: nextEventIsGame ? `/game-day/${nextEvent.id}` : `/events/${nextEvent.id}`,
-          accent: nextEventIsGame ? 'bg-brand-primary text-white' : 'bg-amber-500 text-charcoal-950',
-        },
-        {
-          label: 'Check RSVPs',
-          hint: 'See who is in, maybe, out, or still pending.',
-          to: `/events/${nextEvent.id}`,
-          accent: 'bg-emerald-500 text-charcoal-950',
-        },
-        {
-          label: 'Message the team',
-          hint: 'Send the update parents are probably waiting for.',
-          to: '/chat',
-          accent: 'bg-sky-500 text-charcoal-950',
-        },
-      ]
-    : [
-        {
-          label: 'Schedule the next event',
-          hint: 'Add the practice, game, or meeting parents need next.',
-          to: '/calendar',
-          accent: 'bg-amber-500 text-charcoal-950',
-        },
-        {
-          label: 'Post a team update',
-          hint: 'Keep families oriented even when the calendar is quiet.',
-          to: '/wall',
-          accent: 'bg-brand-primary text-white',
-        },
-      ];
+  // Memoize the flow list so we don't allocate a fresh array + tile
+  // objects on every parent re-render. Rebuilds only when the next
+  // event actually changes.
+  const coachFlow = useMemo(() => {
+    const type = String((nextEvent as any)?.type || '').toLowerCase();
+    const isGame = ['game', 'scrimmage', 'tournament'].includes(type);
+    return nextEvent
+      ? [
+          {
+            label: isGame ? 'Open Game Day mode' : 'Review event details',
+            hint: isGame ? 'Score, lineup, rotation bell, and recap.' : 'RSVPs, notes, location, and discussion.',
+            to: isGame ? `/game-day/${nextEvent.id}` : `/events/${nextEvent.id}`,
+            accent: isGame ? 'bg-brand-primary text-white' : 'bg-amber-500 text-charcoal-950',
+          },
+          {
+            label: 'Check RSVPs',
+            hint: 'See who is in, maybe, out, or still pending.',
+            to: `/events/${nextEvent.id}`,
+            accent: 'bg-emerald-500 text-charcoal-950',
+          },
+          {
+            label: 'Message the team',
+            hint: 'Send the update parents are probably waiting for.',
+            to: '/chat',
+            accent: 'bg-sky-500 text-charcoal-950',
+          },
+        ]
+      : [
+          {
+            label: 'Schedule the next event',
+            hint: 'Add the practice, game, or meeting parents need next.',
+            to: '/calendar',
+            accent: 'bg-amber-500 text-charcoal-950',
+          },
+          {
+            label: 'Post a team update',
+            hint: 'Keep families oriented even when the calendar is quiet.',
+            to: '/wall',
+            accent: 'bg-brand-primary text-white',
+          },
+        ];
+  }, [nextEvent]);
 
   return (
     <div className="min-h-screen bg-surface-base">

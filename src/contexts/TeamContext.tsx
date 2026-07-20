@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { Team } from '../types';
@@ -276,14 +276,24 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('selectedTeamId', teamId);
   };
 
-  const value: TeamContextType = {
+  // Memoize the context value so consumers only re-render when a
+  // field they actually read changes. Without this, every provider
+  // render (any teams/selectedTeamId/loading state churn — plus
+  // every AuthContext user-doc snapshot that bubbles into loadTeams)
+  // handed every useTeam() consumer a NEW object reference, which
+  // React treats as "value changed" → force-rerender the entire
+  // subtree. On /coach that cascade re-ran CoachCockpit, the whole
+  // tile grid, CoachRecentMediaCard, CoachAccordionBar's isUserCoach
+  // check, and Navigation on every unrelated user-doc write. This
+  // is the single biggest source of the Dugout scroll-freeze.
+  const value = useMemo<TeamContextType>(() => ({
     teams,
     selectedTeamId,
     selectedTeam,
     setSelectedTeamId,
     refreshTeams: loadTeams,
     loading,
-  };
+  }), [teams, selectedTeamId, selectedTeam, loadTeams, loading]);
 
   return (
     <TeamContext.Provider value={value}>

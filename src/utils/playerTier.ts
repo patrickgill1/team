@@ -25,16 +25,14 @@
 // on the team sheet, so no kid can be contradicted by Saturday's
 // lineup.
 //
-// 2026-07-20 tweak: retired L3 "GAME READY" and L2 "ON THE BALL"
-// for two reasons. First, "GAME READY" is a coach-assessable
-// state (a benched Level 3 kid reading it every open reproduced
-// the exact STARTER problem the rename was meant to kill).
-// Second, L2 "ON THE BALL" (in the run of play) escalating to L3
-// "GAME READY" (pre-game preparedness) read as a chronological
-// step back. New L2/L3 keep the pre-pitch to on-pitch arc and
-// stay in the player-journey register: FIRST KICK is your first
-// touch of the season, FINDING FEET is settling in, FIRST TOUCH
-// is control on the ball. Nothing a coach declares for you.
+// 2026-07-20 tweak: retired L3 "GAME READY" per verifier finding
+// (a coach-assessable state, reproduced the STARTER problem for
+// benched kids). L2 and L3 finalized as Patrick's picks:
+// TWO-TOUCH (a fundamental drill every soccer kid runs, receive
+// and release in two touches) and MATCH FIT (soccer-culture for
+// conditioned enough to play the full match, a self-earned
+// fitness state, not a coach lineup call). Neither can be
+// contradicted by Saturday's team sheet.
 //
 // Single source of truth. Used by:
 //   - src/pages/Dashboard.tsx (MyPlayerCard LEVEL cell subtitle)
@@ -51,7 +49,7 @@ export function playerTier(level: number): string {
   if (level === 6) return 'DIFFERENCE MAKER';
   if (level === 5) return 'RISING STAR';
   if (level === 4) return 'IN FORM';
-  if (level === 3) return 'FIRST TOUCH';
-  if (level === 2) return 'FINDING FEET';
+  if (level === 3) return 'MATCH FIT';
+  if (level === 2) return 'TWO-TOUCH';
   return 'FIRST KICK';
 }

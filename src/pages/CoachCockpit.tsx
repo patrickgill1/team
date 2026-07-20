@@ -117,18 +117,27 @@ const CoachCockpit: React.FC = () => {
     return () => { cancelled = true; };
   }, [grantXpOpen, selectedTeamId]);
 
+  // Fingerprint the certifications on the required-kind mask only.
+  // buildUserData spreads the raw Firestore snapshot on every write,
+  // so `userData.coachCertifications` is a fresh array reference on
+  // every AuthContext live snapshot — depending on the array itself
+  // would re-run this memo on every unrelated user-doc write
+  // (widgetToken bump, name edit, pinnedChats, etc.). A four-char
+  // primitive mask changes iff the coach's required-cert membership
+  // actually flips, so consumers stop rebuilding mid-scroll.
+  const coachCertifications = (userData as any)?.coachCertifications;
+  const certMask = useMemo(() => {
+    const list = Array.isArray(coachCertifications) ? coachCertifications : [];
+    const kinds = new Set(list.map((c: any) => c?.kind));
+    return REQUIRED_COACH_CERT_KINDS.map((k) => (kinds.has(k) ? '1' : '0')).join('');
+  }, [coachCertifications]);
   const certStatus = useMemo(() => {
-    const list = (userData as any)?.coachCertifications || [];
-    const byKind = new Map<string, any>();
-    for (const c of list) {
-      byKind.set(c.kind, c);
-    }
-    return REQUIRED_COACH_CERT_KINDS.map((k) => ({
+    return REQUIRED_COACH_CERT_KINDS.map((k, i) => ({
       kind: k,
       label: CERT_LABELS[k] || k,
-      done: byKind.has(k),
+      done: certMask[i] === '1',
     }));
-  }, [userData]);
+  }, [certMask]);
 
   // Self-attestation: coach taps a row to confirm they hold that
   // credential. Adds/removes a manual cert row on the user doc.
@@ -168,6 +177,56 @@ const CoachCockpit: React.FC = () => {
     }
   };
 
+  // Memoize the flow list so we don't allocate a fresh array + tile
+  // objects on every parent re-render. Rebuilds only when the next
+  // event actually changes.
+  //
+  // HOOKS-BEFORE-RETURNS: this useMemo lives ABOVE the isUserCoach
+  // early return below. If a coach's role flips mid-session
+  // (promotion, demotion, admin-side role edit), AuthContext's live
+  // user-doc snapshot re-renders us with a different hook count
+  // between renders — React #310 crash. Keep every hook in this
+  // component above the conditional return.
+  const coachFlow = useMemo(() => {
+    const type = String((nextEvent as any)?.type || '').toLowerCase();
+    const isGame = ['game', 'scrimmage', 'tournament'].includes(type);
+    return nextEvent
+      ? [
+          {
+            label: isGame ? 'Open Game Day mode' : 'Review event details',
+            hint: isGame ? 'Score, lineup, rotation bell, and recap.' : 'RSVPs, notes, location, and discussion.',
+            to: isGame ? `/game-day/${nextEvent.id}` : `/events/${nextEvent.id}`,
+            accent: isGame ? 'bg-brand-primary text-white' : 'bg-amber-500 text-charcoal-950',
+          },
+          {
+            label: 'Check RSVPs',
+            hint: 'See who is in, maybe, out, or still pending.',
+            to: `/events/${nextEvent.id}`,
+            accent: 'bg-emerald-500 text-charcoal-950',
+          },
+          {
+            label: 'Message the team',
+            hint: 'Send the update parents are probably waiting for.',
+            to: '/chat',
+            accent: 'bg-sky-500 text-charcoal-950',
+          },
+        ]
+      : [
+          {
+            label: 'Schedule the next event',
+            hint: 'Add the practice, game, or meeting parents need next.',
+            to: '/calendar',
+            accent: 'bg-amber-500 text-charcoal-950',
+          },
+          {
+            label: 'Post a team update',
+            hint: 'Keep families oriented even when the calendar is quiet.',
+            to: '/wall',
+            accent: 'bg-brand-primary text-white',
+          },
+        ];
+  }, [nextEvent]);
+
   const isUserCoach = isCoach((userData as any)?.role);
   if (!isUserCoach) {
     return (
@@ -181,43 +240,6 @@ const CoachCockpit: React.FC = () => {
 
   const certDoneCount = certStatus.filter((c) => c.done).length;
   const certTotal = certStatus.length;
-  const nextEventType = String((nextEvent as any)?.type || '').toLowerCase();
-  const nextEventIsGame = ['game', 'scrimmage', 'tournament'].includes(nextEventType);
-  const coachFlow = nextEvent
-    ? [
-        {
-          label: nextEventIsGame ? 'Open Game Day mode' : 'Review event details',
-          hint: nextEventIsGame ? 'Score, lineup, rotation bell, and recap.' : 'RSVPs, notes, location, and discussion.',
-          to: nextEventIsGame ? `/game-day/${nextEvent.id}` : `/events/${nextEvent.id}`,
-          accent: nextEventIsGame ? 'bg-brand-primary text-white' : 'bg-amber-500 text-charcoal-950',
-        },
-        {
-          label: 'Check RSVPs',
-          hint: 'See who is in, maybe, out, or still pending.',
-          to: `/events/${nextEvent.id}`,
-          accent: 'bg-emerald-500 text-charcoal-950',
-        },
-        {
-          label: 'Message the team',
-          hint: 'Send the update parents are probably waiting for.',
-          to: '/chat',
-          accent: 'bg-sky-500 text-charcoal-950',
-        },
-      ]
-    : [
-        {
-          label: 'Schedule the next event',
-          hint: 'Add the practice, game, or meeting parents need next.',
-          to: '/calendar',
-          accent: 'bg-amber-500 text-charcoal-950',
-        },
-        {
-          label: 'Post a team update',
-          hint: 'Keep families oriented even when the calendar is quiet.',
-          to: '/wall',
-          accent: 'bg-brand-primary text-white',
-        },
-      ];
 
   return (
     <div className="min-h-screen bg-surface-base">

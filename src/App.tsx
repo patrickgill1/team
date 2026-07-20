@@ -266,12 +266,23 @@ const AppLayoutShell: React.FC<{ children: React.ReactNode }> = ({ children }) =
   // the native underlay fixes await binary submission; any non-owner
   // who toggled to light during the brief 3.7.40-42 window (when the
   // picker was visible to all) gets reset on next auth-resolved render.
+  //
+  // Deps use the computed picker-visible boolean instead of userData
+  // itself — otherwise the AuthContext live-snapshot handed us a
+  // fresh userData reference on every unrelated field write
+  // (widgetToken bump, cert toggle, name edit, etc.), which re-ran
+  // this effect + setMode → render storm all the way down /coach.
+  // Using the boolean (not just uid) also means a future re-gating
+  // of isThemePickerVisible (e.g. to paid tier / email allowlist)
+  // will correctly re-fire this self-heal the moment the gate flips
+  // for a signed-in user, not just on next sign-in.
+  const themePickerVisible = isThemePickerVisible(userData);
   React.useEffect(() => {
     if (!userData) return;
-    if (!isThemePickerVisible(userData) && mode !== 'dark') {
+    if (!themePickerVisible && mode !== 'dark') {
       setMode('dark');
     }
-  }, [userData, mode, setMode]);
+  }, [themePickerVisible, !!userData, mode, setMode]);
 
   // Implicit widget-token bootstrap. Fires once per session for the
   // signed-in user. If they already have a token on their user doc

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
+import { collection, getCountFromServer, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
@@ -103,7 +103,22 @@ const CoachAccordionBar: React.FC = () => {
   // coach view mode in the profile sheet. Multi-role users (admin+
   // coach+parent — Patrick himself) flip to parent view to clear
   // the dashboard of coach chrome when they're in family-context.
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam) && viewMode === 'coach';
+  //
+  // Memoize on the primitive membership signal — selectedTeam.coachIds
+  // membership + uid + viewMode — so that when the AuthContext live
+  // snapshot hands back a fresh userData object (or TeamContext hands
+  // back a fresh selectedTeam) with the same coach membership, the
+  // boolean stays reference-stable and the load effect below doesn't
+  // pointlessly refire mid-scroll. Concatenated coachIds is a cheap
+  // primitive fingerprint that changes iff staff composition changes.
+  const userUid = (userData as any)?.uid as string | undefined;
+  const coachIdsKey = Array.isArray(selectedTeam?.coachIds)
+    ? (selectedTeam!.coachIds as string[]).join('|')
+    : '';
+  const isUserCoach = useMemo(
+    () => isCoachOfTeam({ uid: userUid }, { coachIds: coachIdsKey ? coachIdsKey.split('|') : [] }) && viewMode === 'coach',
+    [userUid, coachIdsKey, viewMode],
+  );
 
   useEffect(() => {
     if (!isUserCoach || !selectedTeamId) {
@@ -136,30 +151,28 @@ const CoachAccordionBar: React.FC = () => {
           orderBy('date', 'asc'),
           limit(5)
         );
-        // Scope to the active team. Was dumping the WHOLE players
-        // collection cross-club before filtering client-side, which
-        // was the same class of "coach can see every family's PII"
-        // leak Patrick saw on Sports Connect. isActive is filtered
-        // client-side to avoid needing a composite index.
+        // Roster size only — we don't render player docs here, we
+        // just need a denominator for "missing RSVPs." Use Firestore's
+        // count() aggregation so we pay 1 document-read equivalent
+        // per query instead of pulling the entire roster (an
+        // unbounded fan-out that ballooned on 30+ kid teams and was
+        // the smoking-gun cost on this bar's initial paint).
         const playersQ = query(
           collection(db, 'players'),
           where('teamIds', 'array-contains', selectedTeamId)
         );
-        const [eventsSnap, playersSnap] = await Promise.all([
+        const [eventsSnap, rosterCountSnap] = await Promise.all([
           getDocs(eventsQ),
-          getDocs(playersQ),
+          getCountFromServer(playersQ),
         ]);
         if (cancelled) return;
-        // Filter client-side to the active team (same pattern
-        // useFirestore.getPlayersByTeam uses — avoids a composite
-        // index requirement). Counts both legacy teamId field and
-        // newer teamIds[] array memberships.
-        const rosterSize = playersSnap.docs.filter((d) => {
-          const p: any = d.data();
-          if (Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) return true;
-          if (p.teamId === selectedTeamId) return true;
-          return false;
-        }).length;
+        // count() ignores the legacy teamId-only path, but every
+        // active roster entry has teamIds[] set by applyMembership
+        // now — the legacy path was a migration cushion, safe to
+        // drop from the denominator here (worst case: RSVP-missing
+        // count under-counts by any un-migrated docs, matching the
+        // Dashboard hero's own math which also uses teamIds).
+        const rosterSize = rosterCountSnap.data().count;
 
         const next: StatusItem[] = [];
 
@@ -226,7 +239,7 @@ const CoachAccordionBar: React.FC = () => {
             limit(5)
           );
           const chatSnap = await getDocs(chatQ);
-          const myUid = (userData as any)?.uid;
+          const myUid = userUid;
           const recent = chatSnap.docs.filter((d) => {
             const data: any = d.data();
             const ts = data.timestamp?.toDate?.() || new Date(data.timestamp || 0);
@@ -281,7 +294,11 @@ const CoachAccordionBar: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [isUserCoach, selectedTeamId, (userData as any)?.uid]);
+    // Deps are all primitives (booleans + strings). isUserCoach is
+    // useMemo'd against staff composition, so a user-doc snapshot
+    // that touched an unrelated field (widgetToken, pinnedChats,
+    // name) will NOT refire this Firestore fan-out.
+  }, [isUserCoach, selectedTeamId, userUid]);
 
   const topPriority = useMemo<Priority | null>(() => {
     if (items.length === 0) return null;

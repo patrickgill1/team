@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { Team } from '../types';
@@ -60,7 +60,20 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Ref-mirror of userData so loadTeams doesn't need userData in its
+  // useCallback deps. Without this, every AuthContext live snapshot
+  // (widget token bump, cert toggle, name edit, pinnedChats update)
+  // handed us a fresh userData ref → loadTeams got a new function
+  // ref → the memoized `value` object below got a new ref → every
+  // useTeam() consumer re-rendered. Cascade defeated: loadTeams is
+  // stable, always reads the latest userData at call-time, and the
+  // reload-on-primitive-change effect below still fires when the
+  // fields that actually justify a refetch change.
+  const userDataRef = useRef(userData);
+  useEffect(() => { userDataRef.current = userData; }, [userData]);
+
   const loadTeams = useCallback(async () => {
+    const userData = userDataRef.current;
     if (!userData) {
       setTeams([]);
       setLoading(false);
@@ -243,7 +256,11 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  }, [userData, selectedTeamId]);
+    // Only selectedTeamId belongs in deps — userData is read via ref
+    // at call time (see userDataRef above). This keeps loadTeams's
+    // identity stable across the noisy AuthContext user-doc snapshot
+    // stream, which is the whole point of the cascade fix.
+  }, [selectedTeamId]);
 
   useEffect(() => {
     loadTeams();

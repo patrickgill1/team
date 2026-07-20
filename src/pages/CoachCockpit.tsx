@@ -117,24 +117,27 @@ const CoachCockpit: React.FC = () => {
     return () => { cancelled = true; };
   }, [grantXpOpen, selectedTeamId]);
 
-  // Depend on the certifications array reference — not the whole
-  // userData object — so an unrelated user-doc write (widgetToken,
-  // pinnedChats, name edit, etc. arriving on every AuthContext live
-  // snapshot) doesn't force this memo + the credentials row render
-  // map to recompute mid-scroll.
+  // Fingerprint the certifications on the required-kind mask only.
+  // buildUserData spreads the raw Firestore snapshot on every write,
+  // so `userData.coachCertifications` is a fresh array reference on
+  // every AuthContext live snapshot — depending on the array itself
+  // would re-run this memo on every unrelated user-doc write
+  // (widgetToken bump, name edit, pinnedChats, etc.). A four-char
+  // primitive mask changes iff the coach's required-cert membership
+  // actually flips, so consumers stop rebuilding mid-scroll.
   const coachCertifications = (userData as any)?.coachCertifications;
+  const certMask = useMemo(() => {
+    const list = Array.isArray(coachCertifications) ? coachCertifications : [];
+    const kinds = new Set(list.map((c: any) => c?.kind));
+    return REQUIRED_COACH_CERT_KINDS.map((k) => (kinds.has(k) ? '1' : '0')).join('');
+  }, [coachCertifications]);
   const certStatus = useMemo(() => {
-    const list = coachCertifications || [];
-    const byKind = new Map<string, any>();
-    for (const c of list) {
-      byKind.set(c.kind, c);
-    }
-    return REQUIRED_COACH_CERT_KINDS.map((k) => ({
+    return REQUIRED_COACH_CERT_KINDS.map((k, i) => ({
       kind: k,
       label: CERT_LABELS[k] || k,
-      done: byKind.has(k),
+      done: certMask[i] === '1',
     }));
-  }, [coachCertifications]);
+  }, [certMask]);
 
   // Self-attestation: coach taps a row to confirm they hold that
   // credential. Adds/removes a manual cert row on the user doc.
@@ -174,22 +177,16 @@ const CoachCockpit: React.FC = () => {
     }
   };
 
-  const isUserCoach = isCoach((userData as any)?.role);
-  if (!isUserCoach) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 text-center">
-        <p className="text-ink-primary/85 font-semibold mb-1">Coach view</p>
-        <p className="text-ink-primary/55 text-sm mb-4">This page is for coaches.</p>
-        <Link to="/dashboard" className="text-brand-primary-soft font-bold text-sm hover:text-brand-primary-soft">← Back to dashboard</Link>
-      </div>
-    );
-  }
-
-  const certDoneCount = certStatus.filter((c) => c.done).length;
-  const certTotal = certStatus.length;
   // Memoize the flow list so we don't allocate a fresh array + tile
   // objects on every parent re-render. Rebuilds only when the next
   // event actually changes.
+  //
+  // HOOKS-BEFORE-RETURNS: this useMemo lives ABOVE the isUserCoach
+  // early return below. If a coach's role flips mid-session
+  // (promotion, demotion, admin-side role edit), AuthContext's live
+  // user-doc snapshot re-renders us with a different hook count
+  // between renders — React #310 crash. Keep every hook in this
+  // component above the conditional return.
   const coachFlow = useMemo(() => {
     const type = String((nextEvent as any)?.type || '').toLowerCase();
     const isGame = ['game', 'scrimmage', 'tournament'].includes(type);
@@ -229,6 +226,20 @@ const CoachCockpit: React.FC = () => {
           },
         ];
   }, [nextEvent]);
+
+  const isUserCoach = isCoach((userData as any)?.role);
+  if (!isUserCoach) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 text-center">
+        <p className="text-ink-primary/85 font-semibold mb-1">Coach view</p>
+        <p className="text-ink-primary/55 text-sm mb-4">This page is for coaches.</p>
+        <Link to="/dashboard" className="text-brand-primary-soft font-bold text-sm hover:text-brand-primary-soft">← Back to dashboard</Link>
+      </div>
+    );
+  }
+
+  const certDoneCount = certStatus.filter((c) => c.done).length;
+  const certTotal = certStatus.length;
 
   return (
     <div className="min-h-screen bg-surface-base">

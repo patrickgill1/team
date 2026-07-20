@@ -834,16 +834,57 @@ const PlayerProfile: React.FC = () => {
     .filter(m => !selectedTeamId || (m as any).teamId === selectedTeamId)
     .slice(0, 6);
 
-  // Kudos gate — 2026-07-16: viewer is in this player's Circle and is
-  // not the player themselves. We used to require an explicit non-parent
-  // relationship, which silently locked out every Circle member whose
-  // relationship was still the legacy 'parent' default. Ship 1 opens
-  // Kudos to any Circle member; self-praise is still blocked via
-  // selfPlayerId (adult players joining their own roster spot).
-  const canGiveKudos = !!userData
+  // "Parent of this player" gate — 2026-07-19 v2: block anyone who
+  // is functionally the kid's mom/dad/guardian from cheering their
+  // own kid. Circle mission (project_player_circle_mission) is that
+  // OTHER people make the kid feel seen; self-cheering is noise.
+  //
+  // Signals, most-specific first:
+  //   (1) user.relationship explicitly in ('parent','guardian').
+  //   (2) user.role === 'coach' AND uid in player.parentIds. A coach
+  //       whose own kid is on the roster lands in that kid's parentIds
+  //       via the same claim path everyone else uses, and coaches per
+  //       the User type contract "leave relationship unset" — so
+  //       relationship alone would miss coach-dad every time (verifier
+  //       finding, 2026-07-19). Coach-as-family-friend in an unrelated
+  //       kid's Circle is a rare-enough shape that we take the safe
+  //       block; they can still send Whispers as the team's coach.
+  //   (3) user.selfPlayerId === player.id (adult self-praise guard,
+  //       kept as-is from Ship 1).
+  //
+  // Known gap (deferred): mom/dad who joined via a Circle invite that
+  // did NOT carry a relationship still have relationship=undefined on
+  // their user doc (worker/writeGuards.ts:767 refuses to stamp the
+  // legacy 'parent' default). Client can't tell them apart from
+  // grandma-with-undefined. The picker on PlayerCircle handleInvite
+  // and the tightened worker below fix new invites going forward;
+  // legacy user docs need a Settings prompt to self-correct. Server-
+  // side kudos rule (firestore.rules) mirrors this same set of
+  // checks so a stale client bundle can't bypass the block.
+  const viewerRelationship = String((userData as any)?.relationship || '').toLowerCase();
+  const viewerChildren: string[] = Array.isArray((userData as any)?.children)
+    ? (userData as any).children
+    : [];
+  const viewerIsCoachOfOwnKid = (userData as any)?.role === 'coach'
+    && viewerChildren.includes(player.id);
+  const inParentIds = !!userData
     && Array.isArray((player as any)?.parentIds)
-    && (player as any).parentIds.includes(userData.uid)
-    && (userData as any)?.selfPlayerId !== player.id;
+    && (player as any).parentIds.includes(userData.uid);
+  const isParentOfThisPlayer = inParentIds
+    && (
+      viewerRelationship === 'parent'
+      || viewerRelationship === 'guardian'
+      || viewerIsCoachOfOwnKid
+    );
+  // Kudos gate — 2026-07-16: viewer is in this player's Circle and is
+  // not the player themselves. Ship 1 opened Kudos to any Circle
+  // member; self-praise is still blocked via selfPlayerId (adult
+  // players joining their own roster spot). 2026-07-19: also blocked
+  // for biological / legal parents so mom and dad can't cheer their
+  // own kid, and for coach-parents (see gate rationale above).
+  const canGiveKudos = inParentIds
+    && (userData as any)?.selfPlayerId !== player.id
+    && !isParentOfThisPlayer;
 
   return (
     <div className="min-h-screen bg-surface-base">

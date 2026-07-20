@@ -50,8 +50,8 @@ type RarityTier = 'rookie' | 'pro' | 'elite' | 'legend';
 
 // Rarity bands align with the playerTier() label ladder so a kid
 // who reads "RISING STAR" on the dashboard sees the matching card
-// treatment here. Level bands: 1-3 = rookie (FIRST KICK / ON THE
-// BALL / GAME READY), 4-6 = pro (IN FORM / RISING STAR / DIFFERENCE
+// treatment here. Level bands: 1-3 = rookie (FIRST KICK / FINDING
+// FEET / FIRST TOUCH), 4-6 = pro (IN FORM / RISING STAR / DIFFERENCE
 // MAKER), 7-8 = elite (UNSTOPPABLE / CLUB HERO), 9+ = legend
 // (LEGEND, then GOAT at 20+).
 function rarityForLevel(level: number): RarityTier {
@@ -233,7 +233,7 @@ const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onGiveXp }) => {
                   {/* Per-level tier label (Patrick's warm-only progression).
                       rarityStyle still drives the chip's colors + card
                       frame style; we only override the TEXT so a
-                      Level 3 player reads "GAME READY" here just like
+                      Level 3 player reads "FIRST TOUCH" here just like
                       on the dashboard, not the rarity band "Rookie". */}
                   {playerTier(level.level)}
                 </span>

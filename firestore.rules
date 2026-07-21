@@ -319,9 +319,26 @@ service cloud.firestore {
       // parentEmails STAYS writable from the coach path because the
       // AddPlayer form legitimately captures / edits invite-match
       // emails; it doesn't grant access, only maps future signups.
+      // Streak clobber guard 2026-07-21: any client-branch update that
+      // touches currentStreakDays must not decrease it by more than 1
+      // vs the stored value. A legit missed-day decay is at most 1 (walk
+      // is monotonic and days pass one at a time). Bigger drops mean an
+      // OLD client bundle self-healing from plan-shape data — Hunter's
+      // 13-day streak got clobbered to 1 that way. Worker/admin path
+      // (isPlatformAdmin branch) bypasses; this only shields against
+      // stale-code writes from authed users. Applies even if the update
+      // doesn't touch currentStreakDays (guard is a no-op then via
+      // hasAny short-circuit).
       allow update: if isAuthed() && (
         isPlatformAdmin()
         || (
+          (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['currentStreakDays'])
+            || request.resource.data.get('currentStreakDays', 0)
+                >= resource.data.get('currentStreakDays', 0) - 1
+          )
+          && (
+        (
           onTeam(resource.data.teamId)
           && !request.resource.data.diff(resource.data).affectedKeys()
               .hasAny(['parentIds'])
@@ -364,6 +381,8 @@ service cloud.firestore {
           && request.auth.uid in resource.data.parentIds
           && !request.resource.data.diff(resource.data).affectedKeys()
               .hasAny(['parentIds', 'parentEmails', 'teamId', 'teamIds', 'isActive', 'kidMode'])
+        )
+          )
         )
       );
       allow delete: if isAuthed() && (

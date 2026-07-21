@@ -436,8 +436,24 @@ export async function recomputeAndPersistPlayerStreak(
       debugWarn('[dev-plans] loadCheckinDayKeys read failed — keeping prior streak', err);
       return priorStreak;
     }
-    const streak = computeStreakDaysFromKeys(dayKeys, restDayOfWeek);
+    let streak = computeStreakDaysFromKeys(dayKeys, restDayOfWeek);
     const computedLongest = computeLongestStreakFromKeys(dayKeys, restDayOfWeek);
+    // Defensive floor 2026-07-21: never write a value that drops
+    // streak by more than 1 vs the cached prior. A legit missed-day
+    // decay is at most 1 (since walk is monotonic and days pass one
+    // at a time). Bigger drops mean either (a) dev_checkins subcol
+    // read was partial (rule mid-flight, permission race, network
+    // hiccup returning a subset of docs) or (b) an OLD client bundle
+    // is still self-healing from plan-shape data via a stale
+    // recomputeAndPersistPlayerStreak that computes from ONE active
+    // plan and reports 1 for a player with a real 13-day history.
+    // Either way we prefer freezing the streak over clobbering it.
+    // If the drop is legit the next tap or full snapshot will
+    // correct it monotonically.
+    if (streak < priorStreak - 1 && priorStreak > 1) {
+      debugWarn(`[streak] refused clobber ${priorStreak} -> ${streak}; keeping ${priorStreak}. dayKeys=${dayKeys.size}`);
+      streak = priorStreak;
+    }
     // Peak is monotonic. Never let a recompute pull it downward — a
     // corrupted or partial checkin read shouldn't clobber a legit
     // historical peak stamped by the migration.

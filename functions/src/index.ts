@@ -59,6 +59,10 @@ interface ChatThread {
   isGroup?: boolean;
   scope?: "team" | "club" | string;
   teamId?: string;
+  // Groups post-2026-07-21 keep the coach's viewing team here so
+  // server-side team-scoped checks (demo/notifications-off kill
+  // switch) still work after teamId gets cleared for privacy.
+  originTeamId?: string;
 }
 
 interface UserDoc {
@@ -166,7 +170,13 @@ export const onChatMessageCreate = onDocumentCreated(
     // Same demo-team kill switch as onEventCreate. Threads on a
     // demo/notifications-off team never fan out, even if stale
     // team memberships would otherwise resolve real users.
-    const threadTeamId = thread.teamId;
+    //
+    // Groups post-2026-07-21 carry teamId='' at rest (privacy fix)
+    // so the check falls back to originTeamId, the team the coach
+    // was viewing when they spun the group up. Without this fallback
+    // a demo-team coach's group pushes would escape the team-level
+    // kill switch.
+    const threadTeamId = thread.teamId || thread.originTeamId || "";
     if (threadTeamId) {
       try {
         const teamSnap = await db.collection("teams").doc(threadTeamId).get();

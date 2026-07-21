@@ -2719,6 +2719,18 @@ export interface ChatThread {
   isPinned: boolean;
   isPrivate: boolean; // For coach-only threads
   isDM?: boolean; // Direct message between two users
+  /** Ad-hoc group chat (subset of the roster). Groups are
+   *  participants-only at the Firestore rule layer. Created via
+   *  the picker in TeamChat.tsx (2+ selected members). Stored with
+   *  teamId='' + originTeamId=<createdOnTeamId> so the team-scope
+   *  subscription can't leak previews to non-members. See the
+   *  chat_threads block in firestore.rules for the read gate. */
+  isGroup?: boolean;
+  /** For groups: the team the coach was viewing when they created
+   *  the group. Preserves context (e.g., "Group started from Team X")
+   *  without letting the group appear in that team's chat sidebar for
+   *  non-participants. Not used for privacy — informational only. */
+  originTeamId?: string;
   dmParticipantNames?: { [uid: string]: string }; // For displaying the "other" person in DMs
   isArchived?: boolean;
   messageCount: number;

@@ -734,6 +734,62 @@ const getUserData = useCallback(async (uid: string) => {
    * fire when no clubId is resolvable (returning a no-op unsub so
    * the caller's cleanup still runs cleanly).
    */
+  /**
+   * Subscribe to the caller's ad-hoc group chats. Group threads are
+   * participants-only at the Firestore rule layer (2026-07-21 privacy
+   * fix) and are stored with teamId='' so they never leak through the
+   * team-scope subscription (`where teamId in [...]`). Members reach
+   * their groups here instead.
+   *
+   * The query shape (`where isGroup==true AND participants
+   * array-contains uid`) always satisfies the tightened chat_threads
+   * read rule by construction, so this subscription can never trip
+   * the "one denied doc kills the whole snapshot" list semantic.
+   *
+   * Mirrors the DM pattern already used by Dashboard/
+   * NotificationsHeaderBar: people-scoped, team-agnostic.
+   */
+  const subscribeToChatGroups = useCallback((uid: string | null | undefined, callback: (threads: ChatThread[]) => void) => {
+    if (!uid) {
+      try { callback([]); } catch { /* ignore */ }
+      return () => {};
+    }
+    const q = query(
+      collection(db, 'chat_threads'),
+      where('isGroup', '==', true),
+      where('participants', 'array-contains', uid),
+    );
+    return onSnapshot(q, (querySnapshot) => {
+      const threads = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id,
+          title: data.title || '',
+          description: data.description || '',
+          teamId: data.teamId || '',
+          createdBy: data.createdBy || '',
+          createdByName: data.createdByName || '',
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+          lastActivity: data.lastActivity?.toDate?.() || new Date(),
+          isPinned: data.isPinned || false,
+          isPrivate: data.isPrivate || false,
+          messageCount: data.messageCount || 0,
+          participants: data.participants || [],
+          tags: data.tags || [],
+        } as ChatThread;
+      });
+      callback(threads);
+    }, (error) => {
+      const code = (error as any)?.code;
+      if (code === 'permission-denied' || code === 'unauthenticated') {
+        debugWarn('Group threads subscription denied (auth transition):', error);
+      } else {
+        console.error('Error in group threads subscription:', error);
+      }
+    });
+  }, []);
+
   const subscribeToClubChatThreads = useCallback((clubId: string | null | undefined, callback: (threads: ChatThread[]) => void) => {
     if (!clubId) {
       // No club scope resolvable → immediately emit an empty list
@@ -1129,6 +1185,7 @@ const getUserData = useCallback(async (uid: string) => {
     getChatMessagesByThread,
     getOlderChatMessages,
     subscribeToChatThreads,
+    subscribeToChatGroups,
     subscribeToClubChatThreads,
     subscribeToChatMessages,
     getOrCreateDMThread,

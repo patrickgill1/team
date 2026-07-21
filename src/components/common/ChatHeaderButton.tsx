@@ -18,21 +18,53 @@ const ChatHeaderButton: React.FC = () => {
 
   useEffect(() => {
     if (!selectedTeamId || !userData?.uid) { setUnreadCount(0); return; }
-    const q = query(
+    const uid = userData.uid;
+    const teamQ = query(
       collection(db, 'chat_threads'),
       where('teamId', '==', selectedTeamId),
     );
-    const uid = userData.uid;
-    const unsub = onSnapshot(q, (snap) => {
+    // DMs (teamId != selectedTeamId when DM was created from a
+    // different team) + Groups (teamId='' post-2026-07-21 privacy
+    // fix) both need dedicated queries so their unread counts don't
+    // silently drop out of the header pill.
+    const dmQ = query(
+      collection(db, 'chat_threads'),
+      where('isDM', '==', true),
+      where('participants', 'array-contains', uid),
+    );
+    const groupQ = query(
+      collection(db, 'chat_threads'),
+      where('isGroup', '==', true),
+      where('participants', 'array-contains', uid),
+    );
+    // Per-subscription unread maps keyed by threadId. Dedupes when
+    // a single doc appears in multiple streams (legacy groups that
+    // still match BOTH team and group queries during the migration
+    // window). Without this the bubble double-counts.
+    const teamMap = new Map<string, number>();
+    const dmMap = new Map<string, number>();
+    const groupMap = new Map<string, number>();
+    const publish = () => {
+      const merged = new Map<string, number>();
+      teamMap.forEach((v, k) => merged.set(k, v));
+      dmMap.forEach((v, k) => merged.set(k, v));
+      groupMap.forEach((v, k) => merged.set(k, v));
       let sum = 0;
-      snap.docs.forEach(d => {
-        const data: any = d.data();
-        const u = data?.unreadCount?.[uid];
-        if (typeof u === 'number') sum += u;
-      });
+      merged.forEach((v) => { sum += v; });
       setUnreadCount(sum);
-    });
-    return () => unsub();
+    };
+    const fillFrom = (map: Map<string, number>, snap: any) => {
+      map.clear();
+      snap.docs.forEach((d: any) => {
+        const data: any = d.data();
+        const u = typeof data?.unreadCount?.[uid] === 'number' ? data.unreadCount[uid] : 0;
+        map.set(d.id, u);
+      });
+    };
+    const unsubTeam = onSnapshot(teamQ, (snap) => { fillFrom(teamMap, snap); publish(); });
+    const unsubDm = onSnapshot(dmQ, (snap) => { fillFrom(dmMap, snap); publish(); });
+    const unsubGroup = onSnapshot(groupQ, (snap) => { fillFrom(groupMap, snap); publish(); });
+    return () => { unsubTeam(); unsubDm(); unsubGroup(); };
   }, [selectedTeamId, userData?.uid]);
 
   return (

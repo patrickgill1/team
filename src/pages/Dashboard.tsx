@@ -249,18 +249,36 @@ const Dashboard: React.FC = () => {
     return () => { cancelled = true; };
   }, [selectedTeamId, getDocuments]);
 
-  // Subscribe to team threads AND DMs — same shape / different
-  // queries. Team threads use subscribeToChatThreads which filters
-  // by teamId; DMs have teamId:'' and would be missed. Same bug
-  // NotificationsHeaderBar hit before 3.9.151. Merging both into
-  // the one chatThreads array so downstream (newMessagesCount,
-  // UnreadMessagesCard, LatestChatsCard) sees the full picture.
+  // Subscribe to team threads + DMs + GROUPS.
+  //
+  // Three parallel queries because chat_threads has three shapes the
+  // dashboard cares about:
+  //   1. Team channels: `where teamId == selectedTeamId` — team-wide
+  //      + scope-based (club/coaches/admins) discussions.
+  //   2. DMs: `where isDM==true AND participants array-contains uid`
+  //      — 1:1 threads live outside any single team.
+  //   3. Groups: `where isGroup==true AND participants array-contains
+  //      uid` — ad-hoc subsets of the roster. NEW in the 2026-07-21
+  //      privacy fix: previously the team subscription streamed
+  //      groups to every team member (including non-participants),
+  //      and LatestChatsCard rendered their titles + snippets. Groups
+  //      now carry teamId='' at rest so they can only be reached via
+  //      participants — this subscription is how members find them.
+  //
+  // All three merge into chatThreads; dedup by doc id handles the
+  // rare case a doc appears in more than one stream. Sort by
+  // lastActivity DESC so LatestChatsCard's top-3 slice stays honest.
   useEffect(() => {
     if (!selectedTeamId || !userData?.uid) return;
     let teamList: any[] = [];
     let dmList: any[] = [];
+    let groupList: any[] = [];
     const publish = () => {
-      const merged = [...teamList, ...dmList]
+      const byId = new Map<string, any>();
+      for (const t of [...teamList, ...dmList, ...groupList]) {
+        if (t && t.id) byId.set(t.id, t);
+      }
+      const merged = Array.from(byId.values())
         .filter((t: any) => {
           if (t.isPrivate && !isUserCoach) return false;
           return true;
@@ -276,9 +294,11 @@ const Dashboard: React.FC = () => {
       teamList = threads;
       publish();
     });
-    // DM subscription — mirrors what NotificationsHeaderBar does.
-    // Fires whenever DM unreadCount or lastActivity mutates.
+    // DM + Group subscriptions — mirror what NotificationsHeaderBar
+    // does. Fire whenever the doc's unreadCount / lastActivity /
+    // lastMessage mutates.
     let unsubDm: (() => void) | undefined;
+    let unsubGroup: (() => void) | undefined;
     (async () => {
       const { onSnapshot: os, collection: c, query: q, where: w } = await import('firebase/firestore');
       const { db: d } = await import('../utils/firebase');
@@ -291,10 +311,20 @@ const Dashboard: React.FC = () => {
         dmList = snap.docs.map(x => ({ id: x.id, ...(x.data() as any) }));
         publish();
       });
+      const groupQ = q(
+        c(d, 'chat_threads'),
+        w('isGroup', '==', true),
+        w('participants', 'array-contains', userData.uid),
+      );
+      unsubGroup = os(groupQ, (snap) => {
+        groupList = snap.docs.map(x => ({ id: x.id, ...(x.data() as any) }));
+        publish();
+      });
     })();
     return () => {
       if (unsubTeam) unsubTeam();
       if (unsubDm) unsubDm();
+      if (unsubGroup) unsubGroup();
     };
   }, [selectedTeamId, subscribeToChatThreads, isUserCoach, userData?.uid]);
 
@@ -1816,6 +1846,20 @@ const LatestChatsCard: React.FC<{ chats: any[]; userUid: string; userPhotoMap?: 
   const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
   const now = Date.now();
   const scored = chats
+    // Defense-in-depth for the 2026-07-21 group-chat privacy fix.
+    // The rule + query-shape gates upstream already ensure a group
+    // (or DM) never lands here unless the viewer is a participant,
+    // but a stale in-memory snapshot from before the fix deployed
+    // could still be around. Re-check participants for anything
+    // isGroup/isDM so a race can't render a preview to a
+    // non-member.
+    .filter((t: any) => {
+      const isGroup = t?.isGroup === true;
+      const isDM = t?.isDM === true;
+      if (!isGroup && !isDM) return true;
+      const parts: string[] = Array.isArray(t?.participants) ? t.participants : [];
+      return parts.includes(userUid);
+    })
     .filter((t: any) => t?.lastActivity && (now - new Date(t.lastActivity).getTime()) < FOURTEEN_DAYS)
     .map((t: any) => {
       const unread = typeof t?.unreadCount?.[userUid] === 'number' ? t.unreadCount[userUid] : 0;

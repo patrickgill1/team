@@ -78,15 +78,34 @@ const NotificationsHeaderBar: React.FC = () => {
       where('isDM', '==', true),
       where('participants', 'array-contains', uid),
     );
-    // Latest counts per subscription — combined on every fire so
-    // either stream can update the pill independently.
-    let teamCount = 0;
-    let dmCount = 0;
-    let teamLatest = 0;
-    let dmLatest = 0;
+    // Groups (2026-07-21 privacy fix): participants-only, teamId=''
+    // at rest. Members reach them via this query only.
+    const groupQ = query(
+      collection(db, 'chat_threads'),
+      where('isGroup', '==', true),
+      where('participants', 'array-contains', uid),
+    );
+    // Per-subscription maps keyed by threadId, so the same doc
+    // appearing in multiple streams (e.g. a legacy group that still
+    // matches BOTH the team query and the new group query during the
+    // migration window) only counts once. Without this dedupe the
+    // pill double-counts every legacy group between deploy-client
+    // and run-backfill.
+    type Entry = { u: number; t: number };
+    const teamMap = new Map<string, Entry>();
+    const dmMap = new Map<string, Entry>();
+    const groupMap = new Map<string, Entry>();
     const publish = () => {
-      const sum = teamCount + dmCount;
-      const latestActivity = Math.max(teamLatest, dmLatest);
+      const merged = new Map<string, Entry>();
+      teamMap.forEach((v, k) => merged.set(k, v));
+      dmMap.forEach((v, k) => merged.set(k, v));
+      groupMap.forEach((v, k) => merged.set(k, v));
+      let sum = 0;
+      let latestActivity = 0;
+      merged.forEach((v) => {
+        sum += v.u;
+        if (v.t > latestActivity) latestActivity = v.t;
+      });
       let out = sum;
       try {
         const seen = parseInt(localStorage.getItem(chatKey(selectedTeamId)) || '0', 10);
@@ -94,31 +113,19 @@ const NotificationsHeaderBar: React.FC = () => {
       } catch { /* ignore */ }
       setUnreadChats(out);
     };
-    const unsubTeam = onSnapshot(teamQ, (snap) => {
-      let sum = 0; let latest = 0;
-      snap.docs.forEach(d => {
+    const fillFrom = (map: Map<string, Entry>, snap: any) => {
+      map.clear();
+      snap.docs.forEach((d: any) => {
         const data: any = d.data();
-        const u = data?.unreadCount?.[uid];
-        if (typeof u === 'number') sum += u;
+        const u = typeof data?.unreadCount?.[uid] === 'number' ? data.unreadCount[uid] : 0;
         const last = data?.lastActivity?.toDate?.()?.getTime?.() || 0;
-        if (last > latest) latest = last;
+        map.set(d.id, { u, t: last });
       });
-      teamCount = sum; teamLatest = latest;
-      publish();
-    });
-    const unsubDm = onSnapshot(dmQ, (snap) => {
-      let sum = 0; let latest = 0;
-      snap.docs.forEach(d => {
-        const data: any = d.data();
-        const u = data?.unreadCount?.[uid];
-        if (typeof u === 'number') sum += u;
-        const last = data?.lastActivity?.toDate?.()?.getTime?.() || 0;
-        if (last > latest) latest = last;
-      });
-      dmCount = sum; dmLatest = latest;
-      publish();
-    });
-    return () => { unsubTeam(); unsubDm(); };
+    };
+    const unsubTeam = onSnapshot(teamQ, (snap) => { fillFrom(teamMap, snap); publish(); });
+    const unsubDm = onSnapshot(dmQ, (snap) => { fillFrom(dmMap, snap); publish(); });
+    const unsubGroup = onSnapshot(groupQ, (snap) => { fillFrom(groupMap, snap); publish(); });
+    return () => { unsubTeam(); unsubDm(); unsubGroup(); };
   }, [selectedTeamId, userData?.uid]);
 
   // Events — count of events whose updatedAt (fallback createdAt) is

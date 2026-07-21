@@ -1,5 +1,6 @@
 import { doc, getDoc, increment, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { denverKeyOfDate } from './devPlanActions';
 
 // Micro-XP grants — the "everyday tap" side of the XP economy.
 //
@@ -196,11 +197,15 @@ export async function composeMicroXpIntoPatch(
 }
 
 // -- day-key helper -------------------------------------------------
+//
+// Denver-anchored to match the worker + backfill + streak paths. A
+// parent tapping at 22:30 MT from an ET-configured device previously
+// bucketed to the ET day (already past midnight ET) and reset the
+// dailyCap counter — so a same-MT-day tap from the coach's Denver
+// phone treated the counter as fresh and double-awarded XP. Sharing
+// the same Denver key with everyone else that touches xp state closes
+// that race. See feedback_worker_timezone memory.
 
 function todayKey(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return denverKeyOfDate(new Date());
 }

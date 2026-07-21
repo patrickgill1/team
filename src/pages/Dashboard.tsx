@@ -600,7 +600,6 @@ const Dashboard: React.FC = () => {
           console.warn('[dashboard] streak self-heal failed', err);
         }
 
-        const todayStart = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
         for (const plan of plans) {
           const goals: any[] = Array.isArray(plan.goals) ? plan.goals : [];
           const next = goals.find(g => !g.coachVerified);
@@ -613,43 +612,80 @@ const Dashboard: React.FC = () => {
             // week-dots row still at 1 because this path used the
             // old narrow coercion (toDate || new Date()) that
             // produces Invalid Date on the corrupted shape.
-            const { coerceLogDate } = await import('../utils/devPlanActions');
+            const { coerceLogDate, denverKeyOfDate, denverParts, prevDenverYmd } = await import('../utils/devPlanActions');
             // Denver day-key ("YYYY-MM-DD") matches buildPracticeDayKeys
             // + the worker-written dev_checkins dayKey, so the week-dots
             // row agrees with the streak chip regardless of device tz.
-            const denverKey = (dd: Date) => dd.toLocaleDateString('en-CA', { timeZone: 'America/Denver' });
             const dayKeys = new Set<string>();
             for (const pl of plans) {
               for (const g of (pl.goals || [])) {
                 for (const l of (g.practiceLog || [])) {
                   const d = coerceLogDate(l.date);
                   if (!d) continue;
-                  dayKeys.add(denverKey(d));
+                  dayKeys.add(denverKeyOfDate(d));
                 }
               }
             }
+            // Today check runs on the Denver day-key. Previous code
+            // used a device-local `todayStart` ms boundary; an ET
+            // parent tapping at 22:15 MT (00:15 ET the next day) had
+            // their fresh log stamped BELOW that boundary and the card
+            // then invited a duplicate tap.
+            const todayDenver = denverKeyOfDate(new Date());
             const loggedToday = (next.practiceLog || []).some((l: any) => {
               const d = coerceLogDate(l.date);
-              return d ? d.getTime() >= todayStart : false;
+              return d ? denverKeyOfDate(d) === todayDenver : false;
             });
-            // Find this week's Monday (treat Sunday as the END of last
-            // week, not the start of this one — week runs Mon→Sat).
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayDow = today.getDay(); // 0=Sun, 1=Mon ... 6=Sat
-            const offsetToMonday = todayDow === 0 ? 6 : todayDow - 1; // Sun→6, Mon→0, Sat→5
-            const monday = new Date(today);
-            monday.setDate(today.getDate() - offsetToMonday);
-            const todayTime = today.getTime();
+            // Find this week's Monday using Denver parts so the row's
+            // day letters agree with its dayKey highlight regardless
+            // of the parent's device timezone. Week runs Mon→Sat with
+            // Sunday treated as the END of last week (matches the
+            // Sunday-skip streak rule).
+            let cursor = denverParts(new Date());
+            const cursorDow = (() => {
+              // Day-of-week of the current Denver date, 0=Sun … 6=Sat.
+              // Noon UTC anchor keeps the mapping DST-safe.
+              return new Date(Date.UTC(cursor.y, cursor.m - 1, cursor.d, 12)).getUTCDay();
+            })();
+            const offsetToMonday = cursorDow === 0 ? 6 : cursorDow - 1;
+            for (let i = 0; i < offsetToMonday; i++) {
+              cursor = prevDenverYmd(cursor.y, cursor.m, cursor.d);
+            }
+            // cursor now points at this week's Monday in Denver Y/M/D.
+            // Materialize each weekday as a Date anchored at Denver noon
+            // (a safe within-day pick — no cell boundary can flip it to
+            // an adjacent day in any device tz) so the getDay() label
+            // read by TodaysDevelopmentCard stays consistent.
+            const todayForFuture = denverKeyOfDate(new Date());
             const thisWeek: { date: Date; logged: boolean; isFuture: boolean }[] = [];
+            const buildCell = (y: number, m: number, d: number) => {
+              const key = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              // Anchor at Denver noon so any within-day comparison keeps
+              // agreeing with the Denver key.
+              const anchor = new Date(`${key}T12:00:00-06:00`);
+              return {
+                date: anchor,
+                logged: dayKeys.has(key),
+                key,
+              };
+            };
+            const cells: { date: Date; logged: boolean; key: string }[] = [];
+            let walk = { ...cursor };
             for (let i = 0; i < 6; i++) {
-              const d = new Date(monday);
-              d.setDate(monday.getDate() + i);
-              const k = denverKey(d);
+              cells.push(buildCell(walk.y, walk.m, walk.d));
+              // Advance one Denver day forward (mirror of prevDenverYmd).
+              const daysInMonth = new Date(Date.UTC(walk.y, walk.m, 0)).getUTCDate();
+              let nd = walk.d + 1;
+              let nm = walk.m;
+              let ny = walk.y;
+              if (nd > daysInMonth) { nd = 1; nm += 1; if (nm > 12) { nm = 1; ny += 1; } }
+              walk = { y: ny, m: nm, d: nd };
+            }
+            for (const c of cells) {
               thisWeek.push({
-                date: d,
-                logged: dayKeys.has(k),
-                isFuture: d.getTime() > todayTime,
+                date: c.date,
+                logged: c.logged,
+                isFuture: c.key > todayForFuture,
               });
             }
             // Streak self-heal moved OUT of this branch (above the

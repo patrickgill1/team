@@ -146,12 +146,12 @@ export function coerceLogDate(raw: any): Date | null {
  *  Eastern buckets a Denver-late-night tap into the SAME day as the
  *  worker + backfill. Fixes drift where the worker stored dayKey in
  *  Denver but the client bucketed device-local. */
-function denverKeyOfDate(date: Date): string {
+export function denverKeyOfDate(date: Date): string {
   return date.toLocaleDateString('en-CA', { timeZone: 'America/Denver' });
 }
 
 /** Break a JS Date into its Denver-anchored Y/M/D parts. */
-function denverParts(date: Date): { y: number; m: number; d: number } {
+export function denverParts(date: Date): { y: number; m: number; d: number } {
   const key = denverKeyOfDate(date);
   const [ys, ms, ds] = key.split('-');
   return { y: parseInt(ys, 10), m: parseInt(ms, 10), d: parseInt(ds, 10) };
@@ -159,7 +159,7 @@ function denverParts(date: Date): { y: number; m: number; d: number } {
 
 /** Previous Denver day in Y/M/D form, handling month/year rollover
  *  without going near Date arithmetic (which trips over DST). */
-function prevDenverYmd(y: number, m: number, d: number): { y: number; m: number; d: number } {
+export function prevDenverYmd(y: number, m: number, d: number): { y: number; m: number; d: number } {
   let nd = d - 1;
   let nm = m;
   let ny = y;
@@ -181,7 +181,7 @@ function dowOfYmd(y: number, m: number, d: number): number {
 }
 
 /** Compose "YYYY-MM-DD" from Denver parts. */
-function keyFromYmd(y: number, m: number, d: number): string {
+export function keyFromYmd(y: number, m: number, d: number): string {
   return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 

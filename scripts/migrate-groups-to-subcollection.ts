@@ -15,14 +15,25 @@
  * cached id keeps working.
  *
  * ORDER of operations (deploy sequence, single-source-of-truth is
- * the design doc):
- *   1. Ship client + functions (adds subscribeToChatGroups against
- *      the new collection, addGroupMessage/updateGroupThread wrappers,
- *      onGroupChatMessageCreate trigger).
+ * the design doc). RULES FIRST — the client's new
+ * subscribeToChatGroups reads chat_group_threads, and without the
+ * matching rule block Firestore defaults to deny. Migration BEFORE
+ * client/functions ship so the destination collection is populated
+ * the moment new clients look for it:
+ *   1. Deploy tightened firestore.rules FIRST (adds participants-only
+ *      block on chat_group_threads; chat_threads unchanged for now so
+ *      old clients keep working through the transition).
  *   2. Run this script with --apply against production Firestore.
+ *      This copies every group + its messages into chat_group_threads
+ *      and soft-deletes the source (isActive:false + migratedTo).
+ *      IMPORTANT: copied messages carry `_skipPush:true` so the new
+ *      onGroupChatMessageCreate trigger (deployed in step 4) does not
+ *      re-fire push for every historical message — critical because
+ *      the copy triggers subcollection onCreate events.
  *   3. Run this script with --check to confirm zero stragglers.
- *   4. Deploy tightened firestore.rules (participants-only on
- *      chat_group_threads, chat_threads reverts to authed).
+ *   4. Deploy client + functions (subscribeToChatGroups against the
+ *      new collection, addGroupMessage/updateGroupThread wrappers,
+ *      onGroupChatMessageCreate trigger).
  *
  * Rollback: the source chat_threads/{gid} + chat_messages docs are
  * preserved via a soft delete (isActive:false + migratedTo pointer)
@@ -206,6 +217,14 @@ async function main() {
         // stored payload so future queries can't hit stale-copy
         // mismatches.
         const { threadId: _t, teamId: _tm, id: _id, ...rest } = mdata;
+        // CRITICAL: stamp _skipPush:true so the copy write does NOT
+        // fire onGroupChatMessageCreate → fanOutChatPush. Without this,
+        // migrating a group with N historical messages would push N
+        // FCM notifications to every non-sender participant. The
+        // trigger honors this flag (functions/src/index.ts). Any real
+        // net-new message sent after migration comes from the client
+        // which does not set _skipPush.
+        rest._skipPush = true;
         const childRef = destRef.collection('messages').doc(mid);
         if (APPLY) {
           await childRef.set(rest, { merge: true });

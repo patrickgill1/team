@@ -730,7 +730,21 @@ service cloud.firestore {
             && request.auth.uid in resource.data.participants)
       );
       allow create: if request.auth != null && canCoachWrite();
-      allow update, delete: if request.auth != null;
+      // Update tightened 2026-07-21: was `if request.auth != null`
+      // which meant any signed-in user who knew a group thread id
+      // could patch `participants` to add themselves, defeating the
+      // participant-only read gate. For groups, require the caller
+      // is already in the participants list. Non-group threads
+      // (team/DM/club) keep the prior permissive behavior — those
+      // scopes have their own membership models and none of the
+      // legit update sites live on threads the caller can't already
+      // reach.
+      allow update: if request.auth != null && (
+        resource.data.isGroup != true
+        || (resource.data.participants is list
+            && request.auth.uid in resource.data.participants)
+      );
+      allow delete: if request.auth != null;
     }
 
     // Chat messages — privacy gate is at the thread layer. Parents

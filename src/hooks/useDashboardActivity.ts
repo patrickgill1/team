@@ -54,11 +54,24 @@ export function useDashboardActivity(
       where('isGroup', '==', true),
       where('participants', 'array-contains', uid),
     );
-    let teamCount = 0, dmCount = 0, groupCount = 0;
-    let teamLatest = 0, dmLatest = 0, groupLatest = 0;
+    // Per-subscription maps keyed by threadId. Dedupes when a doc
+    // appears in more than one stream (e.g. a legacy group thread
+    // that still matches both the team and group queries between
+    // client deploy and backfill run).
+    type Entry = { u: number; t: number };
+    const teamMap = new Map<string, Entry>();
+    const dmMap = new Map<string, Entry>();
+    const groupMap = new Map<string, Entry>();
     const publish = () => {
-      const sum = teamCount + dmCount + groupCount;
-      const latest = Math.max(teamLatest, dmLatest, groupLatest);
+      const merged = new Map<string, Entry>();
+      teamMap.forEach((v, k) => merged.set(k, v));
+      dmMap.forEach((v, k) => merged.set(k, v));
+      groupMap.forEach((v, k) => merged.set(k, v));
+      let sum = 0, latest = 0;
+      merged.forEach((v) => {
+        sum += v.u;
+        if (v.t > latest) latest = v.t;
+      });
       let out = sum;
       try {
         const seen = parseInt(localStorage.getItem(chatKey(teamId)) || '0', 10);
@@ -66,32 +79,18 @@ export function useDashboardActivity(
       } catch { /* ignore */ }
       setChat(out);
     };
-    const reduceSnap = (snap: any): { sum: number; latest: number } => {
-      let sum = 0, latest = 0;
+    const fillFrom = (map: Map<string, Entry>, snap: any) => {
+      map.clear();
       snap.docs.forEach((d: any) => {
         const data: any = d.data();
-        const u = data?.unreadCount?.[uid];
-        if (typeof u === 'number') sum += u;
+        const u = typeof data?.unreadCount?.[uid] === 'number' ? data.unreadCount[uid] : 0;
         const t = data?.lastActivity?.toDate?.()?.getTime?.() || 0;
-        if (t > latest) latest = t;
+        map.set(d.id, { u, t });
       });
-      return { sum, latest };
     };
-    const unsubTeam = onSnapshot(teamQ, (snap) => {
-      const { sum, latest } = reduceSnap(snap);
-      teamCount = sum; teamLatest = latest;
-      publish();
-    });
-    const unsubDm = onSnapshot(dmQ, (snap) => {
-      const { sum, latest } = reduceSnap(snap);
-      dmCount = sum; dmLatest = latest;
-      publish();
-    });
-    const unsubGroup = onSnapshot(groupQ, (snap) => {
-      const { sum, latest } = reduceSnap(snap);
-      groupCount = sum; groupLatest = latest;
-      publish();
-    });
+    const unsubTeam = onSnapshot(teamQ, (snap) => { fillFrom(teamMap, snap); publish(); });
+    const unsubDm = onSnapshot(dmQ, (snap) => { fillFrom(dmMap, snap); publish(); });
+    const unsubGroup = onSnapshot(groupQ, (snap) => { fillFrom(groupMap, snap); publish(); });
     return () => { unsubTeam(); unsubDm(); unsubGroup(); };
   }, [teamId, uid]);
 

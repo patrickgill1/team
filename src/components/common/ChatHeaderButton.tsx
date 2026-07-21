@@ -37,20 +37,33 @@ const ChatHeaderButton: React.FC = () => {
       where('isGroup', '==', true),
       where('participants', 'array-contains', uid),
     );
-    let teamSum = 0, dmSum = 0, groupSum = 0;
-    const publish = () => setUnreadCount(teamSum + dmSum + groupSum);
-    const sumSnap = (snap: any): number => {
+    // Per-subscription unread maps keyed by threadId. Dedupes when
+    // a single doc appears in multiple streams (legacy groups that
+    // still match BOTH team and group queries during the migration
+    // window). Without this the bubble double-counts.
+    const teamMap = new Map<string, number>();
+    const dmMap = new Map<string, number>();
+    const groupMap = new Map<string, number>();
+    const publish = () => {
+      const merged = new Map<string, number>();
+      teamMap.forEach((v, k) => merged.set(k, v));
+      dmMap.forEach((v, k) => merged.set(k, v));
+      groupMap.forEach((v, k) => merged.set(k, v));
       let sum = 0;
+      merged.forEach((v) => { sum += v; });
+      setUnreadCount(sum);
+    };
+    const fillFrom = (map: Map<string, number>, snap: any) => {
+      map.clear();
       snap.docs.forEach((d: any) => {
         const data: any = d.data();
-        const u = data?.unreadCount?.[uid];
-        if (typeof u === 'number') sum += u;
+        const u = typeof data?.unreadCount?.[uid] === 'number' ? data.unreadCount[uid] : 0;
+        map.set(d.id, u);
       });
-      return sum;
     };
-    const unsubTeam = onSnapshot(teamQ, (snap) => { teamSum = sumSnap(snap); publish(); });
-    const unsubDm = onSnapshot(dmQ, (snap) => { dmSum = sumSnap(snap); publish(); });
-    const unsubGroup = onSnapshot(groupQ, (snap) => { groupSum = sumSnap(snap); publish(); });
+    const unsubTeam = onSnapshot(teamQ, (snap) => { fillFrom(teamMap, snap); publish(); });
+    const unsubDm = onSnapshot(dmQ, (snap) => { fillFrom(dmMap, snap); publish(); });
+    const unsubGroup = onSnapshot(groupQ, (snap) => { fillFrom(groupMap, snap); publish(); });
     return () => { unsubTeam(); unsubDm(); unsubGroup(); };
   }, [selectedTeamId, userData?.uid]);
 

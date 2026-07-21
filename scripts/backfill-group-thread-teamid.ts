@@ -35,6 +35,12 @@
  * Usage:
  *   npx tsx scripts/backfill-group-thread-teamid.ts            # dry-run
  *   npx tsx scripts/backfill-group-thread-teamid.ts --apply    # write
+ *   npx tsx scripts/backfill-group-thread-teamid.ts --check    # gate before rule deploy
+ *
+ * --check exits with code 0 only if every isGroup==true doc has
+ * teamId=''. Wire it into the deploy pipeline as a hard gate before
+ * `firebase deploy --only firestore` so the tightened read rule can
+ * never land ahead of the backfill.
  */
 
 import * as admin from 'firebase-admin';
@@ -42,7 +48,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const APPLY = process.argv.includes('--apply');
-const tag = APPLY ? 'APPLY' : 'DRY  ';
+const CHECK = process.argv.includes('--check');
+const tag = CHECK ? 'CHECK' : APPLY ? 'APPLY' : 'DRY  ';
 
 const SA_PATH = path.resolve(__dirname, 'firebase-service-account.json');
 if (!fs.existsSync(SA_PATH)) {
@@ -58,8 +65,34 @@ const db = admin.firestore();
     .where('isGroup', '==', true)
     .get();
   console.log(`Found ${snap.size} isGroup==true chat_threads.`);
-  let updated = 0, skipped = 0;
 
+  // --check: hard gate for CI/deploy. Non-zero exit if any legacy
+  // group thread still has teamId set, so the tightened firestore
+  // rule cannot deploy ahead of the backfill and 403 non-participant
+  // team subscriptions.
+  if (CHECK) {
+    const stragglers = snap.docs.filter((d) => {
+      const t = (d.data() as any)?.teamId;
+      return typeof t === 'string' && t !== '';
+    });
+    if (stragglers.length > 0) {
+      console.error(
+        `\n[${tag}] FAIL: ${stragglers.length} group thread(s) still ` +
+        `carry a non-empty teamId. Run --apply before deploying the ` +
+        `tightened chat_threads read rule.`
+      );
+      stragglers.slice(0, 10).forEach((d) => {
+        const data: any = d.data();
+        console.error(`  - chat_threads/${d.id}  teamId="${data?.teamId}"  title="${data?.title || ''}"`);
+      });
+      if (stragglers.length > 10) console.error(`  ...and ${stragglers.length - 10} more`);
+      process.exit(2);
+    }
+    console.log(`\n[${tag}] PASS: 0 group threads still carry teamId. Safe to deploy firestore rules.`);
+    process.exit(0);
+  }
+
+  let updated = 0, skipped = 0;
   for (const doc of snap.docs) {
     const data: any = doc.data();
     const currentTeam: string = typeof data?.teamId === 'string' ? data.teamId : '';
@@ -76,5 +109,23 @@ const db = admin.firestore();
     updated++;
   }
   console.log(`\nDone. updated=${updated} skipped=${skipped} (already teamId='')`);
+
+  // Post-apply verification so a partial write (network flake, quota)
+  // is caught before ops moves on to the rule deploy.
+  if (APPLY) {
+    const verify = await db
+      .collection('chat_threads')
+      .where('isGroup', '==', true)
+      .get();
+    const remaining = verify.docs.filter((d) => {
+      const t = (d.data() as any)?.teamId;
+      return typeof t === 'string' && t !== '';
+    });
+    if (remaining.length > 0) {
+      console.error(`\nWARN: ${remaining.length} group thread(s) still carry teamId. Re-run --apply.`);
+      process.exit(2);
+    }
+    console.log('Verify: 0 stragglers. Safe to deploy firestore rules.');
+  }
   process.exit(0);
 })().catch((err) => { console.error(err); process.exit(1); });

@@ -370,6 +370,43 @@ service cloud.firestore {
         isPlatformAdmin()
         || (onTeam(resource.data.teamId) && canCoachWrite())
       );
+
+      // ─────────────────────────────────────────────────────────
+      // Dev-plan check-ins — player-scoped source of truth for the
+      // practice streak. One doc per player per Denver day, docId is
+      // the "YYYY-MM-DD" Denver day key so re-taps same-day are a
+      // silent 409 no-op. Streak reads only from here, plan-agnostic:
+      // retiring a plan no longer resets a legitimate streak.
+      //
+      // READ: anyone who can read the parent player doc (coach on
+      //   team, Circle member). Reuses the same rule shape.
+      // WRITE: worker service account only. Client is never allowed
+      //   direct writes so the streak counter can't be tampered with.
+      //   Client "I did it" taps route through /dev-plans/log-tap
+      //   which uses the service account. Soft-delete pattern: coach
+      //   undo sets voided:true via a worker endpoint (never delete).
+      // ─────────────────────────────────────────────────────────
+      match /dev_checkins/{dayKey} {
+        allow get: if isAuthed()
+          && exists(/databases/$(database)/documents/players/$(playerId))
+          && (
+            isPlatformAdmin()
+            || (
+              get(/databases/$(database)/documents/players/$(playerId)).data.parentIds is list
+              && request.auth.uid in get(/databases/$(database)/documents/players/$(playerId)).data.parentIds
+            )
+            || (
+              get(/databases/$(database)/documents/players/$(playerId)).data.teamIds is list
+              && get(/databases/$(database)/documents/players/$(playerId)).data.teamIds.hasAny(userDoc().teamIds)
+            )
+            || (
+              get(/databases/$(database)/documents/players/$(playerId)).data.teamId is string
+              && get(/databases/$(database)/documents/players/$(playerId)).data.teamId in userDoc().teamIds
+            )
+          );
+        allow list: if isAuthed();
+        allow create, update, delete: if false;
+      }
     }
 
     // Team docs. GET restricted to actual team members. LIST stays

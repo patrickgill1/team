@@ -348,6 +348,13 @@ const PlayerDevelopment: React.FC = () => {
   // button via `submitting` so a slow network can't trigger a
   // double-submit (one of the suspected sources of Patrick's
   // accidental duplicates).
+  //
+  // NOTE: does not touch players/{id}.currentStreakDays. Streak is
+  // player-scoped (players/{id}/dev_checkins subcollection, seeded
+  // per tap by the worker), not plan-scoped. Creating a new plan
+  // must never reset a kid's streak — the whole point of the 2026-
+  // 07-21 rework. If a future refactor tempts you to bind streak to
+  // plan status, re-read src/utils/devPlanActions.ts first.
   const commitCreatePlan = async (targetIds: string[]) => {
     if (!userData) return;
     if (submitting) return;

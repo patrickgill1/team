@@ -1,4 +1,4 @@
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import type { DevelopmentGoal, DevelopmentPlan, PracticeLogEntry } from '../types';
 import { workerFetch } from './workerFetch';
@@ -158,25 +158,27 @@ export function buildPracticeDayKeys(activePlans: DevelopmentPlan[]): Set<string
   return dayKeys;
 }
 
-/** Walk back from today, counting consecutive practice days.
+/** Walk back from today over a pre-built Set of practice day keys,
+ *  counting consecutive practice days.
+ *
+ *  Day key shape: "YYYY-M-D" (0-indexed month, no zero pad). That
+ *  format is what buildPracticeDayKeys emits and what checkin-doc
+ *  reads produce (see recomputeAndPersistPlayerStreak), so both
+ *  callers feed compatible Sets.
  *
  *  `restDayOfWeek` is optional (0=Sun … 6=Sat, or null/undefined for
  *  no rest day). When set, that day is SKIPPED — it doesn't count
- *  toward the streak and missing it doesn't break it. This lets a
- *  team observing any religious/cultural day off keep streaks alive
- *  by practicing the other six days.
+ *  toward the streak and missing it doesn't break it (feedback
+ *  memory: streak_sunday_skip, streaks skip Sundays for religious
+ *  families).
  *
- *  Backward compat: when the caller doesn't pass a rest day, we
- *  default to Sunday (0), matching the original hard-coded behavior.
- *  Coaches who want NO rest day pass `null` explicitly.
- *
- *  Today gets a free pass: if you haven't logged yet today, we start
- *  walking from yesterday instead of penalizing you mid-day. */
-export function computeStreakDays(
-  activePlans: DevelopmentPlan[],
+ *  Today gets a free pass: if today isn't in the set AND today isn't
+ *  the rest day, walk starts from yesterday so a kid mid-day isn't
+ *  penalized before they've had a chance to tap. */
+export function computeStreakDaysFromKeys(
+  dayKeys: Set<string>,
   restDayOfWeek: number | null | undefined = 0,
 ): number {
-  const dayKeys = buildPracticeDayKeys(activePlans);
   if (dayKeys.size === 0) return 0;
   const skipDow: number | null = (restDayOfWeek === null || restDayOfWeek === undefined) ? 0 : restDayOfWeek;
   const cursor = new Date();
@@ -202,18 +204,108 @@ export function computeStreakDays(
   return streak;
 }
 
-/** Walk every practice-log date across this player's active plans,
- *  bucket by day, count consecutive days ending today (Sundays skipped).
- *  Persist to players/{id}.currentStreakDays. Same algorithm
- *  PlayerDevelopment uses — extracted so the cached badge stays
- *  consistent regardless of where the "I did it" tap came from.
+/** Longest-ever consecutive run in a Set of day keys (Sunday-skip
+ *  aware). Used to seed players/{id}.longestStreakDays so retiring a
+ *  plan can never quietly overwrite a legitimate historical peak. */
+export function computeLongestStreakFromKeys(
+  dayKeys: Set<string>,
+  restDayOfWeek: number | null | undefined = 0,
+): number {
+  if (dayKeys.size === 0) return 0;
+  const skipDow: number | null = (restDayOfWeek === null || restDayOfWeek === undefined) ? 0 : restDayOfWeek;
+  // Convert every key to a comparable [year, month, date] and sort
+  // chronologically. Local time (Denver for Patrick) matches how the
+  // keys are produced. Array.from() avoids the ES5 downlevelIteration
+  // trap on Set<string>.
+  const dates: Date[] = [];
+  Array.from(dayKeys).forEach(key => {
+    const parts = key.split('-').map(n => parseInt(n, 10));
+    const y = parts[0], m = parts[1], d = parts[2];
+    if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return;
+    const dt = new Date(y, m, d);
+    dt.setHours(0, 0, 0, 0);
+    dates.push(dt);
+  });
+  dates.sort((a, b) => a.getTime() - b.getTime());
+  if (dates.length === 0) return 0;
+  const first = dates[0];
+  const last = dates[dates.length - 1];
+  const cursor = new Date(first);
+  let run = 0;
+  let max = 0;
+  while (cursor.getTime() <= last.getTime()) {
+    const key = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+    const isRest = skipDow != null && cursor.getDay() === skipDow;
+    if (isRest) {
+      // Rest day bridges — do not increment, do not reset.
+    } else if (dayKeys.has(key)) {
+      run += 1;
+      if (run > max) max = run;
+    } else {
+      run = 0;
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return max;
+}
+
+/** Walk back from today, counting consecutive practice days across
+ *  the given plans. Delegates to computeStreakDaysFromKeys so callers
+ *  reading plan-shape data (legacy path) share the same walk math as
+ *  callers reading player check-in docs (new path). */
+export function computeStreakDays(
+  activePlans: DevelopmentPlan[],
+  restDayOfWeek: number | null | undefined = 0,
+): number {
+  return computeStreakDaysFromKeys(buildPracticeDayKeys(activePlans), restDayOfWeek);
+}
+
+/** Build the day-key Set for a player from their check-in subcollection
+ *  (players/{playerId}/dev_checkins/*). Doc-id is Denver "YYYY-MM-DD",
+ *  and `date` carries the actual Timestamp. We coerce the Timestamp
+ *  to a local Date and bucket in the same "YYYY-M-D" (local, 0-indexed
+ *  month, no zero pad) format computeStreakDaysFromKeys walks — that
+ *  way a player whose phone tz drifts still buckets consistently with
+ *  the walk logic. */
+async function loadCheckinDayKeys(playerId: string): Promise<Set<string>> {
+  const dayKeys = new Set<string>();
+  try {
+    const snap = await getDocs(collection(db, 'players', playerId, 'dev_checkins'));
+    snap.forEach(docSnap => {
+      const data = docSnap.data() as any;
+      if (data?.voided === true) return; // soft-delete path (coach undo)
+      const d = coerceLogDate(data?.date);
+      if (!d) return;
+      dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+    });
+  } catch (err) {
+    debugWarn('[dev-plans] loadCheckinDayKeys failed', err);
+  }
+  return dayKeys;
+}
+
+/** Recompute + persist the player's practice streak.
+ *
+ *  Source of truth (2026-07-21 player-scoped rework): the
+ *  players/{id}/dev_checkins subcollection, populated by the worker
+ *  on every "I did it" tap. Streak is plan-agnostic — retiring plan
+ *  A and creating plan B for the same kid has zero effect on the
+ *  counter. Prior implementation read from active plans only, so
+ *  archiving a plan silently reset the streak (the design's fix).
+ *
+ *  `activePlansAfterUpdate` is accepted for API back-compat but no
+ *  longer consulted for the streak math. Kept in the signature so
+ *  every existing call site continues to compile without change.
  *
  *  When `actor` is provided, also detects streak-milestone crossings
- *  (5/10/25/50/100 day) and fires an auto-post to the team wall.
- *  Fire-and-forget — the streak still persists if the post fails. */
+ *  (5/10/25/50 day) and fires an auto-post to the team wall.
+ *  Fire-and-forget — the streak still persists if the post fails.
+ *
+ *  Sunday-skip is preserved via computeStreakDaysFromKeys (the
+ *  streak_sunday_skip memory rule). */
 export async function recomputeAndPersistPlayerStreak(
   playerId: string,
-  activePlansAfterUpdate: DevelopmentPlan[],
+  _activePlansAfterUpdate: DevelopmentPlan[],
   actor?: { uid: string; name: string; role?: string },
   /** Kid-in-app double (2026-07-17): when the "I did it" tap fires from
    *  the kid mode shell (KidDashboard, KidHeroCard etc.), the practice
@@ -229,6 +321,7 @@ export async function recomputeAndPersistPlayerStreak(
     // (undefined → default Sunday-skip for back-compat). One extra
     // round-trip per tap, but only on 'I did it today' — light traffic.
     let priorStreak = 0;
+    let priorLongest = 0;
     let playerName: string | undefined;
     let teamId: string | null | undefined;
     let restDayOfWeek: number | null | undefined = 0;
@@ -242,6 +335,7 @@ export async function recomputeAndPersistPlayerStreak(
       if (snap.exists()) {
         const data = snap.data() as any;
         priorStreak = typeof data.currentStreakDays === 'number' ? data.currentStreakDays : 0;
+        priorLongest = typeof data.longestStreakDays === 'number' ? data.longestStreakDays : 0;
         playerName = data.name;
         teamId = data.teamId;
         existingBadges = data.badges;
@@ -274,7 +368,17 @@ export async function recomputeAndPersistPlayerStreak(
       }
     }
 
-    const streak = computeStreakDays(activePlansAfterUpdate, restDayOfWeek);
+    // Read the player-scoped check-in subcollection. This is the
+    // source of truth (2026-07-21). Plan status changes can't reset
+    // or shrink the streak because check-ins live on the player, not
+    // on the plan.
+    const dayKeys = await loadCheckinDayKeys(playerId);
+    const streak = computeStreakDaysFromKeys(dayKeys, restDayOfWeek);
+    const computedLongest = computeLongestStreakFromKeys(dayKeys, restDayOfWeek);
+    // Peak is monotonic. Never let a recompute pull it downward — a
+    // corrupted or partial checkin read shouldn't clobber a legit
+    // historical peak stamped by the migration.
+    const nextLongest = Math.max(priorLongest, computedLongest, streak);
 
     // Piggyback the streak-milestone badge grants onto the same
     // updateDoc so we don't cost an extra round-trip. Fires only on
@@ -323,11 +427,18 @@ export async function recomputeAndPersistPlayerStreak(
         }
       } catch { /* ignore */ }
     }
-    await updateDoc(doc(db, 'players', playerId), {
+    const writePatch: Record<string, any> = {
       currentStreakDays: streak,
       currentStreakUpdatedAt: new Date(),
       ...badgePatch,
-    });
+    };
+    // Only write longestStreakDays when it actually changed — the
+    // common tap case (nextLongest == priorLongest) skips a field
+    // mutation and keeps the write minimal.
+    if (nextLongest !== priorLongest) {
+      writePatch.longestStreakDays = nextLongest;
+    }
+    await updateDoc(doc(db, 'players', playerId), writePatch);
     if (xpEnabled && teamId && xpGrantedThisTick > 0) {
       try {
         const { checkLevelUpAndWhisper } = await import('./levelUp');

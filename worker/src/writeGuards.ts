@@ -4698,6 +4698,14 @@ function denverDayKeyYYYYMMDD(now: Date = new Date()): string {
   return s.replace(/-/g, '');
 }
 
+/** Return "YYYY-MM-DD" in America/Denver — the docId shape for
+ *  players/{pid}/dev_checkins/{dayKey}. Kept dashed (unlike the
+ *  whisper key) so the docId reads like a date at a glance and is
+ *  naturally sortable. */
+function denverDayKey(now: Date = new Date()): string {
+  return now.toLocaleDateString('en-CA', { timeZone: 'America/Denver' });
+}
+
 /** True when uid is on the player's parentIds array. */
 async function isParentOfPlayer(pid: string, sa: ServiceAccount, uid: string, playerId: string): Promise<boolean> {
   try {
@@ -4755,6 +4763,43 @@ async function handleDevPlansLogTap(req: Request, env: Env, payload: any): Promi
     return { ...g, practiceLog: nextLog };
   });
   await patchDocument(pid, `development_plans/${planId}`, { goals: updatedGoals }, sa);
+
+  // Player-scoped check-in — the streak's source of truth. Doc id is
+  // the Denver day key so a second tap same day is a silent 409 no-op
+  // ("streak sees a single day" per player_scoped_streak design). The
+  // practiceLog append above stays for the coach's plan-review UI;
+  // the streak calc no longer reads from it. Retiring plan A and
+  // creating plan B for the same kid has zero effect on the counter.
+  const dayKey = denverDayKey(now);
+  const goalTitleForCheckin = String(goal.title || '');
+  const checkinRole = isCoach ? 'coach' : 'parent';
+  try {
+    await createDocument(
+      pid,
+      `players/${playerId}/dev_checkins`,
+      {
+        date: now,
+        dayKey,
+        loggedBy: claims.uid,
+        loggedByRole: checkinRole,
+        loggedByName: actorName,
+        planId,
+        goalId,
+        goalTitle: goalTitleForCheckin,
+        teamId,
+        note: entry.note || '',
+      },
+      sa,
+      dayKey,
+    );
+  } catch (err) {
+    if (err instanceof AlreadyExistsError) {
+      // Same-day re-tap. Streak-side idempotency intact; the plan-side
+      // practiceLog append above still ran so the coach sees every tap.
+    } else {
+      console.warn('[dev-plans/log-tap] dev_checkins write failed (non-fatal):', (err as Error).message);
+    }
+  }
 
   // Whisper (Feature A) — deterministic id per player per Denver
   // day means a second goal-tap same day is a silent 409 no-op.

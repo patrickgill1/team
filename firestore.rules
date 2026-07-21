@@ -722,20 +722,25 @@ service cloud.firestore {
     // pre-filters by the array-contains constraint, so every returned
     // doc already has the caller in participants.
     match /chat_group_threads/{threadId} {
+      // 2026-07-21 fix: dropped `resource.data.participants is list`
+      // from every clause because it caused Firestore's LIST static
+      // analyzer to reject the sidebar query
+      // (`where participants array-contains uid`) with
+      // permission-denied even though every actual matched doc
+      // satisfied the participants check. array-contains on the
+      // client already guarantees participants exists as a list -
+      // Firestore only matches array fields with that operator - so
+      // the rule guard was redundant AND breaking things.
       allow read, list, get: if request.auth != null
-        && resource.data.participants is list
         && request.auth.uid in resource.data.participants;
       allow create: if request.auth != null
         && canCoachWrite()
-        && request.resource.data.participants is list
         && request.auth.uid in request.resource.data.participants
         && request.resource.data.createdBy == request.auth.uid;
       allow update: if request.auth != null
-        && resource.data.participants is list
         && request.auth.uid in resource.data.participants;
       allow delete: if request.auth != null && (
-        (resource.data.participants is list
-          && request.auth.uid in resource.data.participants)
+        request.auth.uid in resource.data.participants
         || isPlatformAdmin()
       );
 

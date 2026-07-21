@@ -32,9 +32,12 @@ const ChatHeaderButton: React.FC = () => {
       where('isDM', '==', true),
       where('participants', 'array-contains', uid),
     );
+    // Groups moved to `chat_group_threads` (2026-07-21 subcollection
+    // migration). Collection identity is the discriminator, so the
+    // isGroup filter is gone; participants array-contains uid alone
+    // satisfies the tightened participants-only rule.
     const groupQ = query(
-      collection(db, 'chat_threads'),
-      where('isGroup', '==', true),
+      collection(db, 'chat_group_threads'),
       where('participants', 'array-contains', uid),
     );
     // Per-subscription unread maps keyed by threadId. Dedupes when
@@ -61,9 +64,20 @@ const ChatHeaderButton: React.FC = () => {
         map.set(d.id, u);
       });
     };
+    // Group variant filters out isActive:false tombstones so a
+    // soft-deleted group's unread badge doesn't keep the dot lit.
+    const fillActiveFrom = (map: Map<string, number>, snap: any) => {
+      map.clear();
+      snap.docs.forEach((d: any) => {
+        const data: any = d.data();
+        if (data?.isActive === false) return;
+        const u = typeof data?.unreadCount?.[uid] === 'number' ? data.unreadCount[uid] : 0;
+        map.set(d.id, u);
+      });
+    };
     const unsubTeam = onSnapshot(teamQ, (snap) => { fillFrom(teamMap, snap); publish(); });
     const unsubDm = onSnapshot(dmQ, (snap) => { fillFrom(dmMap, snap); publish(); });
-    const unsubGroup = onSnapshot(groupQ, (snap) => { fillFrom(groupMap, snap); publish(); });
+    const unsubGroup = onSnapshot(groupQ, (snap) => { fillActiveFrom(groupMap, snap); publish(); });
     return () => { unsubTeam(); unsubDm(); unsubGroup(); };
   }, [selectedTeamId, userData?.uid]);
 

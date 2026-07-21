@@ -38,6 +38,18 @@ const TeamChat: React.FC = () => {
     getOrCreateDMThread,
     getPlayersByTeam,
     getUsersByTeam,
+    // Group-chat subcollection wrappers (chat_group_threads).
+    // Groups moved off top-level chat_threads/chat_messages in the
+    // 2026-07-21 subcollection migration; every group-side mutation
+    // routes through these path-aware wrappers.
+    addGroupThread,
+    addGroupMessage,
+    updateGroupMessage,
+    deleteGroupMessage,
+    updateGroupThread,
+    subscribeToGroupMessages,
+    getOlderGroupMessages,
+    getGroupMessageIds,
   } = useFirestore();
   
   // Simple mobile-first state management
@@ -1063,7 +1075,13 @@ const TeamChat: React.FC = () => {
   useEffect(() => {
     if (threads.length === 0) return;
     void import('../utils/chatPrewarm').then(({ prewarmThreads }) => {
-      prewarmThreads(threads.map(t => t.id), { topN: 5 });
+      // Pass tuples so groups hit chat_group_threads/{id}/messages
+      // instead of the top-level chat_messages cache (which won't
+      // have the group's messages after the 2026-07-21 migration).
+      prewarmThreads(
+        threads.map(t => ({ id: t.id, isGroup: (t as any).isGroup === true })),
+        { topN: 5 },
+      );
     });
   }, [threads]);
 
@@ -1143,7 +1161,12 @@ const TeamChat: React.FC = () => {
       // Clear pending optimistic rows from the previous thread —
       // they'd otherwise leak into the new conversation.
       setPendingMessages(prev => prev.filter(p => p.threadId === selectedThread.id));
-      const unsubscribeMessages = subscribeToChatMessages(selectedThread.id, (messagesData) => {
+      // Groups live under chat_group_threads/{id}/messages — different
+      // rule + collection path. Every other thread flavor (team, DM,
+      // club, coach) still lives in top-level chat_messages.
+      const isGroupThread = (selectedThread as any).isGroup === true;
+      const subscribeFn = isGroupThread ? subscribeToGroupMessages : subscribeToChatMessages;
+      const unsubscribeMessages = subscribeFn(selectedThread.id, (messagesData) => {
         const processedMessages = messagesData.map(message => ({
           ...message,
           timestamp: message.timestamp instanceof Date ? message.timestamp : new Date(message.timestamp || Date.now()),
@@ -1173,7 +1196,7 @@ const TeamChat: React.FC = () => {
         unsubscribeMessages();
       };
     }
-  }, [selectedThread, subscribeToChatMessages]);
+  }, [selectedThread, subscribeToChatMessages, subscribeToGroupMessages]);
 
   // Single scroll-anchoring effect:
   //   - First time messages arrive for a given thread → INSTANT jump
@@ -1272,7 +1295,10 @@ const TeamChat: React.FC = () => {
       const c = messagesContainerRef.current;
       const prevScrollHeight = c?.scrollHeight ?? 0;
       const prevScrollTop = c?.scrollTop ?? 0;
-      const batch = await getOlderChatMessages(selectedThread.id, oldest.timestamp, 50);
+      const isGroupThread = (selectedThread as any).isGroup === true;
+      const batch = isGroupThread
+        ? await getOlderGroupMessages(selectedThread.id, oldest.timestamp, 50)
+        : await getOlderChatMessages(selectedThread.id, oldest.timestamp, 50);
       if (batch.length === 0) {
         setHasMoreOlder(false);
         return;
@@ -1511,13 +1537,21 @@ const TeamChat: React.FC = () => {
       // make retries safe even if the underlying network actually did
       // deliver a previous attempt.
       const { chatSendQueue } = await import('../utils/chatSendQueue');
+      const isGroupThread = (selectedThread as any).isGroup === true;
       await new Promise<void>((resolve, reject) => {
         chatSendQueue.enqueue({
           id: stableMsgId,
           threadId: threadIdAtSend,
           attempt: 0,
           do: async () => {
-            await addChatMessage(messageData);
+            if (isGroupThread) {
+              // Group messages live under chat_group_threads/{id}/messages/*.
+              // The wrapper strips threadId/teamId (path-authoritative)
+              // before writing.
+              await addGroupMessage(threadIdAtSend, messageData);
+            } else {
+              await addChatMessage(messageData);
+            }
           },
           onSuccess: () => resolve(),
           onFinalFailure: (err) => reject(err),
@@ -1533,7 +1567,7 @@ const TeamChat: React.FC = () => {
       const nextPinned: string[] | undefined = opts?.pinOnSend && newMessageId
         ? [newMessageId, ...((selectedThread as any).pinnedMessageIds || [])].slice(0, 10)
         : undefined;
-      await updateChatThread(selectedThread.id, {
+      const threadPatch: any = {
         lastActivity: new Date(),
         messageCount: selectedThread.messageCount + 1,
         participants: Array.from(new Set([...selectedThread.participants, userData.uid])),
@@ -1541,10 +1575,18 @@ const TeamChat: React.FC = () => {
           content: lastSnippet,
           senderName: userData.name,
           senderId: userData.uid,
-          timestamp: new Date()
+          at: new Date(),
+          // Legacy field kept for back-compat with any surface still
+          // reading `lastMessage.timestamp` (see LatestChatsCard).
+          timestamp: new Date(),
         },
         ...(nextPinned ? { pinnedMessageIds: nextPinned } : {}),
-      } as any);
+      };
+      if (isGroupThread) {
+        await updateGroupThread(selectedThread.id, threadPatch);
+      } else {
+        await updateChatThread(selectedThread.id, threadPatch);
+      }
       if (nextPinned) {
         setSelectedThread({ ...selectedThread, pinnedMessageIds: nextPinned } as any);
       }
@@ -1650,7 +1692,12 @@ const TeamChat: React.FC = () => {
     if (!isRecall && !window.confirm('Delete this message? This cannot be undone.')) return;
     void import('../utils/nativeShell').then(m => m.tapHaptic(isRecall ? 'light' : 'medium'));
     try {
-      await deleteDocument('chat_messages', message.id);
+      const isGroupThread = (selectedThread as any)?.isGroup === true;
+      if (isGroupThread && selectedThread) {
+        await deleteGroupMessage(selectedThread.id, message.id);
+      } else {
+        await deleteDocument('chat_messages', message.id);
+      }
     } catch (err) {
       console.error('Error deleting message:', err);
       alert('Could not delete the message. Please try again.');
@@ -1668,9 +1715,13 @@ const TeamChat: React.FC = () => {
     if (now - lastTypingWriteRef.current < 2500) return;
     lastTypingWriteRef.current = now;
     try {
-      await updateChatThread(selectedThread.id, {
-        [`typingBy.${userData.uid}`]: { ts: now, name: userData.name || 'Member' },
-      } as any);
+      const isGroupThread = (selectedThread as any).isGroup === true;
+      const patch: any = { [`typingBy.${userData.uid}`]: { ts: now, name: userData.name || 'Member' } };
+      if (isGroupThread) {
+        await updateGroupThread(selectedThread.id, patch);
+      } else {
+        await updateChatThread(selectedThread.id, patch);
+      }
     } catch {
       // Non-critical — typing indicator is best-effort.
     }
@@ -1746,40 +1797,60 @@ const TeamChat: React.FC = () => {
     if (!userData || message.senderId !== userData.uid) return;
     const trimmed = newContent.trim();
     if (!trimmed || trimmed === (message.content || '').trim()) return;
-    await updateDocument('chat_messages', message.id, {
-      content: trimmed,
-      edited: true,
-      editedAt: new Date(),
-    });
+    const isGroupThread = (selectedThread as any)?.isGroup === true;
+    const patch = { content: trimmed, edited: true, editedAt: new Date() };
+    if (isGroupThread && selectedThread) {
+      await updateGroupMessage(selectedThread.id, message.id, patch);
+    } else {
+      await updateDocument('chat_messages', message.id, patch);
+    }
   };
 
   const deleteThread = async (thread: ChatThread) => {
     if (!userData) return;
     const isDM = (thread as any).isDM === true;
+    const isGroupThread = (thread as any).isGroup === true;
     const scope = (thread as any).scope || 'team';
     // Permissions:
     //   - DMs: either participant can delete.
+    //   - Groups: any participant can delete (matches DM posture; the
+    //     group is theirs collectively).
     //   - Team threads: team staff can delete.
     //   - Club / Coaches / Admins channels: only club admins can delete
     //     (they're cross-team artifacts, regular coaches shouldn't nuke
     //     other teams' chat history).
     const canDelete =
       (isDM && thread.participants.includes(userData.uid)) ||
-      (scope === 'team' && isTeamStaff) ||
-      (scope !== 'team' && isUserClubAdmin);
+      (isGroupThread && thread.participants.includes(userData.uid)) ||
+      (!isDM && !isGroupThread && scope === 'team' && isTeamStaff) ||
+      (!isDM && !isGroupThread && scope !== 'team' && isUserClubAdmin);
     if (!canDelete) return;
     const label = isDM ? 'this conversation' : `"${thread.title}"`;
     if (!window.confirm(`Delete ${label} for everyone? All messages will be removed and this can't be undone.`)) return;
     try {
-      // Cascade-delete all messages in the thread. Best-effort: even if
-      // some messages fail, still try to remove the thread doc afterward.
-      const msgs: any[] = await getDocuments('chat_messages', [
-        where('threadId', '==', thread.id),
-      ]).catch(() => []);
-      await Promise.all(
-        (msgs || []).map((m) => deleteDocument('chat_messages', m.id).catch(() => null))
-      );
-      await deleteDocument('chat_threads', thread.id);
+      if (isGroupThread) {
+        // Group path: hard-delete every child message under
+        // chat_group_threads/{id}/messages, then SOFT-delete the parent
+        // (isActive:false) per the soft-delete rule for user-facing
+        // records. The subscription filters isActive:false out, so the
+        // thread disappears from every member's sidebar the moment the
+        // snapshot lands.
+        const ids = await getGroupMessageIds(thread.id).catch(() => [] as string[]);
+        await Promise.all(
+          ids.map((mid) => deleteGroupMessage(thread.id, mid).catch(() => null))
+        );
+        await updateGroupThread(thread.id, { isActive: false });
+      } else {
+        // Cascade-delete all messages in the thread. Best-effort: even if
+        // some messages fail, still try to remove the thread doc afterward.
+        const msgs: any[] = await getDocuments('chat_messages', [
+          where('threadId', '==', thread.id),
+        ]).catch(() => []);
+        await Promise.all(
+          (msgs || []).map((m) => deleteDocument('chat_messages', m.id).catch(() => null))
+        );
+        await deleteDocument('chat_threads', thread.id);
+      }
       // Remove from local state immediately. Because the threads
       // subscriptions now MERGE snapshots instead of REPLACING (so a
       // missing-doc snapshot doesn't blank DMs), they would otherwise
@@ -1821,18 +1892,28 @@ const TeamChat: React.FC = () => {
       poll: { question: poll.question, options: opts, multi: !!poll.multi },
     };
     try {
-      await addChatMessage(messageData);
-      await updateChatThread(selectedThread.id, {
+      const isGroupThread = (selectedThread as any).isGroup === true;
+      const threadPatch: any = {
         lastActivity: new Date(),
         messageCount: selectedThread.messageCount + 1,
         participants: Array.from(new Set([...selectedThread.participants, userData.uid])),
         lastMessage: {
-          content: `📊 ${poll.question}`,
+          // Poll indicator — plain-text prefix keeps the no-emoji
+          // rule while still making the preview scannable.
+          content: `Poll: ${poll.question}`,
           senderName: userData.name,
           senderId: userData.uid,
+          at: new Date(),
           timestamp: new Date(),
         },
-      });
+      };
+      if (isGroupThread) {
+        await addGroupMessage(selectedThread.id, messageData);
+        await updateGroupThread(selectedThread.id, threadPatch);
+      } else {
+        await addChatMessage(messageData);
+        await updateChatThread(selectedThread.id, threadPatch);
+      }
     } catch (err) {
       console.error('Poll send failed:', err);
       alert("Poll couldn't send. Try again.");
@@ -1857,8 +1938,11 @@ const TeamChat: React.FC = () => {
       // saw it). Patrick's "they only see their own" report.
       const { runTransaction, doc, getFirestore } = await import('firebase/firestore');
       const firestore = getFirestore();
+      const isGroupThread = (selectedThread as any)?.isGroup === true;
       await runTransaction(firestore, async (tx) => {
-        const ref = doc(firestore, 'chat_messages', messageId);
+        const ref = isGroupThread && selectedThread
+          ? doc(firestore, 'chat_group_threads', selectedThread.id, 'messages', messageId)
+          : doc(firestore, 'chat_messages', messageId);
         const snap = await tx.get(ref);
         if (!snap.exists()) return;
         const data = snap.data() as any;
@@ -1894,9 +1978,13 @@ const TeamChat: React.FC = () => {
     const current: string[] = Array.isArray((message as any).acknowledgedBy) ? (message as any).acknowledgedBy : [];
     if (current.includes(userData.uid)) return;
     try {
-      await updateDocument('chat_messages', message.id, {
-        acknowledgedBy: Array.from(new Set([...current, userData.uid])),
-      });
+      const isGroupThread = (selectedThread as any)?.isGroup === true;
+      const patch = { acknowledgedBy: Array.from(new Set([...current, userData.uid])) };
+      if (isGroupThread && selectedThread) {
+        await updateGroupMessage(selectedThread.id, message.id, patch);
+      } else {
+        await updateDocument('chat_messages', message.id, patch);
+      }
     } catch (err) {
       console.error('Acknowledge failed:', err);
       alert('Could not save that acknowledgement. Please try again.');
@@ -1913,7 +2001,12 @@ const TeamChat: React.FC = () => {
       ? current.filter((id) => id !== message.id)
       : [message.id, ...current].slice(0, 10); // cap at 10 pins per thread
     try {
-      await updateChatThread(selectedThread.id, { pinnedMessageIds: next } as any);
+      const isGroupThread = (selectedThread as any).isGroup === true;
+      if (isGroupThread) {
+        await updateGroupThread(selectedThread.id, { pinnedMessageIds: next });
+      } else {
+        await updateChatThread(selectedThread.id, { pinnedMessageIds: next } as any);
+      }
       // Optimistic local update so the UI doesn't lag behind the snapshot.
       setSelectedThread({ ...selectedThread, pinnedMessageIds: next } as any);
     } catch (err) {
@@ -1933,7 +2026,12 @@ const TeamChat: React.FC = () => {
       next = [...existing, { emoji, userId: userData.uid, userName: userData.name }];
     }
     try {
-      await updateDocument('chat_messages', message.id, { reactions: next });
+      const isGroupThread = (selectedThread as any)?.isGroup === true;
+      if (isGroupThread && selectedThread) {
+        await updateGroupMessage(selectedThread.id, message.id, { reactions: next });
+      } else {
+        await updateDocument('chat_messages', message.id, { reactions: next });
+      }
     } catch (err) {
       console.error('Error toggling reaction:', err);
       alert('Could not save that reaction. Please try again.');
@@ -1987,9 +2085,11 @@ const TeamChat: React.FC = () => {
       ? Array.from(new Set([...threadMutedByUids, userData.uid]))
       : threadMutedByUids.filter(uid => uid !== userData.uid);
     try {
+      const isGroupThread = (thread as any).isGroup === true;
+      const threadCollection = isGroupThread ? 'chat_group_threads' : 'chat_threads';
       await Promise.all([
         updateDoc(doc(db, 'users', userData.uid), { mutedThreadIds: nextUserMuted }),
-        updateDoc(doc(db, 'chat_threads', thread.id), { mutedByUids: nextThreadMuted }),
+        updateDoc(doc(db, threadCollection, thread.id), { mutedByUids: nextThreadMuted }),
       ]);
     } catch (err) {
       const { logFirestoreError } = await import('../utils/firestoreLogger');
@@ -2178,7 +2278,10 @@ const TeamChat: React.FC = () => {
     try {
       const { doc: fsDoc, updateDoc } = await import('firebase/firestore');
       const { db } = await import('../utils/firebase');
-      const ref = fsDoc(db, 'chat_messages', m.id);
+      const isGroupThread = (selectedThread as any)?.isGroup === true;
+      const ref = isGroupThread && selectedThread
+        ? fsDoc(db, 'chat_group_threads', selectedThread.id, 'messages', m.id)
+        : fsDoc(db, 'chat_messages', m.id);
       await updateDoc(ref, { [`readBy.${userData.uid}`]: Date.now() });
     } catch (err) {
       // Read receipts are non-critical; ignore failures (older messages
@@ -2253,40 +2356,25 @@ const TeamChat: React.FC = () => {
       : `${firstNames.slice(0, 2).join(', ')} +${firstNames.length - 2}`;
     setDmStarting('group');
     try {
-      // Groups are PARTICIPANTS-ONLY (2026-07-21 privacy fix). Store
-      // teamId='' so they never appear in the team-scope subscription
-      // (`where teamId in [...]`) — non-participants shouldn't see
-      // group titles or last-message previews in their sidebar or on
-      // the dashboard "Recent chats" card. Members receive them via
-      // subscribeToChatGroups (participants array-contains uid).
-      // originTeamId preserves the "started from Team X" context for
-      // future UI hints without weakening the privacy gate.
-      const threadId = await addChatThread({
+      // Groups live in the dedicated `chat_group_threads` collection
+      // (2026-07-21 subcollection migration). Collection identity is
+      // the discriminator — no stored isGroup flag needed. The
+      // originating team is preserved as a first-class `teamId` so
+      // the demo-team notifications-off guard on the push trigger
+      // still works without an `originTeamId` fallback.
+      const clubIdFromTeam = (selectedTeam as any)?.clubId || null;
+      const threadId = await addGroupThread({
         title,
-        description: '',
-        teamId: '',
-        originTeamId: selectedTeamId,
+        teamId: selectedTeamId,
+        clubId: clubIdFromTeam,
         createdBy: userData.uid,
         createdByName: userData.name,
-        createdAt: new Date(),
-        lastActivity: new Date(),
-        isPinned: false,
-        isPrivate: false,
-        isDM: false,
-        // New flag so the chat UI can render group-style affordances
-        // without confusing groups with team-scoped channels.
-        isGroup: true,
-        messageCount: 0,
         participants: allParticipants,
-        tags: ['group'],
-      } as any);
+      });
       setSelectedThread({
         id: threadId as string,
         title,
-        teamId: '',
-        // @ts-ignore originTeamId lives on the doc but isn't on the
-        // strict ChatThread interface until this deploy lands.
-        originTeamId: selectedTeamId,
+        teamId: selectedTeamId,
         createdBy: userData.uid,
         createdByName: userData.name,
         createdAt: new Date(),
@@ -2296,6 +2384,9 @@ const TeamChat: React.FC = () => {
         messageCount: 0,
         participants: allParticipants,
         tags: ['group'],
+        // In-memory discriminator so the section-bucketing + branch
+        // logic in this component treats the fresh thread as a group
+        // before the subscription snapshot lands.
         // @ts-ignore extras
         isGroup: true,
       } as any);
@@ -2741,8 +2832,8 @@ const TeamChat: React.FC = () => {
                     role="button"
                     tabIndex={0}
                     onClick={() => showChatView(thread)}
-                    onMouseEnter={() => { void import('../utils/chatPrewarm').then(({ prewarmThread }) => prewarmThread(thread.id)); }}
-                    onTouchStart={() => { void import('../utils/chatPrewarm').then(({ prewarmThread }) => prewarmThread(thread.id)); }}
+                    onMouseEnter={() => { void import('../utils/chatPrewarm').then(({ prewarmThread }) => prewarmThread(thread.id, 50, (thread as any).isGroup === true)); }}
+                    onTouchStart={() => { void import('../utils/chatPrewarm').then(({ prewarmThread }) => prewarmThread(thread.id, 50, (thread as any).isGroup === true)); }}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') showChatView(thread); }}
                     className="w-full text-left px-4 py-3 border-b border-line-default/5 hover:bg-line-default/[0.05] active:bg-line-default/[0.08] transition-colors flex items-start gap-3 cursor-pointer"
                   >

@@ -311,13 +311,18 @@ const Dashboard: React.FC = () => {
         dmList = snap.docs.map(x => ({ id: x.id, ...(x.data() as any) }));
         publish();
       });
+      // Groups moved to their own collection in the 2026-07-21
+      // subcollection migration. Collection identity is the
+      // discriminator — no isGroup filter needed. Rules gate on
+      // participants array-contains uid.
       const groupQ = q(
-        c(d, 'chat_threads'),
-        w('isGroup', '==', true),
+        c(d, 'chat_group_threads'),
         w('participants', 'array-contains', userData.uid),
       );
       unsubGroup = os(groupQ, (snap) => {
-        groupList = snap.docs.map(x => ({ id: x.id, ...(x.data() as any) }));
+        groupList = snap.docs
+          .map(x => ({ id: x.id, ...(x.data() as any), isGroup: true }))
+          .filter((t: any) => t.isActive !== false);
         publish();
       });
     })();

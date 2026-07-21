@@ -78,11 +78,12 @@ const NotificationsHeaderBar: React.FC = () => {
       where('isDM', '==', true),
       where('participants', 'array-contains', uid),
     );
-    // Groups (2026-07-21 privacy fix): participants-only, teamId=''
-    // at rest. Members reach them via this query only.
+    // Groups moved to `chat_group_threads` (2026-07-21 subcollection
+    // migration). Collection identity is the discriminator — the
+    // isGroup filter is gone. Rules gate read on participants
+    // array-contains uid, matching this query by construction.
     const groupQ = query(
-      collection(db, 'chat_threads'),
-      where('isGroup', '==', true),
+      collection(db, 'chat_group_threads'),
       where('participants', 'array-contains', uid),
     );
     // Per-subscription maps keyed by threadId, so the same doc
@@ -122,9 +123,21 @@ const NotificationsHeaderBar: React.FC = () => {
         map.set(d.id, { u, t: last });
       });
     };
+    // Group variant skips isActive:false tombstones so a soft-deleted
+    // group's stale unread count doesn't keep the pill lit.
+    const fillActiveFrom = (map: Map<string, Entry>, snap: any) => {
+      map.clear();
+      snap.docs.forEach((d: any) => {
+        const data: any = d.data();
+        if (data?.isActive === false) return;
+        const u = typeof data?.unreadCount?.[uid] === 'number' ? data.unreadCount[uid] : 0;
+        const last = data?.lastActivity?.toDate?.()?.getTime?.() || 0;
+        map.set(d.id, { u, t: last });
+      });
+    };
     const unsubTeam = onSnapshot(teamQ, (snap) => { fillFrom(teamMap, snap); publish(); });
     const unsubDm = onSnapshot(dmQ, (snap) => { fillFrom(dmMap, snap); publish(); });
-    const unsubGroup = onSnapshot(groupQ, (snap) => { fillFrom(groupMap, snap); publish(); });
+    const unsubGroup = onSnapshot(groupQ, (snap) => { fillActiveFrom(groupMap, snap); publish(); });
     return () => { unsubTeam(); unsubDm(); unsubGroup(); };
   }, [selectedTeamId, userData?.uid]);
 

@@ -59,9 +59,9 @@ interface ChatThread {
   isGroup?: boolean;
   scope?: "team" | "club" | string;
   teamId?: string;
-  // Groups post-2026-07-21 keep the coach's viewing team here so
-  // server-side team-scoped checks (demo/notifications-off kill
-  // switch) still work after teamId gets cleared for privacy.
+  // Legacy field on chat_threads group docs pre-migration. Kept
+  // as a fallback until the follow-up cleanup pass removes both
+  // the field and the fallback path.
   originTeamId?: string;
 }
 
@@ -141,6 +141,244 @@ function truncate(s: string, max: number): string {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
+/**
+ * Shared chat-push fan-out. Called by both the top-level
+ * chat_messages trigger (team + DM + club + coach) and the new
+ * chat_group_threads/*​/messages subcollection trigger (groups
+ * post-2026-07-21 migration).
+ *
+ * Recipient resolution comes off the thread — DMs and groups use
+ * the fixed participants list; team-scope resolves the fresh roster.
+ * Everything downstream (mute, prefs, token collection, dead-token
+ * prune, push_attempts audit) is identical.
+ */
+async function fanOutChatPush(params: {
+  message: ChatMessage;
+  messageId: string;
+  thread: ChatThread;
+  // Which team to hit for the demo/notifications-off guard. For
+  // top-level chat_messages this is thread.teamId (or the legacy
+  // originTeamId fallback for pre-migration groups still floating
+  // around). For chat_group_threads it's the first-class teamId
+  // stamped at group creation.
+  guardTeamId: string;
+}): Promise<void> {
+  const {message, messageId, thread, guardTeamId} = params;
+  const db = getFirestore();
+
+  if (guardTeamId) {
+    try {
+      const teamSnap = await db.collection("teams").doc(guardTeamId).get();
+      if (teamSnap.exists) {
+        const t = teamSnap.data() as {
+          isDemo?: boolean;
+          notificationsDisabled?: boolean;
+        };
+        if (t.isDemo === true || t.notificationsDisabled === true) {
+          logger.info("chat push skipped — team demo/notifications-off", {
+            messageId, threadId: thread.id, teamId: guardTeamId,
+          });
+          return;
+        }
+      }
+    } catch (err) {
+      logger.warn("team demo-flag lookup failed", {teamId: guardTeamId, err});
+    }
+  }
+
+  const candidateUids = await resolveRecipientUids(thread);
+  const mutedThreadSet = new Set<string>(thread.mutedByUids || []);
+  const recipients = candidateUids.filter(
+    (uid) =>
+      !!uid &&
+      uid !== message.senderId &&
+      !mutedThreadSet.has(uid),
+  );
+
+  if (recipients.length === 0) {
+    logger.info("no recipients", {messageId, threadId: thread.id});
+    await db.collection("push_attempts").doc(messageId).set({
+      messageId,
+      threadId: thread.id,
+      senderId: message.senderId,
+      kind: "chat",
+      sent: 0,
+      failed: 0,
+      recipientCount: 0,
+      recipientsWithoutTokens: 0,
+      recipientsWithPrefOff: 0,
+      recipientsWhoMutedSender: 0,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+
+  let recipientsWithoutTokens = 0;
+  let recipientsWithPrefOff = 0;
+  let recipientsWhoMutedSender = 0;
+  const tokenToUid = new Map<string, string>();
+  const tokens: string[] = [];
+
+  for (const uid of recipients) {
+    try {
+      const uSnap = await db.collection("users").doc(uid).get();
+      if (!uSnap.exists) continue;
+      const u = uSnap.data() as UserDoc;
+      if (u.isActive === false) continue;
+      const chatOn = u.pushPreferences?.chat !== false;
+      if (!chatOn) {
+        recipientsWithPrefOff++;
+        continue;
+      }
+      if (
+        Array.isArray(u.mutedUserIds) &&
+        u.mutedUserIds.includes(message.senderId)
+      ) {
+        recipientsWhoMutedSender++;
+        continue;
+      }
+      const arr = Array.isArray(u.fcmTokens) ? u.fcmTokens : [];
+      const live = arr.filter(
+        (t): t is string => typeof t === "string" && t.length > 10,
+      );
+      if (live.length === 0) {
+        recipientsWithoutTokens++;
+        continue;
+      }
+      for (const t of live) {
+        if (!tokenToUid.has(t)) {
+          tokenToUid.set(t, uid);
+          tokens.push(t);
+        }
+      }
+    } catch (err) {
+      logger.warn("recipient read failed", {uid, err});
+    }
+  }
+
+  if (tokens.length === 0) {
+    await db.collection("push_attempts").doc(messageId).set({
+      messageId,
+      threadId: thread.id,
+      senderId: message.senderId,
+      kind: "chat",
+      sent: 0,
+      failed: 0,
+      recipientCount: recipients.length,
+      recipientsWithoutTokens,
+      recipientsWithPrefOff,
+      recipientsWhoMutedSender,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    logger.info("no live tokens after filtering", {
+      messageId,
+      recipientCount: recipients.length,
+    });
+    return;
+  }
+
+  const isDM = thread.isDM === true;
+  const senderName = message.senderName || "Someone";
+  const pushTitle = isDM
+    ? `${senderName} (DM)`
+    : `${senderName} in ${thread.title || "your team"}`;
+  const attachCount = Array.isArray(message.attachments)
+    ? message.attachments.length
+    : 0;
+  const pushBody = message.content
+    ? truncate(message.content, 140)
+    : attachCount > 0
+      ? `Sent ${attachCount} photo${attachCount > 1 ? "s" : ""}`
+      : "New message";
+  const deepLinkPath = `/chat?thread=${thread.id}&message=${messageId}`;
+  const deepLink = `${APP_ORIGIN}${deepLinkPath}`;
+
+  const response = await getMessaging().sendEachForMulticast({
+    tokens,
+    notification: {title: pushTitle, body: pushBody},
+    data: {
+      url: deepLink,
+      path: deepLinkPath,
+      threadId: thread.id,
+      messageId,
+      kind: "chat",
+    },
+    webpush: {
+      fcmOptions: {link: deepLink},
+      notification: {icon: "/images/logo.png"},
+    },
+    apns: {payload: {aps: {sound: "default", badge: undefined}}},
+    android: {
+      priority: "high",
+      notification: {sound: "default", channelId: "default"},
+    },
+  });
+
+  const deadTokens: string[] = [];
+  response.responses.forEach((r, i) => {
+    if (r.success) return;
+    const code = r.error?.code || "";
+    if (
+      code === "messaging/registration-token-not-registered" ||
+      code === "messaging/invalid-registration-token" ||
+      code === "messaging/invalid-argument"
+    ) {
+      deadTokens.push(tokens[i]);
+    }
+  });
+
+  if (deadTokens.length > 0) {
+    const uidToDead = new Map<string, string[]>();
+    for (const t of deadTokens) {
+      const uid = tokenToUid.get(t);
+      if (!uid) continue;
+      if (!uidToDead.has(uid)) uidToDead.set(uid, []);
+      uidToDead.get(uid)!.push(t);
+    }
+    const batch = db.batch();
+    for (const [uid, deadForUser] of uidToDead) {
+      batch.update(db.collection("users").doc(uid), {
+        fcmTokens: FieldValue.arrayRemove(...deadForUser),
+      });
+    }
+    try {
+      await batch.commit();
+      logger.info("pruned dead tokens", {count: deadTokens.length});
+    } catch (err) {
+      logger.warn("dead-token prune failed", {err});
+    }
+  }
+
+  await db.collection("push_attempts").doc(messageId).set({
+    messageId,
+    threadId: thread.id,
+    senderId: message.senderId,
+    kind: "chat",
+    sent: response.successCount,
+    failed: response.failureCount,
+    deadTokensRemoved: deadTokens.length,
+    recipientCount: recipients.length,
+    recipientsWithoutTokens,
+    recipientsWithPrefOff,
+    recipientsWhoMutedSender,
+    tokensTargeted: tokens.length,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  logger.info("chat push fan-out complete", {
+    messageId,
+    sent: response.successCount,
+    failed: response.failureCount,
+    recipientCount: recipients.length,
+  });
+}
+
+/**
+ * Team + DM + club + coach messages live at chat_messages/{id} with
+ * `threadId` pointing at the parent in chat_threads. Group chats
+ * moved out of this collection in the 2026-07-21 subcollection
+ * migration — see onGroupChatMessageCreate below.
+ */
 export const onChatMessageCreate = onDocumentCreated(
   "chat_messages/{messageId}",
   async (event) => {
@@ -159,248 +397,73 @@ export const onChatMessageCreate = onDocumentCreated(
     }
 
     const db = getFirestore();
-    const threadRef = db.collection("chat_threads").doc(message.threadId);
-    const threadSnap = await threadRef.get();
+    const threadSnap = await db
+      .collection("chat_threads").doc(message.threadId).get();
     if (!threadSnap.exists) {
       logger.warn("thread not found", {threadId: message.threadId});
       return;
     }
     const thread = {id: threadSnap.id, ...threadSnap.data()} as ChatThread;
 
-    // Same demo-team kill switch as onEventCreate. Threads on a
-    // demo/notifications-off team never fan out, even if stale
-    // team memberships would otherwise resolve real users.
-    //
-    // Groups post-2026-07-21 carry teamId='' at rest (privacy fix)
-    // so the check falls back to originTeamId, the team the coach
-    // was viewing when they spun the group up. Without this fallback
-    // a demo-team coach's group pushes would escape the team-level
-    // kill switch.
-    const threadTeamId = thread.teamId || thread.originTeamId || "";
-    if (threadTeamId) {
-      try {
-        const teamSnap = await db.collection("teams").doc(threadTeamId).get();
-        if (teamSnap.exists) {
-          const t = teamSnap.data() as {
-            isDemo?: boolean;
-            notificationsDisabled?: boolean;
-          };
-          if (t.isDemo === true || t.notificationsDisabled === true) {
-            logger.info("chat push skipped — team demo/notifications-off", {
-              messageId, threadId: message.threadId, teamId: threadTeamId,
-            });
-            return;
-          }
-        }
-      } catch (err) {
-        logger.warn("team demo-flag lookup failed", {teamId: threadTeamId, err});
-      }
+    // Demo-team kill switch. `originTeamId` fallback covers any
+    // pre-migration group doc still sitting in chat_threads before
+    // the migration script cleans it up.
+    const guardTeamId = thread.teamId || thread.originTeamId || "";
+    await fanOutChatPush({message, messageId, thread, guardTeamId});
+  },
+);
+
+/**
+ * Group-chat push fanout.
+ *
+ * Triggered on chat_group_threads/{threadId}/messages/{messageId} —
+ * the subcollection that groups moved into in the 2026-07-21
+ * migration. Parent doc holds first-class `teamId` (originating
+ * team), so the demo-team guard works without any fallback.
+ *
+ * Deep link deliberately reuses the /chat?thread=... shape — the
+ * client resolves that id against BOTH chat_threads and
+ * chat_group_threads.
+ */
+export const onGroupChatMessageCreate = onDocumentCreated(
+  "chat_group_threads/{threadId}/messages/{messageId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const {threadId, messageId} = event.params;
+    const message = snap.data() as ChatMessage | undefined;
+    if (!message) return;
+    if (message._skipPush === true) {
+      logger.info("skip-push flag set (group)", {threadId, messageId});
+      return;
     }
-
-    const candidateUids = await resolveRecipientUids(thread);
-    const mutedThreadSet = new Set<string>(thread.mutedByUids || []);
-    const recipients = candidateUids.filter(
-      (uid) =>
-        !!uid &&
-        uid !== message.senderId &&
-        !mutedThreadSet.has(uid),
-    );
-
-    if (recipients.length === 0) {
-      logger.info("no recipients", {messageId, threadId: message.threadId});
-      await db.collection("push_attempts").doc(messageId).set({
-        messageId,
-        threadId: message.threadId,
-        senderId: message.senderId,
-        kind: "chat",
-        sent: 0,
-        failed: 0,
-        recipientCount: 0,
-        recipientsWithoutTokens: 0,
-        recipientsWithPrefOff: 0,
-        recipientsWhoMutedSender: 0,
-        createdAt: FieldValue.serverTimestamp(),
-      });
+    if (!message.senderId) {
+      logger.warn("group message missing sender", {threadId, messageId});
       return;
     }
 
-    // Per-recipient counters so the attempt log can answer "why didn't X
-    // get this push" without us guessing.
-    let recipientsWithoutTokens = 0;
-    let recipientsWithPrefOff = 0;
-    let recipientsWhoMutedSender = 0;
-    const tokenToUid = new Map<string, string>();
-    const tokens: string[] = [];
-
-    for (const uid of recipients) {
-      try {
-        const uSnap = await db.collection("users").doc(uid).get();
-        if (!uSnap.exists) continue;
-        const u = uSnap.data() as UserDoc;
-        if (u.isActive === false) continue;
-        const chatOn = u.pushPreferences?.chat !== false; // default-on
-        if (!chatOn) {
-          recipientsWithPrefOff++;
-          continue;
-        }
-        if (
-          Array.isArray(u.mutedUserIds) &&
-          u.mutedUserIds.includes(message.senderId)
-        ) {
-          recipientsWhoMutedSender++;
-          continue;
-        }
-        const arr = Array.isArray(u.fcmTokens) ? u.fcmTokens : [];
-        const live = arr.filter(
-          (t): t is string => typeof t === "string" && t.length > 10,
-        );
-        if (live.length === 0) {
-          recipientsWithoutTokens++;
-          continue;
-        }
-        for (const t of live) {
-          if (!tokenToUid.has(t)) {
-            tokenToUid.set(t, uid);
-            tokens.push(t);
-          }
-        }
-      } catch (err) {
-        logger.warn("recipient read failed", {uid, err});
-      }
-    }
-
-    if (tokens.length === 0) {
-      await db.collection("push_attempts").doc(messageId).set({
-        messageId,
-        threadId: message.threadId,
-        senderId: message.senderId,
-        kind: "chat",
-        sent: 0,
-        failed: 0,
-        recipientCount: recipients.length,
-        recipientsWithoutTokens,
-        recipientsWithPrefOff,
-        recipientsWhoMutedSender,
-        createdAt: FieldValue.serverTimestamp(),
-      });
-      logger.info("no live tokens after filtering", {
-        messageId,
-        recipientCount: recipients.length,
-      });
+    const db = getFirestore();
+    const threadSnap = await db
+      .collection("chat_group_threads").doc(threadId).get();
+    if (!threadSnap.exists) {
+      logger.warn("group thread not found", {threadId});
       return;
     }
+    // Force isGroup so resolveRecipientUids takes the group branch.
+    // Collection identity is authoritative — the stored doc may or
+    // may not carry the flag, we don't care.
+    const thread = {
+      id: threadSnap.id,
+      ...threadSnap.data(),
+      isGroup: true,
+    } as ChatThread;
 
-    const isDM = thread.isDM === true;
-    const senderName = message.senderName || "Someone";
-    const pushTitle = isDM
-      ? `${senderName} (DM)`
-      : `${senderName} in ${thread.title || "your team"}`;
-    const attachCount = Array.isArray(message.attachments)
-      ? message.attachments.length
-      : 0;
-    const pushBody = message.content
-      ? truncate(message.content, 140)
-      : attachCount > 0
-        ? `Sent ${attachCount} photo${attachCount > 1 ? "s" : ""}`
-        : "New message";
-    const deepLinkPath = `/chat?thread=${message.threadId}&message=${messageId}`;
-    const deepLink = `${APP_ORIGIN}${deepLinkPath}`;
-
-    // sendEachForMulticast handles >500 tokens by chunking internally —
-    // not that we expect to hit that ceiling for chat any time soon.
-    const response = await getMessaging().sendEachForMulticast({
-      tokens,
-      notification: {
-        title: pushTitle,
-        body: pushBody,
-      },
-      data: {
-        url: deepLink,
-        path: deepLinkPath,
-        threadId: message.threadId,
-        messageId,
-        kind: "chat",
-      },
-      webpush: {
-        fcmOptions: {link: deepLink},
-        notification: {icon: "/images/logo.png"},
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: "default",
-            badge: undefined,
-          },
-        },
-      },
-      android: {
-        priority: "high",
-        notification: {
-          sound: "default",
-          channelId: "default",
-        },
-      },
-    });
-
-    // Pull dead tokens out of every user doc that held them so we stop
-    // hammering FCM with known-bad tokens. UNREGISTERED / NOT_FOUND /
-    // INVALID_ARGUMENT-for-token are the canonical "device gone" codes.
-    const deadTokens: string[] = [];
-    response.responses.forEach((r, i) => {
-      if (r.success) return;
-      const code = r.error?.code || "";
-      if (
-        code === "messaging/registration-token-not-registered" ||
-        code === "messaging/invalid-registration-token" ||
-        code === "messaging/invalid-argument"
-      ) {
-        deadTokens.push(tokens[i]);
-      }
-    });
-
-    if (deadTokens.length > 0) {
-      const uidToDead = new Map<string, string[]>();
-      for (const t of deadTokens) {
-        const uid = tokenToUid.get(t);
-        if (!uid) continue;
-        if (!uidToDead.has(uid)) uidToDead.set(uid, []);
-        uidToDead.get(uid)!.push(t);
-      }
-      const batch = db.batch();
-      for (const [uid, deadForUser] of uidToDead) {
-        batch.update(db.collection("users").doc(uid), {
-          fcmTokens: FieldValue.arrayRemove(...deadForUser),
-        });
-      }
-      try {
-        await batch.commit();
-        logger.info("pruned dead tokens", {count: deadTokens.length});
-      } catch (err) {
-        logger.warn("dead-token prune failed", {err});
-      }
-    }
-
-    await db.collection("push_attempts").doc(messageId).set({
+    const guardTeamId = thread.teamId || "";
+    await fanOutChatPush({
+      message: {...message, threadId},
       messageId,
-      threadId: message.threadId,
-      senderId: message.senderId,
-      kind: "chat",
-      sent: response.successCount,
-      failed: response.failureCount,
-      deadTokensRemoved: deadTokens.length,
-      recipientCount: recipients.length,
-      recipientsWithoutTokens,
-      recipientsWithPrefOff,
-      recipientsWhoMutedSender,
-      tokensTargeted: tokens.length,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-
-    logger.info("chat push fan-out complete", {
-      messageId,
-      sent: response.successCount,
-      failed: response.failureCount,
-      recipientCount: recipients.length,
+      thread,
+      guardTeamId,
     });
   },
 );

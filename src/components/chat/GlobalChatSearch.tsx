@@ -59,12 +59,24 @@ const GlobalChatSearch: React.FC<Props> = ({ threads, onResult, onClose, getThre
         if (cancelled) return;
         await Promise.all(batch.map(async (t) => {
           try {
-            const snap = await getDocs(query(
-              collection(db, 'chat_messages'),
-              where('threadId', '==', t.id),
-              orderBy('timestamp', 'desc'),
-              limit(PER_THREAD_LIMIT),
-            ));
+            // Groups moved to chat_group_threads/{id}/messages in the
+            // 2026-07-21 subcollection migration. Route the per-thread
+            // recent-messages fetch to the correct path based on the
+            // in-memory isGroup discriminator.
+            const isGroupThread = (t as any).isGroup === true;
+            const ref = isGroupThread
+              ? query(
+                  collection(db, 'chat_group_threads', t.id, 'messages'),
+                  orderBy('timestamp', 'desc'),
+                  limit(PER_THREAD_LIMIT),
+                )
+              : query(
+                  collection(db, 'chat_messages'),
+                  where('threadId', '==', t.id),
+                  orderBy('timestamp', 'desc'),
+                  limit(PER_THREAD_LIMIT),
+                );
+            const snap = await getDocs(ref);
             snap.docs.forEach(d => {
               const data = d.data() as any;
               if (!data.content) return;

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, collectionGroup, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import type { ChatMessage } from '../types';
@@ -22,22 +22,42 @@ const MentionsInbox: React.FC = () => {
 
   useEffect(() => {
     if (!userData?.uid) return;
-    const q = query(
+    // Two parallel streams. Team + DM + club + coach mentions live in
+    // top-level `chat_messages`. Group mentions live in the
+    // `chat_group_threads/*/messages` subcollection, so collectionGroup
+    // ('messages') is the only way to reach them by mention.
+    const topQ = query(
       collection(db, 'chat_messages'),
       where('mentions', 'array-contains', userData.uid),
       orderBy('timestamp', 'desc'),
       limit(100),
     );
-    const unsub = onSnapshot(q, (snap) => {
-      const next = snap.docs.map(d => {
-        const data = d.data() as any;
-        return {
-          ...data,
-          id: d.id,
-          timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now()),
-        } as ChatMessage;
-      });
-      setMessages(next);
+    const subQ = query(
+      collectionGroup(db, 'messages'),
+      where('mentions', 'array-contains', userData.uid),
+      orderBy('timestamp', 'desc'),
+      limit(100),
+    );
+    let topList: ChatMessage[] = [];
+    let subList: ChatMessage[] = [];
+    const publish = () => {
+      const merged = [...topList, ...subList]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 100);
+      setMessages(merged);
+    };
+    const mapDoc = (d: any, threadIdFromPath?: string): ChatMessage => {
+      const data = d.data() as any;
+      return {
+        ...data,
+        id: d.id,
+        threadId: data.threadId || threadIdFromPath || '',
+        timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now()),
+      } as ChatMessage;
+    };
+    const unsubTop = onSnapshot(topQ, (snap) => {
+      topList = snap.docs.map(d => mapDoc(d));
+      publish();
       setLoading(false);
     }, (err) => {
       void import('../utils/firestoreLogger').then(({ logFirestoreError }) =>
@@ -45,7 +65,20 @@ const MentionsInbox: React.FC = () => {
       );
       setLoading(false);
     });
-    return () => unsub();
+    const unsubSub = onSnapshot(subQ, (snap) => {
+      subList = snap.docs
+        // collectionGroup('messages') will match any subcollection
+        // named "messages" anywhere in the DB. Guard to just the
+        // group-chat path so a future collision can't leak here.
+        .filter(d => d.ref.parent?.parent?.parent?.id === 'chat_group_threads')
+        .map(d => mapDoc(d, d.ref.parent?.parent?.id));
+      publish();
+    }, (err) => {
+      void import('../utils/firestoreLogger').then(({ logFirestoreError }) =>
+        logFirestoreError('subscribe', 'messages?mentions', err, { op: 'MentionsInbox:group' })
+      );
+    });
+    return () => { unsubTop(); unsubSub(); };
   }, [userData?.uid]);
 
   // Fetch thread titles for the threads we've got hits in.
@@ -62,6 +95,15 @@ const MentionsInbox: React.FC = () => {
           if (snap.exists()) {
             const data = snap.data() as any;
             fetched[id] = data.title || 'Chat';
+            return;
+          }
+          // Groups moved to their own collection in the 2026-07-21
+          // subcollection migration. Fall back so mentions in group
+          // chats still get a proper thread title in the inbox.
+          const gSnap = await getDoc(fsDoc(db, 'chat_group_threads', id));
+          if (gSnap.exists()) {
+            const data = gSnap.data() as any;
+            fetched[id] = data.title || 'Group chat';
           }
         } catch {
           /* ignore */

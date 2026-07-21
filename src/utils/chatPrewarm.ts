@@ -20,19 +20,31 @@ const inflight = new Map<string, Promise<void>>();
 
 /** Pre-warm the first page of messages for a thread. Idempotent — once
  *  warmed, calls are no-ops until the warmed set is cleared. Failures
- *  are swallowed; this is a perf hint, not a critical fetch. */
-export function prewarmThread(threadId: string, pageSize: number = 50): Promise<void> {
+ *  are swallowed; this is a perf hint, not a critical fetch.
+ *
+ *  `isGroup` selects between the top-level chat_messages collection
+ *  (team / DM / club / coach) and the subcollection
+ *  chat_group_threads/{id}/messages (groups). Callers who don't know
+ *  can leave it undefined; the top-level query will still succeed
+ *  even against a group thread id but returns nothing useful. */
+export function prewarmThread(threadId: string, pageSize: number = 50, isGroup: boolean = false): Promise<void> {
   if (!threadId || warmed.has(threadId)) return Promise.resolve();
   const existing = inflight.get(threadId);
   if (existing) return existing;
   const p = (async () => {
     try {
-      const q = query(
-        collection(db, 'chat_messages'),
-        where('threadId', '==', threadId),
-        orderBy('timestamp', 'desc'),
-        limit(pageSize),
-      );
+      const q = isGroup
+        ? query(
+            collection(db, 'chat_group_threads', threadId, 'messages'),
+            orderBy('timestamp', 'desc'),
+            limit(pageSize),
+          )
+        : query(
+            collection(db, 'chat_messages'),
+            where('threadId', '==', threadId),
+            orderBy('timestamp', 'desc'),
+            limit(pageSize),
+          );
       await getDocs(q);
       warmed.add(threadId);
     } catch {
@@ -46,11 +58,20 @@ export function prewarmThread(threadId: string, pageSize: number = 50): Promise<
 }
 
 /** Pre-warm a batch of threads. Used when the thread list first loads
- *  so the top N threads are ready for instant open. */
-export function prewarmThreads(threadIds: string[], opts?: { topN?: number }): void {
+ *  so the top N threads are ready for instant open. Accepts either
+ *  string ids (top-level) or {id, isGroup} tuples so the group path
+ *  hits the subcollection cache correctly. */
+export function prewarmThreads(
+  threads: Array<string | { id: string; isGroup?: boolean }>,
+  opts?: { topN?: number },
+): void {
   const top = opts?.topN ?? 5;
-  for (const id of threadIds.slice(0, top)) {
-    void prewarmThread(id);
+  for (const t of threads.slice(0, top)) {
+    if (typeof t === 'string') {
+      void prewarmThread(t);
+    } else {
+      void prewarmThread(t.id, 50, !!t.isGroup);
+    }
   }
 }
 

@@ -49,9 +49,12 @@ export function useDashboardActivity(
       where('isDM', '==', true),
       where('participants', 'array-contains', uid),
     );
+    // Groups moved to `chat_group_threads` in the 2026-07-21
+    // subcollection migration. Collection identity is the
+    // discriminator. Rules gate read on participants array-contains
+    // uid, so this query is safe by construction.
     const groupQ = query(
-      collection(db, 'chat_threads'),
-      where('isGroup', '==', true),
+      collection(db, 'chat_group_threads'),
       where('participants', 'array-contains', uid),
     );
     // Per-subscription maps keyed by threadId. Dedupes when a doc
@@ -88,9 +91,22 @@ export function useDashboardActivity(
         map.set(d.id, { u, t });
       });
     };
+    const fillActiveFrom = (map: Map<string, Entry>, snap: any) => {
+      // Group threads use isActive:false as the soft-delete tombstone
+      // (migration + user-initiated deletes both flip it). Skip
+      // tombstoned rows so their stale unreadCount doesn't count.
+      map.clear();
+      snap.docs.forEach((d: any) => {
+        const data: any = d.data();
+        if (data?.isActive === false) return;
+        const u = typeof data?.unreadCount?.[uid] === 'number' ? data.unreadCount[uid] : 0;
+        const t = data?.lastActivity?.toDate?.()?.getTime?.() || 0;
+        map.set(d.id, { u, t });
+      });
+    };
     const unsubTeam = onSnapshot(teamQ, (snap) => { fillFrom(teamMap, snap); publish(); });
     const unsubDm = onSnapshot(dmQ, (snap) => { fillFrom(dmMap, snap); publish(); });
-    const unsubGroup = onSnapshot(groupQ, (snap) => { fillFrom(groupMap, snap); publish(); });
+    const unsubGroup = onSnapshot(groupQ, (snap) => { fillActiveFrom(groupMap, snap); publish(); });
     return () => { unsubTeam(); unsubDm(); unsubGroup(); };
   }, [teamId, uid]);
 

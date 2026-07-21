@@ -530,6 +530,47 @@ const getUserData = useCallback(async (uid: string) => {
     return updateDocument('chat_threads', threadId, updateData);
   }, []);
 
+  /** Create a new group-chat thread at `chat_group_threads/{cuid}`.
+   *  Client-generated cuid keeps deep links stable and lets the
+   *  push-fanout audit doc key on the message id without collision.
+   *  Caller supplies the participants list; rules require the caller
+   *  be in it and be `createdBy`. */
+  const addGroupThread = useCallback(async (threadData: Partial<ChatThread> & { createdBy: string; participants: string[] }) => {
+    const id = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+      ? crypto.randomUUID()
+      : `gt_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const now = new Date();
+    const payload: any = {
+      id,
+      title: threadData.title || 'Group chat',
+      teamId: threadData.teamId || '',
+      clubId: (threadData as any).clubId || null,
+      createdBy: threadData.createdBy,
+      createdByName: threadData.createdByName || '',
+      participants: threadData.participants,
+      createdAt: now,
+      updatedAt: now,
+      // lastActivity retained for a clean revert of the sidebar sort
+      // (it mirrors updatedAt on every write below).
+      lastActivity: now,
+      isActive: true,
+      isPinned: false,
+      unreadCount: {},
+      mutedByUids: [],
+      pinnedMessageIds: [],
+      tags: ['group'],
+    };
+    try {
+      const { setDoc, doc: fsDoc } = await import('firebase/firestore');
+      await setDoc(fsDoc(db, 'chat_group_threads', id), cleanFirestoreData(payload));
+      return id;
+    } catch (err) {
+      const { logFirestoreError } = await import('../utils/firestoreLogger');
+      logFirestoreError('write', `chat_group_threads/${id}`, err, { op: 'addGroupThread' });
+      throw err;
+    }
+  }, []);
+
   const getChatThreadsByTeam = useCallback(async (teamId: string) => {
     try {
       const q = query(
@@ -735,19 +776,17 @@ const getUserData = useCallback(async (uid: string) => {
    * the caller's cleanup still runs cleanly).
    */
   /**
-   * Subscribe to the caller's ad-hoc group chats. Group threads are
-   * participants-only at the Firestore rule layer (2026-07-21 privacy
-   * fix) and are stored with teamId='' so they never leak through the
-   * team-scope subscription (`where teamId in [...]`). Members reach
-   * their groups here instead.
+   * Subscribe to the caller's ad-hoc group chats. Group threads live
+   * in the dedicated `chat_group_threads` collection (moved out of
+   * `chat_threads` in the 2026-07-21 subcollection migration). The
+   * collection identity IS the discriminator: no stored `isGroup`
+   * field needed. Rules on `chat_group_threads` gate read/list on
+   * `participants array-contains uid`, so this query is safe by
+   * construction against the list-fails-if-any-doc-denied semantic.
    *
-   * The query shape (`where isGroup==true AND participants
-   * array-contains uid`) always satisfies the tightened chat_threads
-   * read rule by construction, so this subscription can never trip
-   * the "one denied doc kills the whole snapshot" list semantic.
-   *
-   * Mirrors the DM pattern already used by Dashboard/
-   * NotificationsHeaderBar: people-scoped, team-agnostic.
+   * Tags each returned thread with `isGroup: true` in memory so the
+   * downstream section-bucketing (TeamChat.tsx) continues to work
+   * without a broad rename.
    */
   const subscribeToChatGroups = useCallback((uid: string | null | undefined, callback: (threads: ChatThread[]) => void) => {
     if (!uid) {
@@ -755,30 +794,39 @@ const getUserData = useCallback(async (uid: string) => {
       return () => {};
     }
     const q = query(
-      collection(db, 'chat_threads'),
-      where('isGroup', '==', true),
+      collection(db, 'chat_group_threads'),
       where('participants', 'array-contains', uid),
     );
     return onSnapshot(q, (querySnapshot) => {
-      const threads = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          ...data,
-          id: doc.id,
-          title: data.title || '',
-          description: data.description || '',
-          teamId: data.teamId || '',
-          createdBy: data.createdBy || '',
-          createdByName: data.createdByName || '',
-          createdAt: data.createdAt?.toDate?.() || new Date(),
-          lastActivity: data.lastActivity?.toDate?.() || new Date(),
-          isPinned: data.isPinned || false,
-          isPrivate: data.isPrivate || false,
-          messageCount: data.messageCount || 0,
-          participants: data.participants || [],
-          tags: data.tags || [],
-        } as ChatThread;
-      });
+      const threads = querySnapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id,
+            title: data.title || '',
+            description: data.description || '',
+            teamId: data.teamId || '',
+            createdBy: data.createdBy || '',
+            createdByName: data.createdByName || '',
+            createdAt: data.createdAt?.toDate?.() || new Date(),
+            lastActivity: data.lastActivity?.toDate?.() || (data.updatedAt?.toDate?.() || new Date()),
+            isPinned: data.isPinned || false,
+            isPrivate: data.isPrivate || false,
+            messageCount: data.messageCount || 0,
+            participants: data.participants || [],
+            tags: data.tags || ['group'],
+            // Collection identity is the discriminator; tag in memory
+            // so the UI's section-bucketing (dms / groups / teams)
+            // keeps working without a broader rename.
+            isGroup: true,
+          } as ChatThread;
+        })
+        // Soft-deleted groups (isActive === false) are hidden from
+        // every user surface per the soft-delete rule. Migration
+        // script uses this to tombstone the legacy chat_threads
+        // source; new client cascade-delete uses it here too.
+        .filter(t => (t as any).isActive !== false);
       callback(threads);
     }, (error) => {
       const code = (error as any)?.code;
@@ -788,6 +836,194 @@ const getUserData = useCallback(async (uid: string) => {
         console.error('Error in group threads subscription:', error);
       }
     });
+  }, []);
+
+  // ================================
+  // GROUP CHAT SUBCOLLECTION WRAPPERS
+  // ================================
+  //
+  // Groups moved from top-level chat_threads/chat_messages to a
+  // dedicated collection with messages as a subcollection:
+  //   chat_group_threads/{gid}
+  //   chat_group_threads/{gid}/messages/{mid}
+  //
+  // The subcollection rule gates on
+  //   get(chat_group_threads/{gid}).data.participants
+  // so children inherit the parent's trust boundary without a
+  // per-message participants denorm.
+
+  /** Write a new message into a group thread's subcollection.
+   *  Client-generated id keeps retries idempotent (same as
+   *  addChatMessage). Strips path-authoritative fields the caller
+   *  used to send with top-level chat_messages. */
+  const addGroupMessage = useCallback(async (
+    threadId: string,
+    messageData: Omit<ChatMessage, 'createdAt' | 'updatedAt'> & { id?: string },
+  ) => {
+    const id = messageData.id || (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `cm_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`);
+    // Path is authoritative: threadId + teamId are inferred from the
+    // parent doc, so we drop them from the message payload rather
+    // than let them go stale.
+    const { id: _stripId, threadId: _stripThread, teamId: _stripTeam, ...rest } = messageData as any;
+    const messageToWrite = {
+      ...rest,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      timestamp: messageData.timestamp || new Date(),
+    };
+    try {
+      const { setDoc, doc: fsDoc } = await import('firebase/firestore');
+      await setDoc(
+        fsDoc(db, 'chat_group_threads', threadId, 'messages', id),
+        cleanFirestoreData(messageToWrite),
+      );
+      return id;
+    } catch (err) {
+      const { logFirestoreError } = await import('../utils/firestoreLogger');
+      logFirestoreError('write', `chat_group_threads/${threadId}/messages/${id}`, err, { op: 'addGroupMessage' });
+      throw err;
+    }
+  }, []);
+
+  /** Update a message inside a group thread's subcollection.
+   *  Rule-allowed fields for author: content/editedAt/mediaAttachments/isDeleted/poll.
+   *  For other participants: reactions/readBy/acknowledgedBy only. */
+  const updateGroupMessage = useCallback(async (
+    threadId: string,
+    messageId: string,
+    data: any,
+  ) => {
+    try {
+      const { updateDoc, doc: fsDoc } = await import('firebase/firestore');
+      await updateDoc(
+        fsDoc(db, 'chat_group_threads', threadId, 'messages', messageId),
+        cleanFirestoreData(data),
+      );
+    } catch (err) {
+      handleError(err);
+      throw err;
+    }
+  }, []);
+
+  /** Delete a message inside a group thread's subcollection. Author
+   *  or platform admin per rule. */
+  const deleteGroupMessage = useCallback(async (threadId: string, messageId: string) => {
+    try {
+      const { deleteDoc, doc: fsDoc } = await import('firebase/firestore');
+      await deleteDoc(fsDoc(db, 'chat_group_threads', threadId, 'messages', messageId));
+    } catch (err) {
+      handleError(err);
+      throw err;
+    }
+  }, []);
+
+  /** Patch the group thread parent doc (lastActivity, lastMessage,
+   *  participants union, typingBy, unreadCount, isPinned, mutedByUids,
+   *  pinnedMessageIds, title, isActive). Callers should already be
+   *  participants. */
+  const updateGroupThread = useCallback(async (threadId: string, data: Partial<ChatThread> | any) => {
+    try {
+      const { updateDoc, doc: fsDoc } = await import('firebase/firestore');
+      const payload = { ...data, updatedAt: new Date() };
+      await updateDoc(
+        fsDoc(db, 'chat_group_threads', threadId),
+        cleanFirestoreData(payload),
+      );
+    } catch (err) {
+      handleError(err);
+      throw err;
+    }
+  }, []);
+
+  /** Subscribe to the live tail of a group thread's messages. Same
+   *  shape as subscribeToChatMessages so TeamChat can branch once at
+   *  the subscribe call and reuse every downstream mapper. */
+  const subscribeToGroupMessages = useCallback((
+    threadId: string,
+    callback: (messages: ChatMessage[]) => void,
+    pageSize: number = 50,
+  ) => {
+    const q = query(
+      collection(db, 'chat_group_threads', threadId, 'messages'),
+      orderBy('timestamp', 'desc'),
+      limit(pageSize),
+    );
+    return onSnapshot(q, (querySnapshot) => {
+      const messages = querySnapshot.docs.slice().reverse().map(doc => {
+        const data = doc.data() as any;
+        return {
+          ...data,
+          id: doc.id,
+          // Synthesized so downstream callers that still reference
+          // `message.threadId` continue to work; path is authoritative.
+          threadId,
+          content: data.content || '',
+          senderId: data.senderId || '',
+          senderName: data.senderName || '',
+          senderRole: data.senderRole || 'parent',
+          timestamp: data.timestamp?.toDate?.() || (data.timestamp instanceof Date ? data.timestamp : new Date()),
+          edited: data.edited || false,
+          editedAt: data.editedAt?.toDate?.() || undefined,
+          replyTo: data.replyTo || undefined,
+          teamId: data.teamId || '',
+        } as ChatMessage;
+      });
+      callback(messages);
+    }, (error) => {
+      void import('../utils/firestoreLogger').then(({ logFirestoreError }) =>
+        logFirestoreError('subscribe', `chat_group_threads/${threadId}/messages`, error, { source: 'subscribeToGroupMessages' })
+      );
+    });
+  }, []);
+
+  /** Older-page fetch for group threads (scroll-up pagination). */
+  const getOlderGroupMessages = useCallback(async (threadId: string, beforeTimestamp: Date, pageSize: number = 50) => {
+    try {
+      const q = query(
+        collection(db, 'chat_group_threads', threadId, 'messages'),
+        where('timestamp', '<', beforeTimestamp),
+        orderBy('timestamp', 'desc'),
+        limit(pageSize),
+      );
+      const snap = await getDocs(q);
+      const messages = snap.docs.slice().reverse().map(doc => {
+        const data = doc.data() as any;
+        return {
+          ...data,
+          id: doc.id,
+          threadId,
+          content: data.content || '',
+          senderId: data.senderId || '',
+          senderName: data.senderName || '',
+          senderRole: data.senderRole || 'parent',
+          timestamp: data.timestamp?.toDate?.() || (data.timestamp instanceof Date ? data.timestamp : new Date()),
+          edited: data.edited || false,
+          editedAt: data.editedAt?.toDate?.() || undefined,
+          replyTo: data.replyTo || undefined,
+          teamId: data.teamId || '',
+        } as ChatMessage;
+      });
+      return messages;
+    } catch (err) {
+      const { logFirestoreError } = await import('../utils/firestoreLogger');
+      logFirestoreError('read', `chat_group_threads/${threadId}/messages?before=${beforeTimestamp.toISOString()}`, err, { op: 'getOlderGroupMessages' });
+      throw err;
+    }
+  }, []);
+
+  /** Enumerate every message id under a group thread — used only by
+   *  the cascade-delete path (soft-delete the parent, hard-delete
+   *  the children). */
+  const getGroupMessageIds = useCallback(async (threadId: string): Promise<string[]> => {
+    try {
+      const snap = await getDocs(collection(db, 'chat_group_threads', threadId, 'messages'));
+      return snap.docs.map(d => d.id);
+    } catch (err) {
+      handleError(err);
+      throw err;
+    }
   }, []);
 
   const subscribeToClubChatThreads = useCallback((clubId: string | null | undefined, callback: (threads: ChatThread[]) => void) => {
@@ -1189,6 +1425,15 @@ const getUserData = useCallback(async (uid: string) => {
     subscribeToClubChatThreads,
     subscribeToChatMessages,
     getOrCreateDMThread,
+    // Group-chat subcollection wrappers
+    addGroupThread,
+    addGroupMessage,
+    updateGroupMessage,
+    deleteGroupMessage,
+    updateGroupThread,
+    subscribeToGroupMessages,
+    getOlderGroupMessages,
+    getGroupMessageIds,
     // Development plan functions
     addDevelopmentPlan,
     updateDevelopmentPlan,

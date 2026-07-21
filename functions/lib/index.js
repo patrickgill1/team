@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onHelpdeskCommentCreate = exports.onEventCreate = exports.onChatMessageCreate = void 0;
+exports.onHelpdeskCommentCreate = exports.onEventCreate = exports.onGroupChatMessageCreate = exports.onChatMessageCreate = void 0;
 /**
  * Server-driven push fan-out.
  *
@@ -93,49 +93,35 @@ function truncate(s, max) {
         return s;
     return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
-exports.onChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_messages/{messageId}", async (event) => {
-    const snap = event.data;
-    if (!snap)
-        return;
-    const messageId = event.params.messageId;
-    const message = snap.data();
-    if (!message)
-        return;
-    if (message._skipPush === true) {
-        firebase_functions_1.logger.info("skip-push flag set", { messageId });
-        return;
-    }
-    if (!message.senderId || !message.threadId) {
-        firebase_functions_1.logger.warn("missing sender or thread", { messageId });
-        return;
-    }
+/**
+ * Shared chat-push fan-out. Called by both the top-level
+ * chat_messages trigger (team + DM + club + coach) and the new
+ * chat_group_threads/*​/messages subcollection trigger (groups
+ * post-2026-07-21 migration).
+ *
+ * Recipient resolution comes off the thread — DMs and groups use
+ * the fixed participants list; team-scope resolves the fresh roster.
+ * Everything downstream (mute, prefs, token collection, dead-token
+ * prune, push_attempts audit) is identical.
+ */
+async function fanOutChatPush(params) {
+    const { message, messageId, thread, guardTeamId } = params;
     const db = (0, firestore_2.getFirestore)();
-    const threadRef = db.collection("chat_threads").doc(message.threadId);
-    const threadSnap = await threadRef.get();
-    if (!threadSnap.exists) {
-        firebase_functions_1.logger.warn("thread not found", { threadId: message.threadId });
-        return;
-    }
-    const thread = { id: threadSnap.id, ...threadSnap.data() };
-    // Same demo-team kill switch as onEventCreate. Threads on a
-    // demo/notifications-off team never fan out, even if stale
-    // team memberships would otherwise resolve real users.
-    const threadTeamId = thread.teamId;
-    if (threadTeamId) {
+    if (guardTeamId) {
         try {
-            const teamSnap = await db.collection("teams").doc(threadTeamId).get();
+            const teamSnap = await db.collection("teams").doc(guardTeamId).get();
             if (teamSnap.exists) {
                 const t = teamSnap.data();
                 if (t.isDemo === true || t.notificationsDisabled === true) {
                     firebase_functions_1.logger.info("chat push skipped — team demo/notifications-off", {
-                        messageId, threadId: message.threadId, teamId: threadTeamId,
+                        messageId, threadId: thread.id, teamId: guardTeamId,
                     });
                     return;
                 }
             }
         }
         catch (err) {
-            firebase_functions_1.logger.warn("team demo-flag lookup failed", { teamId: threadTeamId, err });
+            firebase_functions_1.logger.warn("team demo-flag lookup failed", { teamId: guardTeamId, err });
         }
     }
     const candidateUids = await resolveRecipientUids(thread);
@@ -144,10 +130,10 @@ exports.onChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_messages/
         uid !== message.senderId &&
         !mutedThreadSet.has(uid));
     if (recipients.length === 0) {
-        firebase_functions_1.logger.info("no recipients", { messageId, threadId: message.threadId });
+        firebase_functions_1.logger.info("no recipients", { messageId, threadId: thread.id });
         await db.collection("push_attempts").doc(messageId).set({
             messageId,
-            threadId: message.threadId,
+            threadId: thread.id,
             senderId: message.senderId,
             kind: "chat",
             sent: 0,
@@ -160,8 +146,6 @@ exports.onChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_messages/
         });
         return;
     }
-    // Per-recipient counters so the attempt log can answer "why didn't X
-    // get this push" without us guessing.
     let recipientsWithoutTokens = 0;
     let recipientsWithPrefOff = 0;
     let recipientsWhoMutedSender = 0;
@@ -175,7 +159,7 @@ exports.onChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_messages/
             const u = uSnap.data();
             if (u.isActive === false)
                 continue;
-            const chatOn = u.pushPreferences?.chat !== false; // default-on
+            const chatOn = u.pushPreferences?.chat !== false;
             if (!chatOn) {
                 recipientsWithPrefOff++;
                 continue;
@@ -205,7 +189,7 @@ exports.onChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_messages/
     if (tokens.length === 0) {
         await db.collection("push_attempts").doc(messageId).set({
             messageId,
-            threadId: message.threadId,
+            threadId: thread.id,
             senderId: message.senderId,
             kind: "chat",
             sent: 0,
@@ -235,20 +219,15 @@ exports.onChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_messages/
         : attachCount > 0
             ? `Sent ${attachCount} photo${attachCount > 1 ? "s" : ""}`
             : "New message";
-    const deepLinkPath = `/chat?thread=${message.threadId}&message=${messageId}`;
+    const deepLinkPath = `/chat?thread=${thread.id}&message=${messageId}`;
     const deepLink = `${APP_ORIGIN}${deepLinkPath}`;
-    // sendEachForMulticast handles >500 tokens by chunking internally —
-    // not that we expect to hit that ceiling for chat any time soon.
     const response = await (0, messaging_1.getMessaging)().sendEachForMulticast({
         tokens,
-        notification: {
-            title: pushTitle,
-            body: pushBody,
-        },
+        notification: { title: pushTitle, body: pushBody },
         data: {
             url: deepLink,
             path: deepLinkPath,
-            threadId: message.threadId,
+            threadId: thread.id,
             messageId,
             kind: "chat",
         },
@@ -256,25 +235,12 @@ exports.onChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_messages/
             fcmOptions: { link: deepLink },
             notification: { icon: "/images/logo.png" },
         },
-        apns: {
-            payload: {
-                aps: {
-                    sound: "default",
-                    badge: undefined,
-                },
-            },
-        },
+        apns: { payload: { aps: { sound: "default", badge: undefined } } },
         android: {
             priority: "high",
-            notification: {
-                sound: "default",
-                channelId: "default",
-            },
+            notification: { sound: "default", channelId: "default" },
         },
     });
-    // Pull dead tokens out of every user doc that held them so we stop
-    // hammering FCM with known-bad tokens. UNREGISTERED / NOT_FOUND /
-    // INVALID_ARGUMENT-for-token are the canonical "device gone" codes.
     const deadTokens = [];
     response.responses.forEach((r, i) => {
         if (r.success)
@@ -312,7 +278,7 @@ exports.onChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_messages/
     }
     await db.collection("push_attempts").doc(messageId).set({
         messageId,
-        threadId: message.threadId,
+        threadId: thread.id,
         senderId: message.senderId,
         kind: "chat",
         sent: response.successCount,
@@ -330,6 +296,93 @@ exports.onChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_messages/
         sent: response.successCount,
         failed: response.failureCount,
         recipientCount: recipients.length,
+    });
+}
+/**
+ * Team + DM + club + coach messages live at chat_messages/{id} with
+ * `threadId` pointing at the parent in chat_threads. Group chats
+ * moved out of this collection in the 2026-07-21 subcollection
+ * migration — see onGroupChatMessageCreate below.
+ */
+exports.onChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_messages/{messageId}", async (event) => {
+    const snap = event.data;
+    if (!snap)
+        return;
+    const messageId = event.params.messageId;
+    const message = snap.data();
+    if (!message)
+        return;
+    if (message._skipPush === true) {
+        firebase_functions_1.logger.info("skip-push flag set", { messageId });
+        return;
+    }
+    if (!message.senderId || !message.threadId) {
+        firebase_functions_1.logger.warn("missing sender or thread", { messageId });
+        return;
+    }
+    const db = (0, firestore_2.getFirestore)();
+    const threadSnap = await db
+        .collection("chat_threads").doc(message.threadId).get();
+    if (!threadSnap.exists) {
+        firebase_functions_1.logger.warn("thread not found", { threadId: message.threadId });
+        return;
+    }
+    const thread = { id: threadSnap.id, ...threadSnap.data() };
+    // Demo-team kill switch. `originTeamId` fallback covers any
+    // pre-migration group doc still sitting in chat_threads before
+    // the migration script cleans it up.
+    const guardTeamId = thread.teamId || thread.originTeamId || "";
+    await fanOutChatPush({ message, messageId, thread, guardTeamId });
+});
+/**
+ * Group-chat push fanout.
+ *
+ * Triggered on chat_group_threads/{threadId}/messages/{messageId} —
+ * the subcollection that groups moved into in the 2026-07-21
+ * migration. Parent doc holds first-class `teamId` (originating
+ * team), so the demo-team guard works without any fallback.
+ *
+ * Deep link deliberately reuses the /chat?thread=... shape — the
+ * client resolves that id against BOTH chat_threads and
+ * chat_group_threads.
+ */
+exports.onGroupChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_group_threads/{threadId}/messages/{messageId}", async (event) => {
+    const snap = event.data;
+    if (!snap)
+        return;
+    const { threadId, messageId } = event.params;
+    const message = snap.data();
+    if (!message)
+        return;
+    if (message._skipPush === true) {
+        firebase_functions_1.logger.info("skip-push flag set (group)", { threadId, messageId });
+        return;
+    }
+    if (!message.senderId) {
+        firebase_functions_1.logger.warn("group message missing sender", { threadId, messageId });
+        return;
+    }
+    const db = (0, firestore_2.getFirestore)();
+    const threadSnap = await db
+        .collection("chat_group_threads").doc(threadId).get();
+    if (!threadSnap.exists) {
+        firebase_functions_1.logger.warn("group thread not found", { threadId });
+        return;
+    }
+    // Force isGroup so resolveRecipientUids takes the group branch.
+    // Collection identity is authoritative — the stored doc may or
+    // may not carry the flag, we don't care.
+    const thread = {
+        id: threadSnap.id,
+        ...threadSnap.data(),
+        isGroup: true,
+    };
+    const guardTeamId = thread.teamId || "";
+    await fanOutChatPush({
+        message: { ...message, threadId },
+        messageId,
+        thread,
+        guardTeamId,
     });
 });
 /**

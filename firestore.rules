@@ -387,7 +387,12 @@ service cloud.firestore {
       //   undo sets voided:true via a worker endpoint (never delete).
       // ─────────────────────────────────────────────────────────
       match /dev_checkins/{dayKey} {
-        allow get: if isAuthed()
+        // LIST and GET share the same predicate — the earlier
+        // `allow list: if isAuthed()` line was a privacy leak that let
+        // any authed user enumerate any player's practice history
+        // (dayKey, note, coach name, planId). Coaches on the team and
+        // Player Circle only. 2026-07-21.
+        allow get, list: if isAuthed()
           && exists(/databases/$(database)/documents/players/$(playerId))
           && (
             isPlatformAdmin()
@@ -404,7 +409,6 @@ service cloud.firestore {
               && get(/databases/$(database)/documents/players/$(playerId)).data.teamId in userDoc().teamIds
             )
           );
-        allow list: if isAuthed();
         allow create, update, delete: if false;
       }
     }

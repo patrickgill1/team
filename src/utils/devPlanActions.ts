@@ -141,9 +141,55 @@ export function coerceLogDate(raw: any): Date | null {
   return null;
 }
 
+/** Denver-anchored day key "YYYY-MM-DD" for a JS Date. All streak
+ *  bucketing/walking uses Denver time so a parent whose phone is on
+ *  Eastern buckets a Denver-late-night tap into the SAME day as the
+ *  worker + backfill. Fixes drift where the worker stored dayKey in
+ *  Denver but the client bucketed device-local. */
+function denverKeyOfDate(date: Date): string {
+  return date.toLocaleDateString('en-CA', { timeZone: 'America/Denver' });
+}
+
+/** Break a JS Date into its Denver-anchored Y/M/D parts. */
+function denverParts(date: Date): { y: number; m: number; d: number } {
+  const key = denverKeyOfDate(date);
+  const [ys, ms, ds] = key.split('-');
+  return { y: parseInt(ys, 10), m: parseInt(ms, 10), d: parseInt(ds, 10) };
+}
+
+/** Previous Denver day in Y/M/D form, handling month/year rollover
+ *  without going near Date arithmetic (which trips over DST). */
+function prevDenverYmd(y: number, m: number, d: number): { y: number; m: number; d: number } {
+  let nd = d - 1;
+  let nm = m;
+  let ny = y;
+  if (nd === 0) {
+    nm -= 1;
+    if (nm === 0) { nm = 12; ny -= 1; }
+    // Last day of the new (prior) month. Date.UTC(y, m, 0) → last day
+    // of the month BEFORE month `m`. For nm we want last day of nm,
+    // so pass month index nm (which is 1-based → 0-based nm-1, plus 1).
+    nd = new Date(Date.UTC(ny, nm, 0)).getUTCDate();
+  }
+  return { y: ny, m: nm, d: nd };
+}
+
+/** Day-of-week (0=Sun … 6=Sat) for a Denver Y/M/D. Timezone-invariant
+ *  at noon UTC, so we anchor there. */
+function dowOfYmd(y: number, m: number, d: number): number {
+  return new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
+}
+
+/** Compose "YYYY-MM-DD" from Denver parts. */
+function keyFromYmd(y: number, m: number, d: number): string {
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
 /** Bucket every practice-log date across the player's active plans
- *  into a Set of day keys ("YYYY-M-D"). Used by streak math + any other
- *  consumer that needs "did they practice on day X". */
+ *  into a Set of Denver day keys ("YYYY-MM-DD"). Used by legacy
+ *  plan-shape streak math + any other consumer that needs "did they
+ *  practice on day X". Denver-anchored so a non-Denver device
+ *  buckets consistently with the worker-written check-in dayKey. */
 export function buildPracticeDayKeys(activePlans: DevelopmentPlan[]): Set<string> {
   const dayKeys = new Set<string>();
   for (const p of activePlans) {
@@ -151,7 +197,7 @@ export function buildPracticeDayKeys(activePlans: DevelopmentPlan[]): Set<string
       for (const l of ((g as any).practiceLog || [])) {
         const d = coerceLogDate(l.date);
         if (!d) continue;
-        dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+        dayKeys.add(denverKeyOfDate(d));
       }
     }
   }
@@ -161,10 +207,10 @@ export function buildPracticeDayKeys(activePlans: DevelopmentPlan[]): Set<string
 /** Walk back from today over a pre-built Set of practice day keys,
  *  counting consecutive practice days.
  *
- *  Day key shape: "YYYY-M-D" (0-indexed month, no zero pad). That
- *  format is what buildPracticeDayKeys emits and what checkin-doc
- *  reads produce (see recomputeAndPersistPlayerStreak), so both
- *  callers feed compatible Sets.
+ *  Day key shape: "YYYY-MM-DD" (Denver-anchored, zero-padded). That
+ *  format is what buildPracticeDayKeys emits AND what the worker
+ *  stamps on players/{pid}/dev_checkins/{dayKey} + `data.dayKey`, so
+ *  every producer and consumer speaks the same key.
  *
  *  `restDayOfWeek` is optional (0=Sun … 6=Sat, or null/undefined for
  *  no rest day). When set, that day is SKIPPED — it doesn't count
@@ -181,24 +227,22 @@ export function computeStreakDaysFromKeys(
 ): number {
   if (dayKeys.size === 0) return 0;
   const skipDow: number | null = (restDayOfWeek === null || restDayOfWeek === undefined) ? 0 : restDayOfWeek;
-  const cursor = new Date();
-  cursor.setHours(0, 0, 0, 0);
-  const todayKey = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+  let { y, m, d } = denverParts(new Date());
+  const todayKey = keyFromYmd(y, m, d);
   // If today is unlogged AND not the rest day, start from yesterday.
   // When today IS the rest day, leave the cursor; the loop skips it.
-  if (!dayKeys.has(todayKey) && (skipDow == null || cursor.getDay() !== skipDow)) {
-    cursor.setDate(cursor.getDate() - 1);
+  if (!dayKeys.has(todayKey) && (skipDow == null || dowOfYmd(y, m, d) !== skipDow)) {
+    ({ y, m, d } = prevDenverYmd(y, m, d));
   }
   let streak = 0;
   for (;;) {
-    if (skipDow != null && cursor.getDay() === skipDow) {
-      cursor.setDate(cursor.getDate() - 1);
+    if (skipDow != null && dowOfYmd(y, m, d) === skipDow) {
+      ({ y, m, d } = prevDenverYmd(y, m, d));
       continue;
     }
-    const k = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
-    if (dayKeys.has(k)) {
+    if (dayKeys.has(keyFromYmd(y, m, d))) {
       streak++;
-      cursor.setDate(cursor.getDate() - 1);
+      ({ y, m, d } = prevDenverYmd(y, m, d));
     } else break;
   }
   return streak;
@@ -206,36 +250,32 @@ export function computeStreakDaysFromKeys(
 
 /** Longest-ever consecutive run in a Set of day keys (Sunday-skip
  *  aware). Used to seed players/{id}.longestStreakDays so retiring a
- *  plan can never quietly overwrite a legitimate historical peak. */
+ *  plan can never quietly overwrite a legitimate historical peak.
+ *
+ *  Keys are Denver "YYYY-MM-DD" — walk between the earliest and
+ *  latest key using Denver-anchored day arithmetic so DST transitions
+ *  don't shift the walk off by an hour. */
 export function computeLongestStreakFromKeys(
   dayKeys: Set<string>,
   restDayOfWeek: number | null | undefined = 0,
 ): number {
   if (dayKeys.size === 0) return 0;
   const skipDow: number | null = (restDayOfWeek === null || restDayOfWeek === undefined) ? 0 : restDayOfWeek;
-  // Convert every key to a comparable [year, month, date] and sort
-  // chronologically. Local time (Denver for Patrick) matches how the
-  // keys are produced. Array.from() avoids the ES5 downlevelIteration
-  // trap on Set<string>.
-  const dates: Date[] = [];
-  Array.from(dayKeys).forEach(key => {
-    const parts = key.split('-').map(n => parseInt(n, 10));
-    const y = parts[0], m = parts[1], d = parts[2];
-    if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return;
-    const dt = new Date(y, m, d);
-    dt.setHours(0, 0, 0, 0);
-    dates.push(dt);
-  });
-  dates.sort((a, b) => a.getTime() - b.getTime());
-  if (dates.length === 0) return 0;
-  const first = dates[0];
-  const last = dates[dates.length - 1];
-  const cursor = new Date(first);
+  // Sort the keys as strings — "YYYY-MM-DD" is lexicographically sortable.
+  const sorted = Array.from(dayKeys)
+    .filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k))
+    .sort();
+  if (sorted.length === 0) return 0;
+  const [fy, fm, fd] = sorted[0].split('-').map(n => parseInt(n, 10));
+  const lastKey = sorted[sorted.length - 1];
+  let y = fy, m = fm, d = fd;
   let run = 0;
   let max = 0;
-  while (cursor.getTime() <= last.getTime()) {
-    const key = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
-    const isRest = skipDow != null && cursor.getDay() === skipDow;
+  // Walk forward Denver-day by Denver-day until we pass lastKey.
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const key = keyFromYmd(y, m, d);
+    const isRest = skipDow != null && dowOfYmd(y, m, d) === skipDow;
     if (isRest) {
       // Rest day bridges — do not increment, do not reset.
     } else if (dayKeys.has(key)) {
@@ -244,7 +284,11 @@ export function computeLongestStreakFromKeys(
     } else {
       run = 0;
     }
-    cursor.setDate(cursor.getDate() + 1);
+    if (key === lastKey) break;
+    // Next Denver day: mirror prevDenverYmd but forward.
+    d += 1;
+    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    if (d > daysInMonth) { d = 1; m += 1; if (m > 12) { m = 1; y += 1; } }
   }
   return max;
 }
@@ -261,26 +305,34 @@ export function computeStreakDays(
 }
 
 /** Build the day-key Set for a player from their check-in subcollection
- *  (players/{playerId}/dev_checkins/*). Doc-id is Denver "YYYY-MM-DD",
- *  and `date` carries the actual Timestamp. We coerce the Timestamp
- *  to a local Date and bucket in the same "YYYY-M-D" (local, 0-indexed
- *  month, no zero pad) format computeStreakDaysFromKeys walks — that
- *  way a player whose phone tz drifts still buckets consistently with
- *  the walk logic. */
+ *  (players/{playerId}/dev_checkins/*). Doc-id AND `data.dayKey` are
+ *  Denver "YYYY-MM-DD" per the worker; we prefer the stored dayKey
+ *  string over re-bucketing the Timestamp so the client's phone tz
+ *  can never disagree with the worker's Denver truth.
+ *
+ *  THROWS on read failure. Caller (recomputeAndPersistPlayerStreak)
+ *  must abort persist rather than write an empty-Set-derived streak
+ *  of 0 that would silently clobber a legit cached value. */
 async function loadCheckinDayKeys(playerId: string): Promise<Set<string>> {
   const dayKeys = new Set<string>();
-  try {
-    const snap = await getDocs(collection(db, 'players', playerId, 'dev_checkins'));
-    snap.forEach(docSnap => {
-      const data = docSnap.data() as any;
-      if (data?.voided === true) return; // soft-delete path (coach undo)
+  const snap = await getDocs(collection(db, 'players', playerId, 'dev_checkins'));
+  snap.forEach(docSnap => {
+    const data = docSnap.data() as any;
+    if (data?.voided === true) return; // soft-delete path (coach undo)
+    // Prefer the stored Denver dayKey. Fall back to the docId (also
+    // Denver dayKey per worker), then to a Timestamp coercion for any
+    // legacy row that predates the dayKey field.
+    let key: string | null = null;
+    if (typeof data?.dayKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.dayKey)) {
+      key = data.dayKey;
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(docSnap.id)) {
+      key = docSnap.id;
+    } else {
       const d = coerceLogDate(data?.date);
-      if (!d) return;
-      dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
-    });
-  } catch (err) {
-    debugWarn('[dev-plans] loadCheckinDayKeys failed', err);
-  }
+      if (d) key = denverKeyOfDate(d);
+    }
+    if (key) dayKeys.add(key);
+  });
   return dayKeys;
 }
 
@@ -372,7 +424,18 @@ export async function recomputeAndPersistPlayerStreak(
     // source of truth (2026-07-21). Plan status changes can't reset
     // or shrink the streak because check-ins live on the player, not
     // on the plan.
-    const dayKeys = await loadCheckinDayKeys(playerId);
+    //
+    // On transient read failure, ABORT the recompute entirely — writing
+    // a 0-derived streak would silently clobber a legit priorStreak of
+    // 30+ with zero user-facing error. Return prior so callers see the
+    // unchanged value.
+    let dayKeys: Set<string>;
+    try {
+      dayKeys = await loadCheckinDayKeys(playerId);
+    } catch (err) {
+      debugWarn('[dev-plans] loadCheckinDayKeys read failed — keeping prior streak', err);
+      return priorStreak;
+    }
     const streak = computeStreakDaysFromKeys(dayKeys, restDayOfWeek);
     const computedLongest = computeLongestStreakFromKeys(dayKeys, restDayOfWeek);
     // Peak is monotonic. Never let a recompute pull it downward — a
@@ -468,15 +531,15 @@ export async function recomputeAndPersistPlayerStreak(
   }
 }
 
-/** Did this goal get a practice log entry today? Used by the inline
- *  card on PlayerProfile to flip the button state to "Done today ✓"
- *  so the parent isn't confused into re-tapping. */
+/** Did this goal get a practice log entry today (Denver)? Used by
+ *  the inline card on PlayerProfile to flip the button state to
+ *  "Done today" so the parent isn't confused into re-tapping. */
 export function didItToday(goal: DevelopmentGoal): boolean {
   if (!goal.practiceLog || goal.practiceLog.length === 0) return false;
-  const today = new Date();
-  const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+  const todayKey = denverKeyOfDate(new Date());
   return goal.practiceLog.some(l => {
-    const d = (l.date as any)?.toDate ? (l.date as any).toDate() : new Date(l.date);
-    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` === todayKey;
+    const d = (l.date as any)?.toDate ? (l.date as any).toDate() : new Date(l.date as any);
+    if (!(d instanceof Date) || Number.isNaN(d.getTime())) return false;
+    return denverKeyOfDate(d) === todayKey;
   });
 }

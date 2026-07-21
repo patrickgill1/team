@@ -564,6 +564,12 @@ export interface Player {
    *  (player skipped logging for a while), next log corrects it. */
   currentStreakDays?: number;
   currentStreakUpdatedAt?: Date;
+  /** Historical peak streak. Never decreases. Retiring an active plan
+   *  can no longer silently overwrite a legitimate peak (players own
+   *  their check-in history via the players/{id}/dev_checkins
+   *  subcollection). Backfill script seeds this from all practice-log
+   *  history at migration time. */
+  longestStreakDays?: number;
   /** Self-reported juggle counter — parents log "Hunter juggled X
    *  times today." We keep a personal best + a short rolling history
    *  for streak/weekly-best math without a separate collection. */

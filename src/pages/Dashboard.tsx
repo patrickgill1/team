@@ -584,9 +584,16 @@ const Dashboard: React.FC = () => {
           const freshStreak = computeStreakDays(plans as any);
           const cachedStreak: number = (myPlayer as any)?.currentStreakDays || 0;
           if (freshStreak !== cachedStreak) {
-            await recomputeAndPersistPlayerStreak(myPlayer.id, plans as any);
+            // recomputeAndPersistPlayerStreak reads the players/{id}/dev_checkins
+            // source of truth and returns the ACTUAL persisted streak (which
+            // includes archived-plan history via the check-in subcollection).
+            // The plan-derived freshStreak may be lower if the player has
+            // history on retired plans, so we mirror the returned value into
+            // local state — NOT freshStreak — otherwise a kid with a real
+            // 30-day streak briefly renders as their new-plan-only count.
+            const persistedStreak = await recomputeAndPersistPlayerStreak(myPlayer.id, plans as any);
             setPlayers((prev) => prev.map((p: any) =>
-              p.id === myPlayer.id ? { ...p, currentStreakDays: freshStreak } : p
+              p.id === myPlayer.id ? { ...p, currentStreakDays: persistedStreak } : p
             ));
           }
         } catch (err) {
@@ -607,13 +614,17 @@ const Dashboard: React.FC = () => {
             // old narrow coercion (toDate || new Date()) that
             // produces Invalid Date on the corrupted shape.
             const { coerceLogDate } = await import('../utils/devPlanActions');
+            // Denver day-key ("YYYY-MM-DD") matches buildPracticeDayKeys
+            // + the worker-written dev_checkins dayKey, so the week-dots
+            // row agrees with the streak chip regardless of device tz.
+            const denverKey = (dd: Date) => dd.toLocaleDateString('en-CA', { timeZone: 'America/Denver' });
             const dayKeys = new Set<string>();
             for (const pl of plans) {
               for (const g of (pl.goals || [])) {
                 for (const l of (g.practiceLog || [])) {
                   const d = coerceLogDate(l.date);
                   if (!d) continue;
-                  dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+                  dayKeys.add(denverKey(d));
                 }
               }
             }
@@ -634,7 +645,7 @@ const Dashboard: React.FC = () => {
             for (let i = 0; i < 6; i++) {
               const d = new Date(monday);
               d.setDate(monday.getDate() + i);
-              const k = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+              const k = denverKey(d);
               thisWeek.push({
                 date: d,
                 logged: dayKeys.has(k),
@@ -642,10 +653,18 @@ const Dashboard: React.FC = () => {
               });
             }
             // Streak self-heal moved OUT of this branch (above the
-            // for-loop) so it runs even when there's no unfinished
-            // goal to surface. Use the same recomputed value here.
-            const { computeStreakDays: csd } = await import('../utils/devPlanActions');
-            const freshStreak = csd(plans as any);
+            // for-loop). Prefer the cached currentStreakDays (source of
+            // truth, spans archived plans via dev_checkins); only fall
+            // back to plan-shape math if the cache is missing so a
+            // brand-new player still sees something reasonable.
+            const cachedStreakForGoal: number | undefined = (myPlayer as any)?.currentStreakDays;
+            let freshStreak: number;
+            if (typeof cachedStreakForGoal === 'number') {
+              freshStreak = cachedStreakForGoal;
+            } else {
+              const { computeStreakDays: csd } = await import('../utils/devPlanActions');
+              freshStreak = csd(plans as any);
+            }
             const goal = {
               planId: plan.id,
               goalId: next.id,

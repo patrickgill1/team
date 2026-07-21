@@ -4698,6 +4698,14 @@ function denverDayKeyYYYYMMDD(now: Date = new Date()): string {
   return s.replace(/-/g, '');
 }
 
+/** Return "YYYY-MM-DD" in America/Denver — the docId shape for
+ *  players/{pid}/dev_checkins/{dayKey}. Kept dashed (unlike the
+ *  whisper key) so the docId reads like a date at a glance and is
+ *  naturally sortable. */
+function denverDayKey(now: Date = new Date()): string {
+  return now.toLocaleDateString('en-CA', { timeZone: 'America/Denver' });
+}
+
 /** True when uid is on the player's parentIds array. */
 async function isParentOfPlayer(pid: string, sa: ServiceAccount, uid: string, playerId: string): Promise<boolean> {
   try {
@@ -4749,6 +4757,53 @@ async function handleDevPlansLogTap(req: Request, env: Env, payload: any): Promi
     loggedBy: claims.uid,
     loggedByName: actorName,
   };
+  // Player-scoped check-in — the streak's source of truth. Doc id is
+  // the Denver day key so a second tap same day is a silent 409 no-op
+  // ("streak sees a single day" per player_scoped_streak design). The
+  // practiceLog append below stays for the coach's plan-review UI;
+  // the streak calc no longer reads from it. Retiring plan A and
+  // creating plan B for the same kid has zero effect on the counter.
+  //
+  // ORDER MATTERS 2026-07-21: write the check-in FIRST. If it fails
+  // (non-AlreadyExists), return 500 so the client knows not to run
+  // recomputeAndPersistPlayerStreak — otherwise the recompute would
+  // read stale checkins and silently write a LOWER streak to cache,
+  // clobbering the legit prior value with no user-facing error.
+  const dayKey = denverDayKey(now);
+  const goalTitleForCheckin = String(goal.title || '');
+  const checkinRole = isCoach ? 'coach' : 'parent';
+  try {
+    await createDocument(
+      pid,
+      `players/${playerId}/dev_checkins`,
+      {
+        date: now,
+        dayKey,
+        loggedBy: claims.uid,
+        loggedByRole: checkinRole,
+        loggedByName: actorName,
+        planId,
+        goalId,
+        goalTitle: goalTitleForCheckin,
+        teamId,
+        note: entry.note || '',
+      },
+      sa,
+      dayKey,
+    );
+  } catch (err) {
+    if (err instanceof AlreadyExistsError) {
+      // Same-day re-tap. Streak-side idempotency intact — fall through
+      // to the practiceLog append so the coach still sees every tap.
+    } else {
+      // Real failure. Do NOT commit the practiceLog patch — a lone
+      // plan-side write with no check-in leaves the streak source of
+      // truth out of sync. Client retries the whole tap.
+      console.warn('[dev-plans/log-tap] dev_checkins write failed:', (err as Error).message);
+      return json({ ok: false, error: 'checkin_write_failed' }, 500);
+    }
+  }
+
   const updatedGoals = goals.map(g => {
     if (g?.id !== goalId) return g;
     const nextLog = Array.isArray(g.practiceLog) ? [...g.practiceLog, entry] : [entry];

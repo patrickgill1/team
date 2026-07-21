@@ -937,9 +937,15 @@ const PlayerProfile: React.FC = () => {
             return false;
           }).length;
         }
-        const heroStreak = plans.length > 0
-          ? computeStreakDays(plans as any)
-          : ((player as any).currentStreakDays || 0);
+        // Prefer the cached currentStreakDays on the player doc — the
+        // worker + recomputeAndPersistPlayerStreak keep it in sync with
+        // players/{id}/dev_checkins (source of truth, spans archived
+        // plans). Fall back to plan-shape math only when the cache is
+        // missing so brand-new players still see something reasonable.
+        const cachedStreak = (player as any).currentStreakDays;
+        const heroStreak = typeof cachedStreak === 'number'
+          ? cachedStreak
+          : (plans.length > 0 ? computeStreakDays(plans as any) : 0);
         return (
           <ProfileStatsStrip
             potmWins={heroPotmCount}
@@ -1332,8 +1338,14 @@ const PlayerProfile: React.FC = () => {
                 are skipped so a religious day of rest doesn't break
                 the streak. Silent-empty when streak is 0. */}
             {(() => {
+              // Cached currentStreakDays is source of truth (spans
+              // archived plans via players/{id}/dev_checkins). Only
+              // fall back to plan-shape math when cache is missing.
+              const cachedStreak = (player as any).currentStreakDays;
               const activePlansOnly = plans.filter(p => p.status === 'active');
-              const streakDays = computeStreakDays(activePlansOnly);
+              const streakDays = typeof cachedStreak === 'number'
+                ? cachedStreak
+                : computeStreakDays(activePlansOnly);
               if (streakDays === 0) return null;
               const hot = streakDays >= 3;
               return (

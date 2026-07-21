@@ -18,21 +18,40 @@ const ChatHeaderButton: React.FC = () => {
 
   useEffect(() => {
     if (!selectedTeamId || !userData?.uid) { setUnreadCount(0); return; }
-    const q = query(
+    const uid = userData.uid;
+    const teamQ = query(
       collection(db, 'chat_threads'),
       where('teamId', '==', selectedTeamId),
     );
-    const uid = userData.uid;
-    const unsub = onSnapshot(q, (snap) => {
+    // DMs (teamId != selectedTeamId when DM was created from a
+    // different team) + Groups (teamId='' post-2026-07-21 privacy
+    // fix) both need dedicated queries so their unread counts don't
+    // silently drop out of the header pill.
+    const dmQ = query(
+      collection(db, 'chat_threads'),
+      where('isDM', '==', true),
+      where('participants', 'array-contains', uid),
+    );
+    const groupQ = query(
+      collection(db, 'chat_threads'),
+      where('isGroup', '==', true),
+      where('participants', 'array-contains', uid),
+    );
+    let teamSum = 0, dmSum = 0, groupSum = 0;
+    const publish = () => setUnreadCount(teamSum + dmSum + groupSum);
+    const sumSnap = (snap: any): number => {
       let sum = 0;
-      snap.docs.forEach(d => {
+      snap.docs.forEach((d: any) => {
         const data: any = d.data();
         const u = data?.unreadCount?.[uid];
         if (typeof u === 'number') sum += u;
       });
-      setUnreadCount(sum);
-    });
-    return () => unsub();
+      return sum;
+    };
+    const unsubTeam = onSnapshot(teamQ, (snap) => { teamSum = sumSnap(snap); publish(); });
+    const unsubDm = onSnapshot(dmQ, (snap) => { dmSum = sumSnap(snap); publish(); });
+    const unsubGroup = onSnapshot(groupQ, (snap) => { groupSum = sumSnap(snap); publish(); });
+    return () => { unsubTeam(); unsubDm(); unsubGroup(); };
   }, [selectedTeamId, userData?.uid]);
 
   return (

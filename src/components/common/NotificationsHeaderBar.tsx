@@ -78,15 +78,24 @@ const NotificationsHeaderBar: React.FC = () => {
       where('isDM', '==', true),
       where('participants', 'array-contains', uid),
     );
+    // Groups (2026-07-21 privacy fix): participants-only, teamId=''
+    // at rest. Members reach them via this query only.
+    const groupQ = query(
+      collection(db, 'chat_threads'),
+      where('isGroup', '==', true),
+      where('participants', 'array-contains', uid),
+    );
     // Latest counts per subscription — combined on every fire so
-    // either stream can update the pill independently.
+    // any stream can update the pill independently.
     let teamCount = 0;
     let dmCount = 0;
+    let groupCount = 0;
     let teamLatest = 0;
     let dmLatest = 0;
+    let groupLatest = 0;
     const publish = () => {
-      const sum = teamCount + dmCount;
-      const latestActivity = Math.max(teamLatest, dmLatest);
+      const sum = teamCount + dmCount + groupCount;
+      const latestActivity = Math.max(teamLatest, dmLatest, groupLatest);
       let out = sum;
       try {
         const seen = parseInt(localStorage.getItem(chatKey(selectedTeamId)) || '0', 10);
@@ -94,31 +103,33 @@ const NotificationsHeaderBar: React.FC = () => {
       } catch { /* ignore */ }
       setUnreadChats(out);
     };
-    const unsubTeam = onSnapshot(teamQ, (snap) => {
+    const sumFrom = (snap: any): { sum: number; latest: number } => {
       let sum = 0; let latest = 0;
-      snap.docs.forEach(d => {
+      snap.docs.forEach((d: any) => {
         const data: any = d.data();
         const u = data?.unreadCount?.[uid];
         if (typeof u === 'number') sum += u;
         const last = data?.lastActivity?.toDate?.()?.getTime?.() || 0;
         if (last > latest) latest = last;
       });
+      return { sum, latest };
+    };
+    const unsubTeam = onSnapshot(teamQ, (snap) => {
+      const { sum, latest } = sumFrom(snap);
       teamCount = sum; teamLatest = latest;
       publish();
     });
     const unsubDm = onSnapshot(dmQ, (snap) => {
-      let sum = 0; let latest = 0;
-      snap.docs.forEach(d => {
-        const data: any = d.data();
-        const u = data?.unreadCount?.[uid];
-        if (typeof u === 'number') sum += u;
-        const last = data?.lastActivity?.toDate?.()?.getTime?.() || 0;
-        if (last > latest) latest = last;
-      });
+      const { sum, latest } = sumFrom(snap);
       dmCount = sum; dmLatest = latest;
       publish();
     });
-    return () => { unsubTeam(); unsubDm(); };
+    const unsubGroup = onSnapshot(groupQ, (snap) => {
+      const { sum, latest } = sumFrom(snap);
+      groupCount = sum; groupLatest = latest;
+      publish();
+    });
+    return () => { unsubTeam(); unsubDm(); unsubGroup(); };
   }, [selectedTeamId, userData?.uid]);
 
   // Events — count of events whose updatedAt (fallback createdAt) is

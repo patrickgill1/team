@@ -28,6 +28,7 @@ const TeamChat: React.FC = () => {
     updateChatThread,
     addChatMessage,
     subscribeToChatThreads,
+    subscribeToChatGroups,
     subscribeToClubChatThreads,
     subscribeToChatMessages,
     getOlderChatMessages,
@@ -714,6 +715,31 @@ const TeamChat: React.FC = () => {
     });
     return () => { unsubscribeThreads(); };
   }, [userData?.teamIds, userData?.teamId, selectedTeamId, subscribeToChatThreads, authChurn]);
+
+  // Group chats live in their own subscription (participants-only).
+  // Groups are stored with teamId='' post-privacy-fix, so the team
+  // subscription above never returns them. Members reach their
+  // groups through `where isGroup==true AND participants
+  // array-contains uid`, which by construction always satisfies the
+  // tightened chat_threads rule. Merged into teamThreads via the
+  // same append-only pattern so the sidebar sees a single stream.
+  useEffect(() => {
+    if (!userData?.uid) return;
+    const unsub = subscribeToChatGroups(userData.uid, (groupsData) => {
+      const processed = groupsData.map(thread => ({
+        ...thread,
+        lastActivity: thread.lastActivity instanceof Date ? thread.lastActivity : new Date(thread.lastActivity || Date.now()),
+        createdAt: thread.createdAt instanceof Date ? thread.createdAt : new Date(thread.createdAt || Date.now()),
+        messageCount: thread.messageCount || 0,
+      }));
+      setTeamThreads((prev) => {
+        const byId = new Map(prev.map((t) => [t.id, t]));
+        for (const t of processed) byId.set(t.id, t);
+        return Array.from(byId.values());
+      });
+    });
+    return () => { unsub && unsub(); };
+  }, [userData?.uid, subscribeToChatGroups, authChurn]);
 
   // Auto-create the team chat. Every team gets exactly ONE team-scoped
   // thread (named "<Team> Chat").
@@ -2227,10 +2253,19 @@ const TeamChat: React.FC = () => {
       : `${firstNames.slice(0, 2).join(', ')} +${firstNames.length - 2}`;
     setDmStarting('group');
     try {
+      // Groups are PARTICIPANTS-ONLY (2026-07-21 privacy fix). Store
+      // teamId='' so they never appear in the team-scope subscription
+      // (`where teamId in [...]`) — non-participants shouldn't see
+      // group titles or last-message previews in their sidebar or on
+      // the dashboard "Recent chats" card. Members receive them via
+      // subscribeToChatGroups (participants array-contains uid).
+      // originTeamId preserves the "started from Team X" context for
+      // future UI hints without weakening the privacy gate.
       const threadId = await addChatThread({
         title,
         description: '',
-        teamId: selectedTeamId,
+        teamId: '',
+        originTeamId: selectedTeamId,
         createdBy: userData.uid,
         createdByName: userData.name,
         createdAt: new Date(),
@@ -2248,7 +2283,10 @@ const TeamChat: React.FC = () => {
       setSelectedThread({
         id: threadId as string,
         title,
-        teamId: selectedTeamId,
+        teamId: '',
+        // @ts-ignore originTeamId lives on the doc but isn't on the
+        // strict ChatThread interface until this deploy lands.
+        originTeamId: selectedTeamId,
         createdBy: userData.uid,
         createdByName: userData.name,
         createdAt: new Date(),

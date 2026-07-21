@@ -34,11 +34,13 @@ export function useDashboardActivity(
   const [events, setEvents] = useState(0);
 
   // Chat unread — sums chat_threads.unreadCount[uid] across team
-  // threads AND DMs. DMs carry teamId:'' so a plain teamId equality
-  // query misses them entirely; two subscriptions run in parallel and
-  // publish() combines. Local lastSeen dampener zeroes the count when
-  // the user visited /chat AFTER the freshest activity — matches
-  // "I looked, why is the number still there" expectation.
+  // threads, DMs, AND groups. DMs carry teamId set to whichever team
+  // they were created from (opened cross-team via participants),
+  // groups carry teamId='' at rest (2026-07-21 privacy fix), so a
+  // plain teamId equality query misses both. Three subscriptions run
+  // in parallel and publish() combines. Local lastSeen dampener
+  // zeroes the count when the user visited /chat AFTER the freshest
+  // activity — matches "I looked, why is the number still there".
   useEffect(() => {
     if (!teamId || !uid) { setChat(0); return; }
     const teamQ = query(collection(db, 'chat_threads'), where('teamId', '==', teamId));
@@ -47,10 +49,16 @@ export function useDashboardActivity(
       where('isDM', '==', true),
       where('participants', 'array-contains', uid),
     );
-    let teamCount = 0, dmCount = 0, teamLatest = 0, dmLatest = 0;
+    const groupQ = query(
+      collection(db, 'chat_threads'),
+      where('isGroup', '==', true),
+      where('participants', 'array-contains', uid),
+    );
+    let teamCount = 0, dmCount = 0, groupCount = 0;
+    let teamLatest = 0, dmLatest = 0, groupLatest = 0;
     const publish = () => {
-      const sum = teamCount + dmCount;
-      const latest = Math.max(teamLatest, dmLatest);
+      const sum = teamCount + dmCount + groupCount;
+      const latest = Math.max(teamLatest, dmLatest, groupLatest);
       let out = sum;
       try {
         const seen = parseInt(localStorage.getItem(chatKey(teamId)) || '0', 10);
@@ -58,31 +66,33 @@ export function useDashboardActivity(
       } catch { /* ignore */ }
       setChat(out);
     };
-    const unsubTeam = onSnapshot(teamQ, (snap) => {
+    const reduceSnap = (snap: any): { sum: number; latest: number } => {
       let sum = 0, latest = 0;
-      snap.docs.forEach(d => {
+      snap.docs.forEach((d: any) => {
         const data: any = d.data();
         const u = data?.unreadCount?.[uid];
         if (typeof u === 'number') sum += u;
         const t = data?.lastActivity?.toDate?.()?.getTime?.() || 0;
         if (t > latest) latest = t;
       });
+      return { sum, latest };
+    };
+    const unsubTeam = onSnapshot(teamQ, (snap) => {
+      const { sum, latest } = reduceSnap(snap);
       teamCount = sum; teamLatest = latest;
       publish();
     });
     const unsubDm = onSnapshot(dmQ, (snap) => {
-      let sum = 0, latest = 0;
-      snap.docs.forEach(d => {
-        const data: any = d.data();
-        const u = data?.unreadCount?.[uid];
-        if (typeof u === 'number') sum += u;
-        const t = data?.lastActivity?.toDate?.()?.getTime?.() || 0;
-        if (t > latest) latest = t;
-      });
+      const { sum, latest } = reduceSnap(snap);
       dmCount = sum; dmLatest = latest;
       publish();
     });
-    return () => { unsubTeam(); unsubDm(); };
+    const unsubGroup = onSnapshot(groupQ, (snap) => {
+      const { sum, latest } = reduceSnap(snap);
+      groupCount = sum; groupLatest = latest;
+      publish();
+    });
+    return () => { unsubTeam(); unsubDm(); unsubGroup(); };
   }, [teamId, uid]);
 
   // Wall — count of wall_posts with timestamp newer than last visit.

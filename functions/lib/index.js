@@ -533,12 +533,17 @@ exports.onEventCreate = (0, firestore_1.onDocumentCreated)("events/{eventId}", a
     const ts = eventDoc.date;
     const when = ts instanceof Date ? ts : (ts && typeof ts.toDate === "function" ? ts.toDate() : null);
     if (when) {
-        whenStr = when.toLocaleString(undefined, {
+        // Node runtime (GCF) defaults to UTC — an 8pm MT game rendered
+        // as "Sat, 02:00 AM" in the fan-out push. Pin the format to
+        // Denver so every parent sees the coach's wall-clock intent.
+        // Mirrors worker/src/eventReminders.ts:formatTime.
+        whenStr = when.toLocaleString("en-US", {
             weekday: "short",
             month: "short",
             day: "numeric",
             hour: "numeric",
             minute: "2-digit",
+            timeZone: "America/Denver",
         });
     }
     const body = [whenStr, eventDoc.location].filter(Boolean).join(" · ") || "Tap for details";

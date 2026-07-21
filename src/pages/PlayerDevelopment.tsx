@@ -7,7 +7,7 @@ import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink, 
 import DrillPickerModal from '../components/development/DrillPickerModal';
 import CoachSawThisPill from '../components/coach/CoachSawThisPill';
 import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
-import { coachVerifyLogEntry } from '../utils/devPlanActions';
+import { coachVerifyLogEntry, buildPracticeDayKeys, computeStreakDaysFromKeys, didItToday } from '../utils/devPlanActions';
 import { isCoachOfTeam, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
@@ -2262,36 +2262,14 @@ const PlanCard: React.FC<PlanCardProps> = ({
                               the player-level streak that shows on
                               their profile too. */}
                           {canLogPractice && plan.status === 'active' && !goal.coachVerified && (() => {
-                            const todayStart = (() => {
-                              const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime();
-                            })();
-                            const logs = (goal.practiceLog || []) as any[];
-                            const loggedToday = logs.some((l) => {
-                              const t = l.date?.toDate ? l.date.toDate().getTime() : new Date(l.date).getTime();
-                              return t >= todayStart;
-                            });
-                            // Walk the day-bucketed log set from today
-                            // backwards counting consecutive days.
-                            const days = new Set<string>();
-                            for (const l of logs) {
-                              const d = l.date?.toDate ? l.date.toDate() : new Date(l.date);
-                              const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-                              days.add(key);
-                            }
-                            let streak = 0;
-                            const cursor = new Date();
-                            cursor.setHours(0, 0, 0, 0);
-                            // If they haven't done today, the streak
-                            // window starts at yesterday — don't break
-                            // it just because they haven't tapped yet.
-                            if (!loggedToday) cursor.setDate(cursor.getDate() - 1);
-                            for (;;) {
-                              const key = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
-                              if (days.has(key)) {
-                                streak++;
-                                cursor.setDate(cursor.getDate() - 1);
-                              } else break;
-                            }
+                            // Denver-anchored: shares the exact walk math
+                            // as the player-level currentStreakDays. An ET
+                            // parent at 22:30 MT previously saw this chip
+                            // disagree with the profile streak because
+                            // this branch bucketed device-local.
+                            const loggedToday = didItToday(goal);
+                            const dayKeys = buildPracticeDayKeys([plan]);
+                            const streak = computeStreakDaysFromKeys(dayKeys);
                             return (
                               <div className="mt-3">
                                 {loggedToday ? (

@@ -19,6 +19,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { workerFetch } from '../../utils/workerFetch';
+import { denverKeyOfDate } from '../../utils/devPlanActions';
 
 export interface TonightGoal {
   planId: string;
@@ -42,8 +43,12 @@ interface Props {
 
 const DAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+// Denver-anchored same-day. Cells are built in Dashboard using Denver
+// keys, so the "today" highlight in this row has to compare on the
+// same key or an ET parent at the day boundary sees the wrong dot
+// glowing.
+function isSameDenverDay(a: Date, b: Date): boolean {
+  return denverKeyOfDate(a) === denverKeyOfDate(b);
 }
 
 const FlameIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -69,7 +74,7 @@ const TodaysDevelopmentCard: React.FC<Props> = ({ goal, playerId, teamId, onLogg
 
   const todayIdx = useMemo(() => {
     const now = new Date();
-    return goal.thisWeek.findIndex((d) => isSameDay(d.date, now));
+    return goal.thisWeek.findIndex((d) => isSameDenverDay(d.date, now));
   }, [goal.thisWeek]);
 
   const thisWeekEffective = useMemo(() => {

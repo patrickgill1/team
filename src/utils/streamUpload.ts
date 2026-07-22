@@ -261,6 +261,49 @@ export async function getStreamDownloadUrl(uid: string): Promise<StreamDownloadS
   return { ready: false, url: '', percent: Number(json.percentComplete) || 0 };
 }
 
+/**
+ * Share-time convenience wrapper around getStreamDownloadUrl.
+ *
+ * Race the enable-download call against a caller-supplied timeout so the
+ * UI can decide: "wait a second or two for a proper MP4 URL, else fall
+ * back to the iframe embed and let the next tap benefit from the render
+ * we just kicked off in the background."
+ *
+ * Behavior:
+ *  - Returns the MP4 URL when Cloudflare reports status='ready' inside
+ *    the timeout window. Caller should cache it (e.g., write back to
+ *    the source drill doc as `streamMp4Url`) so future shares skip the
+ *    network round trip.
+ *  - Returns null on timeout, on not-yet-ready, or on any fetch error.
+ *    The first call to /api/stream-enable-download is what kicks off
+ *    Cloudflare's MP4 render, so a null return still moves progress
+ *    forward — the next call is very likely to resolve ready.
+ *  - Never throws. Share flows must not blow up on a flaky network.
+ *
+ * The default 4000 ms budget is a compromise: long enough that an
+ * already-rendered video (very likely on drills uploaded seconds or
+ * more ago) resolves in a single tap, short enough that the parent
+ * doesn't see the app hang before the native share sheet appears.
+ */
+export async function getOrEnableStreamDownloadUrl(
+  uid: string,
+  opts: { timeoutMs?: number } = {}
+): Promise<string | null> {
+  if (!uid) return null;
+  const timeoutMs = typeof opts.timeoutMs === 'number' ? opts.timeoutMs : 4000;
+  try {
+    const timeout = new Promise<null>(resolve => {
+      setTimeout(() => resolve(null), timeoutMs);
+    });
+    const fetchStatus = getStreamDownloadUrl(uid)
+      .then(s => (s.ready && s.url ? s.url : null))
+      .catch(() => null);
+    return await Promise.race([fetchStatus, timeout]);
+  } catch {
+    return null;
+  }
+}
+
 /** Poll Cloudflare for a video's readiness. Powers useStreamReadiness.
  *  The server ALSO re-patches allowedOrigins to ["*"] if the video was
  *  created before that fix landed — belt-and-suspenders for any coach

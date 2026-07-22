@@ -38,6 +38,7 @@ import {
   MapPin,
   Clock,
   Wrench,
+  Share2,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -91,7 +92,8 @@ export type AppIconName =
   | 'wall'
   | 'map-pin'
   | 'clock'
-  | 'wrench';
+  | 'wrench'
+  | 'share';
 
 interface Props {
   name: AppIconName;
@@ -152,6 +154,9 @@ const ICON_MAP: Record<AppIconName, LucideIcon> = {
   // Distinct from Settings (gear) — used for team-admin / setup
   // surfaces so the two don't look identical in nav lists.
   wrench: Wrench,
+  // Share2 is Lucide's OS-native share glyph (three nodes on a Y).
+  // Reads as "hand this to another app" on both iOS and Android.
+  share: Share2,
 };
 
 // Hand-picked icons that override the Lucide default. Each entry is

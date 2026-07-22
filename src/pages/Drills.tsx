@@ -5,7 +5,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Drill } from '../types';
 import { isCoachOfTeam } from '../utils/helpers';
-import { uploadToStream, streamThumbnailUrl, checkVideoLimit } from '../utils/streamUpload';
+import { uploadToStream, streamThumbnailUrl, checkVideoLimit, getStreamDownloadUrl } from '../utils/streamUpload';
 import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 import {
   loadLibraryDrills, rateDrill, saveDrillFromLibrary, toggleShareToLibrary,
@@ -34,6 +34,85 @@ const AGE_BANDS: { value: Drill['ageBand']; label: string }[] = [
   { value: 'U13-U14', label: 'U13–U14' },
   { value: 'U15-U17', label: 'U15–U17' },
 ];
+
+// ─────────────────────────────────────────────────────────────
+// eagerEnableStreamDownload — fire-and-forget after a drill save
+// that attaches a Cloudflare Stream video. Kicks Cloudflare into
+// rendering the persistent MP4 download URL immediately so the
+// parent-side Share button (PlayerDevelopment) doesn't pay the
+// enable-download render lag (seconds to ~1 min) on first tap.
+//
+// Contract:
+//   - Idempotent: caller passes skipIfCached=true when the drill
+//     already has streamMp4Url set. We also re-check inside so a
+//     racing tab that wrote the field first doesn't get overwritten
+//     unnecessarily (write is same value, so no correctness bug —
+//     just avoids the wasted Firestore write).
+//   - Polls every 5s up to 60s (12 tries). Cloudflare typically
+//     resolves short highlight clips inside the first minute; if
+//     it's still rendering past the ceiling we give up silently
+//     and let the on-demand share path handle it later.
+//   - All errors swallowed (console.warn only). This is a nice-to-
+//     have background enhancement — never surface to the coach.
+//   - Persist path is inline (updateDoc / doc / getDoc from
+//     firebase/firestore lazy-imported) so we don't have to plumb
+//     useFirestore into a module-level helper.
+// ─────────────────────────────────────────────────────────────
+const EAGER_ENABLE_POLL_MS = 5000;
+const EAGER_ENABLE_MAX_POLLS = 12; // 60s ceiling
+
+function eagerEnableStreamDownload(drillId: string, streamUid: string, opts: { skipIfCached?: boolean } = {}): void {
+  if (!drillId || !streamUid) return;
+  const skipIfCached = opts.skipIfCached === true;
+
+  // Detached — don't return the promise, don't await anywhere.
+  void (async () => {
+    try {
+      const { getDoc, updateDoc, doc } = await import('firebase/firestore');
+      const { db } = await import('../utils/firebase');
+      const drillRef = doc(db, 'drills', drillId);
+
+      // Idempotency guard. If the doc already has streamMp4Url cached
+      // (from a previous save, or from a racing share-side call), skip.
+      if (skipIfCached) {
+        try {
+          const snap = await getDoc(drillRef);
+          const existing = snap.exists() ? (snap.data() as any).streamMp4Url : undefined;
+          if (typeof existing === 'string' && existing) return;
+        } catch (err) {
+          // Non-fatal — if the read fails we still try to enable; worst
+          // case we overwrite with the identical URL.
+          console.warn('[eagerEnableStreamDownload] cache-check read failed', err);
+        }
+      }
+
+      let errCount = 0;
+      for (let i = 0; i < EAGER_ENABLE_MAX_POLLS; i++) {
+        try {
+          const status = await getStreamDownloadUrl(streamUid);
+          if (status.ready && status.url) {
+            await updateDoc(drillRef, { streamMp4Url: status.url });
+            return;
+          }
+        } catch (err) {
+          // Cloudflare / API transient. Give up after 3 consecutive
+          // errors so we don't hammer a broken endpoint for a full
+          // minute.
+          errCount += 1;
+          console.warn('[eagerEnableStreamDownload] enable-download poll failed', err);
+          if (errCount >= 3) return;
+        }
+        // Space out polls. First call kicks off render, subsequent
+        // ones just report progress.
+        await new Promise(r => setTimeout(r, EAGER_ENABLE_POLL_MS));
+      }
+      // Fell off the ceiling — silent. Share path will re-enable
+      // on demand the first time a parent taps Share.
+    } catch (err) {
+      console.warn('[eagerEnableStreamDownload] setup failed', err);
+    }
+  })();
+}
 
 const Drills: React.FC = () => {
   const { userData } = useAuth();
@@ -546,8 +625,9 @@ const Drills: React.FC = () => {
           onClose={() => { setCreateOpen(false); setEditing(null); }}
           onSave={async (payload, isNew) => {
             try {
+              let drillId: string | null = null;
               if (isNew) {
-                await addDocument('drills', {
+                drillId = await addDocument('drills', {
                   ...payload,
                   teamId: selectedTeamId,
                   createdBy: userData?.uid || null,
@@ -558,6 +638,23 @@ const Drills: React.FC = () => {
                 });
               } else if (editing) {
                 await updateDocument('drills', editing.id, { ...payload, updatedAt: new Date() });
+                drillId = editing.id;
+              }
+              // Eagerly enable Cloudflare Stream MP4 download the moment
+              // a coach saves a drill with an attached video. By the time
+              // a parent taps Share on the kid's development plan later,
+              // the render is very likely done and streamMp4Url is already
+              // cached on the drill doc — so the share sheet opens with
+              // a real MP4 URL instantly, not a 30–60s "still rendering"
+              // wait. Fire-and-forget: never blocks the save flow.
+              // Idempotent: skips when the drill already has streamMp4Url
+              // cached (edit-then-save on an existing video, for example).
+              if (drillId && payload.streamUid) {
+                const alreadyCached = !isNew && !!editing && typeof editing.streamMp4Url === 'string' && !!editing.streamMp4Url
+                  && editing.streamUid === payload.streamUid;
+                if (!alreadyCached) {
+                  eagerEnableStreamDownload(drillId, payload.streamUid, { skipIfCached: !isNew });
+                }
               }
               setCreateOpen(false);
               setEditing(null);
@@ -698,6 +795,16 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
     // stamps streamReady:true on first successful poll.
     if (stagedStreamUid) {
       payload.streamUid = stagedStreamUid;
+      // Null out the cached MP4 URL when the coach uploads a REPLACEMENT
+      // video. Without this, the drill doc keeps the previous video's
+      // MP4 URL and the parent Share button on PlayerDevelopment hands
+      // out the old (possibly deleted) video forever, because both the
+      // eager-enable idempotency guard and the share-handler cache
+      // check see a truthy streamMp4Url and skip re-rendering.
+      // streamReady stays untouched — the readiness poll re-stamps it.
+      if (drill?.streamUid && drill.streamUid !== stagedStreamUid) {
+        (payload as any).streamMp4Url = null;
+      }
     }
     await onSave(payload, isNew);
     setSaving(false);

@@ -7,7 +7,9 @@ import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink, 
 import DrillPickerModal from '../components/development/DrillPickerModal';
 import CoachSawThisPill from '../components/coach/CoachSawThisPill';
 import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
+import { getOrEnableStreamDownloadUrl, streamIframeUrl } from '../utils/streamUpload';
 import { coachVerifyLogEntry, buildPracticeDayKeys, computeStreakDaysFromKeys, didItToday } from '../utils/devPlanActions';
+import { resolveGoalVideo as resolveGoalVideoShared } from '../utils/resolveGoalVideo';
 import { isCoachOfTeam, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
@@ -38,7 +40,7 @@ function extractYouTubeId(input: string): string | null {
 const PlayerDevelopment: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
-  const { getDevelopmentPlansByTeam, getDevelopmentPlansByPlayer, addDevelopmentPlan, updateDevelopmentPlan, getDocuments, getPlayersByTeam, deleteDocument } = useFirestore();
+  const { getDevelopmentPlansByTeam, getDevelopmentPlansByPlayer, addDevelopmentPlan, updateDevelopmentPlan, getDocuments, getPlayersByTeam, deleteDocument, updateDocument } = useFirestore();
 
   const [plans, setPlans] = useState<DevelopmentPlan[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -95,6 +97,35 @@ const PlayerDevelopment: React.FC = () => {
       console.warn('[dev-plan] verify log failed', err);
       alert('Could not save. Try again.');
     }
+  };
+
+  // Fire-and-forget cache write when a drill's Cloudflare Stream MP4
+  // URL first resolves during a Share tap. Only writes if the drill
+  // isn't already carrying the same value AND we haven't already
+  // written it in this session (avoids a write storm if the same drill
+  // gets shared repeatedly). Updates local drillsById so the next
+  // Share in this same session reads the cached URL without a network
+  // round trip. Non-fatal on error — worst case is the next tap
+  // repeats the enable-download call.
+  const [cachedMp4UrlsSession, setCachedMp4UrlsSession] = useState<Record<string, string>>({});
+  const handleCacheDrillMp4Url = (drillId: string, url: string) => {
+    if (!drillId || !url) return;
+    if (cachedMp4UrlsSession[drillId] === url) return;
+    const existing = (drillsById[drillId] as any)?.streamMp4Url;
+    setCachedMp4UrlsSession(prev => ({ ...prev, [drillId]: url }));
+    setDrillsById(prev => {
+      const cur = prev[drillId];
+      if (!cur) return prev;
+      return { ...prev, [drillId]: { ...cur, streamMp4Url: url } as any };
+    });
+    if (existing === url) return;
+    (async () => {
+      try {
+        await updateDocument('drills', drillId, { streamMp4Url: url });
+      } catch (err) {
+        console.warn('[dev-plan] cache drill mp4 url failed', err);
+      }
+    })();
   };
 
   useEffect(() => {
@@ -155,41 +186,13 @@ const PlayerDevelopment: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drillsById, searchParams]);
 
-  // Resolve a goal's current video. Priority:
-  // 1) Source drill (by drillId, or by normalized-title match for
-  //    legacy goals that didn't store drillId).
-  // 2) Goal's own snapshot — fallback for orphan goals (drill deleted,
-  //    or pre-drillId imports with no title match).
-  //
-  // Title match is normalized (trim + lowercase + collapsed whitespace)
-  // because the strict-equality match was missing goals whose title
-  // had been lightly edited by the coach (trailing space, capitalization
-  // change, etc.). And critically: if a drill has streamUid but match
-  // fails, the goal would fall back to a stale snapshot from a previous
-  // failed upload — Cloudflare then renders 'An unknown error occurred'
-  // in the iframe because that streamUid has been replaced.
-  const resolveGoalVideo = (goal: DevelopmentGoal): { streamUid?: string; streamReady?: boolean } => {
-    const drillId = (goal as any).drillId as string | undefined;
-    let drill: Drill | undefined = drillId ? drillsById[drillId] : undefined;
-    if (!drill) {
-      const normalize = (s: string) =>
-        (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
-      const goalKey = normalize(goal.title);
-      if (goalKey) {
-        const titleMatches = Object.values(drillsById).filter(
-          (d) => normalize(d.title) === goalKey,
-        );
-        if (titleMatches.length === 1) drill = titleMatches[0];
-      }
-    }
-    if (drill?.streamUid) {
-      return { streamUid: drill.streamUid, streamReady: drill.streamReady };
-    }
-    return {
-      streamUid: (goal as any).streamUid,
-      streamReady: (goal as any).streamReady,
-    };
-  };
+  // Resolve a goal's current video via the shared resolver in
+  // src/utils/resolveGoalVideo.ts — same logic the kid-facing
+  // InlineDevPlanCard uses so both surfaces agree on which video is
+  // "current" (drill re-uploads propagate everywhere without
+  // re-importing the goal).
+  const resolveGoalVideo = (goal: DevelopmentGoal) =>
+    resolveGoalVideoShared(goal, drillsById);
 
   // Deep-link: /development?expand=<planId> opens that plan expanded
   // once the plans list is loaded. Consumed so it doesn't keep firing
@@ -1137,6 +1140,7 @@ const PlayerDevelopment: React.FC = () => {
                   streak={playerStreaks[plan.playerId] || 0}
                   playerPhoto={(players.find(pp => pp.id === plan.playerId) as any)?.profilePhotoUrl || null}
                   resolveGoalVideo={resolveGoalVideo}
+                  onCacheDrillMp4Url={handleCacheDrillMp4Url}
                 />
               ))}
             </div>
@@ -1183,6 +1187,7 @@ const PlayerDevelopment: React.FC = () => {
                   streak={playerStreaks[plan.playerId] || 0}
                   playerPhoto={(players.find(pp => pp.id === plan.playerId) as any)?.profilePhotoUrl || null}
                   resolveGoalVideo={resolveGoalVideo}
+                  onCacheDrillMp4Url={handleCacheDrillMp4Url}
                 />
               ))}
             </div>
@@ -1716,7 +1721,18 @@ interface PlanCardProps {
   verifiedOptimistic: Record<string, { uid: string; name: string; at: Date }>;
   streak?: number;
   playerPhoto?: string | null;
-  resolveGoalVideo: (goal: DevelopmentGoal) => { streamUid?: string; streamReady?: boolean };
+  resolveGoalVideo: (goal: DevelopmentGoal) => {
+    streamUid?: string;
+    streamReady?: boolean;
+    sourceDrillId?: string;
+    streamMp4Url?: string;
+  };
+  /** Called after Share successfully resolves an MP4 URL from
+   *  Cloudflare Stream, so the outer page can cache it back on the
+   *  source drill doc (`drills/{id}.streamMp4Url`). Next Share tap
+   *  short-circuits the network round trip. Optional — silently skips
+   *  when the video resolved from a goal snapshot (no drill to write). */
+  onCacheDrillMp4Url?: (drillId: string, url: string) => void;
 }
 
 // Inline comments thread — questions/replies/anything about THIS plan.
@@ -1788,7 +1804,7 @@ const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) =>
 const PlanCard: React.FC<PlanCardProps> = ({
   plan, isCoach, isExpanded, onToggleExpand, onPlayerComplete, onCoachVerify,
   onCoachNote, onReadyForReview, onAddPracticeLog, onQuickDidIt, onAddComment, onAddVideoLink, onRemoveVideoLink, onArchive, onDelete, onEdit, onCreateNextPlan, playerPhoto,
-  getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice, canVerifyLogs, onVerifyLog, verifiedOptimistic, streak, resolveGoalVideo
+  getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice, canVerifyLogs, onVerifyLog, verifiedOptimistic, streak, resolveGoalVideo, onCacheDrillMp4Url
 }) => {
   const progress = getProgressPercentage(plan);
   const playerProgress = plan.goals.length > 0
@@ -1811,6 +1827,94 @@ const PlanCard: React.FC<PlanCardProps> = ({
   const [linkGoalId, setLinkGoalId] = useState<string | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkTitle, setLinkTitle] = useState('');
+  // Per-goal share-in-flight lock. Prevents a double-tap from firing
+  // two enable-download calls (and, worse, two native share sheets in
+  // a row on iOS which the second one silently no-ops). Also drives
+  // the "Preparing…" label on the button so the parent knows we're
+  // actually working, not that the tap was lost.
+  const [sharingGoalId, setSharingGoalId] = useState<string | null>(null);
+  // One-shot toast for the pre-render fallback. Kept dead-simple: no
+  // portal, no animation, just a warm hint that sits below the video
+  // for a few seconds so the parent knows the share went out but the
+  // MP4 wasn't ready yet.
+  const [shareToast, setShareToast] = useState<{ goalId: string; message: string } | null>(null);
+
+  const handleShareDrillVideo = async (
+    goal: DevelopmentGoal,
+    resolved: { streamUid?: string; streamReady?: boolean; sourceDrillId?: string; streamMp4Url?: string },
+  ) => {
+    const { streamUid, sourceDrillId, streamMp4Url } = resolved;
+    if (!streamUid) return;
+    if (sharingGoalId) return;
+    setSharingGoalId(goal.id);
+    try {
+      // 1) Prefer the URL cached on the drill doc — instant, no network.
+      // 2) Otherwise race Cloudflare's /downloads endpoint against a
+      //    ~4s budget. If ready, share the MP4 (auto-plays inline in
+      //    iMessage). Cache it back on the drill for next time.
+      // 3) Otherwise fall back to the universal iframe embed. Still
+      //    plays for the receiver, and the enable call we just fired
+      //    has kicked off Cloudflare's render so the next tap resolves.
+      let url: string | null = streamMp4Url || null;
+      let usedFallback = false;
+      if (!url) {
+        url = await getOrEnableStreamDownloadUrl(streamUid, { timeoutMs: 4000 });
+        if (url && sourceDrillId && onCacheDrillMp4Url) {
+          try { onCacheDrillMp4Url(sourceDrillId, url); } catch { /* non-fatal */ }
+        }
+      }
+      if (!url) {
+        url = streamIframeUrl(streamUid);
+        usedFallback = true;
+      }
+      const shareData = {
+        title: goal.title || 'Soccer drill',
+        url,
+      };
+      let shared = false;
+      let usedClipboard = false;
+      try {
+        if (typeof navigator !== 'undefined' && (navigator as any).share) {
+          await (navigator as any).share(shareData);
+          shared = true;
+        } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+          await navigator.clipboard.writeText(url);
+          shared = true;
+          usedClipboard = true;
+        }
+      } catch (err: any) {
+        // User dismissed the native sheet — no toast, no noise.
+        if (err?.name !== 'AbortError') {
+          try {
+            if (typeof navigator !== 'undefined' && navigator.clipboard) {
+              await navigator.clipboard.writeText(url);
+              shared = true;
+              usedClipboard = true;
+            }
+          } catch {
+            console.error('share drill failed', err);
+          }
+        }
+      }
+      if (shared) {
+        if (usedFallback) {
+          // Pre-render fallback: tell the parent the share went out but
+          // the MP4 wasn't ready yet, so the next tap gets the nicer
+          // inline preview.
+          setShareToast({
+            goalId: goal.id,
+            message: 'Video preview is still cooking, share again shortly for the inline player.',
+          });
+        } else if (usedClipboard) {
+          setShareToast({ goalId: goal.id, message: 'Link copied' });
+        }
+      }
+    } finally {
+      setSharingGoalId(null);
+      // Auto-dismiss any toast after a short beat.
+      setTimeout(() => setShareToast(prev => (prev && prev.goalId === goal.id ? null : prev)), 3500);
+    }
+  };
 
   const handleSubmitLog = () => {
     if (!logGoalId || !logNote.trim()) return;
@@ -2039,23 +2143,57 @@ const PlanCard: React.FC<PlanCardProps> = ({
                         to the goal's own snapshot if the drill is
                         deleted or can't be matched. */}
                     {(() => {
-                      const { streamUid, streamReady } = resolveGoalVideo(goal);
+                      const resolved = resolveGoalVideo(goal);
+                      const { streamUid, streamReady } = resolved;
                       if (!streamUid) return null;
+                      const isSharing = sharingGoalId === goal.id;
+                      const toast = shareToast && shareToast.goalId === goal.id ? shareToast : null;
                       return (
                         <div className="mt-3">
-                          <p className="text-xs font-semibold text-ink-primary/50 uppercase tracking-wide mb-1.5 inline-flex items-center gap-1.5">
-                            <AppIcon name="film" className="w-3.5 h-3.5 text-ink-primary/40" />
-                            <span>Demo video</span>
-                          </p>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-xs font-semibold text-ink-primary/50 uppercase tracking-wide inline-flex items-center gap-1.5">
+                              <AppIcon name="film" className="w-3.5 h-3.5 text-ink-primary/40" />
+                              <span>Demo video</span>
+                            </p>
+                            {/* Share to another parent via native sheet
+                                (iMessage, WhatsApp, AirDrop) so a kid
+                                without the app can still watch. Only
+                                shown when the goal has a Cloudflare
+                                Stream video — YouTube links already
+                                share from YouTube. */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleShareDrillVideo(goal, resolved);
+                              }}
+                              disabled={isSharing}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-semibold text-brand-primary hover:text-brand-primary-hov bg-brand-primary/12 hover:bg-brand-primary/20 ring-1 ring-brand-primary/25 disabled:opacity-60 disabled:cursor-progress transition-colors"
+                              aria-label="Share this drill video"
+                              title="Share this drill"
+                            >
+                              <AppIcon name="share" className="w-4 h-4" />
+                              <span>{isSharing ? 'Preparing…' : 'Share'}</span>
+                            </button>
+                          </div>
                           <div className="aspect-video w-full rounded-lg overflow-hidden bg-black ring-1 ring-line-default/10">
                             <CloudflareStreamIframe
                               uid={streamUid}
                               streamReady={streamReady === true}
-                              title={`${goal.title} — demo`}
+                              title={`${goal.title}, coach demo`}
                               allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
                               iframeClassName="w-full h-full block border-0"
                             />
                           </div>
+                          {toast && (
+                            <p
+                              role="status"
+                              className="mt-1.5 text-[11px] text-ink-primary/60"
+                            >
+                              {toast.message}
+                            </p>
+                          )}
                         </div>
                       );
                     })()}

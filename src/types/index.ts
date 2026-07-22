@@ -2945,6 +2945,14 @@ export interface Drill {
    *  are external (YouTube). */
   streamUid?: string;
   streamReady?: boolean;
+  /** Cached persistent MP4 download URL returned by Cloudflare Stream's
+   *  /downloads endpoint. Populated eagerly at drill save time (fire-
+   *  and-forget poll — see Drills.tsx eagerEnableStreamDownload) so the
+   *  parent Share flow can hand off a ready MP4 URL instantly instead
+   *  of paying the enable-download render lag (seconds to a minute) on
+   *  first tap. Stable once set — Cloudflare's MP4 URL doesn't expire.
+   *  Absent = fall back to on-demand getStreamDownloadUrl at share time. */
+  streamMp4Url?: string;
   /** Structured diagram describing the drill layout. Rendered
    *  deterministically by DrillDiagram into an SVG — the model
    *  outputs coordinates + element types, not raw markup, so we

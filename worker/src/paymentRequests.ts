@@ -564,6 +564,34 @@ export async function handlePaymentMarkPaidCash(
 // parent dashboard card. Punted — dashboard card reads Firestore.
 // ────────────────────────────────────────────────────────────────
 
+// Resolve the effective platformFeeBps for a payment_request's club.
+// Order: clubs/{clubId}.platformFeeBps -> platform_settings/defaults
+// .platformFeeBps -> DROPIN_DEFAULT_PLATFORM_BPS. Mirrors the same
+// resolution stripe.ts uses at checkout time so the push, the
+// payments tab, and the Stripe charge all land on the same number.
+// Bails to the shared default on any read error so a transient
+// Firestore hiccup can't wedge the push.
+async function resolvePlatformFeeBps(
+  pid: string,
+  sa: ServiceAccount,
+  clubId: string,
+): Promise<number> {
+  const { DROPIN_DEFAULT_PLATFORM_BPS } = await import('./pricing');
+  if (!clubId) return DROPIN_DEFAULT_PLATFORM_BPS;
+  try {
+    const club = await getDocument(pid, `clubs/${clubId}`, sa).catch(() => null);
+    if (typeof club?.data?.platformFeeBps === 'number') {
+      return club.data.platformFeeBps;
+    }
+    const defaults = await getDocument(pid, 'platform_settings/defaults', sa).catch(() => null);
+    const defaultBps = Number(defaults?.data?.platformFeeBps || 0);
+    if (defaultBps > 0) return defaultBps;
+  } catch {
+    /* fall through to default */
+  }
+  return DROPIN_DEFAULT_PLATFORM_BPS;
+}
+
 // Push fanout to parents of the targeted players.
 async function sendCreationPush(
   pid: string,
@@ -618,19 +646,19 @@ async function sendCreationPush(
   // grossUpCents(feeCents) so the coach nets the base. If we push
   // the raw feeCents the parent sees, say, "$76.58" in the
   // notification but Stripe charges them ~$80 — which reads as a
-  // bait-and-switch. Mirror the same math Payments.tsx uses so the
-  // push, the payments tab, and the checkout total all agree.
-  // platformBps default matches the client's display; a club with
-  // a custom platformFeeBps will see the same tiny rounding drift
-  // in both places, which is a separate polish item.
+  // bait-and-switch. Mirror the same math Stripe checkout uses so
+  // the push, the payments tab, and the checkout total all agree.
+  // Resolve platformFeeBps from the club doc (same lookup order as
+  // stripe.ts) so a club with a custom platform fee doesn't drift.
   const feeCoveredBy: 'player' | 'coach' = req.feeCoveredBy === 'coach' ? 'coach' : 'player';
+  const platformFeeBps = await resolvePlatformFeeBps(pid, sa, String(req.clubId || ''));
   const feeCentsNum = Number(req.feeCents || 0);
   const intervalCentsNum = Number(req.intervalCents || 0);
   const oneOffCharged = feeCoveredBy === 'player' && feeCentsNum > 0
-    ? grossUpCents(feeCentsNum)
+    ? grossUpCents(feeCentsNum, platformFeeBps)
     : feeCentsNum;
   const recurringCharged = feeCoveredBy === 'player' && intervalCentsNum > 0
-    ? grossUpCents(intervalCentsNum)
+    ? grossUpCents(intervalCentsNum, platformFeeBps)
     : intervalCentsNum;
   const price =
     kind === 'one_off' && oneOffCharged

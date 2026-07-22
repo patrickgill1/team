@@ -31,6 +31,7 @@ import {
   AlreadyExistsError,
 } from './firestore';
 import { intervalLabel, type PaymentRecurringInterval } from './paymentIntervals';
+import { grossUpCents } from './pricing';
 
 interface Env {
   FIREBASE_PROJECT_ID?: string;
@@ -612,11 +613,30 @@ async function sendCreationPush(
   if (tokens.length === 0) return;
 
   const kind = String(req.kind || '');
+  // Show the PARENT-facing amount, not the coach's net target. When
+  // feeCoveredBy is 'player' (the default), Stripe Checkout charges
+  // grossUpCents(feeCents) so the coach nets the base. If we push
+  // the raw feeCents the parent sees, say, "$76.58" in the
+  // notification but Stripe charges them ~$80 — which reads as a
+  // bait-and-switch. Mirror the same math Payments.tsx uses so the
+  // push, the payments tab, and the checkout total all agree.
+  // platformBps default matches the client's display; a club with
+  // a custom platformFeeBps will see the same tiny rounding drift
+  // in both places, which is a separate polish item.
+  const feeCoveredBy: 'player' | 'coach' = req.feeCoveredBy === 'coach' ? 'coach' : 'player';
+  const feeCentsNum = Number(req.feeCents || 0);
+  const intervalCentsNum = Number(req.intervalCents || 0);
+  const oneOffCharged = feeCoveredBy === 'player' && feeCentsNum > 0
+    ? grossUpCents(feeCentsNum)
+    : feeCentsNum;
+  const recurringCharged = feeCoveredBy === 'player' && intervalCentsNum > 0
+    ? grossUpCents(intervalCentsNum)
+    : intervalCentsNum;
   const price =
-    kind === 'one_off' && req.feeCents
-      ? `$${(Number(req.feeCents) / 100).toFixed(2)}`
-      : kind === 'recurring' && req.intervalCents
-        ? `$${(Number(req.intervalCents) / 100).toFixed(2)} ${intervalLabel(req.interval as PaymentRecurringInterval)}`
+    kind === 'one_off' && oneOffCharged
+      ? `$${(oneOffCharged / 100).toFixed(2)}`
+      : kind === 'recurring' && recurringCharged
+        ? `$${(recurringCharged / 100).toFixed(2)} ${intervalLabel(req.interval as PaymentRecurringInterval)}`
         : kind === 'catalog'
           ? 'Team store open'
           : '';

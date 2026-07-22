@@ -411,7 +411,68 @@ export async function handleUpdatePaymentRequest(
   }
 
   await patchDocument(pid, `payment_requests/${id}`, patch, sa);
+
+  // If the roster grew, fire the creation-style push to ONLY the
+  // newly-added targets. Existing targets got their push at
+  // create-time and don't need re-nagged. Amount is worker-locked
+  // once anyone has paid (see wantAmountChange guard above), so no
+  // "delta owed" scenario is possible here — the push shape stays
+  // the same as create.
+  if (patch.targetPlayerIds !== undefined) {
+    try {
+      const oldTargets = doc.data.targetPlayerIds;
+      const newTargets = patch.targetPlayerIds;
+      const teamId = String(doc.data.teamId || '');
+      const delta = await computeNewlyAddedPlayerIds(pid, sa, teamId, oldTargets, newTargets);
+      if (delta.length > 0) {
+        const merged = { ...doc.data, ...patch, id, targetPlayerIds: delta };
+        await sendCreationPush(pid, sa, env, merged, teamId);
+      }
+    } catch (err) {
+      console.warn('[payments] update push (newly added) failed', err);
+    }
+  }
+
   return json({ ok: true });
+}
+
+// Resolve the "newly added" playerIds between an old and new
+// targetPlayerIds field. Handles 'all' on either side by enumerating
+// the team's active players. Result is always concrete player-doc
+// ids that can be dropped into sendCreationPush.
+async function computeNewlyAddedPlayerIds(
+  pid: string,
+  sa: ServiceAccount,
+  teamId: string,
+  oldTargets: unknown,
+  newTargets: unknown,
+): Promise<string[]> {
+  const oldSet = await resolveTargetSet(pid, sa, teamId, oldTargets);
+  const newSet = await resolveTargetSet(pid, sa, teamId, newTargets);
+  const added: string[] = [];
+  for (const id of newSet) if (!oldSet.has(id)) added.push(id);
+  return added;
+}
+
+async function resolveTargetSet(
+  pid: string,
+  sa: ServiceAccount,
+  teamId: string,
+  targets: unknown,
+): Promise<Set<string>> {
+  if (Array.isArray(targets)) {
+    return new Set(targets.filter((s): s is string => typeof s === 'string'));
+  }
+  // 'all' (or undefined default) — enumerate active players on the team.
+  const { runQuery } = await import('./firestore');
+  const docs = await runQuery(pid, 'players', [
+    { field: 'teamIds', op: 'ARRAY_CONTAINS', value: teamId },
+  ], sa, 200).catch(() => []);
+  return new Set(
+    docs
+      .filter((d: any) => d?.data?.isActive !== false)
+      .map((d: any) => String(d.id))
+  );
 }
 
 // ────────────────────────────────────────────────────────────────

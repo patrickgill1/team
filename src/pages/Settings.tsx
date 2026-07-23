@@ -367,39 +367,64 @@ const Settings: React.FC = () => {
           <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4">
             <div className="flex items-start gap-4">
               {/* Avatar */}
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={uploadingPhoto}
-                className="relative shrink-0 group"
-                title="Tap to change photo"
-              >
-                {userData?.photoURL ? (
-                  <img
-                    src={userData.photoURL}
-                    alt={userData.name}
-                    className="w-20 h-20 rounded-full object-cover ring-2 ring-line-default/10"
+              <div className="shrink-0 flex flex-col items-center gap-1">
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="relative group"
+                  title={userData?.photoURL ? 'Tap to change photo' : 'Tap to add a photo'}
+                  aria-label={userData?.photoURL ? 'Change profile photo' : 'Add a profile photo'}
+                >
+                  {userData?.photoURL ? (
+                    <img
+                      src={userData.photoURL}
+                      alt={userData.name}
+                      className="w-20 h-20 rounded-full object-cover ring-2 ring-line-default/10"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary flex items-center justify-center text-white text-2xl font-bold ring-2 ring-line-default/10 group-hover:brightness-110 transition">
+                      {userInitial}
+                    </div>
+                  )}
+                  {/* Empty-state affordance. When photoURL is missing,
+                      swap the subtle pencil for a larger, brand-warm
+                      camera badge that reads as "tap here to add one".
+                      Coach-native nudge — no "SaaS-y CTA" vibe. */}
+                  {userData?.photoURL ? (
+                    <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-surface-elevated ring-1 ring-line-default/10 shadow-sm flex items-center justify-center text-ink-primary/85 group-hover:bg-line-default/[0.05]">
+                      <AppIcon name="edit" className="w-3.5 h-3.5" />
+                    </div>
+                  ) : (
+                    <div className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-brand-primary ring-2 ring-surface-elevated shadow-md flex items-center justify-center text-white group-hover:scale-105 transition">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                    </div>
+                  )}
+                  {uploadingPhoto && (
+                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={onPickPhoto}
                   />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary flex items-center justify-center text-white text-2xl font-bold ring-2 ring-line-default/10">
-                    {userInitial}
-                  </div>
+                </button>
+                {!userData?.photoURL && !uploadingPhoto && (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    className="text-[11px] font-semibold text-brand-primary hover:underline mt-0.5"
+                  >
+                    Add a photo
+                  </button>
                 )}
-                <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-surface-elevated ring-1 ring-line-default/10 shadow-sm flex items-center justify-center text-ink-primary/85 group-hover:bg-line-default/[0.05]">
-                  <AppIcon name="edit" className="w-3.5 h-3.5" />
-                </div>
-                {uploadingPhoto && (
-                  <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  </div>
-                )}
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={onPickPhoto}
-                />
-              </button>
+              </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">

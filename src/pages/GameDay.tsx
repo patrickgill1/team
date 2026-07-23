@@ -187,6 +187,19 @@ const GameDay: React.FC = () => {
   const [noteText, setNoteText] = useState('');
   const [now, setNow] = useState(Date.now());
   const handledWatchActionIds = useRef<Set<string>>(new Set());
+  // Trip context — mid-game visual reinforcement + STATS-OFF confirm
+  // gate + retry-toast plumbing. Resolved from event.tripId (post-final)
+  // or by re-running resolveTripIdByEventId (pre-final). Undefined = not
+  // a trip game. Group B's shared eventTripContext helper will merge in
+  // cleanly — same {id, name} shape.
+  const [tripContext, setTripContext] = useState<{ id: string; name: string } | null>(null);
+  // Attribution error toast — surfaced when resolveTripIdForGame throws
+  // during endGame. Coach can retry; second failure marks stat rows
+  // pendingTripAttribution:true so a bg job can re-run.
+  const [attributionToast, setAttributionToast] = useState<{
+    kind: 'retry' | 'fallback';
+    onRetry?: () => void;
+  } | null>(null);
 
   // Coach authority is per-team: presence in team.coachIds is the
   // source of truth (see reference_coach_role_model). Keep the
@@ -261,6 +274,41 @@ const GameDay: React.FC = () => {
     })();
     return () => { if (unsub) unsub(); };
   }, [eventId, isQuickGame, selectedTeamId, getDocument, getPlayersByTeam]);
+
+  // Resolve trip context for the scoreboard chip + STATS-OFF confirm.
+  // Two paths: (A) event.tripId is already stamped (post-finalize) →
+  // read the trip doc directly. (B) not yet bound (pre-finalize) →
+  // resolveTripIdByEventId does the window match. Skip for quick
+  // games. Runs on mount + when event/tripId changes.
+  useEffect(() => {
+    if (!event || isQuickGame) { setTripContext(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        let tripId: string | undefined = (event as any).tripId;
+        if (!tripId) {
+          const { resolveTripIdByEventId } = await import('../utils/tripAttribution');
+          const r = await resolveTripIdByEventId(event.id, event.teamId);
+          tripId = r.tripId;
+        }
+        if (!tripId) { if (!cancelled) setTripContext(null); return; }
+        const snap = await getDoc(doc(db, 'trips', tripId));
+        if (cancelled) return;
+        if (snap.exists()) {
+          const v: any = snap.data();
+          setTripContext({ id: tripId, name: String(v.name || 'Trip') });
+        } else {
+          setTripContext(null);
+        }
+      } catch (err) {
+        // Silent — chip absence is graceful. Attribution failures on
+        // endGame get their own toast surface (attributionToast).
+        console.warn('[gameday] trip context load failed', err);
+        if (!cancelled) setTripContext(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [event, isQuickGame]);
 
   // Derived clock
   const liveSeconds = useMemo(() => {
@@ -349,8 +397,8 @@ const GameDay: React.FC = () => {
     const confirmMsg = willCount
       ? 'End the game? This will mark it Final and write per-player stats to season totals.'
       : teamIsDemoConfirm
-        ? 'End the game? Demo team — nothing will be written to season totals.'
-        : 'End the game? STATS OFF for this game — nothing will be written to season totals. The timeline stays viewable.';
+        ? 'End the game? Demo team. Nothing will be written to season totals.'
+        : 'End the game? STATS OFF for this game. Nothing will be written to season totals. The timeline stays viewable.';
     if (!window.confirm(confirmMsg)) return;
     await patch({
       status: 'final',
@@ -388,170 +436,237 @@ const GameDay: React.FC = () => {
       console.log(`[gameday] endGame: skipping stats rollup (countsToStats=${game.countsToStats}, teamIsDemo=${teamIsDemo})`);
       return;
     }
-    // Write season-aggregate stats
+    // Write season-aggregate stats. resolveTripIdForGame now THROWS on
+    // hard errors (Group A change) — we catch it below, surface a retry
+    // toast, and let the coach re-attempt. Timeline + push/wall posts
+    // already landed above so the game is finalized either way.
     try {
-      const counts: Record<string, { goals: number; assists: number; saves: number; yellow: number; red: number; name: string }> = {};
-      (game.timeline || []).forEach(t => {
-        if (!t.playerId) return;
-        const c = counts[t.playerId] || (counts[t.playerId] = { goals: 0, assists: 0, saves: 0, yellow: 0, red: 0, name: t.playerName || '' });
-        if (t.kind === 'goal') c.goals++;
-        if (t.kind === 'assist') c.assists++;
-        if (t.kind === 'save') c.saves++;
-        if (t.kind === 'yellow') c.yellow++;
-        if (t.kind === 'red') c.red++;
-      });
-      // Accrue remaining on-field time BEFORE reading minutes. Prior
-      // shape (audit 2026-07-10) iterated only lineup.minutes, which
-      // is populated on sub-off — a keeper who plays 60/60 and is
-      // never subbed had no entry, so cleanSheet never fired.
-      // effectiveMinutes now includes the current shift for anyone
-      // still on the field at final whistle.
-      const persistedMinutes: Record<string, number> = { ...(game.lineup?.minutes || {}) };
-      const effectiveMinutes: Record<string, number> = { ...persistedMinutes };
-      for (const slot of (game.lineup?.onField || [])) {
-        if (!slot?.playerId) continue;
-        const extra = Math.max(0, liveSeconds - (slot.enteredAtSec || 0));
-        effectiveMinutes[slot.playerId] = (effectiveMinutes[slot.playerId] || 0) + extra;
-      }
-      // Persist the accrued minutes back to the game doc so read-side
-      // aggregations (MinutesPlayedCard, etc.) reflect actual playing
-      // time, not just tracked sub-outs. Fire-and-forget.
-      try {
-        await patch({ 'lineup.minutes': effectiveMinutes } as any);
-      } catch (err) {
-        console.warn('[gameday] persist minutes accrual failed', err);
-      }
-
-      // Clean-sheet detection: GKs who logged any minutes in a shutout
-      // get +1 clean sheet. isGoalkeeper checks primary/positions list.
-      const { isGoalkeeper } = await import('../utils/helpers');
-      const shutout = (game.oppScore || 0) === 0;
-      const cleanSheetPids = new Set<string>();
-      if (shutout) {
-        for (const pid of Object.keys(effectiveMinutes)) {
-          const secs = Number(effectiveMinutes[pid] || 0);
-          if (secs <= 0) continue;
-          const player = players.find(p => p.id === pid);
-          if (player && isGoalkeeper(player as any)) cleanSheetPids.add(pid);
-        }
-      }
-      const { maybeGrantFirstStatBadges } = await import('../utils/badgeGrants');
-      const { doc: fsDoc, getDoc: fsGet } = await import('firebase/firestore');
-      const { db: firestoreDb } = await import('../utils/firebase');
-      // Trip attribution — resolve ONCE per game (all this game's
-      // stats share the same tripId). Cheap: one Firestore query
-      // per team per 30s window, cached in tripAttribution.
-      const { resolveTripIdForGame } = await import('../utils/tripAttribution');
-      const tripResult = await resolveTripIdForGame({
-        teamId: event.teamId,
-        gameDate: new Date(event.date?.toDate ? event.date.toDate() : event.date),
-        tripAssignmentOverride: (event as any).tripAssignmentOverride,
-        gameTripId: (event as any).tripId,
-      });
-      const resolvedTripId: string | undefined = tripResult.tripId;
-      // Mirror tripId back onto the event doc so read paths (game
-      // detail, timeline media, cross-team recap card) can filter
-      // without a stats join. Idempotent — patch is a no-op when the
-      // field already matches.
-      if (resolvedTripId && (event as any).tripId !== resolvedTripId) {
-        try {
-          const { updateDoc: fsUpdate, doc: fsDocRef } = await import('firebase/firestore');
-          await fsUpdate(fsDocRef(firestoreDb, 'events', eventId!), { tripId: resolvedTripId });
-        } catch (err) {
-          console.warn('[gameday] stamp event.tripId failed', err);
-        }
-      }
-      const allPids = new Set<string>([...Object.keys(counts), ...cleanSheetPids]);
-      for (const pid of allPids) {
-        const c = counts[pid] || { goals: 0, assists: 0, saves: 0, yellow: 0, red: 0, name: '' };
-        const player = players.find(p => p.id === pid);
-        if (!player) continue;
-        // Read fresh player doc RIGHT BEFORE the stat write. Prior
-        // shape used the page's mount-time snapshot for prev.stats
-        // and prev.badges — if a clip-credit or StatsTracker landed
-        // in the meantime, the endGame write clobbered the intermediate
-        // +1 (full-field overwrite of stats:) AND re-issued a first_X
-        // badge with a fresh earnedAt. Audit 2026-07-10.
-        let freshStats: any = player.stats;
-        let freshBadges: any = (player as any).badges;
-        try {
-          const snap = await fsGet(fsDoc(firestoreDb, 'players', pid));
-          if (snap.exists()) {
-            const data: any = snap.data();
-            freshStats = data.stats || freshStats;
-            freshBadges = data.badges || freshBadges;
-          }
-        } catch (err) {
-          console.warn('[gameday] fresh player read failed', pid, err);
-        }
-        const prev = freshStats || { goals: 0, assists: 0, saves: 0, yellowCards: 0, redCards: 0, gamesPlayed: 0, minutesPlayed: 0, cleanSheets: 0 } as any;
-        const csDelta = cleanSheetPids.has(pid) ? 1 : 0;
-        const nextStats = {
-          ...prev,
-          goals: (prev.goals || 0) + c.goals,
-          assists: (prev.assists || 0) + c.assists,
-          saves: (prev.saves || 0) + c.saves,
-          yellowCards: (prev.yellowCards || 0) + c.yellow,
-          redCards: (prev.redCards || 0) + c.red,
-          gamesPlayed: (prev.gamesPlayed || 0) + 1,
-          cleanSheets: ((prev as any).cleanSheets || 0) + csDelta,
-        };
-        // Trip stats DON'T bump player.stats — keeps that aggregate
-        // regulation-only by default. The per-entry `stats` row still
-        // gets written with tripId so the "Tournaments" section can
-        // aggregate it separately. First-stat badges are also
-        // suppressed for trip goals so a kid's "first goal" doesn't
-        // burn on a tournament (badge is tied to the regulation
-        // journey).
-        if (!resolvedTripId) {
-          await updatePlayerStats(pid, nextStats);
-        }
-        // Fire first-stat badges on the 0→N crossing. Non-fatal —
-        // stat write already committed so a badge failure doesn't
-        // regress the game. Uses freshBadges so a same-game clip
-        // credit doesn't get its first_goal re-clobbered here.
-        // Skipped for trip games (see comment above).
-        if (!resolvedTripId) void maybeGrantFirstStatBadges(
-          pid,
-          prev,
-          nextStats,
-          {
-            existingBadges: freshBadges,
-            context: event.title || 'Match',
-            seasonId: (event as any).seasonId,
-            team: selectedTeam as any,
-          },
-        );
-        // Write a per-game stat record for anyone who registered a
-        // timeline event OR earned a clean sheet. GK-only entries land
-        // with 0 across offensive stats + cleanSheets=1 so team-record
-        // aggregations pick them up.
-        const wroteTimeline = counts[pid] != null;
-        if (!wroteTimeline && csDelta === 0) continue;
-        const { withSeasonId } = await import('../utils/seasons');
-        const gsPayload = await withSeasonId({
-          playerId: pid,
-          playerName: c.name || player.name || '',
-          gameId: eventId!,
-          gameDate: new Date(event.date?.toDate ? event.date.toDate() : event.date),
-          opponent: event.opponent || 'Opponent',
-          minutesPlayed: 0,
-          goals: c.goals,
-          assists: c.assists,
-          yellowCards: c.yellow,
-          redCards: c.red,
-          saves: c.saves,
-          cleanSheet: csDelta > 0 ? true : undefined,
-          recordedBy: userData?.uid,
-          recordedByName: userData?.name || 'Coach',
-          teamId: event.teamId,
-          ...(resolvedTripId ? { tripId: resolvedTripId } : {}),
+      await runStatsRollup(game, { attributionPending: false });
+    } catch (err: any) {
+      if (err && err.name === 'TripAttributionError') {
+        console.warn('[gameday] endGame: trip attribution failed', err);
+        setAttributionToast({
+          kind: 'retry',
+          onRetry: () => { void retryStatsRollup(); },
         });
-        await addGameStat(gsPayload as any);
+        return;
       }
-    } catch (err) {
       console.error('Failed to write season stats:', err);
       alert('Game ended, but season totals failed to update. Check console.');
+    }
+  };
+
+  // Extracted rollup — resolves trip attribution then writes per-player
+  // aggregate + stat rows. Throws a TripAttributionError when the
+  // attribution step itself fails (surfaces the retry toast). When
+  // `attributionPending` is true we skip the resolve and write everything
+  // to the season bucket with pendingTripAttribution:true so a bg job
+  // (or a later manual retry) can re-tag when the trip becomes reachable.
+  const runStatsRollup = async (
+    gameSnapshot: LiveGameDoc,
+    opts: { attributionPending: boolean },
+  ) => {
+    const counts: Record<string, { goals: number; assists: number; saves: number; yellow: number; red: number; name: string }> = {};
+    (gameSnapshot.timeline || []).forEach(t => {
+      if (!t.playerId) return;
+      const c = counts[t.playerId] || (counts[t.playerId] = { goals: 0, assists: 0, saves: 0, yellow: 0, red: 0, name: t.playerName || '' });
+      if (t.kind === 'goal') c.goals++;
+      if (t.kind === 'assist') c.assists++;
+      if (t.kind === 'save') c.saves++;
+      if (t.kind === 'yellow') c.yellow++;
+      if (t.kind === 'red') c.red++;
+    });
+    // Accrue remaining on-field time BEFORE reading minutes. Prior
+    // shape (audit 2026-07-10) iterated only lineup.minutes, which
+    // is populated on sub-off — a keeper who plays 60/60 and is
+    // never subbed had no entry, so cleanSheet never fired.
+    // effectiveMinutes now includes the current shift for anyone
+    // still on the field at final whistle.
+    const persistedMinutes: Record<string, number> = { ...(gameSnapshot.lineup?.minutes || {}) };
+    const effectiveMinutes: Record<string, number> = { ...persistedMinutes };
+    for (const slot of (gameSnapshot.lineup?.onField || [])) {
+      if (!slot?.playerId) continue;
+      const extra = Math.max(0, liveSeconds - (slot.enteredAtSec || 0));
+      effectiveMinutes[slot.playerId] = (effectiveMinutes[slot.playerId] || 0) + extra;
+    }
+    // Persist the accrued minutes back to the game doc so read-side
+    // aggregations (MinutesPlayedCard, etc.) reflect actual playing
+    // time, not just tracked sub-outs. Fire-and-forget.
+    try {
+      await patch({ 'lineup.minutes': effectiveMinutes } as any);
+    } catch (err) {
+      console.warn('[gameday] persist minutes accrual failed', err);
+    }
+
+    // Clean-sheet detection: GKs who logged any minutes in a shutout
+    // get +1 clean sheet. isGoalkeeper checks primary/positions list.
+    const { isGoalkeeper } = await import('../utils/helpers');
+    const shutout = (gameSnapshot.oppScore || 0) === 0;
+    const cleanSheetPids = new Set<string>();
+    if (shutout) {
+      for (const pid of Object.keys(effectiveMinutes)) {
+        const secs = Number(effectiveMinutes[pid] || 0);
+        if (secs <= 0) continue;
+        const player = players.find(p => p.id === pid);
+        if (player && isGoalkeeper(player as any)) cleanSheetPids.add(pid);
+      }
+    }
+    const { maybeGrantFirstStatBadges } = await import('../utils/badgeGrants');
+    const { doc: fsDoc, getDoc: fsGet } = await import('firebase/firestore');
+    const { db: firestoreDb } = await import('../utils/firebase');
+    // Trip attribution — resolve ONCE per game (all this game's
+    // stats share the same tripId). Cheap: one Firestore query
+    // per team per 30s window, cached in tripAttribution.
+    // Group A change: resolveTripIdForGame now THROWS on hard failures
+    // (network / permission). We rethrow as TripAttributionError so
+    // finalizeGame can surface the retry toast — unless the coach is
+    // running the pendingTripAttribution fallback, in which case we
+    // proceed as season (rows will be marked for later retry).
+    let resolvedTripId: string | undefined;
+    if (!opts.attributionPending) {
+      try {
+        const { resolveTripIdForGame } = await import('../utils/tripAttribution');
+        const tripResult = await resolveTripIdForGame({
+          teamId: event.teamId,
+          gameDate: new Date(event.date?.toDate ? event.date.toDate() : event.date),
+          tripAssignmentOverride: (event as any).tripAssignmentOverride,
+          gameTripId: (event as any).tripId,
+        });
+        resolvedTripId = tripResult.tripId;
+      } catch (err: any) {
+        const wrapped: any = new Error(err?.message || 'trip attribution failed');
+        wrapped.name = 'TripAttributionError';
+        wrapped.cause = err;
+        throw wrapped;
+      }
+    }
+    // Mirror tripId back onto the event doc so read paths (game
+    // detail, timeline media, cross-team recap card) can filter
+    // without a stats join. Idempotent — patch is a no-op when the
+    // field already matches.
+    if (resolvedTripId && (event as any).tripId !== resolvedTripId) {
+      try {
+        const { updateDoc: fsUpdate, doc: fsDocRef } = await import('firebase/firestore');
+        await fsUpdate(fsDocRef(firestoreDb, 'events', eventId!), { tripId: resolvedTripId });
+      } catch (err) {
+        console.warn('[gameday] stamp event.tripId failed', err);
+      }
+    }
+    const allPids = new Set<string>([...Object.keys(counts), ...cleanSheetPids]);
+    for (const pid of allPids) {
+      const c = counts[pid] || { goals: 0, assists: 0, saves: 0, yellow: 0, red: 0, name: '' };
+      const player = players.find(p => p.id === pid);
+      if (!player) continue;
+      // Read fresh player doc RIGHT BEFORE the stat write. Prior
+      // shape used the page's mount-time snapshot for prev.stats
+      // and prev.badges — if a clip-credit or StatsTracker landed
+      // in the meantime, the endGame write clobbered the intermediate
+      // +1 (full-field overwrite of stats:) AND re-issued a first_X
+      // badge with a fresh earnedAt. Audit 2026-07-10.
+      let freshStats: any = player.stats;
+      let freshBadges: any = (player as any).badges;
+      try {
+        const snap = await fsGet(fsDoc(firestoreDb, 'players', pid));
+        if (snap.exists()) {
+          const data: any = snap.data();
+          freshStats = data.stats || freshStats;
+          freshBadges = data.badges || freshBadges;
+        }
+      } catch (err) {
+        console.warn('[gameday] fresh player read failed', pid, err);
+      }
+      const prev = freshStats || { goals: 0, assists: 0, saves: 0, yellowCards: 0, redCards: 0, gamesPlayed: 0, minutesPlayed: 0, cleanSheets: 0 } as any;
+      const csDelta = cleanSheetPids.has(pid) ? 1 : 0;
+      const nextStats = {
+        ...prev,
+        goals: (prev.goals || 0) + c.goals,
+        assists: (prev.assists || 0) + c.assists,
+        saves: (prev.saves || 0) + c.saves,
+        yellowCards: (prev.yellowCards || 0) + c.yellow,
+        redCards: (prev.redCards || 0) + c.red,
+        gamesPlayed: (prev.gamesPlayed || 0) + 1,
+        cleanSheets: ((prev as any).cleanSheets || 0) + csDelta,
+      };
+      // Trip stats DON'T bump player.stats — keeps that aggregate
+      // regulation-only by default. The per-entry `stats` row still
+      // gets written with tripId so the "Tournaments" section can
+      // aggregate it separately. First-stat badges are also
+      // suppressed for trip goals so a kid's "first goal" doesn't
+      // burn on a tournament (badge is tied to the regulation
+      // journey). When attribution failed (opts.attributionPending)
+      // we also skip the player.stats bump + badges so a
+      // still-unresolved trip game doesn't burn a "first goal" moment
+      // OR pollute season aggregates before we know the answer.
+      if (!resolvedTripId && !opts.attributionPending) {
+        await updatePlayerStats(pid, nextStats);
+      }
+      if (!resolvedTripId && !opts.attributionPending) void maybeGrantFirstStatBadges(
+        pid,
+        prev,
+        nextStats,
+        {
+          existingBadges: freshBadges,
+          context: event.title || 'Match',
+          seasonId: (event as any).seasonId,
+          team: selectedTeam as any,
+        },
+      );
+      // Write a per-game stat record for anyone who registered a
+      // timeline event OR earned a clean sheet. GK-only entries land
+      // with 0 across offensive stats + cleanSheets=1 so team-record
+      // aggregations pick them up.
+      const wroteTimeline = counts[pid] != null;
+      if (!wroteTimeline && csDelta === 0) continue;
+      const { withSeasonId } = await import('../utils/seasons');
+      const gsPayload = await withSeasonId({
+        playerId: pid,
+        playerName: c.name || player.name || '',
+        gameId: eventId!,
+        gameDate: new Date(event.date?.toDate ? event.date.toDate() : event.date),
+        opponent: event.opponent || 'Opponent',
+        minutesPlayed: 0,
+        goals: c.goals,
+        assists: c.assists,
+        yellowCards: c.yellow,
+        redCards: c.red,
+        saves: c.saves,
+        cleanSheet: csDelta > 0 ? true : undefined,
+        recordedBy: userData?.uid,
+        recordedByName: userData?.name || 'Coach',
+        teamId: event.teamId,
+        ...(resolvedTripId ? { tripId: resolvedTripId } : {}),
+        // Marker for the bg re-attribution job. Only set when the
+        // rollup ran WITHOUT a successful attribution — a later retry
+        // can back-patch tripId and clear the flag.
+        ...(opts.attributionPending ? { pendingTripAttribution: true } : {}),
+      });
+      await addGameStat(gsPayload as any);
+    }
+  };
+
+  // Retry attribution + rollup after the first attempt threw. If
+  // attribution succeeds this time, run the rollup normally (season
+  // OR trip bucket, whichever wins). If it throws again, run the
+  // fallback: write stats to season with pendingTripAttribution:true
+  // so the bg job can re-tag later.
+  const retryStatsRollup = async () => {
+    if (!game) return;
+    setAttributionToast(null);
+    try {
+      await runStatsRollup(game, { attributionPending: false });
+    } catch (err: any) {
+      if (err && err.name === 'TripAttributionError') {
+        console.warn('[gameday] endGame retry: trip attribution still failing', err);
+        try {
+          await runStatsRollup(game, { attributionPending: true });
+        } catch (err2) {
+          console.error('[gameday] endGame retry fallback failed', err2);
+        }
+        setAttributionToast({ kind: 'fallback' });
+        return;
+      }
+      console.error('[gameday] endGame retry failed', err);
+      alert('Retry failed. Check console.');
     }
   };
 
@@ -1209,16 +1324,73 @@ const GameDay: React.FC = () => {
           </button>
         </div>
       )}
+      {/* Attribution error toast — persistent (no auto-dismiss). Coach
+          taps Retry to re-run the attribution + trip-bucket write.
+          Second failure switches copy to the fallback message; stat
+          rows are already marked pendingTripAttribution:true so a
+          background job can re-run when the coach is back online. */}
+      {attributionToast && (
+        <div
+          role="alert"
+          className="sticky top-0 z-30 bg-amber-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold shadow-lg animate-slide-down"
+        >
+          <span className="truncate">
+            {attributionToast.kind === 'retry'
+              ? "Couldn't tag stats to your trip."
+              : "Still can't reach the trip. Stats are saved to your season totals for now. We'll re-tag them once you're back online."}
+          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {attributionToast.kind === 'retry' && attributionToast.onRetry && (
+              <button
+                type="button"
+                onClick={attributionToast.onRetry}
+                className="text-[11px] tracking-widest uppercase font-black bg-white/20 rounded-full px-3 py-1 hover:bg-white/30 active:bg-white/40 transition-colors"
+              >
+                Retry
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setAttributionToast(null)}
+              className="text-[11px] tracking-widest uppercase font-black bg-white/10 rounded-full px-3 py-1 hover:bg-white/25 active:bg-white/40 transition-colors"
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
       {/* Header / Scoreboard */}
       <header className="sticky top-0 z-20 bg-surface-elevated/85 dark:bg-black/60 backdrop-blur-md border-b border-line-default/10">
         <div className="max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <Link to="/calendar" className="text-xs text-ink-primary/65 hover:text-ink-primary">← Calendar</Link>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {/* Trip chip — mid-game visual reinforcement that this
+                  game belongs to a Trip (tournament). Tap-through to
+                  the coach trip detail. Brand-primary tint, same
+                  weight as the LIVE pill. Hidden when not a trip
+                  game. */}
+              {tripContext && (
+                <Link
+                  to={`/trip/${tripContext.id}`}
+                  title={`Part of ${tripContext.name}`}
+                  className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold bg-brand-primary/20 text-brand-primary-soft ring-1 ring-brand-primary/40 hover:bg-brand-primary/30 max-w-[10rem]"
+                >
+                  <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M12 21s-7-6.5-7-12a7 7 0 1 1 14 0c0 5.5-7 12-7 12z" />
+                    <circle cx="12" cy="9" r="2.5" />
+                  </svg>
+                  <span className="truncate">{tripContext.name}</span>
+                </Link>
+              )}
               {isUserCoach && (() => {
                 // Stats toggle. Off = scrimmage / testing (timeline still
                 // records but nothing rolls up to player cards on Final).
-                // Demo teams force off and lock the toggle.
+                // Demo teams force off and lock the toggle. On trip
+                // games, flipping ON→OFF prompts a confirm because a
+                // STATS-OFF scrimmage inside a tournament won't land in
+                // the trip recap.
                 const teamIsDemo = (selectedTeam as any)?.isDemo === true;
                 const countsOn = !teamIsDemo && (game?.countsToStats !== false);
                 const label = teamIsDemo ? 'DEMO · STATS OFF' : countsOn ? 'STATS ON' : 'STATS OFF';
@@ -1231,6 +1403,16 @@ const GameDay: React.FC = () => {
                     disabled={teamIsDemo}
                     onClick={async () => {
                       await ensureGameDoc();
+                      // Confirm gate: only when flipping ON→OFF AND
+                      // this game is a trip game. Regular games flip
+                      // silently as today. A negative "Yes, stats off"
+                      // (destructive) needs a positive tap to confirm.
+                      if (countsOn && tripContext) {
+                        const ok = window.confirm(
+                          `Turn stats off for this ${tripContext.name} game? Scores won't land in the trip recap. The timeline stays visible.`,
+                        );
+                        if (!ok) return;
+                      }
                       await patch({ countsToStats: !countsOn } as any);
                     }}
                     className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ring-1 transition-colors ${tone} ${
@@ -1239,7 +1421,9 @@ const GameDay: React.FC = () => {
                     title={teamIsDemo
                       ? 'Demo team: games never count toward stats'
                       : countsOn
-                        ? 'Tap to skip stats for this game (scrimmage / testing)'
+                        ? (tripContext
+                          ? 'Tap to skip stats — tournament recap will not include this game'
+                          : 'Tap to skip stats for this game (scrimmage / testing)')
                         : 'Tap to count this game toward season stats'}
                   >
                     {label}

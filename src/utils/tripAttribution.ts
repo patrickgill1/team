@@ -170,14 +170,47 @@ export interface ResolveTripResult {
   /** The tripId to stamp on the stat write, if any. */
   tripId?: string;
   /** Which decision path we took. Callers use this for logging /
-   *  future analytics. */
+   *  future analytics.
+   *
+   *  `attribution_failed` is distinct from `auto_no_match`: it means
+   *  the trips query itself threw (network blip, offline, permission
+   *  hiccup), so we CAN'T tell whether the game belongs to a trip.
+   *  Callers should surface this to the coach via
+   *  displayTripAttributionError so they know the season vs trip
+   *  bucketing may be wrong and can retry the finalize.
+   *  `error` is a legacy alias retained so old build snapshots don't
+   *  crash — new code should treat it the same as attribution_failed. */
   reason: 'override_none' | 'override_season' | 'override_trip'
-    | 'auto_match' | 'auto_no_match' | 'no_active_trips' | 'error';
+    | 'auto_match' | 'auto_no_match' | 'no_active_trips'
+    | 'attribution_failed' | 'error';
+  /** Underlying error message when reason === 'attribution_failed'.
+   *  Passed to displayTripAttributionError for optional detail
+   *  surfacing. Never contains PII (Firestore errors are opaque
+   *  transport codes). */
+  errorMessage?: string;
+}
+
+/** Typed error thrown by callers that want to convert a
+ *  reason='attribution_failed' result into an exception (e.g. a
+ *  wrapper in GameDay that lifts the resolver's soft failure into
+ *  the finalize try/catch chain). Consumers can `instanceof` this
+ *  to branch on trip-attribution vs any other failure. */
+export class TripAttributionError extends Error {
+  reason: ResolveTripResult['reason'];
+  constructor(reason: ResolveTripResult['reason'], message?: string) {
+    super(message || 'trip attribution failed');
+    this.name = 'TripAttributionError';
+    this.reason = reason;
+  }
 }
 
 /**
- * Resolve the tripId for a stat write. Never throws — falls through to
- * the season bucket on any error.
+ * Resolve the tripId for a stat write. THROWS TripAttributionError on
+ * hard failures (network / permission blip) so callers can catch and
+ * surface a retry — silent fallback to the season bucket was the exact
+ * bug Trip v1.1 was meant to fix. Success reasons (including
+ * `auto_no_match`, `no_active_trips`, and coach overrides) still return
+ * the ResolveTripResult object as before.
  */
 export async function resolveTripIdForGame(
   input: ResolveTripInput,
@@ -211,7 +244,10 @@ export async function resolveTripIdForGame(
     return { tripId: matches[0].id, reason: 'auto_match' };
   } catch (err) {
     console.warn('[tripAttribution] resolveTripIdForGame failed', err);
-    return { reason: 'error' };
+    throw new TripAttributionError(
+      'attribution_failed',
+      err instanceof Error ? err.message : String(err),
+    );
   }
 }
 
@@ -241,9 +277,46 @@ export async function resolveTripIdByEventId(
       gameTripId: v.tripId,
     });
   } catch (err) {
+    // Let the inner resolveTripIdForGame throw propagate as-is (already
+    // a TripAttributionError). Only wrap NEW errors from the event-doc
+    // read step so callers get a uniform typed exception either way.
+    if (err instanceof TripAttributionError) throw err;
     console.warn('[tripAttribution] resolveTripIdByEventId failed', err);
-    return { reason: 'error' };
+    throw new TripAttributionError(
+      'attribution_failed',
+      err instanceof Error ? err.message : String(err),
+    );
   }
+}
+
+/** Toast payload for a failed trip-attribution result. Callers pass
+ *  the ResolveTripResult (or just the reason) and get back a
+ *  coach-native title + message plus an optional retry action. Returns
+ *  `null` when the result is a normal outcome (matched, no window, or
+ *  a coach override) so the caller can short-circuit without a branch
+ *  on their side.
+ *
+ *  Copy is deliberately reassuring: the season write STILL landed;
+ *  the only thing that failed is the trip vs season bucketing on this
+ *  one game. Retrying re-runs the read and, if it succeeds, stamps
+ *  tripId on the mirrored event. */
+export function displayTripAttributionError(
+  result: ResolveTripResult | ResolveTripResult['reason'],
+  onRetry?: () => void | Promise<void>,
+): { title: string; message: string; actionLabel?: string; onAction?: () => void | Promise<void> } | null {
+  const reason = typeof result === 'string' ? result : result.reason;
+  if (reason !== 'attribution_failed' && reason !== 'error') return null;
+  const message =
+    'Stats saved to season totals. The trip check hit a snag, so this game may not appear in the trip totals until you retry.';
+  const payload: { title: string; message: string; actionLabel?: string; onAction?: () => void | Promise<void> } = {
+    title: 'Trip check did not run',
+    message,
+  };
+  if (onRetry) {
+    payload.actionLabel = 'Retry';
+    payload.onAction = onRetry;
+  }
+  return payload;
 }
 
 /** Utility used by read-side filters. Returns true when the stat row

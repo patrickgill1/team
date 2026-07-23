@@ -154,7 +154,7 @@ const CoachTripCreate: React.FC = () => {
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Vegas Cup 2026"
-              className="w-full px-3 py-2 rounded-lg bg-surface-base ring-1 ring-line-default/20 focus:ring-brand-primary/60 text-ink-primary text-sm outline-none"
+              className="w-full min-h-11 px-3 py-3 rounded-lg bg-surface-base ring-1 ring-line-default/20 focus:ring-brand-primary/60 text-ink-primary text-sm outline-none"
               maxLength={120}
             />
           </div>
@@ -167,7 +167,7 @@ const CoachTripCreate: React.FC = () => {
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface-base ring-1 ring-line-default/20 focus:ring-brand-primary/60 text-ink-primary text-sm outline-none"
+                className="w-full min-h-11 px-3 py-3 rounded-lg bg-surface-base ring-1 ring-line-default/20 focus:ring-brand-primary/60 text-ink-primary text-sm outline-none"
               />
             </div>
             <div>
@@ -178,7 +178,7 @@ const CoachTripCreate: React.FC = () => {
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface-base ring-1 ring-line-default/20 focus:ring-brand-primary/60 text-ink-primary text-sm outline-none"
+                className="w-full min-h-11 px-3 py-3 rounded-lg bg-surface-base ring-1 ring-line-default/20 focus:ring-brand-primary/60 text-ink-primary text-sm outline-none"
               />
             </div>
           </div>
@@ -190,7 +190,7 @@ const CoachTripCreate: React.FC = () => {
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Anything the traveling families should know."
-              className="w-full px-3 py-2 rounded-lg bg-surface-base ring-1 ring-line-default/20 focus:ring-brand-primary/60 text-ink-primary text-sm outline-none min-h-[80px]"
+              className="w-full px-3 py-3 rounded-lg bg-surface-base ring-1 ring-line-default/20 focus:ring-brand-primary/60 text-ink-primary text-sm outline-none min-h-[80px]"
               maxLength={2000}
             />
           </div>
@@ -221,7 +221,7 @@ const CoachTripCreate: React.FC = () => {
                   key={p.id}
                   type="button"
                   onClick={() => togglePlayer(p.id)}
-                  className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-left transition ${
+                  className={`w-full min-h-11 flex items-center justify-between gap-3 px-3 py-3 rounded-lg text-left transition ${
                     on ? 'bg-brand-primary/10 ring-1 ring-brand-primary/30' : 'hover:bg-line-default/[0.06] ring-1 ring-transparent'
                   }`}
                 >
@@ -240,8 +240,13 @@ const CoachTripCreate: React.FC = () => {
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
                       on ? 'bg-brand-primary text-white' : 'bg-line-default/[0.15] text-ink-primary/40'
                     }`}
+                    aria-hidden
                   >
-                    {on ? '✓' : ''}
+                    {on && (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
                   </span>
                 </button>
               );
@@ -259,7 +264,7 @@ const CoachTripCreate: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/coach/trips')}
-            className="px-4 py-2 rounded-lg text-sm font-black uppercase tracking-widest text-ink-primary/60 hover:text-ink-primary"
+            className="inline-flex items-center min-h-11 px-4 py-3 rounded-lg text-sm font-black uppercase tracking-widest text-ink-primary/60 hover:text-ink-primary"
           >
             Cancel
           </button>
@@ -267,7 +272,7 @@ const CoachTripCreate: React.FC = () => {
             type="button"
             disabled={!canSubmit || busy}
             onClick={submit}
-            className="px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-black uppercase tracking-widest disabled:opacity-40 hover:bg-brand-primary/90 transition"
+            className="inline-flex items-center min-h-11 px-4 py-3 rounded-lg bg-brand-primary text-white text-sm font-black uppercase tracking-widest disabled:opacity-40 hover:bg-brand-primary/90 transition"
           >
             {busy ? 'Creating…' : 'Create trip'}
           </button>

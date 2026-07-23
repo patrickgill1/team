@@ -106,7 +106,7 @@ const CoachTrips: React.FC = () => {
             <button
               type="button"
               onClick={() => setTab('active')}
-              className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest transition ${
+              className={`inline-flex items-center min-h-11 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest transition ${
                 tab === 'active'
                   ? 'bg-brand-primary text-white'
                   : 'text-ink-primary/60 hover:text-ink-primary'
@@ -117,7 +117,7 @@ const CoachTrips: React.FC = () => {
             <button
               type="button"
               onClick={() => setTab('archived')}
-              className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest transition ${
+              className={`inline-flex items-center min-h-11 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest transition ${
                 tab === 'archived'
                   ? 'bg-brand-primary text-white'
                   : 'text-ink-primary/60 hover:text-ink-primary'
@@ -128,7 +128,7 @@ const CoachTrips: React.FC = () => {
           </div>
           <Link
             to="/coach/trips/new"
-            className="px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-black uppercase tracking-widest hover:bg-brand-primary/90 transition"
+            className="inline-flex items-center min-h-11 px-4 py-3 rounded-lg bg-brand-primary text-white text-sm font-black uppercase tracking-widest hover:bg-brand-primary/90 transition"
           >
             New
           </Link>
@@ -147,7 +147,7 @@ const CoachTrips: React.FC = () => {
                 Overlapping trips
               </p>
               <p className="text-sm text-ink-primary/85 mt-1">
-                Two or more active trips share days. New stats will land on the earliest-start trip — archive whichever one has already wrapped so the buckets stay clean.
+                Two or more active trips share days. New stats land on the earliest-start trip. Archive whichever one has already wrapped so the totals stay clean.
               </p>
             </div>
           )}

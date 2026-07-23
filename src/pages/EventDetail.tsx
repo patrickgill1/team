@@ -18,6 +18,7 @@ import WeatherIcon from '../components/common/WeatherIcon';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import SplitTeamsModal from '../components/calendar/SplitTeamsModal';
 import { grossUpCents, coachNetCents, DROPIN_DEFAULT_PLATFORM_BPS } from '../utils/pricing';
+import { useActiveTripsForTeam, getTripForEvent, truncateTripName } from '../utils/eventTripContext';
 
 // Authenticated event detail page — the "command center" for a single
 // event. Replaces the old inline-expanded Calendar row and the public
@@ -111,6 +112,11 @@ const Icon: React.FC<{ name: string; className?: string }> = ({ name, className 
       return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>;
     case 'bell':
       return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
+    case 'trip':
+      // Briefcase — the "traveling with the team" glyph. Same as the
+      // one on EventListCard / Calendar so all three surfaces read as
+      // the same primitive.
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
   }
   return null;
 };
@@ -171,6 +177,13 @@ const EventDetail: React.FC = () => {
   const [commentCount, setCommentCount] = useState(0);
 
   const isUserCoach = isCoachOfTeam(userData, audienceTeamObj);
+
+  // Trip context — resolve if this event is part of an active trip
+  // (tournament) for its team. Renders as a chip in the hero meta row
+  // beside the weather chip. Shared onSnapshot per teamId — cheap even
+  // when the card list and detail page are both mounted.
+  const activeTripsForEvent = useActiveTripsForTeam(event?.teamId || null);
+  const tripForEvent = getTripForEvent(event as any, activeTripsForEvent);
 
   // Platform-fee override for the event's club, if any. Falls back
   // to the default (500 bps) so the client-side gross-up preview
@@ -1284,6 +1297,34 @@ const EventDetail: React.FC = () => {
                     <WeatherIcon iconName={weather.iconName} className="w-3.5 h-3.5 text-brand-primary-soft" />
                     {weather.tempMaxF}°/{weather.tempMinF}°
                   </span>
+                </>
+              )}
+              {/* Trip chip — when this event falls inside an active
+                  trip window (or was explicitly bound at endGame), show
+                  the trip name so the hero instantly reads as "part of
+                  Premier Cup." Coach taps → /coach/trips/:id. Parents
+                  see a passive chip (no nav, just context). */}
+              {tripForEvent && (
+                <>
+                  <span className="text-ink-primary/50">·</span>
+                  {isUserCoach ? (
+                    <Link
+                      to={`/coach/trips/${tripForEvent.id}`}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 text-[11px] font-extrabold tracking-widest uppercase hover:bg-brand-primary/25 transition-colors max-w-[200px]"
+                      title={`Open ${tripForEvent.name}`}
+                    >
+                      <Icon name="trip" className="w-3 h-3" />
+                      <span className="truncate">{truncateTripName(tripForEvent.name)}</span>
+                    </Link>
+                  ) : (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 text-[11px] font-extrabold tracking-widest uppercase max-w-[200px]"
+                      title={`Part of ${tripForEvent.name}`}
+                    >
+                      <Icon name="trip" className="w-3 h-3" />
+                      <span className="truncate">{truncateTripName(tripForEvent.name)}</span>
+                    </span>
+                  )}
                 </>
               )}
             </p>

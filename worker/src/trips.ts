@@ -18,6 +18,7 @@ import {
   patchDocument,
   createDocument,
   commitDocumentTransforms,
+  runQuery,
 } from './firestore';
 
 interface Env {
@@ -236,10 +237,42 @@ export async function handleTripAttend(req: Request, env: Env, payload: any): Pr
 // POST /trips/public-info
 // Body: { tripId, shareToken }
 // Anon-friendly projection for the /trip/:id?token=... recap URL.
-// Returns { ok, trip: { id, name, startDate, endDate, description,
-// teamName, attendingPlayerIds } } if the token matches. Never
-// authenticated — safe to call anonymously.
+// Returns the trip envelope + (best-effort) enriched games/stats
+// summary for a grandparent-friendly recap. If either enrichment
+// query fails or times out, the base envelope still returns and
+// `richDataAvailable: false` flags the client to hide the enriched
+// sections. Never authenticated — the shareToken IS the auth.
+//
+// Shape:
+//   { ok: true, trip: { … base fields, teamName, games[], stats,
+//                       richDataAvailable } }
+//
+// games[] is capped at MAX_TRIP_GAMES. stats aggregate is capped
+// at MAX_TRIP_STATS_ROWS. Both caps are intentionally generous
+// (a busy weekend cup can hit 6+ matches / 100+ stat rows) but
+// bounded so a shared link never fans out into an unbounded scan.
 // ────────────────────────────────────────────────────────────────
+const MAX_TRIP_GAMES = 20;
+const MAX_TRIP_STATS_ROWS = 500;
+
+function isoOrRaw(v: any): any {
+  if (!v) return v;
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v?.toDate === 'function') {
+    try { return v.toDate().toISOString(); } catch { return v; }
+  }
+  if (typeof v?.seconds === 'number') {
+    try { return new Date(v.seconds * 1000).toISOString(); } catch { return v; }
+  }
+  return v;
+}
+
+function toNumOrNull(v: any): number | null {
+  if (v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 export async function handleTripPublicInfo(_req: Request, env: Env, payload: any): Promise<Response> {
   const id = String(payload?.tripId || '').trim();
   const token = String(payload?.shareToken || '').trim();
@@ -250,8 +283,151 @@ export async function handleTripPublicInfo(_req: Request, env: Env, payload: any
   if (String(trip.data.shareToken || '') !== token) {
     return json({ ok: false, error: 'invalid_token' }, 403);
   }
-  const teamDoc = await getDocument(pid, `teams/${String(trip.data.teamId || '')}`, sa).catch(() => null);
+  const teamId = String(trip.data.teamId || '');
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
   const teamName = String(teamDoc?.data?.name || '').slice(0, 120);
+
+  // Best-effort enrichment. Either half can fail independently
+  // (missing composite index, transient 5xx, etc.) — we still
+  // return the base envelope so the shared URL never dead-ends.
+  let games: any[] = [];
+  let statsSummary: any = null;
+  let richDataAvailable = true;
+
+  // Games list. Filter events on teamId + tripId, then join
+  // per-event live_games doc for the final score. We deliberately
+  // cap the events query and only join scores for the first
+  // MAX_TRIP_GAMES rows so a stray tournament with 40 friendlies
+  // doesn't fan out into 40 live_games gets.
+  try {
+    const rows = await runQuery(pid, 'events', [
+      { field: 'teamId', op: 'EQUAL', value: teamId },
+      { field: 'tripId', op: 'EQUAL', value: id },
+    ], sa, 100);
+    const gameEvents = rows
+      .map(r => ({ id: r.id, data: r.data || {} }))
+      .filter(r => (r.data as any).isActive !== false)
+      .filter(r => String((r.data as any).type || 'game') === 'game')
+      .sort((a, b) => {
+        const da = new Date(isoOrRaw((a.data as any).date) || 0).getTime();
+        const db = new Date(isoOrRaw((b.data as any).date) || 0).getTime();
+        return da - db;
+      })
+      .slice(0, MAX_TRIP_GAMES);
+
+    const scores = await Promise.all(gameEvents.map(async (g) => {
+      try {
+        const live = await getDocument(pid, `live_games/${g.id}`, sa);
+        return live?.data || null;
+      } catch {
+        return null;
+      }
+    }));
+
+    games = gameEvents.map((g, i) => {
+      const ev: any = g.data || {};
+      const live: any = scores[i] || {};
+      const homeAway: 'home' | 'away' | null =
+        ev.homeAway === 'home' || ev.homeAway === 'away' ? ev.homeAway : null;
+      const ourScoreRaw = toNumOrNull(live.ourScore);
+      const oppScoreRaw = toNumOrNull(live.oppScore);
+      const isFinal = String(live.status || '') === 'final';
+      // Map our-team-relative scores to true home/away scores. When
+      // homeAway is unknown, fall back to "we were home" so the
+      // rendered scoreboard still makes sense for the coach's team.
+      const weWereAway = homeAway === 'away';
+      const homeScore = ourScoreRaw == null && oppScoreRaw == null
+        ? null
+        : (weWereAway ? oppScoreRaw : ourScoreRaw);
+      const awayScore = ourScoreRaw == null && oppScoreRaw == null
+        ? null
+        : (weWereAway ? ourScoreRaw : oppScoreRaw);
+      let result: 'win' | 'loss' | 'tie' | null = null;
+      if (isFinal && ourScoreRaw != null && oppScoreRaw != null) {
+        result = ourScoreRaw > oppScoreRaw ? 'win'
+          : ourScoreRaw < oppScoreRaw ? 'loss'
+          : 'tie';
+      }
+      return {
+        id: g.id,
+        date: isoOrRaw(ev.date) || null,
+        opponent: String(ev.opponent || 'Opponent').slice(0, 80),
+        homeAway,
+        homeScore,
+        awayScore,
+        result,
+      };
+    });
+  } catch (err) {
+    console.warn('[trips public-info] games enrichment failed', (err as any)?.message || err);
+    richDataAvailable = false;
+    games = [];
+  }
+
+  // Stats summary. Sum goals/assists/saves across all trip-scoped
+  // stat rows and derive top scorer server-side so we don't ship
+  // per-player rows to the public page. Cap at MAX_TRIP_STATS_ROWS.
+  //
+  // Filter to attendingPlayerIds only. A call-up whose stats got
+  // tagged to this trip (e.g. guest playing under our banner) shouldn't
+  // surface as "top scorer" on the public share — they aren't on the
+  // traveling roster grandparents are here to celebrate. Totals also
+  // exclude non-attending rows so goals/assists/saves match the coach's
+  // roster-scoped view in CoachTripDetail.
+  try {
+    const rows = await runQuery(pid, 'stats', [
+      { field: 'teamId', op: 'EQUAL', value: teamId },
+      { field: 'tripId', op: 'EQUAL', value: id },
+    ], sa, MAX_TRIP_STATS_ROWS);
+    const attendingSet = new Set<string>(
+      (Array.isArray(trip.data.attendingPlayerIds) ? trip.data.attendingPlayerIds : [])
+        .map((x: any) => String(x || ''))
+        .filter(Boolean),
+    );
+    let totalGoals = 0;
+    let totalAssists = 0;
+    let totalSaves = 0;
+    const goalsByPlayer = new Map<string, { name: string; goals: number }>();
+    for (const r of rows) {
+      const d: any = r.data || {};
+      const pid2 = String(d.playerId || '');
+      if (!pid2 || !attendingSet.has(pid2)) continue;
+      const goals = Number(d.goals || 0);
+      const assists = Number(d.assists || 0);
+      const saves = Number(d.saves || 0);
+      totalGoals += Number.isFinite(goals) ? goals : 0;
+      totalAssists += Number.isFinite(assists) ? assists : 0;
+      totalSaves += Number.isFinite(saves) ? saves : 0;
+      if (goals > 0) {
+        const cur = goalsByPlayer.get(pid2) || { name: String(d.playerName || 'Player'), goals: 0 };
+        cur.goals += goals;
+        // Prefer the freshest non-empty name in case an older row
+        // had a stale nickname.
+        if (d.playerName) cur.name = String(d.playerName);
+        goalsByPlayer.set(pid2, cur);
+      }
+    }
+    let topScorerName: string | null = null;
+    let topScorerGoals = 0;
+    for (const v of goalsByPlayer.values()) {
+      if (v.goals > topScorerGoals) {
+        topScorerGoals = v.goals;
+        topScorerName = v.name;
+      }
+    }
+    statsSummary = {
+      totalGoals,
+      totalAssists,
+      totalSaves,
+      topScorerName,
+      topScorerGoals,
+    };
+  } catch (err) {
+    console.warn('[trips public-info] stats enrichment failed', (err as any)?.message || err);
+    richDataAvailable = false;
+    statsSummary = null;
+  }
+
   return json({
     ok: true,
     trip: {
@@ -263,6 +439,9 @@ export async function handleTripPublicInfo(_req: Request, env: Env, payload: any
       status: trip.data.status || 'active',
       attendingPlayerIds: Array.isArray(trip.data.attendingPlayerIds) ? trip.data.attendingPlayerIds : [],
       teamName,
+      games,
+      stats: statsSummary,
+      richDataAvailable,
     },
   });
 }

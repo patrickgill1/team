@@ -515,6 +515,64 @@ const Dashboard: React.FC = () => {
     return s > 0 ? s : null;
   }, [myPlayer]);
 
+  // Active-trip chips for the parent's linked kids. When one of
+  // Emma / Boone is on a trip's traveling roster AND the trip window
+  // includes today (or is still upcoming), a warm one-line chip pops
+  // in above the Player Circle tile with a tap-through to the public
+  // recap. Siblings on the same trip collapse into a single chip.
+  //
+  // Uses getActiveTripsForTeam's 30s memo so a dashboard revisit
+  // doesn't spam Firestore. Fails silently — an empty chip list is
+  // the standard non-tournament weekend state.
+  const [myTripChips, setMyTripChips] = useState<Array<{
+    tripId: string;
+    tripName: string;
+    shareToken: string;
+    startDate: Date;
+    endDate: Date;
+    kids: any[];
+  }>>([]);
+  useEffect(() => {
+    if (!selectedTeamId || myPlayers.length === 0) { setMyTripChips([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getActiveTripsForTeam } = await import('../utils/tripAttribution');
+        const trips = await getActiveTripsForTeam(selectedTeamId);
+        if (cancelled) return;
+        // Only surface trips whose window hasn't closed yet — a
+        // finished tournament stops being "current context" the
+        // day after it ends. 12h grace so a Sunday-night trip that
+        // technically ended at 23:59 Sunday still shows Monday morning.
+        const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+        const myPidSet = new Set(myPlayers.map((p: any) => String(p.id)));
+        const chips = trips
+          .filter(t => {
+            const end = t.endDate instanceof Date ? t.endDate : new Date(t.endDate as any);
+            return end.getTime() >= cutoff;
+          })
+          .map(t => ({
+            tripId: t.id,
+            tripName: String(t.name || 'Trip'),
+            shareToken: String(t.shareToken || ''),
+            startDate: t.startDate instanceof Date ? t.startDate : new Date(t.startDate as any),
+            endDate: t.endDate instanceof Date ? t.endDate : new Date(t.endDate as any),
+            kids: myPlayers.filter((p: any) => (t.attendingPlayerIds || []).includes(String(p.id))),
+          }))
+          .filter(c => c.kids.length > 0)
+          .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+        setMyTripChips(chips);
+      } catch {
+        setMyTripChips([]);
+      }
+    })();
+    return () => { cancelled = true; };
+    // myPlayers ref changes each render since it's a useMemo dep on
+    // players — key on the stable id string so we don't refetch on
+    // every parent re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTeamId, myPlayers.map((p: any) => p.id).join('|')]);
+
   // Load the next-up development goal for my player. Picks the first
   // unfinished goal of the most recent active plan. The hero card
   // reads streak days directly from player.currentStreakDays (the
@@ -1355,6 +1413,52 @@ const Dashboard: React.FC = () => {
               teamName={selectedTeam?.name}
             />
           )
+        )}
+
+        {/* Trip roster chips — parent-mode only. Warm one-line pill
+            when one of the linked kids is on an active tournament
+            roster. Taps into the public recap. Silent when no trip
+            or kid isn't on the traveling squad. Two siblings on the
+            same trip collapse into one chip ("Emma and Boone are on
+            the Premier Cup roster"). */}
+        {isParentMode && myTripChips.length > 0 && (
+          <div className="flex flex-col gap-2 -mt-2">
+            {myTripChips.map((c) => {
+              const names = c.kids.map((k: any) => String(k.name || '').trim().split(/\s+/)[0]).filter(Boolean);
+              const joined = names.length === 0
+                ? 'Your player'
+                : names.length === 1
+                  ? names[0]
+                  : names.length === 2
+                    ? `${names[0]} and ${names[1]}`
+                    : `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
+              const verb = names.length > 1 ? 'are' : 'is';
+              const rangeOpts: Intl.DateTimeFormatOptions = { timeZone: 'America/Denver', month: 'short', day: 'numeric' };
+              const startTxt = new Intl.DateTimeFormat('en-US', rangeOpts).format(c.startDate);
+              const endTxt = new Intl.DateTimeFormat('en-US', rangeOpts).format(c.endDate);
+              const dateRange = startTxt === endTxt ? startTxt : `${startTxt}-${endTxt}`;
+              const href = c.shareToken
+                ? `/trip/${c.tripId}?token=${encodeURIComponent(c.shareToken)}`
+                : `/trip/${c.tripId}`;
+              return (
+                <Link
+                  key={c.tripId}
+                  to={href}
+                  className="inline-flex items-center gap-2 bg-cyan-500/15 ring-1 ring-cyan-500/30 text-cyan-800 dark:text-cyan-100 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm hover:shadow-md hover:bg-cyan-500/25 transition active:scale-95 self-start max-w-full"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0" aria-hidden="true">
+                    <rect x="3" y="7" width="18" height="13" rx="2" />
+                    <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  <span className="truncate">
+                    {joined} {verb} on the {c.tripName} roster
+                    <span className="mx-1.5 text-cyan-700/60 dark:text-cyan-200/60">·</span>
+                    {dateRange}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
         )}
 
         {/* Player Circle entry tile — 2026-07-15 elevation per

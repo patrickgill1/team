@@ -47,6 +47,14 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
   // below tells coach what WILL fire; checkbox lets them opt out
   // when the entry is retroactive.
   const [skipGrants, setSkipGrants] = useState(false);
+  // Attribution error toast — surfaced when resolveTripId… throws
+  // during save. Coach can retry; second failure marks the pending
+  // stat row via pendingTripAttribution:true so a bg re-attribution
+  // job can pick it up. Mirrors the GameDay endGame pattern.
+  const [attributionToast, setAttributionToast] = useState<{
+    kind: 'retry' | 'fallback';
+    onRetry?: () => void;
+  } | null>(null);
 
   const selectedPlayerData = players.find(p => p.id === selectedPlayer);
 
@@ -130,27 +138,40 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
 
     setIsSubmitting(true);
     setError('');
+    setAttributionToast(null);
+
+    // Resolve tripId. Prefer the event-doc path (real gameId → look up
+    // event.date + event.tripAssignmentOverride); fall back to "now"
+    // resolution for synthetic gameIds. When a tripId comes back, this
+    // stat write is TRIP-scoped: don't bump the player.stats season
+    // aggregate and don't fire first-stat badges (kept for the
+    // regulation journey). See GameDay endGame for the sibling pattern.
+    //
+    // Group A change: resolveTripId… now THROWS on hard errors. We
+    // catch here, surface a persistent retry toast, and continue with
+    // the save marked pendingTripAttribution:true — a background job
+    // (or coach retry) can back-patch the tripId later.
+    let resolvedTripId: string | undefined;
+    let attributionFailed = false;
+    try {
+      const { resolveTripIdByEventId, resolveTripIdForGame } = await import('../../utils/tripAttribution');
+      const r = gameId
+        ? await resolveTripIdByEventId(gameId, selectedTeamId)
+        : await resolveTripIdForGame({ teamId: selectedTeamId, gameDate: new Date() });
+      resolvedTripId = r.tripId;
+    } catch (err) {
+      console.warn('[statstracker] trip attribution failed', err);
+      attributionFailed = true;
+    }
 
     try {
       const filteredKeyPlays = keyPlays.filter(play => play.trim() !== '');
 
-      // Resolve tripId once for this write. Prefer the event-doc path
-      // (real gameId → look up event.date + event.tripAssignmentOverride);
-      // fall back to "now" resolution for synthetic gameIds. When a
-      // tripId comes back, this stat write is TRIP-scoped: don't bump
-      // the player.stats season aggregate and don't fire first-stat
-      // badges (kept for the regulation journey). See GameDay endGame
-      // for the sibling pattern.
-      const { resolveTripIdByEventId, resolveTripIdForGame } = await import('../../utils/tripAttribution');
-      let resolvedTripId: string | undefined;
-      try {
-        const r = gameId
-          ? await resolveTripIdByEventId(gameId, selectedTeamId)
-          : await resolveTripIdForGame({ teamId: selectedTeamId, gameDate: new Date() });
-        resolvedTripId = r.tripId;
-      } catch { /* non-fatal — stat still writes, just to season */ }
-
-      // Create game stat record
+      // Create game stat record. When attribution failed we tag the row
+      // with pendingTripAttribution:true so a bg job (or manual retry)
+      // can retag once the trip lookup is reachable again. We also skip
+      // the season-aggregate bump + badges in that case so we don't
+      // burn a kid's "first goal" moment before we know if it's a trip.
       const gameStatData: Omit<GameStat, 'id' | 'createdAt'> = {
         playerId: selectedPlayer,
         playerName: selectedPlayerData.name,
@@ -169,6 +190,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
         recordedByName: userData.name,
         updatedAt: new Date(),
         ...(resolvedTripId ? { tripId: resolvedTripId } : {}),
+        ...(attributionFailed ? { pendingTripAttribution: true } : {}),
       } as any;
 
       const statId = await addGameStat(gameStatData);
@@ -190,7 +212,9 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
 
       // Trip stats DON'T bump player.stats — keeps that aggregate
       // regulation-only by default (matches GameDay endGame behavior).
-      if (!resolvedTripId) {
+      // When attribution failed we ALSO skip the bump so a still-
+      // unresolved trip game doesn't pollute season aggregates.
+      if (!resolvedTripId && !attributionFailed) {
         await updatePlayerStats(selectedPlayer, updatedStats);
       }
       // Fire first-stat badges on 0→N crossings. Non-fatal.
@@ -200,7 +224,8 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
       // just don't fire.
       // Trip stats also suppress badges so a kid's "first goal" moment
       // isn't burned on a tournament goal.
-      if (!skipGrants && !resolvedTripId) {
+      // Attribution failure ALSO suppresses badges (see comment above).
+      if (!skipGrants && !resolvedTripId && !attributionFailed) {
         try {
           const { maybeGrantFirstStatBadges } = await import('../../utils/badgeGrants');
           void maybeGrantFirstStatBadges(
@@ -223,18 +248,88 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
       };
 
       onStatsRecorded(newGameStat);
-      setSuccessMessage(`Stats recorded for ${selectedPlayerData.name}!`);
-      
-      // Close modal after successful submission
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+
+      if (attributionFailed) {
+        // Save landed. Surface retry toast so coach can re-run
+        // attribution. Don't auto-close — coach needs to see the toast.
+        setAttributionToast({
+          kind: 'retry',
+          onRetry: () => { void retryAttributionForStat(statId, selectedPlayer, currentStats, updatedStats); },
+        });
+        setSuccessMessage(`Stats saved for ${selectedPlayerData.name} — trip tag pending.`);
+      } else {
+        setSuccessMessage(`Stats recorded for ${selectedPlayerData.name}!`);
+        // Close modal after successful submission
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      }
 
     } catch (error) {
       console.error('Error recording stats:', error);
       setError('Failed to record stats. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Retry the attribution + trip-bucket write for a stat row that was
+  // saved with pendingTripAttribution:true. On success, patch the
+  // stat/{id} doc with tripId and clear the flag. On second failure,
+  // swap the toast to the fallback copy — the flag stays set so a bg
+  // job can re-run when the coach is back online.
+  const retryAttributionForStat = async (
+    statId: string,
+    playerId: string,
+    prevStats: Partial<PlayerStats>,
+    nextStats: PlayerStats,
+  ) => {
+    setAttributionToast(null);
+    let resolvedTripId: string | undefined;
+    try {
+      const { resolveTripIdByEventId, resolveTripIdForGame } = await import('../../utils/tripAttribution');
+      const r = gameId
+        ? await resolveTripIdByEventId(gameId, selectedTeamId)
+        : await resolveTripIdForGame({ teamId: selectedTeamId, gameDate: new Date() });
+      resolvedTripId = r.tripId;
+    } catch (err) {
+      console.warn('[statstracker] retry: trip attribution still failing', err);
+      setAttributionToast({ kind: 'fallback' });
+      return;
+    }
+    try {
+      const { doc, updateDoc, deleteField } = await import('firebase/firestore');
+      const { db } = await import('../../utils/firebase');
+      await updateDoc(doc(db, 'stats', statId), {
+        ...(resolvedTripId ? { tripId: resolvedTripId } : {}),
+        pendingTripAttribution: deleteField(),
+      } as any);
+      // If attribution came back with NO tripId (season game after
+      // all), catch up the player.stats bump + badges we skipped on the
+      // failed first attempt.
+      if (!resolvedTripId) {
+        try { await updatePlayerStats(playerId, nextStats); } catch { /* non-fatal */ }
+        if (!skipGrants) {
+          try {
+            const { maybeGrantFirstStatBadges } = await import('../../utils/badgeGrants');
+            void maybeGrantFirstStatBadges(
+              playerId,
+              prevStats,
+              nextStats,
+              {
+                existingBadges: (selectedPlayerData as any)?.badges,
+                context: opponent || 'Match',
+                team: selectedTeam as any,
+              },
+            );
+          } catch { /* non-fatal */ }
+        }
+      }
+      setSuccessMessage(resolvedTripId ? 'Trip tag applied.' : 'Season stats caught up.');
+      setTimeout(() => onClose(), 1200);
+    } catch (err) {
+      console.error('[statstracker] retry back-patch failed', err);
+      setAttributionToast({ kind: 'fallback' });
     }
   };
 
@@ -289,6 +384,44 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
               <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Attribution error toast — mirrors the GameDay endGame
+              pattern. Persistent (no auto-dismiss). Coach taps Retry
+              to re-run the attribution + trip-bucket write. Second
+              failure switches to the fallback copy; the stat row was
+              already saved with pendingTripAttribution:true so a bg
+              job can re-run when the coach is back online. */}
+          {attributionToast && (
+            <div
+              role="alert"
+              className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 flex items-center justify-between gap-3"
+            >
+              <p className="text-amber-800 text-sm font-medium">
+                {attributionToast.kind === 'retry'
+                  ? "Couldn't tag stats to your trip. Tap to retry."
+                  : "Still couldn't reach the trip. Save these stats and I'll retag when you're back online."}
+              </p>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {attributionToast.kind === 'retry' && attributionToast.onRetry && (
+                  <button
+                    type="button"
+                    onClick={attributionToast.onRetry}
+                    className="text-[11px] tracking-widest uppercase font-black bg-amber-600 text-white rounded-full px-3 py-1 hover:bg-amber-700 transition-colors"
+                  >
+                    Retry
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setAttributionToast(null)}
+                  className="text-amber-700 hover:text-amber-900 text-sm font-bold"
+                  aria-label="Dismiss"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           )}
 

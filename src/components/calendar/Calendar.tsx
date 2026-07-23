@@ -16,6 +16,7 @@ import TrialGateModal from '../common/TrialGateModal';
 import DataGate from '../common/DataGate';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import WeatherIcon from '../common/WeatherIcon';
+import { useActiveTripsForTeam, getTripForEvent, truncateTripName } from '../../utils/eventTripContext';
 import { getShareOrigin } from '../../utils/origin';
 import ImportScheduleModal from './ImportScheduleModal';
 import EventPhotos from './EventPhotos';
@@ -992,6 +993,12 @@ const EventCard: React.FC<EventCardProps> = ({
     return () => { cancelled = true; };
   }, [event?.id, event?.location, event?.date, isPast]);
 
+  // Trip context — matches the chip on EventListCard / EventDetail.
+  // Ref-counted onSnapshot so a full month view of cards for the same
+  // team doesn't spin up N Firestore listeners.
+  const activeTripsForCard = useActiveTripsForTeam(event?.teamId || null);
+  const tripForCard = getTripForEvent(event as any, activeTripsForCard);
+
   const colors = eventColors(event.type);
   const dt = event.date instanceof Date ? event.date : new Date(event.date);
   const dayLabel = dt.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase();
@@ -1121,6 +1128,21 @@ const EventCard: React.FC<EventCardProps> = ({
             <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-primary-soft ring-1 ring-brand-primary-soft text-brand-primary-dim text-xs font-semibold max-w-full self-start">
               <WeatherIcon iconName={weather.iconName} className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F{weather.precipChance > 0 ? ` · ${weather.precipChance}% rain` : ''}</span>
+            </div>
+          )}
+
+          {tripForCard && (
+            <div
+              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-primary-soft ring-1 ring-brand-primary-soft text-brand-primary-dim text-xs font-semibold max-w-full self-start"
+              title={`Part of ${tripForCard.name}`}
+            >
+              {/* Briefcase — same glyph as the trip chip on the other
+                  two event surfaces so all three read as one primitive. */}
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
+                <rect x="2" y="7" width="20" height="14" rx="2"/>
+                <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              <span className="truncate">{truncateTripName(tripForCard.name)}</span>
             </div>
           )}
 

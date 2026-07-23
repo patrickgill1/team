@@ -7,6 +7,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import RosterAvatar from '../common/RosterAvatar';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import WeatherIcon from '../common/WeatherIcon';
+import { useActiveTripsForTeam, getTripForEvent, truncateTripName } from '../../utils/eventTripContext';
 
 // Event list card — cinematic dark surface matching the GoalKickr v9
 // mockup. Black-on-black with crimson accents: vertical date badge
@@ -76,6 +77,10 @@ const Icon: React.FC<{ name: string; className?: string }> = ({ name, className 
       return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
     case 'arrive':
       return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>;
+    case 'trip':
+      // Briefcase — reads as "on the road with the team." Monoline
+      // stroke to match the rest of the row.
+      return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
   }
   return null;
 };
@@ -170,6 +175,14 @@ const EventListCard: React.FC<Props> = ({
   const effectiveWeatherText = weatherText
     ? weatherText
     : (weather ? `${weather.tempMaxF}° / ${weather.tempMinF}°` : undefined);
+
+  // Trip context — if this event belongs to an active tournament/trip
+  // window on its own team, render a small chip beside the weather so
+  // the row instantly reads as "part of Premier Cup." Shared onSnapshot
+  // per teamId — a full week of cards for one team spins up ONE
+  // listener, not N.
+  const activeTrips = useActiveTripsForTeam(event?.teamId || null);
+  const tripForEvent = getTripForEvent(event as any, activeTrips);
 
   const t = typeSpec(event.type);
   const cancelled = !!(event as any).isCancelled;
@@ -295,6 +308,18 @@ const EventListCard: React.FC<Props> = ({
                       <WeatherIcon iconName={effectiveWeatherIconName} className="w-3 h-3 text-brand-primary-soft" />
                     )}
                     <span>{effectiveWeatherText}</span>
+                  </span>
+                </>
+              )}
+              {tripForEvent && (
+                <>
+                  <span className="text-charcoal-500">·</span>
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-brand-primary/15 text-brand-primary-soft text-[10px] font-extrabold tracking-widest uppercase ring-1 ring-brand-primary-soft/30 max-w-[140px]"
+                    title={`Part of ${tripForEvent.name}`}
+                  >
+                    <Icon name="trip" className="w-3 h-3" />
+                    <span className="truncate">{truncateTripName(tripForEvent.name)}</span>
                   </span>
                 </>
               )}

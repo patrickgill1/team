@@ -7,6 +7,9 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { isCoachOfTeam } from '../utils/helpers';
 import { VOCAB } from '../vocab';
+import { createPlayerInvite, inviteUrl } from '../utils/invites';
+import { buildParentInviteEmail } from '../utils/inviteEmails';
+import { sendEmail } from '../utils/notify';
 
 const Players: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,8 +31,9 @@ const Players: React.FC = () => {
   // Per-row handler the import modal calls. Keeps Firestore writes
   // here so the modal stays UI-only. Each row becomes a player doc on
   // the active team; parent emails are stored lowercase so the parent-
-  // auto-link path on signup matches.
-  const handleImportRow = async (row: ParsedPlayer) => {
+  // auto-link path on signup matches. Returns the new playerId so the
+  // modal can thread it into the Circle-invite fanout.
+  const handleImportRow = async (row: ParsedPlayer): Promise<string> => {
     if (!selectedTeamId) throw new Error('No active team');
     const playerData: any = {
       name: row.name,
@@ -49,7 +53,52 @@ const Players: React.FC = () => {
       ...(row.position ? { position: row.position, positions: [row.position] } : {}),
       ...(row.parentPhones.length > 0 ? { parentPhones: row.parentPhones } : {}),
     };
-    await addDocument('players', playerData);
+    return await addDocument('players', playerData);
+  };
+
+  // Circle-invite fanout callback. The modal dedupes emails across
+  // rows and calls this once per unique email. Mirrors the pattern in
+  // src/components/people/BulkAddPlayersForm.tsx:131-163: create the
+  // invite doc (client-side setDoc, always succeeds), build the email
+  // via buildParentInviteEmail, hand it to the worker /send. Anyone
+  // who already has a GoalKickr account still gets the email and can
+  // consume the invite on click — createPlayerInvite doesn't gate on
+  // recipient existence, so "already an account" is a natural pass.
+  const handleSendInvite = async ({
+    playerId,
+    email,
+    playerName,
+  }: {
+    playerId: string;
+    email: string;
+    playerName: string;
+  }): Promise<boolean> => {
+    if (!selectedTeamId || !userData) return false;
+    const coachName = userData.name || 'Your coach';
+    const coachFirstName = coachName.split(' ')[0] || 'Coach';
+    const teamName = selectedTeam?.name || 'the team';
+    try {
+      const inv = await createPlayerInvite({
+        teamId: selectedTeamId,
+        playerId,
+        createdBy: userData.uid,
+        ttlDays: 30,
+        note: `Bulk roster invite for ${playerName}`,
+      });
+      const link = inviteUrl(inv.id);
+      const { subject, html, text } = buildParentInviteEmail({
+        to: email,
+        playerName,
+        teamName,
+        coachName,
+        coachFirstName,
+        inviteLink: link,
+      });
+      return await sendEmail({ to: email, subject, html, text });
+    } catch (err) {
+      console.warn('[Players] Circle invite failed for', email, err);
+      return false;
+    }
   };
 
   return (
@@ -60,6 +109,7 @@ const Players: React.FC = () => {
         onClose={() => setImportOpen(false)}
         teamId={selectedTeamId || ''}
         onCreatePlayer={handleImportRow}
+        onSendInvite={handleSendInvite}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">

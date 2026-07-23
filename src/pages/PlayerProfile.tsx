@@ -122,6 +122,7 @@ const PlayerProfile: React.FC = () => {
     source: string;
     note?: string | null;
     awardedByName?: string | null;
+    awardedByAvatarUrl?: string | null;
     awardedBy?: string;
     createdAt: Date;
     /** teamId when the event was recorded. Used by RecognitionCenter
@@ -697,6 +698,7 @@ const PlayerProfile: React.FC = () => {
             source: String(data.source || ''),
             note: data.note ? String(data.note) : null,
             awardedByName: data.awardedByName || null,
+            awardedByAvatarUrl: data.awardedByAvatarUrl || null,
             awardedBy: data.awardedBy || undefined,
             createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
             teamId: data.teamId || undefined,

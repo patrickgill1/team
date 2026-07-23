@@ -3877,6 +3877,20 @@ async function handleXpAwardWhisper(req: Request, env: Env, payload: any): Promi
   }
 
   const now = new Date();
+  // Look up caller name + photo so the wall's XP-note row can render
+  // the coach's face next to the note (matches the coach-whisper row
+  // that already had coachAvatarUrl). Without this the wall shows a
+  // letter placeholder for XP notes and a photo for whispers, side
+  // by side.
+  let awardedByName: string | null = null;
+  let awardedByAvatarUrl: string | null = null;
+  try {
+    const u = await getDocument(pid, `users/${claims.uid}`, sa);
+    const ud: any = u?.data || {};
+    if (typeof ud.name === 'string' && ud.name.trim()) awardedByName = ud.name.trim();
+    const avatar = ud.photoURL || ud.profilePhotoUrl || null;
+    if (typeof avatar === 'string' && avatar) awardedByAvatarUrl = avatar;
+  } catch { /* non-fatal */ }
   const eventFields: Record<string, any> = {
     playerId,
     playerName,
@@ -3885,6 +3899,8 @@ async function handleXpAwardWhisper(req: Request, env: Env, payload: any): Promi
     source: 'coach_whisper',
     awardedBy: claims.uid,
     awardedByRole: 'coach',
+    awardedByName,
+    awardedByAvatarUrl,
     createdAt: now,
   };
   if (seasonId) eventFields.seasonId = seasonId;
@@ -4002,9 +4018,14 @@ async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promi
   }
 
   let coachName = '';
+  let coachAvatarUrl: string | null = null;
   try {
     const coachDoc = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
-    if (coachDoc?.data) coachName = String((coachDoc.data as any)?.name || '');
+    if (coachDoc?.data) {
+      coachName = String((coachDoc.data as any)?.name || '');
+      const avatar = (coachDoc.data as any)?.photoURL || (coachDoc.data as any)?.profilePhotoUrl || null;
+      if (typeof avatar === 'string' && avatar) coachAvatarUrl = avatar;
+    }
   } catch { /* non-fatal */ }
 
   // Deterministic doc id — safe against double-tap.
@@ -4018,6 +4039,7 @@ async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promi
     awardedBy: claims.uid,
     awardedByRole: 'coach',
     awardedByName: coachName || null,
+    awardedByAvatarUrl: coachAvatarUrl,
     note: coachNote || String(kudos.note || ''),
     sourceRef: kudosId,
     createdAt: now,
@@ -4228,12 +4250,19 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
     console.warn('[xp] grant-coach season lookup failed:', (err as Error).message);
   }
 
-  // Caller display name for the audit + kid toast.
+  // Caller display name + photo for the audit + kid toast + wall
+  // avatar (paired with awardedByAvatarUrl in the event doc below so
+  // Sideline Shouts renders the coach's face on XP notes, matching
+  // whispers).
   let awardedByName = 'Coach';
+  let awardedByAvatarUrl: string | null = null;
   try {
     const u = await getDocument(pid, `users/${claims.uid}`, sa);
-    const n = (u?.data as any)?.name;
+    const ud: any = u?.data || {};
+    const n = ud?.name;
     if (typeof n === 'string' && n.trim()) awardedByName = n.trim();
+    const avatar = ud?.photoURL || ud?.profilePhotoUrl || null;
+    if (typeof avatar === 'string' && avatar) awardedByAvatarUrl = avatar;
   } catch { /* non-fatal */ }
 
   const now = new Date();
@@ -4291,6 +4320,7 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
           awardedBy: claims.uid,
           awardedByRole: 'coach',
           awardedByName,
+          awardedByAvatarUrl,
           note: reason,
           createdAt: now,
         };

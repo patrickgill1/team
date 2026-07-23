@@ -54,7 +54,7 @@ interface Args {
   player: Player;
   kudosList: Array<{ id: string; senderName: string; senderAvatarUrl?: string | null; note: string; createdAt: Date; xpAwarded?: number }>;
   whispers: Array<{ id: string; coachName: string; coachAvatarUrl?: string | null; message: string; createdAt: Date }>;
-  xpEvents: Array<{ id: string; awardedByName?: string | null; awardedBy?: string; source: string; note?: string | null; xp: number; createdAt: Date }>;
+  xpEvents: Array<{ id: string; awardedByName?: string | null; awardedByAvatarUrl?: string | null; awardedBy?: string; source: string; note?: string | null; xp: number; createdAt: Date }>;
   potmVotes: Array<{ voting: any; playerVotes: Array<{ voterName: string; reason?: string }> }>;
   /** Coach-tagged highlight clips (PlayerMedia w/ momentType set).
    *  Optional so existing callers keep working; wire in wherever
@@ -113,6 +113,7 @@ export function buildSidelineShouts(args: Args): SidelineShout[] {
       type: 'xp_note',
       timestamp: ev.createdAt,
       fromName: ev.awardedByName || 'Coach',
+      fromAvatarUrl: ev.awardedByAvatarUrl || null,
       body: ev.note,
       xpAmount: ev.xp,
     });

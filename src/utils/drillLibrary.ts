@@ -43,11 +43,35 @@ export function isFeatured(d: Pick<Drill, 'averageRating' | 'ratingCount'>): boo
  *  rules layer; this just sets the timestamps. Pass `allow=false` to
  *  unshare. */
 export async function toggleShareToLibrary(drillId: string, allow: boolean): Promise<void> {
-  await updateDoc(doc(db, 'drills', drillId), {
+  const patch: Record<string, any> = {
     shareToLibrary: allow,
     sharedAt: allow ? serverTimestamp() : null,
     updatedAt: serverTimestamp(),
-  });
+  };
+  // Seed social-signal fields ONLY when they haven't been set yet.
+  // Firestore's orderBy('averageRating', 'desc') on loadLibraryDrills
+  // silently drops docs where the field is missing, so an
+  // otherwise-shared drill with no ratings never rendered in Browse
+  // Library (Patrick 2026-07-22: "the drills i shared to the library
+  // I made are not showing up"). Read-first prevents overwriting real
+  // ratings on an unshare/reshare cycle.
+  if (allow) {
+    try {
+      const snap = await getDoc(doc(db, 'drills', drillId));
+      const data: any = snap.data() || {};
+      if (typeof data.averageRating !== 'number') patch.averageRating = 0;
+      if (typeof data.saveCount !== 'number') patch.saveCount = 0;
+      if (typeof data.ratingCount !== 'number') patch.ratingCount = 0;
+      if (typeof data.ratingSum !== 'number') patch.ratingSum = 0;
+    } catch {
+      // Best-effort seed on read failure — a fresh drill defaults are safe.
+      patch.averageRating = 0;
+      patch.saveCount = 0;
+      patch.ratingCount = 0;
+      patch.ratingSum = 0;
+    }
+  }
+  await updateDoc(doc(db, 'drills', drillId), patch);
 }
 
 /** Cast (or change) a star rating. Recomputes ratingSum / ratingCount

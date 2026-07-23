@@ -149,9 +149,45 @@ export async function patchMapEntry(
 export async function patchDocument(projectId: string, path: string, fields: Record<string, any>, sa: ServiceAccount): Promise<void> {
   const token = await getAccessToken(sa, FIRESTORE_SCOPE);
   const keys = Object.keys(fields);
+  // updateMask supports dotted paths for nested field selection — that
+  // part was already correct.
   const mask = keys.map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
   const url = `${baseUrl(projectId)}/${path}?${mask}`;
-  const body = { fields: Object.fromEntries(keys.map(k => [k, encodeValue(fields[k])])) };
+  // Firestore REST body's `fields` must be a nested map that structurally
+  // mirrors the doc — dotted top-level keys like "xpConfig.enabled" get
+  // interpreted as a field literally named "xpConfig.enabled" (with a
+  // dot in the name), which Firestore silently accepts and quietly
+  // ignores when the mask points at a nested path.
+  //
+  // Silently-broken pre-fix: /xp/backfill-commit's flip of
+  // xpConfig.enabled + xpConfig.enabledAt + xpConfig.backfilledAt, the
+  // POTM badges.coach_pick grant, and the coach-XP xpConfig.coachRewards
+  // debit ALL landed as 200s with no effect. Traced from Nick Barker's
+  // 'Applying…' spinner + xpConfig staying {} in Firestore.
+  //
+  // Fix: expand dotted keys into nested maps here so the body matches
+  // the mask's shape. Repeated dotted keys sharing a prefix merge into
+  // the same submap.
+  const nested: Record<string, any> = {};
+  for (const k of keys) {
+    if (k.includes('.')) {
+      const parts = k.split('.');
+      let cursor: any = nested;
+      for (let i = 0; i < parts.length - 1; i++) {
+        const seg = parts[i];
+        // Merge onto an existing submap when a sibling dotted path
+        // targeted the same prefix.
+        cursor[seg] = (cursor[seg] && typeof cursor[seg] === 'object' && !Array.isArray(cursor[seg]) && !(cursor[seg] instanceof Date))
+          ? cursor[seg]
+          : {};
+        cursor = cursor[seg];
+      }
+      cursor[parts[parts.length - 1]] = fields[k];
+    } else {
+      nested[k] = fields[k];
+    }
+  }
+  const body = { fields: Object.fromEntries(Object.keys(nested).map(k => [k, encodeValue(nested[k])])) };
   const r = await fetch(url, {
     method: 'PATCH',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

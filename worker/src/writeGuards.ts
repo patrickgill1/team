@@ -47,6 +47,7 @@ import {
 import { computeBackfillPlan, backfillEventId, type BackfillPlan, type ComputedBadge } from './xpBackfill';
 import { setCustomClaims } from './identityToolkit';
 import { createLeague, createFixture, reportFixtureScore, recomputeStandings } from './leagues';
+import { handleAdminSendPlayerInvite } from './adminPlayerInvite';
 
 interface Env {
   FIREBASE_PROJECT_ID?: string;
@@ -5099,6 +5100,7 @@ export async function routeWriteGuard(
     case '/xp/grant-coach':        return handleXpGrantCoach(req, env, payload);
     case '/xp/convert-kudos':      return handleXpConvertKudos(req, env, payload);
     case '/admin/player-reset-xp': return handleAdminPlayerResetXp(req, env, payload);
+    case '/admin/send-player-invite': return handleAdminSendPlayerInvite(req, env as any, payload);
     case '/xp/reward-presets':     return handleXpRewardPresets(req, env, payload);
     case '/xp/backfill-preview':   return handleXpBackfillPreview(req, env, payload);
     case '/xp/backfill-commit':    return handleXpBackfillCommit(req, env, payload);

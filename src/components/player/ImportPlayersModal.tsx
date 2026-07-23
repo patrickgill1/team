@@ -30,6 +30,11 @@ export interface ParsedPlayer {
   parentEmails: string[];
   parentNames: string[];
   parentPhones: string[];
+  // Row-preserving pairing so display can show "Arturo Alonzo ·
+  // arturo@..." instead of just the email. Entries kept only when
+  // at least name or email is present. The flat arrays above stay
+  // for backward compat with Players.tsx handleImportRow.
+  parents: Array<{ name?: string; email?: string; phone?: string }>;
 }
 
 // Minimal CSV parser. Handles quoted fields with commas and double-quote
@@ -122,11 +127,17 @@ function rowsToPlayers(headers: string[], rows: string[][]): ParsedPlayer[] {
     const firstName = vals.firstName || (vals.fullName ? vals.fullName.split(' ')[0] : '');
     const lastName = vals.lastName || (vals.fullName ? vals.fullName.split(' ').slice(1).join(' ') : '');
     const name = `${firstName} ${lastName}`.trim() || vals.fullName || '';
-    const parentEmails = [vals.parent1Email, vals.parent2Email].filter(e => e && /@/.test(e)).map(e => e.toLowerCase());
     const parent1Name = vals.parent1Name || `${vals.parent1First || ''} ${vals.parent1Last || ''}`.trim();
     const parent2Name = vals.parent2Name || `${vals.parent2First || ''} ${vals.parent2Last || ''}`.trim();
-    const parentNames = [parent1Name, parent2Name].filter(Boolean);
-    const parentPhones = [vals.parent1Phone, vals.parent2Phone].filter(Boolean);
+    const parent1Email = vals.parent1Email && /@/.test(vals.parent1Email) ? vals.parent1Email.toLowerCase() : '';
+    const parent2Email = vals.parent2Email && /@/.test(vals.parent2Email) ? vals.parent2Email.toLowerCase() : '';
+    const parents = [
+      { name: parent1Name || undefined, email: parent1Email || undefined, phone: vals.parent1Phone || undefined },
+      { name: parent2Name || undefined, email: parent2Email || undefined, phone: vals.parent2Phone || undefined },
+    ].filter(p => p.name || p.email);
+    const parentEmails = parents.map(p => p.email).filter((e): e is string => !!e);
+    const parentNames = parents.map(p => p.name).filter((n): n is string => !!n);
+    const parentPhones = parents.map(p => p.phone).filter((p): p is string => !!p);
     const jerseyNumber = vals.jersey && /^\d+$/.test(vals.jersey) ? parseInt(vals.jersey, 10) : undefined;
     return {
       firstName,
@@ -138,6 +149,7 @@ function rowsToPlayers(headers: string[], rows: string[][]): ParsedPlayer[] {
       parentEmails,
       parentNames,
       parentPhones,
+      parents,
     };
   }).filter(p => p.name);
 }
@@ -355,7 +367,22 @@ const ImportPlayersModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreate
                           <td className="px-2 py-1.5 text-ink-primary/70">{p.dateOfBirth || '·'}</td>
                           <td className="px-2 py-1.5 text-ink-primary/70">{p.jerseyNumber ?? '·'}</td>
                           <td className="px-2 py-1.5 text-ink-primary/70">
-                            {p.parentEmails.length > 0 ? p.parentEmails.join(', ') : <span className="text-amber-500">no email (add later)</span>}
+                            {p.parents.length === 0 ? (
+                              <span className="text-amber-500">no parent info (add later)</span>
+                            ) : (
+                              <div className="space-y-0.5">
+                                {p.parents.map((par, pi) => (
+                                  <div key={pi}>
+                                    {par.name && <span className="text-ink-primary font-medium">{par.name}</span>}
+                                    {par.name && par.email && <span className="text-ink-primary/40"> · </span>}
+                                    {par.email
+                                      ? <span>{par.email}</span>
+                                      : par.name && <span className="text-amber-500 text-xs"> (no email)</span>
+                                    }
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );

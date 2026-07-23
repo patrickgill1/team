@@ -26,39 +26,63 @@ import { getAuth, signInWithCustomToken, signOut } from 'firebase/auth';
  * current auth state in the browser it's opened in.
  */
 
+// Race helper — signInWithCustomToken has historically hung with no
+// rejection when Firebase Auth's IndexedDB persistence layer stalls
+// or when a prior signOut left the SDK in a half-torn-down state.
+// Wrapping in a timeout guarantees the user sees an actionable error
+// instead of a permanent spinner.
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = window.setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    p.then(v => { window.clearTimeout(t); resolve(v); }, e => { window.clearTimeout(t); reject(e); });
+  });
+}
+
 const AuthImpersonate: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  // Ref-guard against React 18 StrictMode double-mount consuming the
+  // one-shot custom token twice (Firebase rejects the second call and
+  // we ended up in a permanent spinner because the reject won the
+  // race with cancelled).
+  const startedRef = React.useRef(false);
 
   useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
     let cancelled = false;
     (async () => {
       const params = new URLSearchParams(window.location.search);
       const token = params.get('token');
+      console.log('[impersonate] mount, token length:', token?.length || 0);
       if (!token) {
-        setError('Missing token. This page is opened by the admin portal — not directly.');
+        setError('Missing token. This page is opened by the admin portal, not directly.');
         return;
       }
       const auth = getAuth();
+      console.log('[impersonate] current user before signOut:', auth.currentUser?.uid || '(none)');
       try {
         // Sign out cleanly first. Without this, signInWithCustomToken
         // throws when there's already an authed user in a different
         // identity.
         if (auth.currentUser) {
-          await signOut(auth);
+          console.log('[impersonate] signing out current user');
+          await withTimeout(signOut(auth), 8000, 'signOut');
+          console.log('[impersonate] signOut resolved');
         }
         if (cancelled) return;
-        const cred = await signInWithCustomToken(auth, token);
+        console.log('[impersonate] calling signInWithCustomToken');
+        const cred = await withTimeout(signInWithCustomToken(auth, token), 15000, 'signInWithCustomToken');
+        console.log('[impersonate] signed in as', cred.user.uid);
         if (cancelled) return;
         // Drop the token out of the URL so a copy-paste of the
         // address bar doesn't leak it.
         window.history.replaceState({}, '', '/dashboard');
         // Tiny delay so AuthContext can sync userData before the
-        // dashboard mounts — avoids the empty-state flash.
+        // dashboard mounts, avoids the empty-state flash.
         setTimeout(() => {
           if (!cancelled) navigate('/dashboard', { replace: true });
         }, 250);
-        console.log('[impersonate] signed in as', cred.user.uid);
       } catch (err: any) {
         console.error('[impersonate] sign-in failed', err);
         setError(err?.message || 'Impersonation token rejected. It may have expired (1h TTL) or been used already.');

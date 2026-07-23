@@ -1164,7 +1164,11 @@ export async function handlePaymentCheckout(payload: any, env: StripeEnv): Promi
     ? Math.round((chargedTotal * platformFeeBps) / 10000)
     : 0;
 
-  const successUrl = String(payload?.successUrl || `${env.APP_ORIGIN}/payments?paid=${encodeURIComponent(paymentRequestId)}`);
+  // {CHECKOUT_SESSION_ID} is a Stripe template placeholder substituted
+  // at redirect time. Carrying it back to the app lets the client call
+  // /payments/reconcile-session as a belt-and-suspenders self-heal in
+  // case the connected-account webhook is dropped or delayed.
+  const successUrl = String(payload?.successUrl || `${env.APP_ORIGIN}/payments?paid=${encodeURIComponent(paymentRequestId)}&sid={CHECKOUT_SESSION_ID}`);
   const cancelUrl = String(payload?.cancelUrl || `${env.APP_ORIGIN}/payments`);
   const customerEmail = payload?.customerEmail ? String(payload.customerEmail) : undefined;
 
@@ -1332,6 +1336,11 @@ export async function handlePaymentCheckoutAnon(payload: any, env: StripeEnv, re
   const chargedTotal = feeCoveredBy === 'player' ? grossUpCents(feeCents, platformFeeBps) : feeCents;
   const applicationFeeAmount = platformFeeBps > 0 ? Math.round((chargedTotal * platformFeeBps) / 10000) : 0;
 
+  // NOTE: intentionally omit {CHECKOUT_SESSION_ID} on the anon success
+  // URL. Guest reconcile is a separate follow-up: it needs a no-auth
+  // reconcile endpoint plus a guestEmail double-check to prove the
+  // caller of the link is the same guest who paid. Punted to a later
+  // ship — see /payments/reconcile-session for the authed variant.
   const successUrl = String(payload?.successUrl || `${env.APP_ORIGIN}/pay/${encodeURIComponent(paymentRequestId)}?paid=1`);
   const cancelUrl = String(payload?.cancelUrl || `${env.APP_ORIGIN}/pay/${encodeURIComponent(paymentRequestId)}`);
 
@@ -1420,7 +1429,10 @@ export async function handlePaymentSubscriptionCheckout(payload: any, env: Strip
   const chargedPer = feeCoveredBy === 'player' ? grossUpCents(intervalCents, platformFeeBps) : intervalCents;
   const stripeIvl = stripeInterval(pr.data.interval);
 
-  const successUrl = String(payload?.successUrl || `${env.APP_ORIGIN}/payments?subscribed=${encodeURIComponent(paymentRequestId)}`);
+  // {CHECKOUT_SESSION_ID} — Stripe substitutes at redirect. See the
+  // matching one_off note above; both flows self-heal via
+  // /payments/reconcile-session on the success page.
+  const successUrl = String(payload?.successUrl || `${env.APP_ORIGIN}/payments?subscribed=${encodeURIComponent(paymentRequestId)}&sid={CHECKOUT_SESSION_ID}`);
   const cancelUrl = String(payload?.cancelUrl || `${env.APP_ORIGIN}/payments`);
   const customerEmail = payload?.customerEmail ? String(payload.customerEmail) : undefined;
 
@@ -1490,6 +1502,121 @@ export async function handlePaymentSubscriptionCheckout(payload: any, env: Strip
     console.error('payment-subscription-checkout error', err);
     return json({ ok: false, error: 'stripe_error', detail: String(err?.message || err).slice(0, 300) }, 502);
   }
+}
+
+// POST /payments/reconcile-session — belt-and-suspenders self-heal.
+// Body: { paymentRequestId, sessionId, uid? }
+//
+// Coach-owned payment_requests use Stripe Connect DIRECT charges on
+// the connected account. If the connected-account webhook is dropped
+// or delayed, paidUids never advances and the family keeps seeing
+// "owes money" long after Stripe confirmed the payment. The success
+// page (see success_url `sid={CHECKOUT_SESSION_ID}` template) calls
+// this endpoint so the client can re-verify the session against Stripe
+// on the connected account and write the same reflection the webhook
+// would have — idempotent by design.
+//
+// Auth: signed-in user; the caller's uid MUST match session metadata.
+// This closes off a poisoning attack where a malicious caller passes
+// someone else's sessionId to append a fraudulent paidUid.
+//
+// Guest (/pay/{id}) reconcile is deliberately punted — that path needs
+// a no-auth endpoint plus a guestEmail double-check, shipped separately.
+export async function handlePaymentReconcileSession(payload: any, env: StripeEnv, req: Request): Promise<Response> {
+  const { requireUser } = await import('./auth');
+  const claims = await requireUser(req, env);
+  const callerUid = claims.uid;
+
+  const paymentRequestId = String(payload?.paymentRequestId || '').trim();
+  const sessionId = String(payload?.sessionId || '').trim();
+  if (!paymentRequestId) return json({ ok: false, error: 'missing-paymentRequestId' }, 400);
+  if (!sessionId) return json({ ok: false, error: 'missing-sessionId' }, 400);
+
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
+  if (!env.STRIPE_SECRET_KEY) return json({ ok: false, error: 'stripe-not-configured' }, 503);
+
+  // (a) Load payment_request.
+  const pr = await getDocument(projectId, `payment_requests/${paymentRequestId}`, sa).catch(() => null);
+  if (!pr?.data) return json({ ok: false, error: 'payment-request-not-found' }, 404);
+
+  // (b) Resolve club → stripeAccountId.
+  const clubInfo = await resolvePaymentClub(projectId, sa, String(pr.data.clubId || ''));
+  if (!clubInfo) return json({ ok: false, error: 'club-not-stripe-ready' }, 409);
+  const { stripeAccountId } = clubInfo;
+
+  // (c) Fetch the session on the CONNECTED account. Direct-charge
+  // sessions only exist under the connected account's context, so we
+  // pass Stripe-Account. stripeRequest is POST-only, so use fetch()
+  // directly here (matches the pattern in handleSubscriptionReactivate).
+  let session: any;
+  try {
+    const r = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`, {
+      headers: {
+        authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+        'Stripe-Account': stripeAccountId,
+      },
+    });
+    if (r.status === 404) return json({ ok: false, error: 'session_not_found' }, 404);
+    const data: any = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      return json({ ok: false, error: 'stripe_error', detail: String(data?.error?.message || `stripe ${r.status}`).slice(0, 300) }, 502);
+    }
+    session = data;
+  } catch (err: any) {
+    return json({ ok: false, error: 'stripe_error', detail: String(err?.message || err).slice(0, 300) }, 502);
+  }
+
+  // (d) Validate BEFORE reflecting. Every mismatch is 409 with a
+  // specific error string so the client can surface a useful hint.
+  const meta = session?.metadata || {};
+  const isPaid = session?.payment_status === 'paid'
+    || (session?.mode === 'subscription' && session?.status === 'complete');
+  if (!isPaid) return json({ ok: false, error: 'session-not-paid' }, 409);
+  if (meta.kind !== 'payment_request') return json({ ok: false, error: 'session-wrong-kind' }, 409);
+  if (String(meta.paymentRequestId) !== paymentRequestId) {
+    return json({ ok: false, error: 'session-paymentRequestId-mismatch' }, 409);
+  }
+  // Anon guest sessions are handled by a separate (future) endpoint —
+  // they have no uid to compare and require a guestEmail double-check.
+  if (meta.paymentKind === 'one_off_anon') {
+    return json({ ok: false, error: 'anon-reconcile-not-supported', hint: 'Guest reconcile is a separate endpoint.' }, 409);
+  }
+  if (String(meta.uid) !== callerUid) {
+    return json({ ok: false, error: 'session-uid-mismatch' }, 409);
+  }
+
+  // (e) Detect whether the webhook already reflected this session and
+  // short-circuit BEFORE calling reflectPaymentSuccess. Skipping the
+  // call is what suppresses the duplicate coach pushPaymentConfirmed
+  // (the underlying arrayUnion / purchase-id writes are idempotent,
+  // but the push at the tail of reflectPaymentSuccess is not gated).
+  // Detection is per paymentKind so the flag is meaningful for
+  // catalog and recurring too — not just one_off.
+  const paymentKind = String(meta.paymentKind || '');
+  let alreadyReflected = false;
+  if (paymentKind === 'one_off') {
+    const paidUids: string[] = Array.isArray(pr.data.paidUids) ? pr.data.paidUids : [];
+    alreadyReflected = paidUids.includes(callerUid);
+  } else if (paymentKind === 'catalog') {
+    const purchases: any[] = Array.isArray(pr.data.purchases) ? pr.data.purchases : [];
+    alreadyReflected = purchases.some((p: any) => String(p?.stripeSessionId || '') === String(session.id));
+  } else if (paymentKind === 'recurring') {
+    const subs: Record<string, string> = (pr.data.stripeSubscriptionIds || {}) as Record<string, string>;
+    alreadyReflected = Boolean(subs[callerUid]);
+  }
+
+  if (alreadyReflected) {
+    return json({ ok: true, alreadyReflected: true });
+  }
+
+  // (f) Same code path the webhook runs. All writes inside are
+  // idempotent (arrayUnion / purchase-id dedupe / map-entry write) so
+  // even if the webhook lands mid-flight, the doc converges.
+  await reflectPaymentSuccess(projectId, sa, env, session);
+
+  return json({ ok: true, alreadyReflected: false });
 }
 
 // POST /payments/subscription-cancel — parent or coach.
@@ -1587,7 +1714,13 @@ export async function handlePaymentRefund(payload: any, env: StripeEnv): Promise
 // ── Webhook helpers for payment_requests ────────────────────────
 // Called from handleWebhook below when metadata.kind === 'payment_request'.
 
-async function reflectPaymentSuccess(
+// Exported so /payments/reconcile-session (belt-and-suspenders self
+// heal on the success_url) can call the same reflection code the
+// webhook does. Idempotency lives INSIDE this function (arrayUnion
+// for one_off, purchase-id dedupe for catalog, map-entry write for
+// recurring), so a second call after the webhook already fired is a
+// safe no-op.
+export async function reflectPaymentSuccess(
   projectId: string,
   sa: ServiceAccount,
   env: StripeEnv,

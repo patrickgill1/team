@@ -72,6 +72,7 @@ import {
   handlePaymentSubscriptionCheckout,
   handlePaymentSubscriptionCancel,
   handlePaymentRefund,
+  handlePaymentReconcileSession,
 } from './stripe';
 import {
   handleCreateTrip,
@@ -428,6 +429,18 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       let payload: any = {};
       try { payload = await req.json(); } catch {}
       const res = await handlePaymentSubscriptionCheckout(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+    // POST /payments/reconcile-session — belt-and-suspenders self heal
+    // for the connected-account webhook drop. Any signed-in user; the
+    // handler enforces that the caller's uid matches session metadata.
+    if (url.pathname === '/payments/reconcile-session' && req.method === 'POST') {
+      await requireUser(req, env);
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handlePaymentReconcileSession(payload, env, req);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
@@ -24,12 +24,75 @@ const Payments: React.FC = () => {
   const [loaded, setLoaded] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [reconciling, setReconciling] = useState(false);
+  // Guards the reconcile POST against React StrictMode's dev-mount
+  // double-fire and against the effect re-running when userData?.uid
+  // flips from undefined -> loaded. Keyed by (paid, sid) so a fresh
+  // return from Stripe with different params would still fire.
+  const reconcileFiredRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (loaded) { setShowProgress(false); return; }
     const t = window.setTimeout(() => setShowProgress(true), 400);
     return () => window.clearTimeout(t);
   }, [loaded]);
+
+  // Belt-and-suspenders self-heal for the Stripe Connect webhook. If
+  // the checkout success_url landed us here with ?paid=<pr>&sid=<cs>,
+  // ping the worker to reconcile the session directly. That way a
+  // dropped / delayed connected-account event can never silently
+  // leave a family showing "owes money". Webhook still runs; this is
+  // additive. Silent on failure so the user isn't stuck.
+  useEffect(() => {
+    if (!userData?.uid) return;
+    let params: URLSearchParams;
+    try {
+      params = new URLSearchParams(window.location.search);
+    } catch { return; }
+    // Accept either ?paid=<pr> (one_off / catalog) or ?subscribed=<pr>
+    // (recurring) — the worker's subscription success_url uses the
+    // latter and needs the same self-heal. The reconcile endpoint
+    // dispatches on the session's paymentKind so one client path
+    // covers both.
+    const paymentRequestId = params.get('paid') || params.get('subscribed');
+    const sid = params.get('sid');
+    if (!paymentRequestId || !sid) return;
+    const key = `${paymentRequestId}::${sid}`;
+    if (reconcileFiredRef.current === key) return;
+    reconcileFiredRef.current = key;
+    let cancelled = false;
+    setReconciling(true);
+    (async () => {
+      try {
+        const res = await workerFetch('/payments/reconcile-session', {
+          method: 'POST',
+          body: JSON.stringify({ paymentRequestId, sessionId: sid, uid: userData.uid }),
+        });
+        const data: any = await res.json().catch(() => ({}));
+        if (res.ok && data?.ok) {
+          // Strip ?paid / ?subscribed / ?sid so a refresh doesn't
+          // re-fire the reconcile (and so the URL doesn't look like a
+          // receipt link the parent might share).
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('paid');
+            url.searchParams.delete('subscribed');
+            url.searchParams.delete('sid');
+            window.history.replaceState(window.history.state, '', url.toString());
+          } catch { /* SSR-safe noop */ }
+        } else {
+          // Webhook may still resolve — leave the URL alone so a
+          // reload can retry.
+          console.warn('[payments] reconcile-session failed', data);
+        }
+      } catch (err) {
+        console.warn('[payments] reconcile-session error', err);
+      } finally {
+        if (!cancelled) setReconciling(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userData?.uid]);
 
   // Load the parent's kids so we know team scope + how many kids per team.
   useEffect(() => {
@@ -162,6 +225,12 @@ const Payments: React.FC = () => {
     <div className="min-h-screen bg-surface-base">
       <Header title="Payments" subtitle="For your family" />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+        {reconciling && (
+          <div className="rounded-xl bg-surface-elevated ring-1 ring-brand-primary/25 px-4 py-2.5 flex items-center gap-2.5">
+            <span className="inline-block h-3 w-3 rounded-full border-2 border-brand-primary/30 border-t-brand-primary animate-spin" aria-hidden />
+            <p className="text-[12px] text-ink-primary/80">Thanks for the payment, syncing your receipt...</p>
+          </div>
+        )}
         {showProgress && !loaded && (
           <div className="h-0.5 bg-brand-primary/15 overflow-hidden rounded-full">
             <div className="h-full w-1/3 bg-brand-primary animate-progress-slide" />

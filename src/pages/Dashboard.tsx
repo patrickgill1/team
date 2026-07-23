@@ -1437,9 +1437,20 @@ const Dashboard: React.FC = () => {
               const startTxt = new Intl.DateTimeFormat('en-US', rangeOpts).format(c.startDate);
               const endTxt = new Intl.DateTimeFormat('en-US', rangeOpts).format(c.endDate);
               const dateRange = startTxt === endTxt ? startTxt : `${startTxt}-${endTxt}`;
-              const href = c.shareToken
-                ? `/trip/${c.tripId}?token=${encodeURIComponent(c.shareToken)}`
-                : `/trip/${c.tripId}`;
+              // Route by role. A coach of the trip's team gets the
+              // interactive coach detail page (edit roster, add games,
+              // see full stats). Everyone else gets the public recap
+              // page. Prevents the "chip sends me to a static
+              // grandparent view" annoyance for coaches who are also
+              // parents on the traveling team. Trip chips are already
+              // scoped to selectedTeamId (filter above), so the coach
+              // check is against the currently-selected team.
+              const isCoachOfTripTeam = isCoachOfTeam(userData, selectedTeam);
+              const href = isCoachOfTripTeam
+                ? `/coach/trips/${c.tripId}`
+                : c.shareToken
+                  ? `/trip/${c.tripId}?token=${encodeURIComponent(c.shareToken)}`
+                  : `/trip/${c.tripId}`;
               return (
                 <Link
                   key={c.tripId}

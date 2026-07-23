@@ -320,14 +320,48 @@ const PublicTrip: React.FC = () => {
               </div>
             )}
 
-            {/* Soft fallback note when the worker couldn't enrich. Keeps
-                the shared link from looking broken — grandparent still
-                sees name / dates / roster count above. */}
-            {!trip.richDataAvailable && trip.games.length === 0 && !trip.stats && (
-              <p className="text-[11px] text-ink-primary/45 text-center">
-                Game results will show up here once the coach finishes them.
-              </p>
-            )}
+            {/* Empty state when there's nothing to fill the recap with
+                yet. Fires in two shapes:
+                (a) worker enriched fine but Firestore has zero games +
+                    zero stats (pre-tournament, or a trip with no games
+                    attached to its window) — the tournament may not
+                    have started, or the coach hasn't linked games yet
+                (b) worker couldn't enrich (network / server) —
+                    graceful "check back" copy so the shared link
+                    doesn't look broken
+                Copy branches on whether the trip window is in the
+                future, so a grandparent tapping the link before Aug 6
+                sees "The tournament kicks off soon" rather than a
+                blank card. */}
+            {trip.games.length === 0 && (!trip.stats || (trip.stats.totalGoals === 0 && trip.stats.totalAssists === 0 && trip.stats.totalSaves === 0)) && (() => {
+              const now = Date.now();
+              const startMs = new Date(trip.startDate).getTime();
+              const endMs = new Date(trip.endDate).getTime();
+              const notStartedYet = now < startMs;
+              const inWindow = now >= startMs && now <= endMs;
+              const rangeOpts: Intl.DateTimeFormatOptions = { timeZone: 'America/Denver', month: 'short', day: 'numeric' };
+              const startTxt = new Intl.DateTimeFormat('en-US', rangeOpts).format(new Date(trip.startDate));
+              return (
+                <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 px-4 py-6 text-center">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-ink-primary/35 mx-auto mb-3" aria-hidden>
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                  <p className="text-sm font-semibold text-ink-primary mb-1">
+                    {notStartedYet ? `Kicks off ${startTxt}` : inWindow ? 'Kicked off' : 'Just wrapped'}
+                  </p>
+                  <p className="text-[12px] text-ink-primary/60 leading-snug max-w-xs mx-auto">
+                    {notStartedYet
+                      ? 'Check back once the games start. Scores, top scorer, and the whole tournament recap will land here.'
+                      : inWindow
+                        ? "Games are being played right now. Scores will show up as they wrap."
+                        : 'Game recaps will land here as the coach finishes them.'}
+                  </p>
+                </div>
+              );
+            })()}
 
             <p className="text-[10px] text-ink-primary/40 text-center pt-1">
               Shared via GoalKickr

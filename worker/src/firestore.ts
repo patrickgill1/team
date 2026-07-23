@@ -82,7 +82,10 @@ export class PreconditionFailedError extends Error {
 
 export async function listDocuments(projectId: string, collection: string, sa: ServiceAccount, pageSize = 300): Promise<FirestoreDoc[]> {
   const token = await getAccessToken(sa, FIRESTORE_SCOPE);
-  const url = `${baseUrl(projectId)}/${encodeURIComponent(collection)}?pageSize=${pageSize}`;
+  // Same segment-wise encoding as createDocument — subcollection
+  // paths must keep literal '/' between segments.
+  const encodedCollection = collection.split('/').map(encodeURIComponent).join('/');
+  const url = `${baseUrl(projectId)}/${encodedCollection}?pageSize=${pageSize}`;
   const r = await fetch(url, { headers: { authorization: `Bearer ${token}` } });
   if (!r.ok) throw new Error(`firestore list ${collection} ${r.status}: ${(await r.text()).slice(0, 200)}`);
   const j: any = await r.json();
@@ -276,7 +279,13 @@ export async function commitDocumentTransforms(
 export async function createDocument(projectId: string, collection: string, fields: Record<string, any>, sa: ServiceAccount, docId?: string): Promise<string> {
   const token = await getAccessToken(sa, FIRESTORE_SCOPE);
   const idParam = docId ? `?documentId=${encodeURIComponent(docId)}` : '';
-  const url = `${baseUrl(projectId)}/${encodeURIComponent(collection)}${idParam}`;
+  // Encode each SEGMENT of the collection path separately — the '/'
+  // between segments must stay literal or Firestore rejects the URL
+  // with "Collection id ... is invalid because it contains '/'".
+  // Applies to any subcollection call (players/{id}/dev_checkins,
+  // events/{id}/eventActivity, payment_requests/{id}/invoices).
+  const encodedCollection = collection.split('/').map(encodeURIComponent).join('/');
+  const url = `${baseUrl(projectId)}/${encodedCollection}${idParam}`;
   const body = { fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, encodeValue(v)])) };
   const r = await fetch(url, {
     method: 'POST',

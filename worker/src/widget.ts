@@ -289,6 +289,10 @@ async function buildSnapshot(
     for (const r of rows) {
       const d: any = r.data || {};
       if (d.isCancelled === true) continue;
+      // Soft-deleted (tombstoned) events must not surface on the
+      // home-screen widget — coach silently deleted them and parents
+      // shouldn't see a ghost event on their lock screen.
+      if (d.isActive === false) continue;
       const ms = eventDateMs(d.date);
       if (!Number.isFinite(ms) || ms < nowMs) continue;
       if (ms < nextMs) { nextMs = ms; nextEvent = d; }
@@ -319,6 +323,10 @@ async function buildSnapshot(
     for (const r of rows) {
       const d: any = r.data || {};
       if (d.isCancelled === true) continue;
+      // Soft-deleted (tombstoned) events must not drive the
+      // "recent past" surface either — feedback nudges or last-
+      // game strips would resurface an event coach silently deleted.
+      if (d.isActive === false) continue;
       const ms = eventDateMs(d.date);
       if (!Number.isFinite(ms)) continue;
       const endMs = Number.isFinite(eventDateMs(d.endDate)) ? eventDateMs(d.endDate) : ms + 90 * 60 * 1000;

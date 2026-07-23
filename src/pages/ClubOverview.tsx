@@ -357,7 +357,7 @@ const ClubOverview: React.FC = () => {
           return tids.some((id) => teamIdSet.has(id));
         }));
       setEvents((e as any[])
-        .filter((ev) => teamIdSet.has(ev.teamId))
+        .filter((ev) => teamIdSet.has(ev.teamId) && ev.isActive !== false)
         .map((ev: any) => ({
           ...ev,
           date: ev.date?.toDate ? ev.date.toDate() : new Date(ev.date),

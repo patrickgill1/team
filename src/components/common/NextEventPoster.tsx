@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarEvent } from '../../types';
 import { WeatherSummary } from '../../utils/weather';
+import WeatherIcon from './WeatherIcon';
 
 type RsvpStatus = 'going' | 'maybe' | 'no';
 
@@ -235,7 +236,7 @@ const NextEventPoster: React.FC<Props> = ({
           </div>
           {weather && (
             <div className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-black/40 ring-1 ring-line-default/10 px-2.5 py-1 backdrop-blur-sm">
-              <span aria-hidden className="text-base leading-none">{weather.icon}</span>
+              <WeatherIcon iconName={weather.iconName} className="w-3.5 h-3.5 text-white" />
               <span className="text-[12px] font-bold text-white tabular-nums drop-shadow">{weather.tempMaxF}°/{weather.tempMinF}°</span>
             </div>
           )}

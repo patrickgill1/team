@@ -119,7 +119,7 @@ const FamilyFeed: React.FC<Props> = ({ hidden }) => {
                   const data: any = d.data() || {};
                   const date = data.date?.toDate ? data.date.toDate() : new Date(data.date);
                   return { id: d.id, ...data, date } as CalendarEvent;
-                }).filter((e: any) => !e.isCancelled)
+                }).filter((e: any) => !e.isCancelled && e.isActive !== false)
               : [];
             return {
               teamId: team.id,

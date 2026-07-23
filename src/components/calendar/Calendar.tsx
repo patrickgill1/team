@@ -15,6 +15,7 @@ import { useTrialGate } from '../../hooks/useTrialGate';
 import TrialGateModal from '../common/TrialGateModal';
 import DataGate from '../common/DataGate';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
+import WeatherIcon from '../common/WeatherIcon';
 import { getShareOrigin } from '../../utils/origin';
 import ImportScheduleModal from './ImportScheduleModal';
 import EventPhotos from './EventPhotos';
@@ -284,9 +285,12 @@ const Calendar: React.FC<CalendarProps> = ({
         const allEvents = await getDocuments('events', []);
         debug('All events loaded:', allEvents);
         
-        // Filter events for this team and convert dates
+        // Filter events for this team and convert dates. Soft-deleted
+        // events (isActive === false) are excluded here so tombstoned
+        // items drop off every calendar surface — see EventDetail
+        // handleDelete for the write path.
         const teamEvents = allEvents
-          .filter((event: any) => event.teamId === selectedTeamId)
+          .filter((event: any) => event.teamId === selectedTeamId && event.isActive !== false)
           .map((event: any) => ({
             ...event,
             date: event.date?.toDate ? event.date.toDate() : new Date(event.date),
@@ -351,6 +355,14 @@ const Calendar: React.FC<CalendarProps> = ({
     if (!userData) return;
     const ev = events.find(e => e.id === eventId);
     if (!ev) return;
+    const now = new Date();
+    // Snapshot the parent's photo + name at write time so the event
+    // card avatar stack can render without an N+1 users lookup.
+    const parentPhoto = (userData as any).photoURL || (userData as any).profilePhotoUrl || undefined;
+    // Carry any prior 'no' reason forward — the reason itself is
+    // edited on the event-detail page; the calendar just flips status.
+    const priorReason = (ev.rsvps as any)?.[userData.uid]?.reason;
+    const reason = status === 'no' && typeof priorReason === 'string' ? priorReason : undefined;
     const newRsvps = {
       ...(ev.rsvps || {}),
       [userData.uid]: {
@@ -361,7 +373,10 @@ const Calendar: React.FC<CalendarProps> = ({
         // Pure-parent self-RSVPs aren't counted toward the visible
         // totals (parents matter for player counts, not attendance).
         role: userData.role,
-        respondedAt: new Date(),
+        ...(parentPhoto ? { photoUrl: parentPhoto } : {}),
+        ...(reason ? { reason } : {}),
+        updatedAt: now,
+        respondedAt: now,
       },
     };
     // Optimistic
@@ -387,6 +402,13 @@ const Calendar: React.FC<CalendarProps> = ({
     if (!userData) return;
     const ev = events.find(e => e.id === eventId);
     if (!ev) return;
+    const now = new Date();
+    const parentPhoto = (userData as any).photoURL || (userData as any).profilePhotoUrl || undefined;
+    // Preserve any prior 'no' reason when the status stays 'no'. The
+    // reason itself is only edited on the event-detail page — the
+    // calendar's quick-tap buttons don't expose a text input.
+    const prior = ((ev as any).playerRsvps || {})[playerId] || {};
+    const reason = status === 'no' && typeof prior.reason === 'string' ? prior.reason : undefined;
     const newPlayerRsvps = {
       ...((ev as any).playerRsvps || {}),
       [playerId]: {
@@ -394,7 +416,10 @@ const Calendar: React.FC<CalendarProps> = ({
         playerName,
         byUid: userData.uid,
         byName: userData.name || undefined,
-        respondedAt: new Date(),
+        ...(parentPhoto ? { byPhotoUrl: parentPhoto } : {}),
+        ...(reason ? { reason } : {}),
+        updatedAt: now,
+        respondedAt: now,
       },
     };
     setEvents(prev => prev.map(e => e.id === eventId ? { ...e, playerRsvps: newPlayerRsvps } as any : e));
@@ -656,6 +681,7 @@ const Calendar: React.FC<CalendarProps> = ({
     const buildCardProps = (ev: CalendarEvent) => {
       const playerR = (ev as any).playerRsvps || {};
       const going: { name: string; photoURL?: string; isGuest?: boolean }[] = [];
+      const noRsvpNotes: { name: string; reason?: string }[] = [];
       let goingCount = 0, maybeCount = 0, noCount = 0;
       for (const pid of Object.keys(playerR)) {
         const r = playerR[pid];
@@ -663,7 +689,21 @@ const Calendar: React.FC<CalendarProps> = ({
         else if (r.status === 'maybe') maybeCount++;
         else if (r.status === 'no') noCount++;
         if (r.status === 'going') {
-          going.push({ name: r.playerName, photoURL: playerPhotoMap?.[pid], isGuest: false });
+          // Prefer the snapshotted photo on the RSVP entry (parallel
+          // agent's work — lands on r.photoUrl when the write path
+          // stamps it). Fall back to the team-wide playerPhotoMap so
+          // legacy RSVPs still render an avatar instead of a blob.
+          going.push({
+            name: r.playerName,
+            photoURL: (r as any).photoUrl || playerPhotoMap?.[pid] || undefined,
+            isGuest: false,
+          });
+        } else if (r.status === 'no') {
+          const reason = ((r as any).reason || '').toString().trim();
+          noRsvpNotes.push({
+            name: r.playerName || 'Player',
+            reason: reason || undefined,
+          });
         }
       }
       // Pending = roster size (from playerPhotoMap, which holds every
@@ -699,7 +739,7 @@ const Calendar: React.FC<CalendarProps> = ({
       const myRsvp = primaryPlayer
         ? ((ev as any).playerRsvps?.[primaryPlayer.id]?.status as any)
         : (userData?.uid ? (ev.rsvps?.[userData.uid]?.status as any) : null);
-      return { goingCount, pendingCount, going, arriveText, arriveLabel, myRsvp, primaryPlayer };
+      return { goingCount, pendingCount, going, noRsvpNotes, arriveText, arriveLabel, myRsvp, primaryPlayer };
     };
 
     return (
@@ -830,6 +870,8 @@ const Calendar: React.FC<CalendarProps> = ({
                     arriveText={p.arriveText}
                     arriveLabel={p.arriveLabel}
                     eventChatUnread={commentCountByEventId[event.id] || 0}
+                    isCoach={isUserCoach}
+                    noRsvpNotes={p.noRsvpNotes}
                   />
                 </div>
               );
@@ -888,7 +930,7 @@ const Calendar: React.FC<CalendarProps> = ({
           if (!selectedTeamId) return;
           const all = await getDocuments('events', []);
           const list = (all || [])
-            .filter((ev: any) => ev.teamId === selectedTeamId)
+            .filter((ev: any) => ev.teamId === selectedTeamId && ev.isActive !== false)
             .map((ev: any) => ({
               ...ev,
               date: ev.date?.toDate ? ev.date.toDate() : new Date(ev.date),
@@ -1099,7 +1141,7 @@ const EventCard: React.FC<EventCardProps> = ({
 
           {weather && (
             <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-primary-soft ring-1 ring-brand-primary-soft text-brand-primary-dim text-xs font-semibold max-w-full self-start">
-              <span className="text-base leading-none shrink-0">{weather.icon}</span>
+              <WeatherIcon iconName={weather.iconName} className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F{weather.precipChance > 0 ? ` · ${weather.precipChance}% rain` : ''}</span>
             </div>
           )}

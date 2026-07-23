@@ -152,7 +152,7 @@ const KidDashboard: React.FC = () => {
         const now = Date.now();
         const rows = snap.docs
           .map(d => ({ id: d.id, ...(d.data() as any) }))
-          .filter((e: any) => !e.isCancelled)
+          .filter((e: any) => !e.isCancelled && e.isActive !== false)
           .map((e: any) => ({
             ...e,
             _ms: (e.date?.toDate?.() ?? new Date(e.date || 0)).getTime?.() || 0,

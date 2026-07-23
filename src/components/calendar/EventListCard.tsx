@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarEvent } from '../../types';
 import { mapsUrl } from '../../utils/maps';
 import { normalizeKit } from '../../utils/kitColors';
 import { useTeam } from '../../contexts/TeamContext';
+import RosterAvatar from '../common/RosterAvatar';
+import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
+import WeatherIcon from '../common/WeatherIcon';
 
 // Event list card — cinematic dark surface matching the GoalKickr v9
 // mockup. Black-on-black with crimson accents: vertical date badge
@@ -24,6 +27,11 @@ interface PreviewPerson {
   isGuest?: boolean;
 }
 
+interface NoRsvpNote {
+  name: string;
+  reason?: string;
+}
+
 interface Props {
   event: CalendarEvent;
   myRsvp?: RsvpStatus | null;
@@ -33,10 +41,21 @@ interface Props {
   goingPreview: PreviewPerson[];
   arriveText?: string;
   arriveLabel?: string;
+  /** Legacy escape hatches — if the parent already computed weather
+   *  and passed strings in, we render those instead of fetching. Empty
+   *  means the card fetches its own forecast via getWeatherForEvent. */
   weatherText?: string;
   weatherIcon?: string;
   eventChatUnread?: number;
   rsvpLabel?: string;
+  /** Coach view unlocks the Can't-make-it reason surface. Parents
+   *  never see other parents' stated reasons. */
+  isCoach?: boolean;
+  /** Coach-only: names + optional reasons for anyone who RSVP'd "no".
+   *  When a reason is present we render it as a tiny italic note next
+   *  to the name; without a reason, the row still renders the name so
+   *  the coach sees who declined. */
+  noRsvpNotes?: NoRsvpNote[];
 }
 
 const Icon: React.FC<{ name: string; className?: string }> = ({ name, className = 'w-3.5 h-3.5' }) => {
@@ -107,12 +126,50 @@ const EventListCard: React.FC<Props> = ({
   weatherIcon,
   eventChatUnread = 0,
   rsvpLabel = 'YOU',
+  isCoach = false,
+  noRsvpNotes,
 }) => {
   const date = new Date(event.date);
   const end = event.endDate ? new Date(event.endDate) : undefined;
   const month = MONTHS_SHORT[date.getMonth()];
   const day = date.getDate();
   const dow = DOWS_SHORT[date.getDay()];
+
+  // Weather chip — self-fetch per event so scroll doesn't refetch
+  // (useEffect keyed on event id + location + date). Silent when the
+  // event is outside the 15-day forecast window, offline, or when
+  // Open-Meteo can't resolve the venue. Skips the fetch entirely when
+  // the parent already passed weather strings in (legacy path — no
+  // caller does this today but the props are still supported).
+  const [weather, setWeather] = useState<WeatherSummary | null>(null);
+  const parentSuppliedWeather = !!weatherText;
+  useEffect(() => {
+    if (parentSuppliedWeather) return;
+    let cancelled = false;
+    setWeather(null);
+    if (!event?.date) return;
+    const dt = event.date instanceof Date ? event.date : new Date(event.date);
+    if (Number.isNaN(dt.getTime())) return;
+    const diffDays = Math.floor((dt.getTime() - Date.now()) / 86400_000);
+    if (diffDays < 0 || diffDays > 15) return;
+    const coords = (event as any).locationCoords || null;
+    getWeatherForEvent(event.location || '', dt, coords).then(w => {
+      if (!cancelled) setWeather(w);
+    });
+    return () => { cancelled = true; };
+  }, [event?.id, event?.location, event?.date, parentSuppliedWeather]);
+
+  // Resolve the header-row values. Prefer parent-supplied text, then
+  // the self-fetched summary. The parent-supplied `weatherIcon` prop
+  // is a legacy emoji string — we deliberately do NOT render it
+  // (violates "no emojis in UI code"). Only the self-fetched summary
+  // renders a lucide glyph via <WeatherIcon>. No caller uses the
+  // parent-supplied path today; the prop stays for API stability.
+  void weatherIcon;
+  const effectiveWeatherIconName = weatherText ? undefined : weather?.iconName;
+  const effectiveWeatherText = weatherText
+    ? weatherText
+    : (weather ? `${weather.tempMaxF}° / ${weather.tempMinF}°` : undefined);
 
   const t = typeSpec(event.type);
   const cancelled = !!(event as any).isCancelled;
@@ -230,12 +287,14 @@ const EventListCard: React.FC<Props> = ({
             <div className="mt-1 text-[11.5px] text-charcoal-300 flex items-center gap-1 flex-wrap">
               <Icon name="clock" className="w-3 h-3 text-brand-primary-soft" />
               <span>{formatTimeRange(date, end)}</span>
-              {weatherText && (
+              {effectiveWeatherText && (
                 <>
                   <span className="text-charcoal-500">·</span>
-                  <span className="inline-flex items-center gap-0.5">
-                    <span aria-hidden>{weatherIcon}</span>
-                    <span>{weatherText}</span>
+                  <span className="inline-flex items-center gap-1" title={weather?.label || undefined}>
+                    {effectiveWeatherIconName && (
+                      <WeatherIcon iconName={effectiveWeatherIconName} className="w-3 h-3 text-brand-primary-soft" />
+                    )}
+                    <span>{effectiveWeatherText}</span>
                   </span>
                 </>
               )}
@@ -323,36 +382,83 @@ const EventListCard: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Avatar preview row — UNTOUCHED layout-wise per Patrick:
-            "the only thing i don't want to change it the team bubbles
-            that show who is going at the bottom with their pictures,
-            i love that." Just retoned for dark surface. */}
-        {goingPreview.length > 0 && (
-          <div className="mt-3 flex items-center gap-2">
-            <div className="flex">
-              {goingPreview.slice(0, 4).map((p, i) => (
-                p.photoURL ? (
-                  <img
+        {/* Avatar preview row — Patrick's untouchable "team bubbles."
+            Now up to 6 avatars followed by a +N pill (no fallback text
+            names) so the row scans as a squad, not a caption. Missing
+            photos render as a colored-initial circle via RosterAvatar
+            (initials-instant with photo fade-in) so the row is never
+            blank and never regresses to gradient blobs. */}
+        {goingPreview.length > 0 && (() => {
+          const shown = goingPreview.slice(0, 6);
+          // Overflow is anything past what we're rendering, PLUS the
+          // gap between the truncated preview and the authoritative
+          // going count (goingCount can exceed goingPreview.length
+          // because the parent slices to 6 upstream).
+          const overflow = Math.max(
+            0,
+            (goingCount || goingPreview.length) - shown.length,
+          );
+          return (
+            <div className="mt-3 flex items-center gap-1.5">
+              <div className="flex">
+                {shown.map((p, i) => (
+                  <RosterAvatar
                     key={i}
-                    src={p.photoURL}
-                    alt=""
-                    className={`w-[22px] h-[22px] rounded-full ring-2 ring-charcoal-900 object-cover ${i > 0 ? '-ml-1.5' : ''}`}
+                    name={p.name}
+                    photoUrl={p.photoURL || undefined}
+                    size={26}
+                    className={`ring-2 ring-surface-elevated ${i > 0 ? '-ml-1.5' : ''}`}
                   />
-                ) : (
-                  <span
-                    key={i}
-                    className={`w-[22px] h-[22px] rounded-full ring-2 ring-charcoal-900 bg-gradient-to-br from-surface-raised to-surface-tint ${i > 0 ? '-ml-1.5' : ''}`}
-                  />
-                )
-              ))}
+                ))}
+              </div>
+              {overflow > 0 && (
+                <span
+                  className="inline-flex items-center justify-center min-w-[26px] h-[26px] px-1.5 rounded-full ring-2 ring-surface-elevated bg-surface-raised text-ink-primary text-[10px] font-extrabold tabular-nums -ml-1.5"
+                  aria-label={`${overflow} more going`}
+                >
+                  +{overflow}
+                </span>
+              )}
             </div>
-            <span className="text-[11px] font-semibold text-charcoal-300 truncate">
-              {goingPreview.slice(0, 3).map(p => p.name.split(' ')[0]).join(', ')}
-              {goingPreview.length > 3 && <span className="text-charcoal-500"> +{goingPreview.length - 3}</span>}
-              <span className="text-brand-primary-soft font-bold ml-1.5">See all ›</span>
-            </span>
-          </div>
-        )}
+          );
+        })()}
+
+        {/* Coach-only Can't-make-it reason surface. Rendered as a
+            compact list under the avatar row so the coach can spot
+            "hurt heel," "family trip" etc. at a glance without opening
+            the detail screen. Parents never see other parents' stated
+            reasons — the whole block is gated on isCoach. Only rows
+            with a reason attached render here — "no reason attached,
+            no visual change" per spec. Coach can tap into the event
+            detail to see the full Can't-make-it roster. */}
+        {isCoach && (() => {
+          const withReasons = (noRsvpNotes || []).filter(
+            n => n.reason && n.reason.trim(),
+          );
+          if (withReasons.length === 0) return null;
+          return (
+            <div className="mt-2.5 pt-2.5 border-t border-line-default/5">
+              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mb-1">
+                Can't make it
+              </div>
+              <ul className="space-y-0.5">
+                {withReasons.map((n, i) => (
+                  <li
+                    key={i}
+                    className="text-[11px] text-charcoal-300 flex items-baseline gap-1.5 flex-wrap min-w-0"
+                  >
+                    <span className="font-semibold text-ink-primary/85">
+                      {n.name.split(' ')[0] || n.name}
+                    </span>
+                    <span className="italic text-charcoal-400 truncate min-w-0">
+                      {n.reason!.trim()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
 
         {/* Snacks chip — preserved from the prior design. */}
         {(event as any).snackAssignment?.playerName && (

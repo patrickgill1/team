@@ -1795,18 +1795,39 @@ export interface CalendarEvent {
    *  with many fields. Hidden in display when not filled. */
   fieldNumber?: string;
   result?: string;
-  // RSVPs: { uid: { status, name, respondedAt, forPlayerId? } }
-  rsvps?: Record<string, { status: 'going' | 'maybe' | 'no'; name: string; respondedAt: any; forPlayerName?: string }>;
+  // RSVPs: { uid: { status, name, photoUrl?, reason?, updatedAt?, respondedAt, forPlayerName? } }
+  // photoUrl + name are snapshotted at write time so the event card
+  // avatar stack doesn't need an N+1 users lookup. Reason is only
+  // meaningful when status === 'no' (parent explaining why they can't
+  // make it — visible to coach only in the RSVP list). Older entries
+  // may have just status + name + respondedAt; consumers must tolerate
+  // missing photoUrl / reason / updatedAt.
+  rsvps?: Record<string, {
+    status: 'going' | 'maybe' | 'no';
+    name: string;
+    respondedAt: any;
+    photoUrl?: string;
+    reason?: string;
+    updatedAt?: any;
+    forPlayerName?: string;
+    role?: string;
+  }>;
   // Per-player RSVPs keyed by playerId. A parent (or coach) RSVPs once
   // per kid through this map, in addition to their own personal RSVP
   // in `rsvps`. Coaches need attendance counts that reflect *players*
   // not *adults*, so this is what shows up in the "Going" count for
-  // games and practices.
+  // games and practices. `reason` mirrors the adult rsvps shape: only
+  // meaningful when status === 'no'; coach-visible subtitle. byPhotoUrl
+  // snapshots the PARENT'S photo at write time so the card can stack
+  // parent avatars without a separate users lookup.
   playerRsvps?: Record<string, {
     status: 'going' | 'maybe' | 'no';
     playerName: string;
     byUid: string;
     byName?: string;
+    byPhotoUrl?: string;
+    reason?: string;
+    updatedAt?: any;
     respondedAt: any;
   }>;
   // Guest RSVPs from the public share link, keyed by a per-browser token. Kept

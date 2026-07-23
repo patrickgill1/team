@@ -440,10 +440,16 @@ const getUserData = useCallback(async (uid: string) => {
   }, []);
 
   const getEventsByTeam = useCallback(async (teamId: string) => {
-    return getDocuments('events', [
+    // Soft-deleted events (isActive === false) are dropped client-side
+    // to keep tombstoned items off every list without demanding a
+    // composite index. `!=` filters in Firestore skip missing fields,
+    // which would silently exclude every legacy event; a client-side
+    // filter matches the convention used elsewhere in this hook.
+    const docs = await getDocuments('events', [
       where('teamId', '==', teamId),
       orderBy('date', 'asc')
     ]);
+    return docs.filter((d: any) => d.isActive !== false);
   }, [getDocuments]);
 
   // Gallery-specific functions

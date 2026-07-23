@@ -158,6 +158,10 @@ const NotificationsHeaderBar: React.FC = () => {
         let count = 0;
         snap.docs.forEach(d => {
           const data: any = d.data();
+          // Soft-deleted (tombstoned) events shouldn't show up as
+          // "new" — coach silently deleting an event mustn't light
+          // up the calendar badge for every parent on the team.
+          if (data.isActive === false) return;
           const stampSrc = data.updatedAt || data.createdAt;
           const t = stampSrc?.toDate?.()?.getTime?.() || 0;
           if (t > seen) count++;

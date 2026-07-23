@@ -40,6 +40,7 @@ import { useDashboardActivity } from '../hooks/useDashboardActivity';
 import { useViewMode } from '../contexts/ViewModeContext';
 import AdminCockpit from '../components/admin/AdminCockpit';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
+import WeatherIcon from '../components/common/WeatherIcon';
 
 // Pick the best thumbnail image for a clip. Stream videos → Cloudflare's
 // auto-generated JPEG poster. Photos → the photo itself. Legacy R2 videos →
@@ -1763,7 +1764,7 @@ const NextEventHero: React.FC<{
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             {weather && (
               <span className="text-xs text-ink-primary/65 inline-flex items-center gap-1 bg-line-default/5 ring-1 ring-line-default/10 px-2 py-0.5 rounded-full">
-                <span>{weather.icon}</span>
+                <WeatherIcon iconName={weather.iconName} className="w-3 h-3" />
                 <span className="font-semibold">{Math.round(weather.tempMaxF)}°</span>
                 <span className="text-ink-primary/40">/</span>
                 <span>{Math.round(weather.tempMinF)}°</span>
@@ -1771,7 +1772,7 @@ const NextEventHero: React.FC<{
             )}
             {rainAlert && (
               <span className="text-xs inline-flex items-center gap-1 bg-sky-50 text-sky-800 ring-1 ring-sky-300 px-2 py-0.5 rounded-full font-bold">
-                <span>☔</span>
+                <WeatherIcon iconName="cloud-rain" className="w-3 h-3" />
                 <span>{rainAlert}</span>
               </span>
             )}

@@ -1,9 +1,8 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
-import { deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../../utils/firebase';
 import { sendPushToUsers } from '../../utils/notify';
 import { useAuth } from '../../contexts/AuthContext';
+import { useFirestore } from '../../hooks/useFirestore';
 import type { CalendarEvent } from '../../types';
 import { Sheet, Button, FormField, fieldInputClass } from '../ui';
 
@@ -18,9 +17,12 @@ interface Props {
 // parents who'd already RSVPed ("game cancelled, here's why") and
 // sometimes shouldn't ("I created a duplicate by accident, nuke it
 // quietly"). Default ON because the more common case is telling the
-// team. PITR isn't enabled so deletes are permanent.
+// team. Soft-delete only (isActive:false + deletedAt) — matches
+// EventDetail's handleDelete so tombstoned events can be restored
+// from the event page.
 const DeleteEventSheet: React.FC<Props> = ({ event, onClose, onDeleted }) => {
   const { userData } = useAuth();
+  const { updateDocument } = useFirestore();
   const [alertTeam, setAlertTeam] = useState(true);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -37,6 +39,7 @@ const DeleteEventSheet: React.FC<Props> = ({ event, onClose, onDeleted }) => {
 
   const handleDelete = async () => {
     if (!event || busy) return;
+    if (!userData?.uid) return;
     setBusy(true);
     setError(null);
     try {
@@ -46,10 +49,10 @@ const DeleteEventSheet: React.FC<Props> = ({ event, onClose, onDeleted }) => {
         Object.values(event.playerRsvps || {}).forEach((r: any) => {
           if (r?.byUid) recipients.add(r.byUid);
         });
-        if (userData?.uid) recipients.delete(userData.uid);
+        recipients.delete(userData.uid);
         if (recipients.size > 0) {
           const trimmed = note.trim();
-          const senderName = userData?.name || 'Coach';
+          const senderName = userData.name || 'Coach';
           await sendPushToUsers(
             Array.from(recipients),
             {
@@ -63,7 +66,16 @@ const DeleteEventSheet: React.FC<Props> = ({ event, onClose, onDeleted }) => {
           );
         }
       }
-      await deleteDoc(doc(db, 'events', event.id));
+      // Soft-delete — tombstone so it drops out of every listing but
+      // stays restorable from the event page. Matches EventDetail's
+      // handleDelete shape (isActive:false + deletedAt + deletedBy).
+      const nowTs = new Date();
+      await updateDocument('events', event.id, {
+        isActive: false,
+        deletedAt: nowTs,
+        deletedBy: userData.uid,
+        updatedAt: nowTs,
+      });
       onDeleted?.();
       onClose();
     } catch (err: any) {
@@ -79,8 +91,8 @@ const DeleteEventSheet: React.FC<Props> = ({ event, onClose, onDeleted }) => {
       open={!!event}
       onClose={() => { if (!busy) onClose(); }}
       kicker="Delete event"
-      title={event ? `Permanently delete "${event.title}"?` : ''}
-      subtitle="This removes the event for everyone and can't be undone. If the event still happened but was cancelled, use Cancel event instead so it stays visible with a CANCELLED badge."
+      title={event ? `Delete this event quietly?` : ''}
+      subtitle="No one gets notified. You can bring it back from the event page."
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>Keep event</Button>

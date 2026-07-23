@@ -7,6 +7,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useTeamAudience } from '../../hooks/useTeamAudience';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
+import WeatherIcon from '../common/WeatherIcon';
 import { osmEmbedUrl, geocodeForward, geocodeResolve, hasMapbox, hasNotifyProxy, isGoogleAvailable, GeocodeHit } from '../../utils/maps';
 import { normalizeKit } from '../../utils/kitColors';
 import { autoPostGameToWall } from '../../utils/autoPostToWall';
@@ -312,6 +313,10 @@ const EventForm: React.FC<EventFormProps> = ({
         const rows: PickableLocation[] = [];
         snap.forEach(d => {
           const data: any = d.data();
+          // Soft-deleted events shouldn't reintroduce their location
+          // into the "recent" picker — coach silently deleted them
+          // for a reason.
+          if (data.isActive === false) return;
           const name = (data.location || '').trim();
           if (!name) return;
           const lc = data.locationCoords;
@@ -1643,7 +1648,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     )}
                     {weather && (
                       <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary/30 text-brand-primary-soft text-xs font-semibold">
-                        <span className="text-base leading-none">{weather.icon}</span>
+                        <WeatherIcon iconName={weather.iconName} className="w-3.5 h-3.5" />
                         <span>{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F</span>
                         {weather.precipChance > 0 && <span>· {weather.precipChance}% rain</span>}
                       </div>

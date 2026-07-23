@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarEvent } from '../../types';
 import { WeatherSummary } from '../../utils/weather';
+import WeatherIcon from './WeatherIcon';
 
 // Dashboard hero — navy stadium scene at the current time of day,
 // holding the day's at-a-glance info. Pitch silhouette + sky shift,
@@ -174,9 +175,10 @@ const DashboardHero: React.FC<Props> = ({
               <p className="mt-0.5 text-xs sm:text-sm text-ink-primary truncate">
                 {whenText}
                 {weather && (
-                  <span className="text-ink-secondary">
+                  <span className="text-ink-secondary inline-flex items-center gap-1 align-baseline">
                     {' · '}
-                    <span aria-hidden>{weather.icon}</span> {weather.tempMaxF}°/{weather.tempMinF}°
+                    <WeatherIcon iconName={weather.iconName} className="w-3.5 h-3.5" />
+                    {weather.tempMaxF}°/{weather.tempMinF}°
                   </span>
                 )}
               </p>

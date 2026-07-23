@@ -149,6 +149,10 @@ export function useDashboardActivity(
         let count = 0;
         snap.docs.forEach(d => {
           const data: any = d.data();
+          // Soft-deleted (tombstoned) events should not read as
+          // "new" — a coach silently deleting an event must not
+          // light up the calendar badge for anyone.
+          if (data.isActive === false) return;
           const stampSrc = data.updatedAt || data.createdAt;
           const t = stampSrc?.toDate?.()?.getTime?.() || 0;
           if (t > seen) count++;

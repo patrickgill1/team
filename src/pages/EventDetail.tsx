@@ -13,6 +13,7 @@ import EventDiscussion from '../components/calendar/EventDiscussion';
 import SnackAssignment from '../components/calendar/SnackAssignment';
 import { mapsUrl, osmEmbedUrl } from '../utils/maps';
 import RosterAvatar from '../components/common/RosterAvatar';
+import WeatherIcon from '../components/common/WeatherIcon';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import SplitTeamsModal from '../components/calendar/SplitTeamsModal';
 import { grossUpCents, coachNetCents, DROPIN_DEFAULT_PLATFORM_BPS } from '../utils/pricing';
@@ -119,7 +120,7 @@ const EventDetail: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, teams } = useTeam() as any;
   const [splitOpen, setSplitOpen] = useState(false);
-  const { getDocument, updateDocument, deleteDocument } = useFirestore();
+  const { getDocument, updateDocument } = useFirestore();
 
   const [event, setEvent] = useState<CalendarEvent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -146,6 +147,12 @@ const EventDetail: React.FC = () => {
   const [myLinkedPlayers, setMyLinkedPlayers] = useState<Array<{ id: string; name: string; photoURL?: string }>>([]);
   const [feedbackDrafts, setFeedbackDrafts] = useState<Record<string, { feel?: string; energy?: string; confidence?: number; note?: string }>>({});
   const [feedbackSaving, setFeedbackSaving] = useState<Record<string, boolean>>({});
+  // Local reason drafts while the parent is typing why they can't
+  // make it. Keyed by playerId for per-kid RSVPs and 'self' for the
+  // parent's own adult RSVP. Committed to the RSVP entry on blur /
+  // Enter — never on every keystroke (would spam Firestore writes and
+  // wake the RSVP fan-out).
+  const [reasonDrafts, setReasonDrafts] = useState<Record<string, string>>({});
   // Which guest RSVP token, if any, the coach is currently merging.
   const [mergingToken, setMergingToken] = useState<string | null>(null);
   const [mergeBusy, setMergeBusy] = useState(false);
@@ -386,7 +393,7 @@ const EventDetail: React.FC = () => {
   //   GUEST  = publicRsvps (share-link RSVPs without a roster match)
   const buckets = useMemo(() => {
     if (!event) return { going: [], maybe: [], cant: [], pending: 0 };
-    type Entry = { name: string; uid?: string; playerId?: string; kind: 'roster' | 'staff' | 'guest'; matchedPlayerId?: string; guestToken?: string };
+    type Entry = { name: string; uid?: string; playerId?: string; kind: 'roster' | 'staff' | 'guest'; matchedPlayerId?: string; guestToken?: string; reason?: string; byName?: string };
     const going: Entry[] = [];
     const maybe: Entry[] = [];
     const cant: Entry[] = [];
@@ -397,9 +404,11 @@ const EventDetail: React.FC = () => {
       const key = `player:${pid}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      if (r.status === 'going') going.push({ name: r.playerName, playerId: pid, kind: 'roster' });
-      else if (r.status === 'maybe') maybe.push({ name: r.playerName, playerId: pid, kind: 'roster' });
-      else if (r.status === 'no') cant.push({ name: r.playerName, playerId: pid, kind: 'roster' });
+      const reason = typeof r.reason === 'string' && r.reason.trim() ? r.reason.trim() : undefined;
+      const byName = typeof r.byName === 'string' ? r.byName : undefined;
+      if (r.status === 'going') going.push({ name: r.playerName, playerId: pid, kind: 'roster', byName });
+      else if (r.status === 'maybe') maybe.push({ name: r.playerName, playerId: pid, kind: 'roster', byName });
+      else if (r.status === 'no') cant.push({ name: r.playerName, playerId: pid, kind: 'roster', reason, byName });
     }
     // Adult RSVPs tagged with role 'coach' or 'staff' — surface as
     // their own STAFF row in the headcount, distinct from any kid
@@ -412,10 +421,11 @@ const EventDetail: React.FC = () => {
     for (const uid of Object.keys(adultR)) {
       const r = adultR[uid];
       if (r.role !== 'coach' && r.role !== 'staff') continue;
+      const reason = typeof r.reason === 'string' && r.reason.trim() ? r.reason.trim() : undefined;
       const entry: Entry = { name: r.name || 'Coach', uid, kind: 'staff' };
       if (r.status === 'going') going.push(entry);
       else if (r.status === 'maybe') maybe.push(entry);
-      else if (r.status === 'no') cant.push(entry);
+      else if (r.status === 'no') cant.push({ ...entry, reason });
     }
     const publicR = (event as any).publicRsvps || {};
     for (const tok of Object.keys(publicR)) {
@@ -445,11 +455,17 @@ const EventDetail: React.FC = () => {
   }, [event, roster.length]);
 
   // Photo lookup for an RSVP row. Players: roster.photoURL by playerId.
-  // Parents: userPhotoMap by uid. Falls back to a colored-initial
-  // gradient circle when nothing's available.
+  // Parents: prefer the snapshotted rsvps[uid].photoUrl (written at
+  // RSVP time), else fall back to the lazy userPhotoMap fetched from
+  // users/{uid}. The lookup is cheap; the fallback stays for legacy
+  // RSVP entries that pre-date the snapshot.
   const photoForEntry = (p: { uid?: string; playerId?: string }): string | undefined => {
     if (p.playerId) return roster.find(r => r.id === p.playerId)?.photoURL;
-    if (p.uid) return userPhotoMap[p.uid] || undefined;
+    if (p.uid) {
+      const snap = (event?.rsvps as any)?.[p.uid]?.photoUrl;
+      if (typeof snap === 'string' && snap) return snap;
+      return userPhotoMap[p.uid] || undefined;
+    }
     return undefined;
   };
 
@@ -486,14 +502,26 @@ const EventDetail: React.FC = () => {
       // Build the updated playerRsvps map in one go so a multi-kid
       // parent doesn't see only the last kid's RSVP land (sequential
       // setPlayerRsvp() calls would race on stale state).
+      const now = new Date();
+      const parentPhoto = (userData as any).photoURL || (userData as any).profilePhotoUrl || undefined;
       const nextMap: Record<string, any> = { ...((event as any).playerRsvps || {}) };
       for (const p of myLinkedPlayers) {
+        // Carry any prior reason forward if the status stays 'no' —
+        // Quick Actions only sets status; the reason field is edited
+        // through the per-kid row below. Drop any prior reason when
+        // status flips off 'no' (a going/maybe kid has nothing to
+        // explain).
+        const prev = (nextMap[p.id] || {}) as any;
+        const carryReason = status === 'no' && typeof prev.reason === 'string' ? prev.reason : undefined;
         nextMap[p.id] = {
           status,
           playerName: p.name,
           byUid: userData.uid,
           byName: userData.name || undefined,
-          respondedAt: new Date(),
+          ...(parentPhoto ? { byPhotoUrl: parentPhoto } : {}),
+          ...(carryReason ? { reason: carryReason } : {}),
+          updatedAt: now,
+          respondedAt: now,
         };
       }
       setEvent({ ...event, playerRsvps: nextMap } as any);
@@ -527,9 +555,18 @@ const EventDetail: React.FC = () => {
     ? (myLinkedPlayers.length === 1 ? "Can't go" : "None going")
     : "Can't go";
 
-  const setMyRsvp = async (status: RsvpStatus) => {
+  const setMyRsvp = async (status: RsvpStatus, reasonOverride?: string) => {
     if (!event || !userData?.uid) return;
     const hasCap = typeof (event as any).rsvpCap === 'number' && (event as any).rsvpCap > 0;
+
+    // Carry any prior 'no' reason forward when the reason isn't being
+    // updated by this call (e.g. a coach flipping status back off then
+    // on 'no' from Quick Actions). Drop the reason when status leaves
+    // 'no' — going/maybe don't display a reason.
+    const priorReason = (event.rsvps as any)?.[userData.uid]?.reason;
+    const reason = status === 'no'
+      ? (typeof reasonOverride === 'string' ? reasonOverride.trim().slice(0, 300) : (priorReason || undefined))
+      : undefined;
 
     // Capped events: route through worker /events/rsvp for atomic
     // cap enforcement + waitlist auto-promotion. Uncapped events
@@ -545,6 +582,7 @@ const EventDetail: React.FC = () => {
             status,
             name: userData.name || userData.email || 'Unknown',
             role: (userData as any).role,
+            ...(reason ? { reason } : {}),
           }),
         });
         const data: any = await res.json().catch(() => ({}));
@@ -581,13 +619,21 @@ const EventDetail: React.FC = () => {
     // merges into the map field). Optimistic UI with rollback.
     const prevRsvps = event.rsvps;
     const prevEvent = event;
+    const now = new Date();
+    // Snapshot the parent's photo + name at write time so the event
+    // card avatar stack doesn't need an N+1 users lookup. Older
+    // entries without photoUrl fall through to the card's live lookup.
+    const parentPhoto = (userData as any).photoURL || (userData as any).profilePhotoUrl || undefined;
     const next = {
       ...(event.rsvps || {}),
       [userData.uid]: {
         status,
         name: userData.name || userData.email || 'Unknown',
         role: (userData as any).role,
-        respondedAt: new Date(),
+        ...(parentPhoto ? { photoUrl: parentPhoto } : {}),
+        ...(reason ? { reason } : {}),
+        updatedAt: now,
+        respondedAt: now,
       },
     };
     setEvent({ ...event, rsvps: next } as CalendarEvent);
@@ -623,11 +669,19 @@ const EventDetail: React.FC = () => {
     if (status === null) {
       delete next[userData.uid];
     } else {
+      const now = new Date();
+      const coachPhoto = (userData as any).photoURL || (userData as any).profilePhotoUrl || undefined;
+      // Preserve any prior 'no' reason if the coach re-taps 'no'.
+      const priorReason = (event.rsvps as any)?.[userData.uid]?.reason;
+      const reason = status === 'no' && typeof priorReason === 'string' ? priorReason : undefined;
       next[userData.uid] = {
         status,
         name: (userData as any).name || 'Coach',
         role: 'coach',
-        respondedAt: new Date(),
+        ...(coachPhoto ? { photoUrl: coachPhoto } : {}),
+        ...(reason ? { reason } : {}),
+        updatedAt: now,
+        respondedAt: now,
       };
     }
     setEvent({ ...event, rsvps: next } as CalendarEvent);
@@ -640,8 +694,24 @@ const EventDetail: React.FC = () => {
     }
   };
 
-  const setPlayerRsvp = async (playerId: string, playerName: string, status: RsvpStatus) => {
+  const setPlayerRsvp = async (
+    playerId: string,
+    playerName: string,
+    status: RsvpStatus,
+    reasonOverride?: string,
+  ) => {
     if (!event || !userData?.uid) return;
+    const now = new Date();
+    const parentPhoto = (userData as any).photoURL || (userData as any).profilePhotoUrl || undefined;
+    const prior = ((event as any).playerRsvps || {})[playerId] || {};
+    // reasonOverride: undefined → carry prior reason forward when the
+    // status stays 'no'; a string (including empty) → explicit edit.
+    // Any status other than 'no' always drops the reason.
+    const reason = status === 'no'
+      ? (typeof reasonOverride === 'string'
+          ? reasonOverride.trim().slice(0, 300)
+          : (typeof prior.reason === 'string' ? prior.reason : undefined))
+      : undefined;
     const next = {
       ...((event as any).playerRsvps || {}),
       [playerId]: {
@@ -649,7 +719,10 @@ const EventDetail: React.FC = () => {
         playerName,
         byUid: userData.uid,
         byName: userData.name || undefined,
-        respondedAt: new Date(),
+        ...(parentPhoto ? { byPhotoUrl: parentPhoto } : {}),
+        ...(reason ? { reason } : {}),
+        updatedAt: now,
+        respondedAt: now,
       },
     };
     setEvent({ ...event, playerRsvps: next } as any);
@@ -757,12 +830,31 @@ const EventDetail: React.FC = () => {
     }
   };
 
+  // Soft delete — tombstones the event so it drops out of every
+  // listing (client + worker crons filter isActive !== false). No
+  // pushes fanned out; parents/attendees hear nothing. Coach can
+  // restore it in-place from the banner + action row that show up on
+  // this same page after the delete lands. Contrast with handleCancel,
+  // which keeps the event visible with a CANCELLED badge and notifies
+  // everyone. Mirrors handleCancel's shape: optimistic local update,
+  // no route-away — coach navigates back to /calendar themselves.
   const handleDelete = async () => {
-    if (!event) return;
-    if (!window.confirm(`Permanently delete "${event.title}"? This removes it for everyone. Use "Cancel event" instead if you want it to stay visible with a CANCELLED badge.`)) return;
+    if (!event || !userData?.uid) return;
+    if (!window.confirm('Delete this event quietly? No one gets notified. You can bring it back on this page anytime.')) return;
     try {
-      await deleteDocument('events', event.id);
-      navigate('/calendar');
+      const nowTs = new Date();
+      await updateDocument('events', event.id, {
+        isActive: false,
+        deletedAt: nowTs,
+        deletedBy: userData.uid,
+        updatedAt: nowTs,
+      });
+      setEvent({
+        ...event,
+        isActive: false,
+        deletedAt: nowTs,
+        deletedBy: userData.uid,
+      } as any);
     } catch (err) {
       console.error('delete failed', err);
       alert('Failed to delete.');
@@ -913,6 +1005,35 @@ const EventDetail: React.FC = () => {
     }
   };
 
+  // Restore a soft-deleted (tombstoned) event. Distinct from
+  // handleRestore above — that one un-cancels a Cancelled event and
+  // pushes an "it's back on" notification. A soft-deleted event was
+  // never announced (no push on delete), so bringing it back also
+  // stays silent: attendees just start seeing it on their calendar
+  // again. Confirm copy is explicit about the silence so the coach
+  // isn't surprised nobody got a heads up.
+  const handleRestoreDeleted = async () => {
+    if (!event || !userData?.uid) return;
+    if (!window.confirm('Bring this event back? Everyone with the link will see it again. No push notification goes out.')) return;
+    try {
+      await updateDocument('events', event.id, {
+        isActive: true,
+        deletedAt: null,
+        deletedBy: null,
+        updatedAt: new Date(),
+      });
+      setEvent({
+        ...event,
+        isActive: true,
+        deletedAt: undefined,
+        deletedBy: undefined,
+      } as any);
+    } catch (err) {
+      console.error('restore (deleted) failed', err);
+      alert('Failed to restore.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-surface-base flex items-center justify-center">
@@ -926,6 +1047,32 @@ const EventDetail: React.FC = () => {
       <div className="min-h-screen bg-surface-base flex flex-col items-center justify-center p-8 text-center">
         <p className="text-ink-primary/65 mb-4">Event not found.</p>
         <Link to="/calendar" className="text-brand-primary font-semibold">← Back to events</Link>
+      </div>
+    );
+  }
+
+  // Soft-deleted event opened by a non-coach via a direct URL. The
+  // coach hit "Delete quietly" — we owe the visitor a clear empty
+  // state instead of a fully-interactive page that lets them RSVP,
+  // comment, or pay on something the coach has removed. Coaches
+  // still get the full page (with a Deleted banner + Restore) so they
+  // can inspect and undo.
+  if ((event as any).isActive === false && !isUserCoach) {
+    return (
+      <div className="min-h-screen bg-surface-base flex flex-col items-center justify-center p-8 text-center">
+        <div className="w-14 h-14 rounded-full bg-line-default/10 flex items-center justify-center mb-4">
+          <Icon name="trash" className="w-6 h-6 text-ink-primary/50" />
+        </div>
+        <p className="text-ink-primary text-lg font-bold mb-1.5">This event was removed by the coach.</p>
+        <p className="text-ink-primary/60 text-sm max-w-sm mb-6 leading-snug">
+          It no longer shows up on the calendar. If you think this is a mistake, message the coach.
+        </p>
+        <Link
+          to="/calendar"
+          className="inline-flex items-center gap-2 min-h-11 px-4 py-2.5 rounded-lg bg-brand-primary text-white text-sm font-bold hover:bg-brand-primary-hov transition"
+        >
+          Back to calendar
+        </Link>
       </div>
     );
   }
@@ -1083,6 +1230,33 @@ const EventDetail: React.FC = () => {
         </div>
       )}
 
+      {/* DELETED banner — coach-only. When the coach uses "Delete
+          quietly" the event tombstones (isActive:false) with no push,
+          but the coach stays on this page. This persistent banner is
+          the confirmation that the delete landed AND the primary
+          affordance to bring it back. Non-coaches never reach this
+          render — they get the full-page empty state above. */}
+      {isUserCoach && (event as any).isActive === false && (
+        <div className="bg-amber-500/15 border-y border-amber-400/30 px-4 sm:px-6 py-3">
+          <div className="flex items-start gap-3 max-w-3xl mx-auto">
+            <div className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-amber-600 text-amber-50 flex-shrink-0">
+              Deleted
+            </div>
+            <div className="text-sm text-amber-100 flex-1 min-w-0">
+              <p className="leading-snug font-bold">Event deleted. Only you can see this now.</p>
+              <p className="text-[12px] text-amber-100/80 mt-0.5 leading-snug">Tap Restore to bring it back. No push notification goes out.</p>
+            </div>
+            <button
+              onClick={handleRestoreDeleted}
+              className="shrink-0 inline-flex items-center gap-1.5 min-h-11 px-3 py-2.5 rounded-lg bg-emerald-500 text-white text-[11px] font-extrabold tracking-widest uppercase hover:bg-emerald-400 transition"
+            >
+              <Icon name="check" className="w-4 h-4" />
+              Restore
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* PER-KID RSVPS — the primary RSVP path when the viewer has
           linked players. Sits above the personal Quick Actions so
           parents (and coach-with-kid) see their kid's RSVP as the
@@ -1154,7 +1328,21 @@ const EventDetail: React.FC = () => {
           </div>
           <div className="space-y-2">
             {myLinkedPlayers.map(p => {
-              const current = ((event as any).playerRsvps || {})[p.id]?.status as RsvpStatus | undefined;
+              const entry = ((event as any).playerRsvps || {})[p.id] as any;
+              const current = entry?.status as RsvpStatus | undefined;
+              const savedReason: string = typeof entry?.reason === 'string' ? entry.reason : '';
+              const draftKey = `kid:${p.id}`;
+              // Reason draft: what the input currently holds. Falls
+              // back to the last saved reason when the parent hasn't
+              // touched the input yet — so re-opening the event shows
+              // "Work trip" already filled in and editable.
+              const reasonValue = reasonDrafts[draftKey] !== undefined ? reasonDrafts[draftKey] : savedReason;
+              const commitReason = async () => {
+                if (current !== 'no') return;
+                const next = (reasonDrafts[draftKey] ?? '').trim();
+                if (next === savedReason) return; // no-op
+                await setPlayerRsvp(p.id, p.name, 'no', next);
+              };
               const btn = (status: RsvpStatus, label: string, active: string) => (
                 <button
                   key={status}
@@ -1169,13 +1357,34 @@ const EventDetail: React.FC = () => {
                 </button>
               );
               return (
-                <div key={p.id} className="flex items-center gap-2">
-                  <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-ink-primary truncate" title={p.name}>{p.name}</div>
-                  <div className="flex-1 flex gap-1.5">
-                    {btn('going', 'Going', 'bg-emerald-600')}
-                    {btn('maybe', 'Maybe', 'bg-sky-500')}
-                    {btn('no', "Can't", 'bg-rose-600')}
+                <div key={p.id} className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-ink-primary truncate" title={p.name}>{p.name}</div>
+                    <div className="flex-1 flex gap-1.5">
+                      {btn('going', 'Going', 'bg-emerald-600')}
+                      {btn('maybe', 'Maybe', 'bg-sky-500')}
+                      {btn('no', "Can't", 'bg-rose-600')}
+                    </div>
                   </div>
+                  {current === 'no' && (
+                    <div className="pl-[calc(5rem+0.5rem)] sm:pl-[calc(7rem+0.5rem)]">
+                      <input
+                        type="text"
+                        value={reasonValue}
+                        maxLength={300}
+                        onChange={e => setReasonDrafts(prev => ({ ...prev, [draftKey]: e.target.value }))}
+                        onBlur={commitReason}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
+                        placeholder="Optional: let your coach know why (work trip, kid home sick, birthday party, etc)"
+                        className="w-full text-[13px] bg-surface-input/60 border border-line-default/15 rounded-lg px-2.5 py-2.5 text-ink-primary placeholder-ink-primary/40 focus:outline-none focus:ring-1 focus:ring-brand-primary/40"
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1189,7 +1398,37 @@ const EventDetail: React.FC = () => {
           going. Two RSVPs, two records, distinct STAFF row in the
           headcount. Patrick 2026-06-21: 'i want to clean up the
           header' (moved off the dashboard hero into here). */}
-      {isUserCoach && myLinkedPlayers.length > 0 && (
+      {isUserCoach && myLinkedPlayers.length > 0 && (() => {
+        const coachEntry = event && userData?.uid ? (event.rsvps as any)?.[userData.uid] : null;
+        const savedCoachReason: string = typeof coachEntry?.reason === 'string' ? coachEntry.reason : '';
+        const draftKey = 'coach:self';
+        const reasonValue = reasonDrafts[draftKey] !== undefined ? reasonDrafts[draftKey] : savedCoachReason;
+        const commitCoachReason = async () => {
+          if (coachStatus !== 'no' || !event || !userData?.uid) return;
+          const next = (reasonDrafts[draftKey] ?? '').trim().slice(0, 300);
+          if (next === savedCoachReason) return;
+          // Merge the reason onto the existing rsvps entry using the
+          // same dotted-path pattern as setMyRsvp — keeps this write
+          // race-free against sibling parents RSVPing at the same time.
+          const prev = (event.rsvps || {}) as any;
+          const merged = {
+            ...prev[userData.uid],
+            reason: next || undefined,
+            updatedAt: new Date(),
+          };
+          if (!next) delete merged.reason;
+          setEvent({ ...event, rsvps: { ...prev, [userData.uid]: merged } } as any);
+          try {
+            const { doc: fsDoc, updateDoc: fsUpdate } = await import('firebase/firestore');
+            const { db } = await import('../utils/firebase');
+            await fsUpdate(fsDoc(db, 'events', event.id), {
+              [`rsvps.${userData.uid}`]: merged,
+            });
+          } catch (err) {
+            console.error('reason save (coach) failed', err);
+          }
+        };
+        return (
         <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 mb-2 flex items-center gap-1.5">
             <Icon name="check" className="w-3 h-3 text-brand-primary" />
@@ -1225,8 +1464,26 @@ const EventDetail: React.FC = () => {
               );
             })}
           </div>
+          {coachStatus === 'no' && (
+            <input
+              type="text"
+              value={reasonValue}
+              maxLength={300}
+              onChange={e => setReasonDrafts(prev => ({ ...prev, [draftKey]: e.target.value }))}
+              onBlur={commitCoachReason}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
+              placeholder="Optional: coach-only note (family thing, sick, out of town, etc)"
+              className="mt-2 w-full text-[13px] bg-surface-input/60 border border-line-default/15 rounded-lg px-2.5 py-2.5 text-ink-primary placeholder-ink-primary/40 focus:outline-none focus:ring-1 focus:ring-brand-primary/40"
+            />
+          )}
         </section>
-      )}
+        );
+      })()}
 
       {/* QUICK ACTIONS — coach-only Cancel/Restore + Split Teams
           (adult only). Share button removed 2026-06-24 when the
@@ -1369,22 +1626,49 @@ const EventDetail: React.FC = () => {
             {(event as any).teamSplit ? 'Edit team split' : 'Split teams'}
           </button>
         )}
-        {event.isCancelled ? (
+        {(event as any).isActive === false ? (
+          // Soft-deleted (tombstoned). The top-of-page Deleted banner
+          // already surfaces the primary Restore affordance; this
+          // duplicate down here matches the cancelled-event pattern
+          // so the coach can un-delete without scrolling back up.
+          <button
+            onClick={handleRestoreDeleted}
+            className="flex items-center justify-center gap-2 min-h-11 py-2.5 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-700 text-xs font-bold tracking-wider uppercase hover:bg-emerald-500/25 transition"
+          >
+            <Icon name="check" className="w-4 h-4" />
+            Restore event
+          </button>
+        ) : event.isCancelled ? (
           <button
             onClick={handleRestore}
-            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-700 text-xs font-bold tracking-wider uppercase hover:bg-emerald-500/25 transition"
+            className="flex items-center justify-center gap-2 min-h-11 py-2.5 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-700 text-xs font-bold tracking-wider uppercase hover:bg-emerald-500/25 transition"
           >
             <Icon name="check" className="w-4 h-4" />
             Restore
           </button>
         ) : (
-          <button
-            onClick={handleCancel}
-            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/40 text-rose-300 text-xs font-bold tracking-wider uppercase hover:bg-rose-500/25 transition"
-          >
-            <Icon name="trash" className="w-4 h-4" />
-            Cancel
-          </button>
+          // Cancel (loud/filled red) + Delete quietly (quiet/outlined
+          // red) share a row on wider screens and stack on narrow ones.
+          // Both clear a 44pt tap target. Cancel notifies everyone and
+          // keeps the event visible with a CANCELLED badge; Delete
+          // quietly tombstones it (isActive:false) with no push
+          // fanout — coach restores in-place from this same page.
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              onClick={handleCancel}
+              className="flex items-center justify-center gap-2 min-h-11 py-2.5 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/40 text-rose-300 text-xs font-bold tracking-wider uppercase hover:bg-rose-500/25 transition"
+            >
+              <Icon name="trash" className="w-4 h-4" />
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              className="flex items-center justify-center gap-2 min-h-11 py-2.5 rounded-lg bg-transparent ring-1 ring-rose-400/40 text-rose-300/80 text-xs font-bold tracking-wider uppercase hover:bg-rose-500/10 transition"
+            >
+              <Icon name="trash" className="w-4 h-4" />
+              Delete quietly
+            </button>
+          </div>
         )}
       </div>
       )}
@@ -1642,6 +1926,56 @@ const EventDetail: React.FC = () => {
             })}
           </ul>
         )}
+        {/* COACH-ONLY "Can't make it" list. Shows reason as an italic
+            subtitle beneath the name when the parent left one. Parents
+            never see this block — it's the coach's read of who's out
+            and (optionally) why. Hidden entirely when nobody said no. */}
+        {isUserCoach && buckets.cant.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-line-default/10">
+            <div className="text-[10px] font-extrabold tracking-widest uppercase text-rose-300/80 mb-2">
+              Can't make it · {buckets.cant.length}
+            </div>
+            <ul className="divide-y divide-line-default/10">
+              {buckets.cant.map((p: any, i: number) => {
+                const photo = photoForEntry(p);
+                return (
+                  <li key={`cant-${i}`} className="py-1.5">
+                    <div className="flex items-start gap-2.5">
+                      <div className="mt-0.5">
+                        <RosterAvatar name={p.name} photoUrl={photo} size={28} className="ring-1 ring-line-default/10 opacity-70" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-ink-primary/85 truncate">{p.name}</span>
+                          {p.byName && p.kind === 'roster' && (
+                            <span className="text-[10px] text-ink-primary/45 truncate">via {p.byName}</span>
+                          )}
+                        </div>
+                        {p.reason && (
+                          <div className="text-[12px] italic text-ink-primary/60 leading-snug mt-0.5">
+                            "{p.reason}"
+                          </div>
+                        )}
+                      </div>
+                      {(() => {
+                        const badge = p.kind === 'roster'
+                          ? { label: 'ROSTER', cls: 'bg-rose-500/10 text-rose-300 ring-rose-400/30' }
+                          : p.kind === 'staff'
+                            ? { label: 'STAFF',  cls: 'bg-brand-primary/10 text-brand-primary-soft ring-brand-primary-soft/30' }
+                            : { label: 'GUEST',  cls: 'bg-surface-input text-ink-primary/60 ring-line-default/10' };
+                        return (
+                          <span className={`shrink-0 text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded ring-1 ${badge.cls}`}>
+                            {badge.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </section>
 
       {/* EVENT PULSE — private post-event player feedback. Parents / players
@@ -1790,7 +2124,7 @@ const EventDetail: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-3xl" aria-hidden>{weather.icon}</span>
+            <WeatherIcon iconName={weather.iconName} className="w-8 h-8 text-brand-primary-soft" />
             <div>
               <div className="text-xl font-black text-ink-primary leading-none">
                 {weather.tempMaxF}° <span className="text-ink-primary/50 font-semibold text-sm">/ {weather.tempMinF}°</span>

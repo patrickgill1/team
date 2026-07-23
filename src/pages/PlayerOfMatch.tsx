@@ -97,7 +97,7 @@ const PlayerOfMatch: React.FC = () => {
       })));
 
       const teamGameEvents = eventsData
-        .filter((e: any) => e.teamId === selectedTeamId && e.type === 'game')
+        .filter((e: any) => e.teamId === selectedTeamId && e.type === 'game' && e.isActive !== false)
         .map((e: any) => ({
           ...e,
           date: e.date?.toDate ? e.date.toDate() : new Date(e.date),

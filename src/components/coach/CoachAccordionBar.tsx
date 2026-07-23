@@ -161,11 +161,17 @@ const CoachAccordionBar: React.FC = () => {
           collection(db, 'players'),
           where('teamIds', 'array-contains', selectedTeamId)
         );
-        const [eventsSnap, rosterCountSnap] = await Promise.all([
+        const [eventsSnapRaw, rosterCountSnap] = await Promise.all([
           getDocs(eventsQ),
           getCountFromServer(playersQ),
         ]);
         if (cancelled) return;
+        // Drop soft-deleted (tombstoned) events client-side. A
+        // Firestore `!=` filter would demand a composite index and
+        // silently skip any legacy event that doesn't have the field
+        // set. `docs` shape is preserved so the downstream `.find` /
+        // `.docs[0]` reads still work.
+        const eventsSnap = { docs: eventsSnapRaw.docs.filter(d => (d.data() as any).isActive !== false) };
         // count() ignores the legacy teamId-only path, but every
         // active roster entry has teamIds[] set by applyMembership
         // now — the legacy path was a migration cushion, safe to

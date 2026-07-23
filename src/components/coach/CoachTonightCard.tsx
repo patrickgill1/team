@@ -50,20 +50,28 @@ const CoachTonightCard: React.FC = () => {
     (async () => {
       try {
         const horizon = new Date(Date.now() + 36 * 60 * 60 * 1000);
+        // Fetch a few candidates so we can still surface a "tonight"
+        // event when the first one is soft-deleted. `!=` on isActive
+        // would demand a composite index — client-side filter is
+        // cheaper and matches the codebase convention.
         const q = query(
           collection(db, 'events'),
           where('teamId', '==', selectedTeamId),
           where('date', '>=', Timestamp.fromDate(new Date())),
           where('date', '<=', Timestamp.fromDate(horizon)),
           orderBy('date', 'asc'),
-          limit(1)
+          limit(5)
         );
         const snap = await getDocs(q);
         if (cancelled) return;
-        if (!snap.empty) {
-          const d: any = snap.docs[0].data();
+        // Skip soft-deleted (tombstoned) events — coach hid them via
+        // "Delete silently". `limit(1)` + a Firestore `!=` filter
+        // would need a composite index, so we filter after the read.
+        const doc0 = snap.docs.find(dSnap => (dSnap.data() as any).isActive !== false);
+        if (doc0) {
+          const d: any = doc0.data();
           setEvent({
-            id: snap.docs[0].id,
+            id: doc0.id,
             ...d,
             date: d.date?.toDate?.() || new Date(d.date),
           });

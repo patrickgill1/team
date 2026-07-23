@@ -73,6 +73,12 @@ export async function runEventReminders(env: ReminderEnv): Promise<{
     const eid = ev.id;
     const data: any = ev.data || {};
 
+    // Skip soft-deleted (tombstoned) events — coach silently
+    // deleted them via handleDelete in EventDetail.tsx, so no
+    // push reminders should fire. Missing field is treated as
+    // active, so legacy events keep working.
+    if (data.isActive === false) continue;
+
     // Skip if we've already sent a reminder for this event.
     if (data.reminderSentAt) continue;
 

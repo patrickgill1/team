@@ -47,7 +47,12 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
       ));
       const recentAssignees: string[] = [];
       snap.forEach(d => {
-        const a = (d.data() as any)?.snackAssignment;
+        const data = d.data() as any;
+        // Skip soft-deleted (tombstoned) events so the "recent
+        // assignees" list doesn't shadow a player who was only
+        // ever assigned to something the coach silently deleted.
+        if (data?.isActive === false) return;
+        const a = data?.snackAssignment;
         if (a?.playerId && d.id !== eventId) recentAssignees.push(a.playerId);
       });
       const neverAssigned = roster.filter(r => !recentAssignees.includes(r.id));

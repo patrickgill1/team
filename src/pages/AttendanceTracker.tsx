@@ -133,7 +133,8 @@ const AttendanceTracker: React.FC = () => {
       const teamEvents = eventsData
         .filter((e: any) =>
           e.teamId === selectedTeamId &&
-          !e.isCancelled
+          !e.isCancelled &&
+          e.isActive !== false
         )
         .map((e: any) => ({
           ...e,

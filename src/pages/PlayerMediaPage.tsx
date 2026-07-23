@@ -279,7 +279,7 @@ const PlayerMediaPage: React.FC = () => {
         // list either.
         const photosWindowMs = 180 * 24 * 3600 * 1000;
         const teamEvents = (allEvents as any[])
-          .filter(e => e.teamId === selectedTeamId)
+          .filter(e => e.teamId === selectedTeamId && e.isActive !== false)
           .filter(e => e.type === 'game' || e.type === 'event')
           .map(e => {
             const d: Date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
@@ -295,7 +295,7 @@ const PlayerMediaPage: React.FC = () => {
           .sort((a, b) => b.date.getTime() - a.date.getTime());
         setAllTeamEvents(teamEvents);
         const games = (allEvents as any[])
-          .filter(e => e.teamId === selectedTeamId && e.type === 'game')
+          .filter(e => e.teamId === selectedTeamId && e.type === 'game' && e.isActive !== false)
           .map(e => {
             const d: Date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
             return { id: e.id, ts: d.getTime(), date: d, opponent: e.opponent || e.title || 'Game' };

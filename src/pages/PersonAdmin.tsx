@@ -200,7 +200,14 @@ const PersonAdmin: React.FC = () => {
             where('date', '>=', cutoff),
             orderBy('date', 'desc'),
           ));
-          evSnap.forEach(d => evChunks.push({ id: d.id, ...(d.data() as any) }));
+          evSnap.forEach(d => {
+            const data = d.data() as any;
+            // Skip soft-deleted (tombstoned) events — coach hid them
+            // silently and they shouldn't clutter the attendance
+            // window.
+            if (data.isActive === false) return;
+            evChunks.push({ id: d.id, ...data });
+          });
         }
         setEvents(evChunks);
       }

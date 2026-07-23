@@ -538,6 +538,10 @@ async function firstPerfectAttendanceSeason(
     for (const e of evs) {
       const d: any = e.data;
       if (d.isCancelled === true) continue;
+      // Soft-deleted (tombstoned) events must not count toward
+      // perfect-attendance XP — coach silently deleted them, so
+      // they shouldn't inflate a season's total-events denominator.
+      if (d.isActive === false) continue;
       const typ = String(d.type || '');
       if (typ !== 'game' && typ !== 'practice') continue;
       total += 1;

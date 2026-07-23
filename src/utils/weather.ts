@@ -2,13 +2,27 @@
 // 1. Geocode a free-text location string -> { lat, lon } (cached in sessionStorage).
 // 2. Fetch daily forecast and pick the closest day to the event date (only useful within ~16 days).
 
+// Stable icon-family name used by <WeatherIcon>. Kept as a small
+// hand-picked set so downstream callers don't drift into rendering
+// weather emoji directly (violates the "no emojis in UI code" rule).
+// If you need a new family, add it here AND to the WeatherIcon map.
+export type WeatherIconName =
+  | 'sun'
+  | 'cloud'
+  | 'cloud-rain'
+  | 'cloud-snow'
+  | 'zap'
+  | 'wind'
+  | 'cloud-fog';
+
 export interface WeatherSummary {
   tempMaxF: number;
   tempMinF: number;
-  precipChance: number; // 0-100
-  code: number;         // WMO weather code
-  icon: string;         // emoji
-  label: string;        // human readable
+  precipChance: number;    // 0-100
+  code: number;            // WMO weather code
+  icon: string;            // emoji — legacy; UI should prefer iconName
+  iconName: WeatherIconName;
+  label: string;           // human readable
 }
 
 interface GeoResult { lat: number; lon: number; name: string; }
@@ -85,19 +99,19 @@ export async function geocodeLocation(location: string): Promise<GeoResult | nul
   return null;
 }
 
-// WMO weather code -> emoji + label
-function describeCode(code: number): { icon: string; label: string } {
-  if (code === 0) return { icon: '☀️', label: 'Clear' };
-  if (code <= 2) return { icon: '🌤️', label: 'Mostly clear' };
-  if (code === 3) return { icon: '☁️', label: 'Cloudy' };
-  if (code >= 45 && code <= 48) return { icon: '🌫️', label: 'Fog' };
-  if (code >= 51 && code <= 57) return { icon: '🌦️', label: 'Drizzle' };
-  if (code >= 61 && code <= 67) return { icon: '🌧️', label: 'Rain' };
-  if (code >= 71 && code <= 77) return { icon: '🌨️', label: 'Snow' };
-  if (code >= 80 && code <= 82) return { icon: '🌧️', label: 'Showers' };
-  if (code >= 85 && code <= 86) return { icon: '🌨️', label: 'Snow showers' };
-  if (code >= 95) return { icon: '⛈️', label: 'Thunderstorm' };
-  return { icon: '🌡️', label: 'Weather' };
+// WMO weather code -> emoji (legacy) + iconName (lucide family) + label
+function describeCode(code: number): { icon: string; iconName: WeatherIconName; label: string } {
+  if (code === 0) return { icon: '☀️', iconName: 'sun', label: 'Clear' };
+  if (code <= 2) return { icon: '🌤️', iconName: 'sun', label: 'Mostly clear' };
+  if (code === 3) return { icon: '☁️', iconName: 'cloud', label: 'Cloudy' };
+  if (code >= 45 && code <= 48) return { icon: '🌫️', iconName: 'cloud-fog', label: 'Fog' };
+  if (code >= 51 && code <= 57) return { icon: '🌦️', iconName: 'cloud-rain', label: 'Drizzle' };
+  if (code >= 61 && code <= 67) return { icon: '🌧️', iconName: 'cloud-rain', label: 'Rain' };
+  if (code >= 71 && code <= 77) return { icon: '🌨️', iconName: 'cloud-snow', label: 'Snow' };
+  if (code >= 80 && code <= 82) return { icon: '🌧️', iconName: 'cloud-rain', label: 'Showers' };
+  if (code >= 85 && code <= 86) return { icon: '🌨️', iconName: 'cloud-snow', label: 'Snow showers' };
+  if (code >= 95) return { icon: '⛈️', iconName: 'zap', label: 'Thunderstorm' };
+  return { icon: '🌡️', iconName: 'wind', label: 'Weather' };
 }
 
 function ymd(d: Date): string {
@@ -168,13 +182,14 @@ export async function getWeatherForEvent(
   if (idx < 0) return null;
 
   const code = forecast.daily.weather_code?.[idx] ?? 0;
-  const { icon, label } = describeCode(code);
+  const { icon, iconName, label } = describeCode(code);
   return {
     tempMaxF: Math.round(forecast.daily.temperature_2m_max?.[idx] ?? 0),
     tempMinF: Math.round(forecast.daily.temperature_2m_min?.[idx] ?? 0),
     precipChance: Math.round(forecast.daily.precipitation_probability_max?.[idx] ?? 0),
     code,
     icon,
+    iconName,
     label,
   };
 }

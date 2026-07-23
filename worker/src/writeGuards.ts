@@ -2172,16 +2172,43 @@ async function handleEventsRsvp(req: Request, env: Env, payload: any): Promise<R
   const { pid, sa } = projectAndSA(env);
   const eventId = String(payload?.eventId || '');
   const status = String(payload?.status || '');
-  const name = String(payload?.name || claims.email || 'Unknown').slice(0, 100);
   const role = payload?.role ? String(payload.role).slice(0, 20) : undefined;
   if (!eventId) return json({ ok: false, error: 'event_id_required' }, 400);
   if (!['going', 'maybe', 'no'].includes(status)) {
     return json({ ok: false, error: 'invalid_status' }, 400);
   }
 
+  // Reason is only meaningful when the parent says they CAN'T make it.
+  // Sanitize + drop on any other status so a stale draft doesn't leak
+  // onto a "Going" entry. 300-char cap keeps this from being abused
+  // as a comment channel; it's a coach-only "why" note, not a chat.
+  let reason: string | undefined;
+  if (status === 'no' && typeof payload?.reason === 'string') {
+    const trimmed = payload.reason.trim().slice(0, 300);
+    if (trimmed) reason = trimmed;
+  }
+
+  // Backfill photoUrl + name from the caller's users doc at write time
+  // so the event card avatar stack has a snapshot to render without
+  // re-fetching users on every mount. `name` from payload wins for
+  // legacy compat (older clients send a name explicitly), but we fall
+  // back to the users doc, then claims.email, then 'Unknown'.
+  const userDoc = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+  const userData: any = userDoc?.data || {};
+  const name = String(
+    payload?.name || userData.name || claims.email || 'Unknown',
+  ).slice(0, 100);
+  const photoUrlRaw = userData.photoURL || userData.profilePhotoUrl || '';
+  const photoUrl = typeof photoUrlRaw === 'string' ? photoUrlRaw.slice(0, 2048) : '';
+
   for (let attempt = 0; attempt < 3; attempt++) {
     const ev = await getDocument(pid, `events/${eventId}`, sa).catch(() => null);
     if (!ev?.data) return json({ ok: false, error: 'event_not_found' }, 404);
+    // Soft-deleted events look "missing" to clients. A parent on a
+    // cached list can still fire an RSVP at a tombstoned event; treat
+    // it identically to "not found" so we don't reveal the tombstone
+    // and the client's 404-gone handling kicks in.
+    if (ev.data.isActive === false) return json({ ok: false, error: 'event_not_found' }, 404);
     const data: any = ev.data;
     const rsvpCap: number | undefined = typeof data.rsvpCap === 'number' && data.rsvpCap > 0
       ? Math.floor(data.rsvpCap)
@@ -2212,9 +2239,24 @@ async function handleEventsRsvp(req: Request, env: Env, payload: any): Promise<R
       filteredWaitlist.push({ uid: claims.uid, name, role, addedAt: now });
       waitlistPosition = filteredWaitlist.length;
     } else {
-      rsvps[claims.uid] = { status, name, ...(role ? { role } : {}), respondedAt: now };
+      // New object-shape snapshot: { status, photoUrl, name, reason?,
+      // updatedAt, respondedAt, role? }. respondedAt is kept alongside
+      // updatedAt for backward compat with older readers (attendance
+      // rollups, dashboards) that still key off it.
+      rsvps[claims.uid] = {
+        status,
+        name,
+        ...(photoUrl ? { photoUrl } : {}),
+        ...(role ? { role } : {}),
+        ...(reason ? { reason } : {}),
+        updatedAt: now,
+        respondedAt: now,
+      };
       // If the caller was previously 'going' and just released the
-      // slot, promote the first waitlisted person.
+      // slot, promote the first waitlisted person. The promoted entry
+      // doesn't get a fresh photoUrl backfill (we'd have to fetch
+      // their users doc mid-transaction) — the card falls back to a
+      // per-uid users lookup when photoUrl is missing.
       if (prevStatus === 'going' && status !== 'going' && filteredWaitlist.length > 0) {
         const head = filteredWaitlist.shift();
         if (head?.uid) {
@@ -2222,6 +2264,7 @@ async function handleEventsRsvp(req: Request, env: Env, payload: any): Promise<R
             status: 'going',
             name: head.name,
             ...(head.role ? { role: head.role } : {}),
+            updatedAt: now,
             respondedAt: now,
             promotedFromWaitlist: true,
           };

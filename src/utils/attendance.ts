@@ -37,6 +37,7 @@ export async function computeTeamAttendanceCounts(
     const past = allEvents
       .filter(e => allowed.has(e.type))
       .filter(e => !e.isCancelled)
+      .filter(e => e.isActive !== false)
       .map(e => ({
         ...e,
         dateMs: (e.date?.toDate?.() ?? new Date(e.date || 0)).getTime?.() || 0,
@@ -92,6 +93,7 @@ export async function computeTeamAttendancePercents(
     const past = allEvents
       .filter(e => allowed.has(e.type))
       .filter(e => !e.isCancelled)
+      .filter(e => e.isActive !== false)
       .map(e => ({
         ...e,
         dateMs: (e.date?.toDate?.() ?? new Date(e.date || 0)).getTime?.() || 0,
@@ -164,6 +166,7 @@ export async function computePlayerAttendance(
     const past = allEvents
       .filter(e => allowed.has(e.type))
       .filter(e => !e.isCancelled)
+      .filter(e => e.isActive !== false)
       .map(e => ({
         ...e,
         dateMs: (e.date?.toDate?.() ?? new Date(e.date || 0)).getTime?.() || 0,

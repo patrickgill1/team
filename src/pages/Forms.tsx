@@ -53,9 +53,9 @@ const Forms: React.FC = () => {
         .map(d => {
           const data: any = d.data();
           const dt = data.date?.toDate?.() || (data.date ? new Date(data.date) : null);
-          return { id: d.id, title: data.title || 'Untitled', date: dt, teamId: data.teamId };
+          return { id: d.id, title: data.title || 'Untitled', date: dt, teamId: data.teamId, isActive: data.isActive };
         })
-        .filter(e => e.date && e.date.getTime() > now - 24 * 60 * 60 * 1000)
+        .filter(e => e.date && e.date.getTime() > now - 24 * 60 * 60 * 1000 && (e as any).isActive !== false)
         .sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
       setUpcomingEvents(events);
     } catch (err) {

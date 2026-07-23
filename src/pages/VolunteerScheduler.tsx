@@ -75,7 +75,7 @@ const VolunteerScheduler: React.FC = () => {
       ]);
 
       const teamEvents = eventsData
-        .filter((e: any) => e.teamId === selectedTeamId)
+        .filter((e: any) => e.teamId === selectedTeamId && e.isActive !== false)
         .map((e: any) => ({
           ...e,
           date: e.date?.toDate ? e.date.toDate() : new Date(e.date || Date.now())

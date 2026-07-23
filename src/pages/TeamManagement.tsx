@@ -82,6 +82,17 @@ const TeamManagement: React.FC = () => {
   // Coach can toggle any time; disabling preserves existing xp +
   // badges (data is not nuked, just hidden until re-enabled).
   const [teamXpEnabled, setTeamXpEnabled] = useState<boolean>(false);
+  // Team Wall parent-post controls. Master toggle defaults OFF —
+  // coach opts in explicitly, then dials in the six sub-toggles.
+  // Sub-toggle defaults match the type-side defaults (approval on,
+  // ping-coach on, delete-own on, share/email/polls off).
+  const [teamWallAllowParent, setTeamWallAllowParent] = useState<boolean>(false);
+  const [teamWallRequireApproval, setTeamWallRequireApproval] = useState<boolean>(true);
+  const [teamWallNotifyCoach, setTeamWallNotifyCoach] = useState<boolean>(true);
+  const [teamWallAllowDelete, setTeamWallAllowDelete] = useState<boolean>(true);
+  const [teamWallAllowShare, setTeamWallAllowShare] = useState<boolean>(false);
+  const [teamWallAllowEmail, setTeamWallAllowEmail] = useState<boolean>(false);
+  const [teamWallAllowPolls, setTeamWallAllowPolls] = useState<boolean>(false);
 
   // Coach invite form
   // inviteEmail / inviteLevel / inviteLink / linkCopied state
@@ -268,6 +279,22 @@ const TeamManagement: React.FC = () => {
           enabledAt: (editingTeam as any).xpConfig?.enabledAt
             || (teamXpEnabled ? new Date() : undefined),
         },
+        // Wall parent-post config. Persist the full sub-toggle set
+        // whether the master is on or off so re-enabling later
+        // restores the coach's previous choices rather than
+        // resetting to defaults. enabledAt is stamped the first
+        // time the master flips on and preserved across cycles.
+        wallConfig: {
+          allowParentPosts: teamWallAllowParent,
+          requireCoachApproval: teamWallRequireApproval,
+          notifyCoach: teamWallNotifyCoach,
+          allowParentDelete: teamWallAllowDelete,
+          allowParentShare: teamWallAllowShare,
+          allowParentEmail: teamWallAllowEmail,
+          allowParentPolls: teamWallAllowPolls,
+          enabledAt: (editingTeam as any).wallConfig?.enabledAt
+            || (teamWallAllowParent ? new Date() : null),
+        },
       } as any);
       resetForm();
       setEditingTeam(null);
@@ -394,6 +421,17 @@ const TeamManagement: React.FC = () => {
     // to OFF; teams created after this ship default to ON via the
     // worker /teams/create endpoint.
     setTeamXpEnabled((team as any).xpConfig?.enabled === true);
+    // Wall parent-post controls. Legacy teams (undefined wallConfig)
+    // fall through to safe defaults: master off, approval + notify +
+    // delete-own on, share/email/polls off.
+    const wcfg = (team as any).wallConfig || {};
+    setTeamWallAllowParent(wcfg.allowParentPosts === true);
+    setTeamWallRequireApproval(wcfg.requireCoachApproval !== false);
+    setTeamWallNotifyCoach(wcfg.notifyCoach !== false);
+    setTeamWallAllowDelete(wcfg.allowParentDelete !== false);
+    setTeamWallAllowShare(wcfg.allowParentShare === true);
+    setTeamWallAllowEmail(wcfg.allowParentEmail === true);
+    setTeamWallAllowPolls(wcfg.allowParentPolls === true);
   };
 
   const handleOpenTransfer = async (team: Team) => {
@@ -496,6 +534,13 @@ const TeamManagement: React.FC = () => {
     setTeamEmailSections({ pastEvents: true, teamWall: true, potm: true, upcomingEvents: true });
     setTeamEmailMessage('');
     setTeamXpEnabled(false);
+    setTeamWallAllowParent(false);
+    setTeamWallRequireApproval(true);
+    setTeamWallNotifyCoach(true);
+    setTeamWallAllowDelete(true);
+    setTeamWallAllowShare(false);
+    setTeamWallAllowEmail(false);
+    setTeamWallAllowPolls(false);
     setEditingTeam(null);
   };
 
@@ -1064,6 +1109,122 @@ const TeamManagement: React.FC = () => {
                         </button>
                       </div>
                     )}
+                  </div>
+                  {/* Wall — Circle-post controls. Master toggle plus
+                      six sub-toggles that only render when the master
+                      is on. Copy uses Circle-first terminology
+                      (grandparents, aunts, uncles — anyone linked to a
+                      kid on the team, not just parents). Persistent
+                      reassurance footer sits at the bottom of the card
+                      so a coach reading the master toggle can see the
+                      "turn off any time" line without having to enable
+                      first. */}
+                  <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={teamWallAllowParent}
+                        onChange={(e) => setTeamWallAllowParent(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                      />
+                      <span className="flex-1">
+                        <span className="block text-sm font-bold text-ink-primary">Circle can post to the wall</span>
+                        <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                          Let the Circle share moments to your Team Wall themselves. Grandparents, aunts, uncles, anyone linked to a kid on the team.
+                        </span>
+                      </span>
+                    </label>
+                    {teamWallAllowParent && (
+                      <div className="mt-4 pl-7 space-y-4">
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={teamWallRequireApproval}
+                            onChange={(e) => setTeamWallRequireApproval(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                          />
+                          <span className="flex-1">
+                            <span className="block text-sm font-bold text-ink-primary">Coach approves before it goes live</span>
+                            <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                              Circle posts land in your queue first. You tap Approve to publish, or Decline to keep it off the wall. Recommended.
+                            </span>
+                          </span>
+                        </label>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={teamWallNotifyCoach}
+                            onChange={(e) => setTeamWallNotifyCoach(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                          />
+                          <span className="flex-1">
+                            <span className="block text-sm font-bold text-ink-primary">Ping me when they post</span>
+                            <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                              Push and email when someone in the Circle posts, so nothing sits in the queue for long.
+                            </span>
+                          </span>
+                        </label>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={teamWallAllowDelete}
+                            onChange={(e) => setTeamWallAllowDelete(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                          />
+                          <span className="flex-1">
+                            <span className="block text-sm font-bold text-ink-primary">Let them delete their own post</span>
+                            <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                              Someone in the Circle can take their own post down. You can still delete anything on the wall regardless.
+                            </span>
+                          </span>
+                        </label>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={teamWallAllowShare}
+                            onChange={(e) => setTeamWallAllowShare(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                          />
+                          <span className="flex-1">
+                            <span className="block text-sm font-bold text-ink-primary">Let them share their post outside the app</span>
+                            <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                              Turns on the Share action so their post can be sent to family or friends who don't have the app.
+                            </span>
+                          </span>
+                        </label>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={teamWallAllowEmail}
+                            onChange={(e) => setTeamWallAllowEmail(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                          />
+                          <span className="flex-1">
+                            <span className="block text-sm font-bold text-ink-primary">Email their posts to the team</span>
+                            <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                              Their post fans out to every family on this team. Off by default so the team inbox stays quiet.
+                            </span>
+                          </span>
+                        </label>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={teamWallAllowPolls}
+                            onChange={(e) => setTeamWallAllowPolls(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                          />
+                          <span className="flex-1">
+                            <span className="block text-sm font-bold text-ink-primary">Let them create polls</span>
+                            <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                              Poll editor shows up in their composer. Handy for ride shares and post-game dinner spots.
+                            </span>
+                          </span>
+                        </label>
+                      </div>
+                    )}
+                    <p className="mt-3 pt-3 border-t border-line-default/10 text-[10px] text-ink-primary/45 leading-snug">
+                      You can flip this off at any time. Existing posts stay on the wall.
+                    </p>
                   </div>
                   <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
                     <label className="flex items-start gap-3 cursor-pointer">

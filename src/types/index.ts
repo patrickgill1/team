@@ -2378,6 +2378,52 @@ export interface Team {
       kudosConvert?: boolean;
     };
   };
+  /** Team Wall parent-post controls. Coach owns the master switch:
+   *  parents can only compose to the Team Wall when
+   *  wallConfig.allowParentPosts === true. Absent / undefined = OFF
+   *  (existing teams stay quiet by default). Once on, the six
+   *  sub-toggles fine-tune what a parent can and cannot do with their
+   *  post. All defaults are chosen so the coach's inbox stays sane:
+   *  approval on, share/email/polls off, delete-own on, ping-coach on.
+   *
+   *  Read semantics: undefined field == default (see per-field notes).
+   *  Never read wallConfig directly at call sites — go through the
+   *  helper in src/utils/wallConfig.ts (added by the composer-slice
+   *  agent) so defaults resolve in one place. */
+  wallConfig?: {
+    /** Master toggle. When false or absent, the composer surface is
+     *  hidden for parents and rules deny parent CREATE. Coach posts
+     *  are unaffected. */
+    allowParentPosts: boolean;
+    /** When true (default), a parent post lands as status: 'pending'
+     *  and waits for the coach to approve or decline. When false,
+     *  parent posts go straight to status: 'live'. Coach posts are
+     *  never gated by this flag. */
+    requireCoachApproval: boolean;
+    /** When true (default), the coach gets a push + email as soon as
+     *  a parent submits a post — so approval doesn't rot in a queue. */
+    notifyCoach: boolean;
+    /** When true (default), a parent can delete their own post.
+     *  When false, only the coach can delete parent posts. Applies
+     *  to both pending and live posts. */
+    allowParentDelete: boolean;
+    /** When true, the parent composer surfaces the 'Share this post'
+     *  action that flips isPublic=true and mints the /wall/p/{id}
+     *  link. Off by default because most coaches don't want random
+     *  parents making team content world-readable. */
+    allowParentShare: boolean;
+    /** When true, the parent composer surfaces the 'Email to the
+     *  team' toggle that fans the post out to team parents. Off by
+     *  default to protect the coach's email-blast budget. */
+    allowParentEmail: boolean;
+    /** When true, the parent composer surfaces the poll editor.
+     *  Off by default. Coach polls are always on. */
+    allowParentPolls: boolean;
+    /** Stamped the first time the master toggle flips to on so the
+     *  coach can see 'Parents have been posting since Aug 12' later.
+     *  Preserved across on/off cycles. */
+    enabledAt?: Date | null;
+  };
   /** Coach control over the weekly email digest sent to parents.
    *  Coach picks day + which sections appear + optional custom
    *  message that leads the email. Undefined = fall back to the
@@ -2552,6 +2598,35 @@ export interface WallPost {
    *  pattern). Falls back to senderName initial if absent. */
   senderPhotoUrl?: string | null;
   senderRole?: 'coach' | 'parent' | 'admin' | 'player';
+  /** Who the composer says wrote this — 'coach' or 'parent'. Set by
+   *  the writer, mirrored on the doc so rules can key on it without
+   *  a user-doc lookup. Coach posts (including auto-posts) default
+   *  to 'coach'. Parent composer stamps 'parent'. Absent on legacy
+   *  posts; treated as 'coach' for backwards-compat renders. */
+  authorRole?: 'coach' | 'parent';
+  /** Duplicate of senderId, but stamped only on the parent path so
+   *  rules can distinguish 'parent authored this' without loading
+   *  a user doc. Absent on coach + legacy posts. */
+  authorUid?: string;
+  /** Approval state.
+   *   - 'live'     (default) — visible on the Team Wall.
+   *   - 'pending'  — parent submitted with requireCoachApproval on;
+   *                  waiting for the coach to approve or decline.
+   *                  Hidden from non-coach viewers.
+   *   - 'declined' — coach rejected the submission. Author still
+   *                  sees their own copy so they know what happened.
+   *  Absent on legacy posts; the wall query treats absence as 'live'
+   *  so nothing pre-existing is silently hidden. */
+  status?: 'live' | 'pending' | 'declined';
+  /** Date.now() stamped when a parent submits a pending post. Lets
+   *  the coach queue sort oldest-first (fairness) without touching
+   *  timestamp (which the wall render sorts by). */
+  submittedAt?: number | null;
+  /** Coach uid + name + timestamp of the approve/decline action.
+   *  Preserved across future edits so the coach queue can show
+   *  'Approved by Coach Pat, Aug 12'. */
+  decidedBy?: { uid: string; name: string } | null;
+  decidedAt?: number | null;
   timestamp: Date;
   /** Set when a post is edited — surface as "(edited)" beside the
    *  timestamp so parents know the author updated it. */

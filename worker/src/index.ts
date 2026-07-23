@@ -81,6 +81,7 @@ import {
   handleTripAttend,
   handleTripPublicInfo,
 } from './trips';
+import { handleWallParentPostNotify } from './wallPosts';
 
 export interface Env {
   // NOTIFY_SECRET is retained on the env for backwards compatibility
@@ -567,6 +568,20 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       let payload: any = {};
       try { payload = await req.json(); } catch {}
       const res = await handleTripPublicInfo(req, env, payload);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // ── Team Wall parent-post notify (2026-07-23) ────────────────
+    // Parents can't enumerate other users on their team via Firestore
+    // rules, so the coach-push + parent-email fanout for parent-authored
+    // posts has to run server-side. The wallPosts handler enforces its
+    // own author-uid / coach-uid gate before firing anything.
+    if (url.pathname === '/wall/notify-parent-post' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleWallParentPostNotify(req, env, payload);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

@@ -943,24 +943,161 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // The Wall — team-wide posts. Coach-create gated by sub.
+    // The Wall — team-wide posts.
+    //
+    // 2026-07-23 rework (parent-posts ship):
+    // CREATE splits into three branches so the coach path stays
+    // tight, auto-post writers keep working, and the new parent
+    // composer is gated by team.wallConfig without opening a
+    // free-for-all write hole.
+    //   1. Coach composer/auto-post: caller must be a coach on THIS
+    //      team (isTeamCoach) and clear the trial wall. authorRole
+    //      absent OR 'coach'. status absent OR 'live' (coach posts
+    //      are never queued).
+    //   2. Auto-post fired from a client action (video upload,
+    //      streak milestone, juggle PR, POTM). Distinguished by
+    //      postedFrom in the auto-post set — never 'wall'. Any
+    //      onTeam member can write these (a parent uploading a
+    //      video still fires autoPostVideoToWall). authorRole
+    //      absent so it doesn't collide with the parent-composer
+    //      path below.
+    //   3. Parent composer: caller is on the team, team.wallConfig
+    //      .allowParentPosts is true, doc carries authorRole
+    //      'parent' + authorUid == uid. If requireCoachApproval
+    //      (default true) the doc must land as status 'pending';
+    //      otherwise 'live'. Pending posts hide from non-coach
+    //      viewers via a client-side where-clause.
+    //
+    // UPDATE grows a coach-of-team branch so a coach can approve,
+    // decline, pin, or edit ANY post on their team (including the
+    // parent-authored ones). Author self-edit is preserved but a
+    // denylist keeps them from flipping identity/approval fields.
+    // Field-scoped everyone paths (reactions/viewedBy/poll voting)
+    // are unchanged.
+    //
+    // DELETE lets the coach delete anything on their team.
+    // Coach-authored / legacy posts remain author-deletable.
+    // Parent-authored posts are author-deletable only when
+    // wallConfig.allowParentDelete is true (default true).
     match /wall_posts/{postId} {
       allow read: if request.auth != null || resource.data.isPublic == true;
       allow create: if request.auth != null
         && request.resource.data.senderId == request.auth.uid
-        && canCoachWrite();
+        && (
+          // 1. Coach composer / coach-side auto-post. Platform admins
+          //    (isClubAdmin) are folded in so they can post on any
+          //    team, matching the pre-parent-posts behavior.
+          (
+            (isTeamCoach(request.resource.data.teamId) || isPlatformAdmin())
+            && canCoachWrite()
+            && request.resource.data.get('authorRole', 'coach') == 'coach'
+            && request.resource.data.get('status', 'live') == 'live'
+          )
+          // 2. Non-composer auto-post fired from a client action
+          //    (video upload, streak milestone, juggle PR, etc). Any
+          //    team member can write these because they piggyback on
+          //    an action the user just took in another surface.
+          //    'wall' is reserved for the composer paths.
+          //    postedFrom is a WHITELIST of known auto-post sources so
+          //    a team member can't forge a wall post by picking an
+          //    arbitrary non-'wall' string. Update this list when a
+          //    new auto-post surface ships (mirrors the union in
+          //    src/utils/autoPostToWall.ts).
+          || (
+            onTeam(request.resource.data.teamId)
+            && request.resource.data.postedFrom in [
+              'game', 'video', 'potm', 'devplan', 'juggle'
+            ]
+            && !('authorRole' in request.resource.data)
+          )
+          // 3. Parent composer path — wallConfig-gated. Parents cannot
+          //    self-pin, self-publish, or bypass allowParentPolls; the
+          //    share button flips isPublic later via update, so
+          //    initial create is always isPublic:false.
+          || (
+            onTeam(request.resource.data.teamId)
+            && request.resource.data.authorRole == 'parent'
+            && request.resource.data.authorUid == request.auth.uid
+            && get(/databases/$(database)/documents/teams/$(request.resource.data.teamId))
+                 .data.get('wallConfig', {}).get('allowParentPosts', false) == true
+            && (
+              (
+                get(/databases/$(database)/documents/teams/$(request.resource.data.teamId))
+                  .data.get('wallConfig', {}).get('requireCoachApproval', true) == true
+                && request.resource.data.status == 'pending'
+              )
+              || (
+                get(/databases/$(database)/documents/teams/$(request.resource.data.teamId))
+                  .data.get('wallConfig', {}).get('requireCoachApproval', true) == false
+                && request.resource.data.status == 'live'
+              )
+            )
+            // wallPinnedTop is coach-only; parent-created posts start
+            // unpinned.
+            && request.resource.data.get('wallPinnedTop', null) == null
+            // isPublic starts false regardless of allowParentShare —
+            // the share button flips it on-share via update.
+            && request.resource.data.get('isPublic', false) == false
+            // Poll gated on wallConfig.allowParentPolls (default false).
+            && (
+              get(/databases/$(database)/documents/teams/$(request.resource.data.teamId))
+                .data.get('wallConfig', {}).get('allowParentPolls', false) == true
+              || !('poll' in request.resource.data)
+            )
+          )
+        );
       allow update: if request.auth != null
-        && (resource.data.senderId == request.auth.uid
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
-            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
-            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy'])
-            // Poll voting (2026-07-10): any signed-in reader can toggle
-            // their vote on a wall poll. Field-scoped so non-poll edits
-            // stay locked to the author.
-            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['poll']));
+        && (
+          // Field-scoped everyone paths (unchanged).
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy'])
+          // Poll voting (2026-07-10): any signed-in reader can toggle
+          // their vote on a wall poll. Field-scoped so non-poll edits
+          // stay locked to the author.
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['poll'])
+          // Coach on the post's team can approve/decline (status +
+          // decidedBy + decidedAt), pin, edit content, share, etc.
+          // Denylist blocks identity/team/authorship fields so even a
+          // legit coach can't rewrite who a post came from and lose
+          // the audit trail. New 2026-07-23.
+          || (
+            isTeamCoach(resource.data.teamId)
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'senderId', 'authorUid', 'senderName', 'senderPhotoUrl',
+              'teamId', 'authorRole', 'submittedAt', 'postedFrom'
+            ])
+          )
+          // Platform admin can edit any post (unchanged).
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
+          // Author self-edit — denylist blocks identity/team/approval
+          // field flips so a parent can't self-approve a pending post,
+          // self-pin, self-publish, or hijack authorship.
+          || (
+            resource.data.senderId == request.auth.uid
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'senderId', 'teamId', 'authorRole', 'authorUid',
+              'status', 'submittedAt', 'decidedBy', 'decidedAt',
+              'wallPinnedTop', 'isPublic', 'emailedAt', 'postedFrom'
+            ])
+          )
+        );
       allow delete: if request.auth != null
-        && (resource.data.senderId == request.auth.uid
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);
+        && (
+          // Coach on this team can delete any post on it.
+          isTeamCoach(resource.data.teamId)
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
+          // Author self-delete — coach/legacy authors always OK.
+          // Parent authors gated on team.wallConfig.allowParentDelete
+          // (default true so existing parent posts stay deletable).
+          || (
+            resource.data.senderId == request.auth.uid
+            && (
+              resource.data.get('authorRole', 'coach') != 'parent'
+              || get(/databases/$(database)/documents/teams/$(resource.data.teamId))
+                   .data.get('wallConfig', {}).get('allowParentDelete', true) == true
+            )
+          )
+        );
     }
 
     match /wall_comments/{commentId} {

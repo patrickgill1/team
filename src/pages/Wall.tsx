@@ -136,10 +136,33 @@ const Wall: React.FC = () => {
     return () => window.clearTimeout(t);
   }, [ready]);
   const canManage = userData ? (isCoachOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin) : false;
-  // Coaches + club admins author wall posts. The wall is its own
-  // collection now (wall_posts) — completely independent from chat.
-  // Markdown source lives here, never leaks into a chat thread.
-  const canPost = canManage;
+  // Team-level wall config controls whether parents (Circle members)
+  // can post, whether coach approval is required, and what side
+  // features (polls, share, email, delete) are unlocked for them.
+  // Config lives on the team doc as team.wallConfig; missing = all
+  // off (coach-only wall, prior behavior). Owned by the settings
+  // agent — we only READ it here.
+  const wallConfig = (selectedTeam as any)?.wallConfig || {};
+  const allowParentPosts: boolean = !!wallConfig.allowParentPosts;
+  // requireCoachApproval defaults to TRUE (matches firestore rules +
+  // type default + TeamManagement default). Absent field is NOT the
+  // same as false — coach must explicitly opt out of approval.
+  const requireCoachApproval: boolean = wallConfig.requireCoachApproval !== false;
+  const allowParentPolls: boolean = !!wallConfig.allowParentPolls;
+  const allowParentShare: boolean = !!wallConfig.allowParentShare;
+  const allowParentEmail: boolean = !!wallConfig.allowParentEmail;
+  const allowParentDelete: boolean = !!wallConfig.allowParentDelete;
+  // Coaches + club admins post as before. Parents (Circle members)
+  // post when the coach has opened the wall up to Circle authoring.
+  const canPostAsParent = !canManage && allowParentPosts;
+  const canPost = canManage || canPostAsParent;
+  // Polls: coaches always. Parents only when the coach has unlocked
+  // polls for the Circle. Drives the "Add a poll" toggle visibility
+  // in the composer.
+  const canAddPoll = canManage || (canPostAsParent && allowParentPolls);
+  // Email blast: coach unlimited. Parent only when allowed for the
+  // Circle. Drives the "Also email" toggle visibility in the composer.
+  const canEmailBlast = canManage || (canPostAsParent && allowParentEmail);
   const [composer, setComposer] = useState('');
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const [composerAttachments, setComposerAttachments] = useState<Array<{ url: string; name: string; type: string }>>([]);
@@ -248,6 +271,11 @@ const Wall: React.FC = () => {
   // store the raw markdown text. We convert markdown → HTML on the
   // way in so old posts open cleanly in the rich editor.
   const openEdit = (post: WallPost) => {
+    // Coaches + club admins can edit ANY post on their team (including
+    // parent-authored ones — content updates only, author identity is
+    // preserved in handlePost's edit branch). Parents editing their
+    // own post is not exposed today; the coach-approval flow governs
+    // the parent contribution instead.
     if (!canManage) return;
     setEditingPostId(post.id);
     const raw = post.content || '';
@@ -681,13 +709,68 @@ const Wall: React.FC = () => {
   // longer live in chat — removing from the wall means deleting the
   // wall_posts doc outright.
   const removePost = async (post: WallPost) => {
-    if (!canManage) return;
+    // Coach + admin can always delete. A parent can delete their own
+    // post only when the coach has unlocked "let Circle members
+    // delete their own posts" for the team.
+    const isOwn = !!userData?.uid && post.senderId === userData.uid;
+    const parentAuthored = ((post as any).authorRole === 'parent') || post.senderRole === 'parent' || post.senderRole === 'player';
+    const parentCanDeleteOwn = isOwn && parentAuthored && allowParentDelete;
+    if (!canManage && !parentCanDeleteOwn) return;
     if (!window.confirm('Delete this post? This cannot be undone.')) return;
     try {
       await deleteDoc(doc(db, 'wall_posts', post.id));
     } catch (err) {
       console.error('wall delete failed', err);
       alert('Failed to delete — try again.');
+    }
+  };
+
+  // Approve a pending parent-authored post — flips status to 'live'
+  // so it drops out of the review card and lands in the main feed.
+  // decidedBy + decidedAt preserve the audit trail. Fan-out (push /
+  // email) on approval is owned by the notify agent; we only flip
+  // the visibility bit here.
+  const approvePending = async (post: WallPost) => {
+    if (!canManage || !userData?.uid) return;
+    try {
+      await updateDoc(doc(db, 'wall_posts', post.id), {
+        status: 'live',
+        decidedBy: { uid: userData.uid, name: userData.name || 'Coach' },
+        decidedAt: Date.now(),
+      });
+      // Kick the worker so the delayed email fanout can go out
+      // (parents excluded from the client push path — /wall/notify-
+      // parent-post owns approval-time fanout). Fire-and-forget; the
+      // worker handler decides whether to email based on team config.
+      try {
+        const { workerFetch } = await import('../utils/workerFetch');
+        void workerFetch('/wall/notify-parent-post', {
+          method: 'POST',
+          body: JSON.stringify({ postId: post.id, event: 'approved' }),
+        });
+      } catch (e) { console.warn('wall approve notify failed', e); }
+    } catch (err) {
+      console.error('wall approve failed', err);
+      alert("Couldn't approve. Try again.");
+    }
+  };
+
+  // Decline a pending parent post. We flip status to 'declined' (not
+  // delete) so the author's contribution isn't wiped from history —
+  // the coach may want to reference it later, and the parent's client
+  // can eventually surface "your post wasn't published".
+  const declinePending = async (post: WallPost) => {
+    if (!canManage || !userData?.uid) return;
+    if (!window.confirm("Decline this post? It won't show up on the wall.")) return;
+    try {
+      await updateDoc(doc(db, 'wall_posts', post.id), {
+        status: 'declined',
+        decidedBy: { uid: userData.uid, name: userData.name || 'Coach' },
+        decidedAt: Date.now(),
+      });
+    } catch (err) {
+      console.error('wall decline failed', err);
+      alert("Couldn't decline. Try again.");
     }
   };
 
@@ -704,21 +787,48 @@ const Wall: React.FC = () => {
     const content = composer.trim();
     const plainText = htmlToPlainText(content);
     const hasImage = /<img\s/i.test(content);
-    const hasPoll = pollOn && pollQuestion.trim().length > 0 && pollOptions.filter(o => o.trim()).length >= 2;
+    // canAddPoll re-checked at submit so a parent whose Circle-poll
+    // permission is revoked between composer open and Post doesn't
+    // sneak a poll through.
+    const hasPoll = pollOn && canAddPoll && pollQuestion.trim().length > 0 && pollOptions.filter(o => o.trim()).length >= 2;
     if ((!plainText && !hasImage && composerAttachments.length === 0 && !hasPoll) || !userData || !selectedTeamId || posting) return;
     setPosting(true);
     setPostError(null);
     let newPostId: string | null = null;
+    let wasPending = false;
+    // Was this a parent (Circle) author create? Drives the notify
+    // path: parents can't enumerate the team so the worker owns push
+    // + email fanout (/wall/notify-parent-post). Coach create still
+    // uses the client sendPushToTeam path below.
+    let wasParentCreate = false;
+    // Coaches can now edit ANY post on their team (including a
+    // parent-authored Circle post). When they edit someone else's
+    // post we preserve author identity — the header still reads
+    // "posted by parent name" — and stamp editedBy so the audit
+    // trail records the coach who edited.
+    const editingPost = editingPostId ? posts.find(p => p.id === editingPostId) : null;
+    const editingSomeoneElse = !!(editingPost && editingPost.senderId && editingPost.senderId !== userData.uid);
     try {
       if (editingPostId) {
         await updateDoc(doc(db, 'wall_posts', editingPostId), {
           content,
           contentFormat: 'tiptap-html',
-          senderName: userData.name || 'Coach',
-          senderPhotoUrl: userPhotoUrl,
+          // Only refresh the avatar snapshot when the AUTHOR is
+          // editing their own post. When a coach edits a parent's
+          // post the parent's name + photo stay intact.
+          ...(editingSomeoneElse
+            ? {}
+            : {
+                senderName: userData.name || 'Coach',
+                senderPhotoUrl: userPhotoUrl,
+              }),
           attachments: composerAttachments.length > 0 ? composerAttachments : null,
           category: composerCategory,
           editedAt: Date.now(),
+          // Only stamp editedBy when a different user is editing.
+          // Author-editing-own-post keeps the original identity fields
+          // and doesn't need the audit line.
+          ...(editingSomeoneElse ? { editedBy: userData.uid } : {}),
           // Poll handling on edit:
           // - existingPoll + removeExistingPoll → wipe the poll
           // - existingPoll + !removeExistingPoll → don't touch field
@@ -741,6 +851,20 @@ const Wall: React.FC = () => {
               : {}),
         });
       } else {
+        // Post branching:
+        //   Coach / admin author → authorRole 'coach', status 'live'.
+        //   Parent author on wall with requireCoachApproval → status
+        //     'pending' (surfaces in the coach review card, hidden
+        //     from the feed until approved). Otherwise 'live'.
+        // authorRole is the durable audit field ('parent' means it
+        // came from a Circle member); senderRole mirrors it for the
+        // renderer + legacy consumers.
+        const asCoach = isCoachOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin;
+        const roleValue = asCoach ? 'coach' : resolveSenderRole(userData);
+        const authorRole = asCoach ? 'coach' : 'parent';
+        const status: 'live' | 'pending' = (!asCoach && requireCoachApproval) ? 'pending' : 'live';
+        wasPending = status === 'pending';
+        wasParentCreate = authorRole === 'parent';
         const newRef = await addDoc(collection(db, 'wall_posts'), {
           teamId: selectedTeamId,
           content,
@@ -748,9 +872,20 @@ const Wall: React.FC = () => {
           senderId: userData.uid,
           senderName: userData.name || 'Coach',
           senderPhotoUrl: userPhotoUrl,
-          senderRole: (isCoachOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin)
-            ? 'coach'
-            : resolveSenderRole(userData),
+          senderRole: roleValue,
+          authorRole,
+          // authorUid required by rules on the parent branch — must
+          // equal request.auth.uid or the CREATE is rejected as
+          // permission-denied. Coach posts stamp it too for a uniform
+          // audit trail.
+          authorUid: userData.uid,
+          status,
+          // Parents get a submittedAt so the coach queue can sort
+          // oldest-first (fairness). Coach posts skip it — they don't
+          // route through the review queue.
+          ...(authorRole === 'parent' && status === 'pending'
+            ? { submittedAt: Date.now() }
+            : {}),
           timestamp: new Date(),
           attachments: composerAttachments.length > 0 ? composerAttachments : null,
           reactions: [],
@@ -759,10 +894,11 @@ const Wall: React.FC = () => {
           isPublic: false,
           category: composerCategory,
           editedAt: null,
-          // Only attach a poll if the composer has it ON, a question,
-          // and at least 2 non-empty options. Each option gets a stable
-          // id so vote-toggle updates land on the right one.
-          ...(pollOn && pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2
+          // Only attach a poll if hasPoll passed (which now also
+          // re-checks canAddPoll — parents whose Circle-poll permission
+          // is off never write a poll payload, even if the toggle was
+          // left on locally).
+          ...(hasPoll
             ? {
                 poll: {
                   question: pollQuestion.trim(),
@@ -787,9 +923,29 @@ const Wall: React.FC = () => {
       setEditingPostId(null);
       try { localStorage.removeItem(draftKey(selectedTeamId)); } catch { /* ignore */ }
       setDraftStatus('idle');
-      // Push only fires on NEW posts. Edits silently update — parents
-      // already got pinged on the original.
-      if (!wasEdit) {
+      // Push only fires on NEW posts that go straight to the feed.
+      // Edits silently update — parents already got pinged on the
+      // original. Pending posts (parent post waiting on coach review)
+      // stay quiet on the client push path; the worker /wall/notify-
+      // parent-post endpoint handles the coach heads-up + delayed
+      // parent email fanout when the post flips to live.
+      if (!wasEdit && wasParentCreate && newPostId) {
+        // Parent create — worker owns fanout (parents can't
+        // enumerate other users on the team, so we can't do it here).
+        // Fire-and-forget: the worker decides push vs email based on
+        // team.wallConfig + post status.
+        try {
+          const { workerFetch } = await import('../utils/workerFetch');
+          void workerFetch('/wall/notify-parent-post', {
+            method: 'POST',
+            body: JSON.stringify({
+              postId: newPostId,
+              teamId: selectedTeamId,
+              hasPoll,
+            }),
+          });
+        } catch (e) { console.warn('wall notify-parent-post failed', e); }
+      } else if (!wasEdit && !wasPending) {
         try {
           const { sendPushToTeam } = await import('../utils/notify');
           void sendPushToTeam(
@@ -807,8 +963,11 @@ const Wall: React.FC = () => {
         // explicitly opted in via the composer toggle. Poll posts
         // get a 'Vote in the poll' button deep-linked back to the
         // public wall post URL so a recipient can vote without
-        // logging in.
-        if (emailBlast && newPostId) {
+        // logging in. Belt-and-suspenders re-check on canEmailBlast
+        // so a parent whose Circle-email permission was revoked
+        // between opening the composer and hitting Post doesn't
+        // accidentally blast the roster.
+        if (emailBlast && canEmailBlast && newPostId) {
           try {
             const { tplWallPost, sendEmailToTeam } = await import('../utils/notify');
             const { wallPostShareUrl } = await import('./PublicWallPost');
@@ -859,10 +1018,21 @@ const Wall: React.FC = () => {
   // First click: makes the post public + copies link. Subsequent clicks
   // copy again (and re-share if it had been turned off).
   const shareToWeb = async (post: WallPost) => {
-    if (!canManage) return;
+    // Coach + admin can always share. Any viewer can share a parent-
+    // authored LIVE post when the coach has unlocked share for the
+    // Circle. Non-authors don't have write permission to flip
+    // isPublic, so we only attempt the flip when the caller can
+    // actually do it (owner of the post or coach).
+    const isOwn = !!userData?.uid && post.senderId === userData.uid;
+    const parentAuthored = ((post as any).authorRole === 'parent') || post.senderRole === 'parent' || post.senderRole === 'player';
+    const isLivePost = !(post as any).status || (post as any).status === 'live';
+    const canShareAny = canManage
+      || (parentAuthored && allowParentShare && isLivePost);
+    if (!canShareAny) return;
+    const canFlipPublic = canManage || (isOwn && parentAuthored && allowParentShare);
     try {
       const isPublicNow = !!(post as any).isPublic;
-      if (!isPublicNow) {
+      if (!isPublicNow && canFlipPublic) {
         await updateDoc(doc(db, 'wall_posts', post.id), { isPublic: true });
       }
       const { wallPostShareUrl } = await import('./PublicWallPost');
@@ -1088,15 +1258,37 @@ const Wall: React.FC = () => {
     return r.url;
   };
 
+  // Pending + declined posts are pulled out of the main feed. A
+  // pending post lives in the coach's review card (approve / decline)
+  // until the coach makes a call; a declined post stays in the doc
+  // history but never shows up in the feed. Absent status is treated
+  // as 'live' so the tens of thousands of pre-approval posts already
+  // in Firestore keep rendering.
+  const isFeedVisible = (p: WallPost) => {
+    const s = (p as any).status;
+    if (!s || s === 'live') return true;
+    // Author-visibility for declined posts: the original author sees
+    // their own declined post with a "Declined" chip so it doesn't
+    // silently vanish on them. Coach + everyone else stays hidden —
+    // declined posts never fan out to the wider feed.
+    if (s === 'declined' && !!userData?.uid && p.senderId === userData.uid) return true;
+    return false;
+  };
+  const pendingPosts = posts.filter(p => (p as any).status === 'pending');
+  const myPendingCount = userData?.uid
+    ? pendingPosts.filter(p => p.senderId === userData.uid).length
+    : 0;
+
   // Filter feed by selected Wall tab. Filters are provenance + content
   // based rather than category-based because that's how people think
   // about the wall ("show me the recaps" not "show me category=result").
-  //   feed    → everything
+  //   feed    → everything (live only)
   //   media   → posts with attachments (photo/video)
   //   recaps  → game-recap auto-posts (postedFrom='game')
   //   awards  → POTM / juggle PR / dev-plan-complete auto-posts
   //   news    → manual coach posts (postedFrom='wall' or absent)
   const filteredPosts = posts.filter(p => {
+    if (!isFeedVisible(p)) return false;
     if (activeCategory === 'feed') return true;
     if (activeCategory === 'media') {
       return Array.isArray(p.attachments) && p.attachments.length > 0;
@@ -1253,7 +1445,13 @@ const Wall: React.FC = () => {
                   2. Editing a post with no poll OR creating a new post
                      → the normal editor (toggle + question + options).
                   3. Edit mode + 'remove' chosen → confirmation card
-                     with an undo link before save commits. */}
+                     with an undo link before save commits.
+                  Gated on canAddPoll — coaches always, parents only
+                  when the coach has unlocked polls for the Circle.
+                  Existing-poll edits still render for coach edit even
+                  when the toggle is off, so a coach can remove a
+                  parent's poll from an approved post. */}
+              {(canAddPoll || existingPoll) && (
               <div className="mt-4 rounded-xl ring-1 ring-line-default/10 bg-line-default/[0.04] px-3 py-3">
                 {existingPoll && !removeExistingPoll ? (
                   <>
@@ -1372,13 +1570,15 @@ const Wall: React.FC = () => {
                 </>
                 )}
               </div>
+              )}
 
               {/* Email blast toggle. Off by default so the wall
                   stays cheap; coaches opt in when a post
                   warrants reaching parents who don't open the
                   app. Hidden during edits since edits don't
-                  re-send. */}
-              {!editingPostId && (
+                  re-send. Hidden for parent authors unless the
+                  coach has unlocked email-blast for the Circle. */}
+              {!editingPostId && canEmailBlast && (
                 <div className="mt-2 rounded-2xl ring-1 ring-line-default/10 bg-surface-elevated/70 px-4 py-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
@@ -1442,6 +1642,97 @@ const Wall: React.FC = () => {
             button "gets in the way of the three dots and obstructs it
             in other ways". Sticky pill is always visible without
             overlaying any post content.) */}
+
+        {/* Parent "Waiting for coach" strip — surfaces the parent's
+            own pending post so they know the coach received it and
+            hasn't blessed it yet. Sits near the top of the feed so
+            they don't wonder "did my post go through?". Hidden from
+            coaches — they have the review card below instead. */}
+        {!canManage && myPendingCount > 0 && (
+          <div className="mx-4 sm:mx-0 mb-1 rounded-2xl bg-brand-primary/10 ring-1 ring-brand-primary/25 px-4 py-3 flex items-center gap-3">
+            <svg className="w-4 h-4 text-brand-primary shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 15 14" />
+            </svg>
+            <div className="min-w-0">
+              <p className="text-[13px] font-bold text-ink-primary leading-snug">
+                {myPendingCount === 1 ? 'Your post is with the coach' : `${myPendingCount} of your posts are with the coach`}
+              </p>
+              <p className="text-[11.5px] text-ink-primary/60 mt-0.5 leading-snug">
+                We saved it for coach review. It shows up on the wall once they give the nod.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Coach review card — a compact tray of pending Circle
+            posts that need an approve/decline call before they
+            land in the feed. Coach-only. Hidden entirely when the
+            team has no pending posts. */}
+        {canManage && pendingPosts.length > 0 && (
+          <div className="mx-4 sm:mx-0 mb-2 rounded-2xl bg-surface-elevated ring-1 ring-brand-primary/25 overflow-hidden shadow-sm">
+            <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-2.5 flex items-center gap-2">
+              <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-brand-primary-soft flex-1">
+                Awaiting your review ({pendingPosts.length})
+              </p>
+            </div>
+            <ul className="divide-y divide-line-default/10">
+              {pendingPosts.map((pp) => {
+                const snippet = htmlToPlainText(pp.content || '').slice(0, 140);
+                return (
+                  <li key={pp.id} className="px-4 py-3 flex items-start gap-3">
+                    <PostAvatar
+                      photoUrl={pp.senderPhotoUrl || null}
+                      name={pp.senderName}
+                      size="sm"
+                      variant="parent"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13.5px] font-bold text-ink-primary truncate">{pp.senderName}</span>
+                        <span className="text-[11px] text-ink-primary/50">
+                          {pp.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      {snippet && (
+                        <p className="text-[13px] text-ink-primary/80 mt-1 leading-snug line-clamp-2 break-words">
+                          {snippet}
+                        </p>
+                      )}
+                      {pp.poll && (
+                        <p className="text-[11px] text-ink-primary/55 mt-1 italic">Includes a poll: {pp.poll.question}</p>
+                      )}
+                      {Array.isArray(pp.attachments) && pp.attachments.length > 0 && (
+                        <p className="text-[11px] text-ink-primary/55 mt-1 italic">
+                          {pp.attachments.length} {pp.attachments.length === 1 ? 'attachment' : 'attachments'}
+                        </p>
+                      )}
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void approvePending(pp)}
+                          className="min-h-11 px-3 py-2.5 rounded-full text-[12px] font-extrabold uppercase tracking-widest bg-brand-primary hover:bg-brand-primary/150 text-white transition active:scale-95"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void declinePending(pp)}
+                          className="min-h-11 px-3 py-2.5 rounded-full text-[12px] font-extrabold uppercase tracking-widest text-ink-primary/70 ring-1 ring-line-default/20 hover:bg-line-default/[0.08] transition active:scale-95"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         {!ready ? (
           // Atomic render: empty silence while we wait. Slim crimson
@@ -1518,6 +1809,26 @@ const Wall: React.FC = () => {
               const viewedByMap = ((p as any).viewedBy || {}) as Record<string, unknown>;
               const seenCount = Object.keys(viewedByMap).length;
               const canSeeSeen = !!myUid && (myUid === p.senderId || canManage);
+              // Circle post gates — computed per-post so we can key
+              // the share button + manage sheet visibility off them.
+              const isMinePost = !!myUid && p.senderId === myUid;
+              const parentAuthoredPost = ((p as any).authorRole === 'parent')
+                || p.senderRole === 'parent'
+                || p.senderRole === 'player';
+              // Share is a viewer-visible action on parent-authored
+              // LIVE posts when the coach has opened share to the
+              // Circle — any parent/coach/kid can grab the link.
+              // Pending/declined posts never surface a share button.
+              const isLivePost = !(p as any).status || (p as any).status === 'live';
+              const canShareThisPost = canManage
+                || (parentAuthoredPost && allowParentShare && isLivePost);
+              const canDeleteThisPost = canManage
+                || (isMinePost && parentAuthoredPost && allowParentDelete);
+              // Manage sheet is the coach's action hub (pin / email /
+              // edit / delete). For a parent viewing their OWN post
+              // it opens as a lightweight delete-only sheet when the
+              // coach has unlocked delete for the Circle.
+              const canOpenManageSheet = canManage || canDeleteThisPost;
               return (
                 <li
                   key={p.id}
@@ -1548,6 +1859,23 @@ const Wall: React.FC = () => {
                         )}
                         {p.senderRole === 'player' && (
                           <span className="text-[9px] font-extrabold uppercase tracking-widest text-amber-300 bg-amber-500/15 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">Player</span>
+                        )}
+                        {/* Circle chip: a parent-authored post that
+                            passed coach approval (or didn't need it).
+                            authorRole is the durable audit field —
+                            surfaced next to the name so parents feel
+                            represented in the Team Wall as more than
+                            silent readers. */}
+                        {(p as any).authorRole === 'parent' && (!(p as any).status || (p as any).status === 'live') && (
+                          <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-primary bg-brand-primary/15 ring-1 ring-brand-primary/30 px-1.5 py-0.5 rounded">Circle</span>
+                        )}
+                        {(p as any).status === 'declined' && p.senderId === userData?.uid && (
+                          <span
+                            className="text-[9px] font-extrabold uppercase tracking-widest text-rose-300 bg-rose-500/15 ring-1 ring-rose-400/30 px-1.5 py-0.5 rounded"
+                            title="Coach declined this post — only you can see it."
+                          >
+                            Declined
+                          </span>
                         )}
                       </div>
                       <div className="text-[12px] text-ink-primary/50 mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -1732,17 +2060,19 @@ const Wall: React.FC = () => {
                       </svg>
                       Comment
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => shareToWeb(p)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest active:scale-95 ${
-                        (p as any).isPublic ? 'text-emerald-300 hover:text-emerald-200' : 'text-ink-primary/80 hover:text-ink-primary'
-                      }`}
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                      Share
-                    </button>
-                    {canManage && (
+                    {canShareThisPost && (
+                      <button
+                        type="button"
+                        onClick={() => shareToWeb(p)}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest active:scale-95 ${
+                          (p as any).isPublic ? 'text-emerald-300 hover:text-emerald-200' : 'text-ink-primary/80 hover:text-ink-primary'
+                        }`}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                        Share
+                      </button>
+                    )}
+                    {canOpenManageSheet && (
                       <button
                         type="button"
                         onClick={() => setManagePostId(p.id)}
@@ -2020,6 +2350,15 @@ const Wall: React.FC = () => {
         const target = posts.find(p => p.id === managePostId);
         if (!target) return null;
         const isPinned = !!target.wallPinnedTop;
+        // Sheet content is role-aware. Coaches see the full action
+        // set (pin / email / edit / delete). A parent viewing their
+        // OWN post — when the coach has unlocked Circle deletes —
+        // sees a delete-only sheet.
+        const targetIsMine = !!userData?.uid && target.senderId === userData.uid;
+        const targetParentAuthored = ((target as any).authorRole === 'parent')
+          || target.senderRole === 'parent'
+          || target.senderRole === 'player';
+        const targetParentCanDelete = targetIsMine && targetParentAuthored && allowParentDelete;
         return (
           <div
             className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
@@ -2042,68 +2381,76 @@ const Wall: React.FC = () => {
                 </button>
               </div>
               <ul className="divide-y divide-slate-100">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => { void togglePinTop(target); setManagePostId(null); }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-line-default/[0.05] active:bg-line-default/[0.1]"
-                  >
-                    <svg className="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <line x1="12" y1="17" x2="12" y2="22" />
-                      <path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z" />
-                    </svg>
-                    <span className="text-[15px] font-bold text-ink-primary">{isPinned ? 'Unpin from top' : 'Pin to top'}</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => { setManagePostId(null); void emailExistingPost(target); }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-line-default/[0.05] active:bg-line-default/[0.1]"
-                  >
-                    <svg className="w-5 h-5 text-sky-300 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                      <polyline points="22,6 12,13 2,6" />
-                    </svg>
-                    <div className="flex-1">
-                      <span className="text-[15px] font-bold text-ink-primary block">
-                        {target.emailedAt ? 'Resend email' : 'Email to team'}
-                      </span>
-                      {target.emailedAt && (
-                        <span className="text-[11px] text-ink-primary/55 block mt-0.5">
-                          Last sent {fmtRelativeShort(target.emailedAt)}
+                {canManage && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => { void togglePinTop(target); setManagePostId(null); }}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-line-default/[0.05] active:bg-line-default/[0.1]"
+                    >
+                      <svg className="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <line x1="12" y1="17" x2="12" y2="22" />
+                        <path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z" />
+                      </svg>
+                      <span className="text-[15px] font-bold text-ink-primary">{isPinned ? 'Unpin from top' : 'Pin to top'}</span>
+                    </button>
+                  </li>
+                )}
+                {canManage && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => { setManagePostId(null); void emailExistingPost(target); }}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-line-default/[0.05] active:bg-line-default/[0.1]"
+                    >
+                      <svg className="w-5 h-5 text-sky-300 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                        <polyline points="22,6 12,13 2,6" />
+                      </svg>
+                      <div className="flex-1">
+                        <span className="text-[15px] font-bold text-ink-primary block">
+                          {target.emailedAt ? 'Resend email' : 'Email to team'}
                         </span>
-                      )}
-                    </div>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => openEdit(target)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-line-default/[0.05] active:bg-line-default/[0.1]"
-                  >
-                    <svg className="w-5 h-5 text-brand-primary-soft shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
-                    </svg>
-                    <span className="text-[15px] font-bold text-ink-primary">Edit post</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => { setManagePostId(null); void removePost(target); }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-rose-500/150/15 active:bg-rose-100"
-                  >
-                    <svg className="w-5 h-5 text-rose-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
-                      <path d="M10 11v6M14 11v6" />
-                    </svg>
-                    <span className="text-[15px] font-bold text-rose-300">Delete post</span>
-                  </button>
-                </li>
+                        {target.emailedAt && (
+                          <span className="text-[11px] text-ink-primary/55 block mt-0.5">
+                            Last sent {fmtRelativeShort(target.emailedAt)}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  </li>
+                )}
+                {canManage && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => openEdit(target)}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-line-default/[0.05] active:bg-line-default/[0.1]"
+                    >
+                      <svg className="w-5 h-5 text-brand-primary-soft shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+                      </svg>
+                      <span className="text-[15px] font-bold text-ink-primary">Edit post</span>
+                    </button>
+                  </li>
+                )}
+                {(canManage || targetParentCanDelete) && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => { setManagePostId(null); void removePost(target); }}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-rose-500/150/15 active:bg-rose-100"
+                    >
+                      <svg className="w-5 h-5 text-rose-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                      </svg>
+                      <span className="text-[15px] font-bold text-rose-300">Delete post</span>
+                    </button>
+                  </li>
+                )}
               </ul>
             </div>
           </div>

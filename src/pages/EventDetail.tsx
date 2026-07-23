@@ -163,6 +163,12 @@ const EventDetail: React.FC = () => {
   const [remindBusy, setRemindBusy] = useState(false);
   const [remindToast, setRemindToast] = useState<string | null>(null);
   const [attendanceOpen, setAttendanceOpen] = useState(false);
+  // Comments — collapsed disclosure. commentCount comes from
+  // EventDiscussion's own listener (no duplicate subscribe); when it's
+  // 0 the whole section renders nothing so a fresh event doesn't leave
+  // a stray "No comments yet" prompt sitting under the hero.
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   const isUserCoach = isCoachOfTeam(userData, audienceTeamObj);
 
@@ -604,7 +610,7 @@ const EventDetail: React.FC = () => {
           }
         } catch { /* fall through — client will re-fetch on next load */ }
         if (data.waitlisted) {
-          alert(`You're on the waitlist — position ${data.waitlistPosition}. If someone drops out you'll be moved up automatically.`);
+          alert(`You're on the waitlist, position ${data.waitlistPosition}. If someone drops out you'll be moved up automatically.`);
         } else if (data.promoted) {
           // Optional celebration for the coach — someone got promoted.
           console.log('[rsvp] promoted from waitlist', data.promoted);
@@ -825,7 +831,7 @@ const EventDetail: React.FC = () => {
       setMergingToken(null);
     } catch (err) {
       console.error('merge failed', err);
-      alert('Failed to merge — please try again.');
+      alert('Failed to merge. Please try again.');
     } finally {
       setMergeBusy(false);
     }
@@ -952,14 +958,14 @@ const EventDetail: React.FC = () => {
       const { sendPushToUsers } = await import('../utils/notify');
       await sendPushToUsers(Array.from(parentUids), {
         title: `RSVP needed: ${event.title}`,
-        body: `${userData.name || 'Coach'} is asking — please mark your player going/maybe/can't.`,
+        body: `${userData.name || 'Coach'} is asking. Please mark your player going, maybe, or can't.`,
         url: `/events/${event.id}`,
       }, { pushPrefKey: 'events' });
       setRemindToast(`Reminder sent to ${parentUids.size} parent${parentUids.size === 1 ? '' : 's'}.`);
       window.setTimeout(() => setRemindToast(null), 4000);
     } catch (err) {
       console.error('remind pending failed', err);
-      setRemindToast('Reminder failed — try again.');
+      setRemindToast('Reminder failed. Try again.');
       window.setTimeout(() => setRemindToast(null), 4000);
     } finally {
       setRemindBusy(false);
@@ -1056,6 +1062,40 @@ const EventDetail: React.FC = () => {
       }
     } finally {
       setAddingToCal(false);
+    }
+  };
+
+  // Route the parent to their phone's native maps app for turn-by-turn
+  // directions. Same _system escape hatch as handleAddToCalendar —
+  // Capacitor's WKWebView otherwise tries to navigate itself to the
+  // maps URL and either shows a broken page or swallows the deep link.
+  // Platform-specific URLs so Siri/CarPlay users land in Apple Maps and
+  // Android users land in Google Maps without a "which app?" chooser.
+  const handleGetDirections = async () => {
+    if (!event) return;
+    const addr = (event as any).locationAddress || event.location || '';
+    const coords = (event as any).locationCoords;
+    const hasCoords = coords && typeof coords.lat === 'number' && typeof coords.lon === 'number';
+    // Prefer coords when we have them (survives typos in the address
+    // string). Fall back to the address/location name — Maps apps
+    // geocode it on their end.
+    const q = hasCoords ? `${coords.lat},${coords.lon}` : addr;
+    if (!q) return;
+    const encoded = encodeURIComponent(q);
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      const isNative = Capacitor.isNativePlatform();
+      const platform = Capacitor.getPlatform();
+      const url = platform === 'ios'
+        ? `https://maps.apple.com/?q=${encoded}`
+        : `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+      if (isNative) {
+        window.open(url, '_system');
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    } catch {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encoded}`, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -1235,6 +1275,17 @@ const EventDetail: React.FC = () => {
                 <Icon name="clock" className="w-3.5 h-3.5 text-brand-primary-soft" />
                 {formatTimeRange(eventDate, eventEnd)}
               </span>
+              {/* Inline forecast chip — at-a-glance high/low right in the
+                  meta row. Full Weather card lives further down. */}
+              {weather && (
+                <>
+                  <span className="text-ink-primary/50">·</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <WeatherIcon iconName={weather.iconName} className="w-3.5 h-3.5 text-brand-primary-soft" />
+                    {weather.tempMaxF}°/{weather.tempMinF}°
+                  </span>
+                </>
+              )}
             </p>
             {event.location && (
               <a
@@ -1332,69 +1383,11 @@ const EventDetail: React.FC = () => {
         </div>
       )}
 
-      {/* PER-KID RSVPS — the primary RSVP path when the viewer has
-          linked players. Sits above the personal Quick Actions so
-          parents (and coach-with-kid) see their kid's RSVP as the
-          default thing to act on. */}
-      {/* Coach-side inline attendance — collapsed disclosure by
-          default. Header is always visible (shows live going-count)
-          so the coach can see the state at a glance; tap to expand
-          the full roster + buttons. Writes to the same playerRsvps
-          map parents touch via the per-kid RSVP rows below. */}
-      {isUserCoach && roster.length > 0 && (() => {
-        const goingCount = Object.values(((event as any).playerRsvps || {})).filter((r: any) => r?.status === 'going').length;
-        return (
-          <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setAttendanceOpen(o => !o)}
-              className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-line-default/[0.05] text-left"
-            >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Icon name="check" className="w-3 h-3 text-brand-primary shrink-0" />
-                <span className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70">Mark attendance</span>
-                <span className="text-[10px] text-ink-primary/50 font-bold ml-1 truncate">
-                  · {goingCount} going · {roster.length} on roster
-                </span>
-              </div>
-              <svg className={`w-4 h-4 text-ink-primary/50 shrink-0 transition-transform ${attendanceOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {attendanceOpen && (
-              <ul className="divide-y divide-line-default/10 px-4 sm:px-6 pb-3">
-                {roster.map(p => {
-                  const current = ((event as any).playerRsvps || {})[p.id]?.status as RsvpStatus | undefined;
-                  const btn = (status: RsvpStatus, label: string, active: string) => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => setPlayerRsvp(p.id, p.name, status)}
-                      className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[11px] font-bold border transition ${
-                        current === status
-                          ? `${active} text-white border-transparent shadow-sm`
-                          : 'bg-surface-elevated text-ink-primary/70 border-line-default/10 hover:border-line-default/15'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                  return (
-                    <li key={p.id} className="flex items-center gap-2 py-1.5">
-                      <RosterAvatar name={p.name} photoUrl={p.photoURL} size={28} className="ring-1 ring-line-default/10" />
-                      <div className="flex-1 min-w-0 text-sm font-semibold text-ink-primary truncate" title={p.name}>{p.name}</div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {btn('going', 'Present', 'bg-emerald-600')}
-                        {btn('maybe', 'Maybe', 'bg-sky-500')}
-                        {btn('no', 'Absent', 'bg-rose-600')}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-        );
-      })()}
-
+      {/* KID RSVP — the primary RSVP path for parents (and coach-who-
+          is-also-a-parent). Sits directly under the hero so anyone
+          landing on the event can respond in one tap. Mark Attendance
+          + Coach Fee Summary + Pickup Result Panel now live in the
+          coach-admin cluster further down. */}
       {myLinkedPlayers.length > 0 && (
         <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/10 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 mb-2 flex items-center gap-1.5">
@@ -1511,8 +1504,8 @@ const EventDetail: React.FC = () => {
           </div>
           <p className="text-[12px] text-ink-primary/60 leading-snug mb-3">
             {isAdultTeam
-              ? "Mark whether you'll be there as coach — separate from your own player RSVP above."
-              : "Separate from your kid's RSVP above — mark whether you'll be there as coach."}
+              ? "Mark whether you'll be there as coach. Separate from your own player RSVP above."
+              : "Separate from your kid's RSVP above. Mark whether you'll be there as coach."}
           </p>
           <div className="grid grid-cols-3 gap-2">
             {(['going', 'maybe', 'no'] as RsvpStatus[]).map((s) => {
@@ -1560,10 +1553,9 @@ const EventDetail: React.FC = () => {
         );
       })()}
 
-      {/* QUICK ACTIONS — coach-only Cancel/Restore + Split Teams
-          (adult only). Share button removed 2026-06-24 when the
-          public RSVP page was killed (everyone's expected to be on
-          the app now). */}
+      {/* PAYMENTS — player-facing drop-in fee card. Coach admin
+          (net-per-player, running collected total) lives in the coach
+          admin cluster below the RSVP list. */}
       {/* Drop-in fee — visible to anyone going who hasn't paid yet.
           Opens Stripe Checkout on the club's connected account. Paid
           status is the union of paidUids (Stripe) and paidByCoach
@@ -1573,6 +1565,10 @@ const EventDetail: React.FC = () => {
         const feeCents = Number((event as any).feeCents || 0);
         if (feeCents <= 0) return null;
         if (myRsvp?.status !== 'going') return null;
+        // Suppress the Pay flow when the event is cancelled — a
+        // parent who was RSVP'd before the cancel shouldn't be able
+        // to hand Stripe money for an event that no longer exists.
+        if (event.isCancelled) return null;
         const paidUids: string[] = Array.isArray((event as any).paidUids) ? (event as any).paidUids : [];
         const paidByCoach: string[] = Array.isArray((event as any).paidByCoach) ? (event as any).paidByCoach : [];
         // iPaid only checks uid-space (Stripe-paid ∪ coach-marked adult).
@@ -1634,119 +1630,100 @@ const EventDetail: React.FC = () => {
         );
       })()}
 
-      {/* Coach fee summary — discreet card showing net-per-player
-          and a running total from paid attendees. Coach-only. */}
-      {isUserCoach && Number((event as any).feeCents || 0) > 0 && (() => {
-        const feeCents = Number((event as any).feeCents || 0);
-        const feeCoveredBy: 'player' | 'coach' = (event as any).feeCoveredBy === 'coach' ? 'coach' : 'player';
-        const charged = feeCoveredBy === 'player' ? grossUpCents(feeCents, platformFeeBps) : feeCents;
-        const netCents = feeCoveredBy === 'player' ? feeCents : coachNetCents(charged, platformFeeBps);
-        const paidUids: string[] = Array.isArray((event as any).paidUids) ? (event as any).paidUids : [];
-        const paidByCoach: string[] = Array.isArray((event as any).paidByCoach) ? (event as any).paidByCoach : [];
-        const paidByCoachPlayerIds: string[] = Array.isArray((event as any).paidByCoachPlayerIds) ? (event as any).paidByCoachPlayerIds : [];
-        // Uid-tracked adults and playerId-tracked kids live in
-        // distinct namespaces; a person can't appear in both. Total
-        // paid heads = adults (uid ∪ Stripe) + kids by playerId.
-        const paidAdults = new Set<string>([...paidUids, ...paidByCoach]).size;
-        const paidKids = new Set<string>(paidByCoachPlayerIds).size;
-        const paidCount = paidAdults + paidKids;
-        const totalNet = paidCount * netCents;
-        return (
-          <section className="bg-surface-elevated ring-1 ring-line-default/15 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">You net</p>
-                <p className="text-base font-black text-ink-primary">${(netCents / 100).toFixed(2)} <span className="text-[11px] font-semibold text-ink-primary/60">/ player</span></p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">Collected</p>
-                <p className="text-base font-black text-ink-primary">${(totalNet / 100).toFixed(2)} <span className="text-[11px] font-semibold text-ink-primary/60">({paidCount} paid)</span></p>
-              </div>
-            </div>
-            <p className="text-[11px] text-ink-primary/60 mt-2 leading-snug">
-              {feeCoveredBy === 'player'
-                ? `Player sees $${(charged / 100).toFixed(2)}. Card + platform fees are baked into their price.`
-                : `Player sees $${(charged / 100).toFixed(2)}. You absorb card + platform fees.`}
+      {/* ROSTER PREVIEW — avatar stack of going families. Tap to jump
+          to the full RSVP list below. QoL 1 promotion: parents want to
+          see WHO's coming without scrolling past coach admin surfaces. */}
+      {buckets.going.length > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            const el = document.getElementById('rsvps-full-list');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+          className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/10 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4 flex items-center gap-3 text-left hover:ring-line-default/20 transition"
+        >
+          <div className="flex -space-x-2 shrink-0">
+            {buckets.going.slice(0, 6).map((p: any, i: number) => (
+              <RosterAvatar
+                key={`stack-${i}`}
+                name={p.name}
+                photoUrl={photoForEntry(p)}
+                size={36}
+                className="ring-2 ring-surface-elevated"
+              />
+            ))}
+            {buckets.going.length > 6 && (
+              <span className="w-9 h-9 rounded-full bg-brand-primary text-white ring-2 ring-surface-elevated flex items-center justify-center text-[11px] font-black">
+                +{buckets.going.length - 6}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-ink-primary">
+              {buckets.going.length} going
+              {typeof (event as any).rsvpCap === 'number' && (event as any).rsvpCap > 0 && (
+                <span className="text-ink-primary/45 font-bold"> / {(event as any).rsvpCap}</span>
+              )}
             </p>
-          </section>
-        );
-      })()}
-
-      {/* Pickup result — coach picks the winning side after the event.
-          Appears only on adult teams with a teamSplit set and once the
-          event date has passed. Distinct from external opponent
-          scoring — pickup results don't roll into season stats. */}
-      {isUserCoach && isAdultTeam && (event as any).teamSplit && !event.isCancelled && eventDate && eventDate.getTime() < now.getTime() && (
-        <PickupResultPanel
-          event={event}
-          userData={userData}
-          onSave={async (patch) => {
-            await updateDocument('events', event.id, { pickupResult: patch });
-            setEvent({ ...event, pickupResult: patch } as any);
-          }}
-          onClear={async () => {
-            await updateDocument('events', event.id, { pickupResult: null });
-            setEvent({ ...event, pickupResult: undefined } as any);
-          }}
-        />
+            <p className="text-[11px] text-ink-primary/55">See who's in</p>
+          </div>
+          <svg className="w-4 h-4 text-ink-primary/40 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
       )}
-      {isUserCoach && (
-      <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4 grid grid-cols-1 gap-2">
-        {isAdultTeam && (
-          <button
-            onClick={() => setSplitOpen(true)}
-            className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-brand-primary/15 ring-1 ring-brand-primary-soft/40 text-brand-primary-soft text-xs font-bold tracking-wider uppercase hover:bg-brand-primary/25 transition"
-          >
-            <Icon name="users" className="w-4 h-4" />
-            {(event as any).teamSplit ? 'Edit team split' : 'Split teams'}
-          </button>
-        )}
-        {(event as any).isActive === false ? (
-          // Soft-deleted (tombstoned). The top-of-page Deleted banner
-          // already surfaces the primary Restore affordance; this
-          // duplicate down here matches the cancelled-event pattern
-          // so the coach can un-delete without scrolling back up.
-          <button
-            onClick={handleRestoreDeleted}
-            className="flex items-center justify-center gap-2 min-h-11 py-2.5 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-700 text-xs font-bold tracking-wider uppercase hover:bg-emerald-500/25 transition"
-          >
-            <Icon name="check" className="w-4 h-4" />
-            Restore event
-          </button>
-        ) : event.isCancelled ? (
-          <button
-            onClick={handleRestore}
-            className="flex items-center justify-center gap-2 min-h-11 py-2.5 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-700 text-xs font-bold tracking-wider uppercase hover:bg-emerald-500/25 transition"
-          >
-            <Icon name="check" className="w-4 h-4" />
-            Restore
-          </button>
-        ) : (
-          // Cancel (loud/filled red) + Delete quietly (quiet/outlined
-          // red) share a row on wider screens and stack on narrow ones.
-          // Both clear a 44pt tap target. Cancel notifies everyone and
-          // keeps the event visible with a CANCELLED badge; Delete
-          // quietly tombstones it (isActive:false) with no push
-          // fanout — coach restores in-place from this same page.
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+      {/* LOCATION — name + address + native Directions button + map
+          preview. Directions works from an address string alone (Maps
+          apps geocode server-side); the map iframe only renders when
+          we have coords stamped from the address autocomplete. */}
+      {(event.location || (event as any).locationCoords?.lat) && (
+        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="min-w-0">
+              <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 flex items-center gap-1.5">
+                <Icon name="pin" className="w-3 h-3 text-brand-primary" />
+                Location
+              </div>
+              {event.location && (
+                <p className="mt-1.5 text-sm font-bold text-ink-primary leading-snug">{event.location}</p>
+              )}
+              {(event as any).locationAddress && (
+                <p className="text-[12px] text-ink-primary/55 mt-0.5 leading-snug">{(event as any).locationAddress}</p>
+              )}
+              {/* fieldNumber chip lives on the hero — no need to
+                  duplicate it here. Location card focuses on the
+                  address + one-tap Directions action. */}
+            </div>
             <button
-              onClick={handleCancel}
-              className="flex items-center justify-center gap-2 min-h-11 py-2.5 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/40 text-rose-300 text-xs font-bold tracking-wider uppercase hover:bg-rose-500/25 transition"
+              type="button"
+              onClick={handleGetDirections}
+              className="shrink-0 inline-flex items-center gap-1.5 min-h-11 px-4 py-2.5 rounded-lg bg-brand-primary text-brand-primary-fg text-[12px] font-black uppercase tracking-widest hover:bg-brand-primary-hov transition"
+              title="Open in your maps app"
+              aria-label="Get directions to this location"
             >
-              <Icon name="trash" className="w-4 h-4" />
-              Cancel
-            </button>
-            <button
-              onClick={handleDelete}
-              className="flex items-center justify-center gap-2 min-h-11 py-2.5 rounded-lg bg-transparent ring-1 ring-rose-400/40 text-rose-300/80 text-xs font-bold tracking-wider uppercase hover:bg-rose-500/10 transition"
-            >
-              <Icon name="trash" className="w-4 h-4" />
-              Delete quietly
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <polygon points="3 11 22 2 13 21 11 13 3 11" />
+              </svg>
+              Get directions
             </button>
           </div>
-        )}
-      </div>
+          {(event as any).locationCoords?.lat && (
+            <div className="rounded-xl overflow-hidden ring-1 ring-line-default/10">
+              <iframe
+                title="Event location"
+                src={osmEmbedUrl((event as any).locationCoords.lat, (event as any).locationCoords.lon, 16)}
+                className="w-full h-40 block bg-surface-base"
+                loading="lazy"
+              />
+            </div>
+          )}
+        </section>
       )}
+
+      {/* Coach Fee Summary + Pickup Result Panel moved to the coach-
+          admin cluster (after the full RSVP list). Mid-page coach
+          action grid removed — its Cancel / Delete / Restore actions
+          now live in the "COACH CONTROLS ROW" at the bottom of the
+          page. */}
 
       {/* JERSEY BANNER — game days only. The jersey swatch IS the
           icon: a black or white square shows parents at a glance which
@@ -1789,8 +1766,89 @@ const EventDetail: React.FC = () => {
         </section>
       )}
 
+      {/* WEATHER — condensed forecast card in the prep-info cluster.
+          Hero already surfaces the temperature inline; this card adds
+          the label + precip% for the parent packing a raincoat. */}
+      {weather && (
+        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 flex items-center gap-1.5">
+              <Icon name="cloud" className="w-3 h-3 text-brand-primary" />
+              Weather
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <WeatherIcon iconName={weather.iconName} className="w-8 h-8 text-brand-primary-soft" />
+            <div>
+              <div className="text-xl font-black text-ink-primary leading-none">
+                {weather.tempMaxF}° <span className="text-ink-primary/50 font-semibold text-sm">/ {weather.tempMinF}°</span>
+              </div>
+              <div className="text-[11px] text-ink-primary/50 mt-1 tracking-wide uppercase">
+                {weather.label}
+                {weather.precipChance >= 20 && ` · ${weather.precipChance}% rain`}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* DESCRIPTION — coach notes / context. Was buried at the bottom;
+          promoted here so parents see the "why" before the RSVP list. */}
+      {event.description && (
+        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 mb-1.5">
+            About
+          </div>
+          <p className="text-sm leading-relaxed text-ink-primary/85 whitespace-pre-wrap">{event.description}</p>
+        </section>
+      )}
+
+      {/* DISCUSSION — collapsed by default. The disclosure row is
+          hidden entirely when count is zero (no "No comments yet"
+          prompt sitting under the hero). Once someone posts, the
+          chevron row "Discussion (N)" appears and expands the full
+          thread on tap.
+
+          Single EventDiscussion mount always present. Visibility is
+          controlled via inline display so React never unmounts it —
+          that keeps the Firestore count listener alive whether the
+          disclosure is open, closed, or the count is zero. Prior
+          shape used a separate hidden mount that unmounted the
+          moment count went 0 → 1, leaving the badge frozen at 1
+          until the user manually expanded. */}
+      <section className={commentCount > 0
+        ? 'bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 overflow-hidden'
+        : 'sr-only'}>
+        {commentCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setCommentsOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-line-default/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 focus-visible:ring-inset text-left"
+            aria-expanded={commentsOpen}
+          >
+            <div className="flex items-center gap-1.5 min-w-0">
+              <svg className="w-3 h-3 text-brand-primary shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70">Discussion</span>
+              <span className="text-[11px] text-ink-primary/45 font-bold ml-1">({commentCount})</span>
+            </div>
+            <svg className={`w-4 h-4 text-ink-primary/50 shrink-0 transition-transform ${commentsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        )}
+        <div style={{ display: commentCount > 0 && commentsOpen ? 'block' : 'none' }} className="px-4 sm:px-6 pb-4">
+          <EventDiscussion
+            eventId={event.id}
+            teamId={event.teamId}
+            userUid={userData?.uid}
+            userName={userData?.name}
+            userPhotoURL={(userData as any)?.photoURL}
+            eventTitle={event.title}
+            onCountChange={setCommentCount}
+          />
+        </div>
+      </section>
+
       {/* RSVPS */}
-      <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+      <section id="rsvps-full-list" className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 flex items-center gap-1.5">
             <Icon name="users" className="w-3 h-3 text-brand-primary" />
@@ -2053,6 +2111,128 @@ const EventDetail: React.FC = () => {
         )}
       </section>
 
+      {/* ── COACH ADMIN CLUSTER — sits below the parent-facing RSVP
+          list so the coach's day-of tools (attendance, fee tally,
+          pickup result) live in one place instead of interleaved with
+          parent flow. Each block gates itself; if the coach isn't
+          logged in nothing renders. */}
+
+      {/* Mark attendance — collapsed disclosure. Header shows the live
+          going-count so the coach can gauge the state at a glance;
+          tap to expand the roster + per-player buttons. Writes to the
+          same playerRsvps map parents touch via the per-kid RSVP rows
+          up top. */}
+      {isUserCoach && roster.length > 0 && (() => {
+        const goingCount = Object.values(((event as any).playerRsvps || {})).filter((r: any) => r?.status === 'going').length;
+        return (
+          <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setAttendanceOpen(o => !o)}
+              className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-line-default/[0.05] text-left"
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Icon name="check" className="w-3 h-3 text-brand-primary shrink-0" />
+                <span className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70">Mark attendance</span>
+                <span className="text-[10px] text-ink-primary/50 font-bold ml-1 truncate">
+                  · {goingCount} going · {roster.length} on roster
+                </span>
+              </div>
+              <svg className={`w-4 h-4 text-ink-primary/50 shrink-0 transition-transform ${attendanceOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+            </button>
+            {attendanceOpen && (
+              <ul className="divide-y divide-line-default/10 px-4 sm:px-6 pb-3">
+                {roster.map(p => {
+                  const current = ((event as any).playerRsvps || {})[p.id]?.status as RsvpStatus | undefined;
+                  const btn = (status: RsvpStatus, label: string, active: string) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setPlayerRsvp(p.id, p.name, status)}
+                      className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[11px] font-bold border transition ${
+                        current === status
+                          ? `${active} text-white border-transparent shadow-sm`
+                          : 'bg-surface-elevated text-ink-primary/70 border-line-default/10 hover:border-line-default/15'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                  return (
+                    <li key={p.id} className="flex items-center gap-2 py-1.5">
+                      <RosterAvatar name={p.name} photoUrl={p.photoURL} size={28} className="ring-1 ring-line-default/10" />
+                      <div className="flex-1 min-w-0 text-sm font-semibold text-ink-primary truncate" title={p.name}>{p.name}</div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {btn('going', 'Present', 'bg-emerald-600')}
+                        {btn('maybe', 'Maybe', 'bg-sky-500')}
+                        {btn('no', 'Absent', 'bg-rose-600')}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        );
+      })()}
+
+      {/* Coach fee summary — discreet card showing net-per-player and
+          a running total from paid attendees. Coach-only. */}
+      {isUserCoach && Number((event as any).feeCents || 0) > 0 && (() => {
+        const feeCents = Number((event as any).feeCents || 0);
+        const feeCoveredBy: 'player' | 'coach' = (event as any).feeCoveredBy === 'coach' ? 'coach' : 'player';
+        const charged = feeCoveredBy === 'player' ? grossUpCents(feeCents, platformFeeBps) : feeCents;
+        const netCents = feeCoveredBy === 'player' ? feeCents : coachNetCents(charged, platformFeeBps);
+        const paidUids: string[] = Array.isArray((event as any).paidUids) ? (event as any).paidUids : [];
+        const paidByCoach: string[] = Array.isArray((event as any).paidByCoach) ? (event as any).paidByCoach : [];
+        const paidByCoachPlayerIds: string[] = Array.isArray((event as any).paidByCoachPlayerIds) ? (event as any).paidByCoachPlayerIds : [];
+        // Uid-tracked adults and playerId-tracked kids live in
+        // distinct namespaces; a person can't appear in both. Total
+        // paid heads = adults (uid ∪ Stripe) + kids by playerId.
+        const paidAdults = new Set<string>([...paidUids, ...paidByCoach]).size;
+        const paidKids = new Set<string>(paidByCoachPlayerIds).size;
+        const paidCount = paidAdults + paidKids;
+        const totalNet = paidCount * netCents;
+        return (
+          <section className="bg-surface-elevated ring-1 ring-line-default/15 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">You net</p>
+                <p className="text-base font-black text-ink-primary">${(netCents / 100).toFixed(2)} <span className="text-[11px] font-semibold text-ink-primary/60">/ player</span></p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">Collected</p>
+                <p className="text-base font-black text-ink-primary">${(totalNet / 100).toFixed(2)} <span className="text-[11px] font-semibold text-ink-primary/60">({paidCount} paid)</span></p>
+              </div>
+            </div>
+            <p className="text-[11px] text-ink-primary/60 mt-2 leading-snug">
+              {feeCoveredBy === 'player'
+                ? `Player sees $${(charged / 100).toFixed(2)}. Card + platform fees are baked into their price.`
+                : `Player sees $${(charged / 100).toFixed(2)}. You absorb card + platform fees.`}
+            </p>
+          </section>
+        );
+      })()}
+
+      {/* Pickup result — coach picks the winning side after the event.
+          Appears only on adult teams with a teamSplit set and once the
+          event date has passed. Distinct from external opponent
+          scoring — pickup results don't roll into season stats. */}
+      {isUserCoach && isAdultTeam && (event as any).teamSplit && !event.isCancelled && eventDate && eventDate.getTime() < now.getTime() && (
+        <PickupResultPanel
+          event={event}
+          userData={userData}
+          onSave={async (patch) => {
+            await updateDocument('events', event.id, { pickupResult: patch });
+            setEvent({ ...event, pickupResult: patch } as any);
+          }}
+          onClear={async () => {
+            await updateDocument('events', event.id, { pickupResult: null });
+            setEvent({ ...event, pickupResult: undefined } as any);
+          }}
+        />
+      )}
+
       {/* EVENT PULSE — private post-event player feedback. Parents / players
           send a quick check-in to the coach; coaches see the rolled-up feed
           here. Nothing posts to Wall or Chat automatically. */}
@@ -2189,44 +2369,10 @@ const EventDetail: React.FC = () => {
         </section>
       )}
 
-      {/* WEATHER */}
-      {weather && (
-        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 flex items-center gap-1.5">
-              <Icon name="cloud" className="w-3 h-3 text-brand-primary" />
-              Weather
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <WeatherIcon iconName={weather.iconName} className="w-8 h-8 text-brand-primary-soft" />
-            <div>
-              <div className="text-xl font-black text-ink-primary leading-none">
-                {weather.tempMaxF}° <span className="text-ink-primary/50 font-semibold text-sm">/ {weather.tempMinF}°</span>
-              </div>
-              <div className="text-[11px] text-ink-primary/50 mt-1 tracking-wide uppercase">
-                {weather.label}
-                {weather.precipChance >= 20 && ` · ${weather.precipChance}% rain`}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* COMMENTS — inline per-event discussion thread (separate from
-          team chat). Writes to the eventComments collection — anyone
-          on this event can read + post here without flooding the
-          team chat firehose. */}
-      <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
-        <EventDiscussion
-          eventId={event.id}
-          teamId={event.teamId}
-          userUid={userData?.uid}
-          userName={userData?.name}
-          userPhotoURL={(userData as any)?.photoURL}
-          eventTitle={event.title}
-        />
-      </section>
+      {/* Weather + Discussion relocated per 2026-07-23 reshape:
+          - Weather → below Location card (prep info cluster)
+          - Discussion → below Description, collapsed by default,
+            hidden entirely when there are zero comments. */}
 
       {/* SNACKS — coach assigns one family per event, family sees they're
           up. Only renders when there's an assignment OR the viewer is a
@@ -2307,7 +2453,7 @@ const EventDetail: React.FC = () => {
                   const eventDateTxt = new Date(event.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
                   await sendPushToPlayerParents(next.playerId, {
                     title: `Snacks: ${next.playerName.split(' ')[0]}'s family is up`,
-                    body: `${event.title} — ${eventDateTxt}${next.notes ? ` · ${next.notes}` : ''}`,
+                    body: `${event.title} · ${eventDateTxt}${next.notes ? ` · ${next.notes}` : ''}`,
                     url: `/events/${event.id}`,
                   }, { pushPrefKey: 'events' });
                 } catch (err) {
@@ -2400,6 +2546,77 @@ const EventDetail: React.FC = () => {
         }}
       />
 
+      {/* COACH CONTROLS ROW — muted chip strip at the bottom of the
+          page. Edit is duplicated here in addition to the hero pencil
+          so a coach scrolled to the bottom can act without scrolling
+          back up. Cancel + Delete quietly consolidated from the ex-
+          mid-page rose block (removed 2026-07-23). Restore replaces
+          them when the event is off (soft-deleted or cancelled). Split
+          teams surfaces only on adult teams. Chip styling — subtle
+          chrome, 44pt tap targets, no shouting reds. */}
+      {isUserCoach && (
+        <section className="mx-3 sm:mx-4 my-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsEditOpen(true)}
+            className="inline-flex items-center gap-1.5 min-h-11 px-3.5 py-2.5 rounded-lg bg-surface-elevated ring-1 ring-line-default/15 text-ink-primary/75 text-[12px] font-bold hover:bg-surface-input hover:ring-line-default/25 transition"
+          >
+            <Icon name="edit" className="w-3.5 h-3.5" />
+            Edit
+          </button>
+          {isAdultTeam && (
+            <button
+              type="button"
+              onClick={() => setSplitOpen(true)}
+              className="inline-flex items-center gap-1.5 min-h-11 px-3.5 py-2.5 rounded-lg bg-surface-elevated ring-1 ring-line-default/15 text-ink-primary/75 text-[12px] font-bold hover:bg-surface-input hover:ring-line-default/25 transition"
+            >
+              <Icon name="users" className="w-3.5 h-3.5" />
+              {(event as any).teamSplit ? 'Edit team split' : 'Split teams'}
+            </button>
+          )}
+          {(event as any).isActive === false ? (
+            // Soft-deleted. Deleted banner up top already has a Restore
+            // affordance; duplicated here for coaches scrolled to bottom.
+            <button
+              type="button"
+              onClick={handleRestoreDeleted}
+              className="inline-flex items-center gap-1.5 min-h-11 px-3.5 py-2.5 rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/30 text-emerald-700 text-[12px] font-bold hover:bg-emerald-500/20 transition"
+            >
+              <Icon name="check" className="w-3.5 h-3.5" />
+              Restore event
+            </button>
+          ) : event.isCancelled ? (
+            <button
+              type="button"
+              onClick={handleRestore}
+              className="inline-flex items-center gap-1.5 min-h-11 px-3.5 py-2.5 rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/30 text-emerald-700 text-[12px] font-bold hover:bg-emerald-500/20 transition"
+            >
+              <Icon name="check" className="w-3.5 h-3.5" />
+              Restore
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="inline-flex items-center gap-1.5 min-h-11 px-3.5 py-2.5 rounded-lg bg-surface-elevated ring-1 ring-line-default/15 text-ink-primary/75 text-[12px] font-bold hover:bg-rose-500/10 hover:text-rose-500 hover:ring-rose-500/30 transition"
+              >
+                <Icon name="trash" className="w-3.5 h-3.5" />
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="inline-flex items-center gap-1.5 min-h-11 px-3.5 py-2.5 rounded-lg bg-surface-elevated ring-1 ring-line-default/15 text-ink-primary/60 text-[12px] font-bold hover:bg-rose-500/10 hover:text-rose-500 hover:ring-rose-500/30 transition"
+              >
+                <Icon name="trash" className="w-3.5 h-3.5" />
+                Delete quietly
+              </button>
+            </>
+          )}
+        </section>
+      )}
+
       {/* EDIT MODAL (coach only) */}
       {isUserCoach && (
         <EventForm
@@ -2423,52 +2640,9 @@ const EventDetail: React.FC = () => {
         />
       )}
 
-      {/* DESCRIPTION */}
-      {event.description && (
-        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 mb-1.5">
-            About
-          </div>
-          <p className="text-sm leading-relaxed text-ink-primary/85 whitespace-pre-wrap">{event.description}</p>
-        </section>
-      )}
-
-      {/* MAP — only render when we have coords (free-text-only events
-          would just embed an unhelpful Null Island view). The iframe is
-          OSM-branded but free + zero deps. Tap-targets cover "Open in
-          Maps" so users always have an escape hatch to their preferred
-          maps app. */}
-      {(event as any).locationCoords?.lat && (
-        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70">Map</div>
-            <a
-              href={mapsUrl({
-                name: event.location,
-                address: (event as any).locationAddress,
-                lat: (event as any).locationCoords.lat,
-                lon: (event as any).locationCoords.lon,
-              })}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-brand-primary-dim"
-            >
-              Open in Maps →
-            </a>
-          </div>
-          <div className="rounded-xl overflow-hidden border border-line-default/10">
-            <iframe
-              title="Event location"
-              src={osmEmbedUrl((event as any).locationCoords.lat, (event as any).locationCoords.lon, 16)}
-              className="w-full h-44 block bg-surface-base"
-              loading="lazy"
-            />
-          </div>
-          {(event as any).locationAddress && (
-            <p className="mt-1.5 text-[11px] text-ink-primary/50">{(event as any).locationAddress}</p>
-          )}
-        </section>
-      )}
+      {/* Description + Map relocated per 2026-07-23 reshape:
+          - Description → below Weather (prep info cluster)
+          - Map preview → merged into the Location card up top. */}
 
       {/* Split Teams modal — adult-team pickup auto-balance. Opens
           from the coach action row. Saves the split to
@@ -2592,7 +2766,7 @@ const PackingListSection: React.FC<{
                 }
               }}
               className="flex-1 px-3 py-1.5 border border-line-default/10 rounded-md text-sm"
-              placeholder="Add an item — press Enter"
+              placeholder="Add an item, press Enter"
             />
             <button
               onClick={() => {

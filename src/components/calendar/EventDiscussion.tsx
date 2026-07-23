@@ -41,6 +41,10 @@ interface Props {
   notifyUids?: string[];
   /** Event title — used in the notification text. */
   eventTitle?: string;
+  /** Fires whenever the comment list length changes. Lets the parent
+   *  collapse or hide the whole thread when it's empty without
+   *  doubling up on a Firestore subscription. */
+  onCountChange?: (n: number) => void;
 }
 
 function formatRelative(d: Date): string {
@@ -55,7 +59,7 @@ function formatRelative(d: Date): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, userPhotoURL, notifyUids, eventTitle }) => {
+const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, userPhotoURL, notifyUids, eventTitle, onCountChange }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [draft, setDraft] = useState('');
   const [posting, setPosting] = useState(false);
@@ -68,11 +72,15 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
       orderBy('createdAt', 'asc'),
     );
     const unsub = onSnapshot(q, (snap) => {
-      setComments(snap.docs.map(d => ({
+      const list = snap.docs.map(d => ({
         id: d.id,
         ...(d.data() as any),
         createdAt: (d.data() as any).createdAt?.toDate?.() || new Date(),
-      })) as Comment[]);
+      })) as Comment[];
+      setComments(list);
+      // Bubble the count up so the parent can gate the whole thread
+      // (hide when 0, collapse when >0) without a second listener.
+      onCountChange?.(list.length);
     }, (err) => {
       // Firestore may take a moment to provision the composite index for
       // (eventId + createdAt). Don't surface that as a fatal error.

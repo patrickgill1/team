@@ -12,6 +12,7 @@ import CarpoolBoard, { CarpoolPost } from '../components/calendar/CarpoolBoard';
 import EventDiscussion from '../components/calendar/EventDiscussion';
 import SnackAssignment from '../components/calendar/SnackAssignment';
 import { mapsUrl, osmEmbedUrl } from '../utils/maps';
+import { getShareOrigin } from '../utils/origin';
 import RosterAvatar from '../components/common/RosterAvatar';
 import WeatherIcon from '../components/common/WeatherIcon';
 import { useTeamAudience } from '../hooks/useTeamAudience';
@@ -1005,6 +1006,59 @@ const EventDetail: React.FC = () => {
     }
   };
 
+  // Hand this one event to the parent's phone calendar. Uses the
+  // per-event .ics endpoint we serve from api/calendar/event/[event].mjs
+  // so Apple/Google Calendar treat it as a first-class event with
+  // title, location, notes, and Cancelled status baked in.
+  //
+  // Two paths:
+  //   1) Native (iOS/Android via Capacitor) or any browser that exposes
+  //      navigator.share — share the .ics URL through the OS share
+  //      sheet. On iOS the user picks Calendar and it opens with the
+  //      "Add Event" prompt. On Android, Chrome routes the .ics to
+  //      Calendar the same way. This matches how we already share the
+  //      subscription URL in Settings and event links from the list
+  //      card, so it's a pattern users have seen.
+  //   2) Web fallback (no navigator.share) — set window.location to the
+  //      .ics URL. Desktop browsers download the file; the user
+  //      double-clicks it to add to whatever calendar app they use.
+  const [addingToCal, setAddingToCal] = useState(false);
+  const handleAddToCalendar = async () => {
+    if (!event || addingToCal) return;
+    setAddingToCal(true);
+    try {
+      const url = `${getShareOrigin()}/api/calendar/event/${event.id}.ics`;
+      // Native (Capacitor iOS/Android) requires special handling.
+      // Original ship tried navigator.share({ url }) then
+      // window.location.href = url as fallback. Both broke:
+      //   1. navigator.share with a URL on iOS does NOT offer Calendar
+      //      as a share target — only .ics FILES do. The user got
+      //      Messages/Mail/Copy and no path to Calendar.
+      //   2. window.location.href in the Capacitor WebView tries to
+      //      navigate the WebView itself to the .ics response.
+      //      WKWebView has no download handler for text/calendar,
+      //      so the app UI is replaced with either blank or raw
+      //      .ics text and the session is lost.
+      // Fix: on native, open in the SYSTEM browser via
+      // window.open(url, '_system') — Capacitor recognizes this
+      // target and routes it to Safari / Chrome. Safari fetches the
+      // .ics response, iOS prompts "Add All to Calendar", user
+      // taps Add, returns to the app. Cordova-era pattern, no
+      // @capacitor/browser plugin needed so it works over Capgo.
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        window.open(url, '_system');
+      } else {
+        // Web: same-tab navigation triggers the browser's download or
+        // handler for text/calendar (desktop) or Calendar app open
+        // (mobile web Safari).
+        window.location.href = url;
+      }
+    } finally {
+      setAddingToCal(false);
+    }
+  };
+
   // Restore a soft-deleted (tombstoned) event. Distinct from
   // handleRestore above — that one un-cancels a Cancelled event and
   // pushes an "it's back on" notification. A soft-deleted event was
@@ -1204,6 +1258,27 @@ const EventDetail: React.FC = () => {
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 text-[10px] font-extrabold tracking-widest uppercase">
                   {(event as any).fieldNumber}
                 </span>
+              </div>
+            )}
+            {/* Add-to-calendar chip. Uses the .ics URL we serve from
+                api/calendar/event/[event].mjs so Apple/Google Calendar
+                bring in the title, location, and notes. Hidden on
+                soft-deleted events (coach-only view — the Restore banner
+                already tells them what to do); shown for cancelled ones
+                so the STATUS:CANCELLED flag makes it into the parent's
+                own calendar. */}
+            {(event as any).isActive !== false && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={handleAddToCalendar}
+                  disabled={addingToCal}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-line-default/10 hover:bg-line-default/15 ring-1 ring-line-default/15 text-ink-primary/85 text-[12px] font-bold disabled:opacity-60 transition"
+                  title="Save this event to your phone's calendar"
+                >
+                  <Icon name="cal" className="w-3.5 h-3.5 text-brand-primary-soft" />
+                  <span>Add to my calendar</span>
+                </button>
               </div>
             )}
           </div>

@@ -24,21 +24,6 @@ import { collection, query as fsQuery, where as fsWhere, getDocs as fsGetDocs } 
 import { db } from '../../utils/firebase';
 import { debug } from '../../utils/debug';
 
-const formatIcsDate = (d: Date) => {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    d.getUTCFullYear().toString() +
-    pad(d.getUTCMonth() + 1) +
-    pad(d.getUTCDate()) + 'T' +
-    pad(d.getUTCHours()) +
-    pad(d.getUTCMinutes()) +
-    pad(d.getUTCSeconds()) + 'Z'
-  );
-};
-
-const escapeIcs = (s: string = '') =>
-  s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
-
 // mapsUrlFor moved to ../../utils/maps so detail + list + public pages
 // can share the same coord-aware logic. Re-imported below.
 import { mapsUrl } from '../../utils/maps';
@@ -49,39 +34,32 @@ const mapsUrlForEvent = (event: any): string => mapsUrl({
   lon: event.locationCoords?.lon,
 });
 
-const downloadEventIcs = (event: CalendarEvent) => {
+// Hand a single event to the parent's phone calendar via the
+// per-event .ics endpoint (api/calendar/event/[event].mjs). Same
+// pattern as EventDetail's "Add to my calendar" button — share the
+// URL if the OS share sheet is available (Capacitor / iOS Safari /
+// Android Chrome), otherwise navigate to it so the browser downloads
+// the file. Server-side generation means STATUS:CANCELLED, coach
+// notes, opponent, and the real endDate all end up in the calendar
+// row, none of which the old client-side blob builder honored.
+const openAddToCalendar = async (event: CalendarEvent) => {
   try {
-    const start = new Date(event.date);
-    const end = new Date(start.getTime() + 90 * 60 * 1000); // default 90 min
-    const ics = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Team App//EN',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      'BEGIN:VEVENT',
-      `UID:${event.id}@team-app`,
-      `DTSTAMP:${formatIcsDate(new Date())}`,
-      `DTSTART:${formatIcsDate(start)}`,
-      `DTEND:${formatIcsDate(end)}`,
-      `SUMMARY:${escapeIcs(event.title || event.type)}`,
-      event.location ? `LOCATION:${escapeIcs(event.location)}` : '',
-      event.description ? `DESCRIPTION:${escapeIcs(event.description)}` : '',
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].filter(Boolean).join('\r\n');
-    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(event.title || 'event').replace(/[^a-z0-9]+/gi, '_')}.ics`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const url = `${getShareOrigin()}/api/calendar/event/${event.id}.ics`;
+    // Native: open in system browser via window.open(url, '_system')
+    // — Safari/Chrome fetches the .ics response and prompts Add to
+    // Calendar. See EventDetail.tsx handleAddToCalendar comment for
+    // the full rationale (navigator.share on URLs doesn't offer
+    // Calendar; window.location.href inside WKWebView nukes the app
+    // session).
+    const { Capacitor } = await import('@capacitor/core');
+    if (Capacitor.isNativePlatform()) {
+      window.open(url, '_system');
+    } else {
+      window.location.href = url;
+    }
   } catch (err) {
-    console.error('Failed to export ICS', err);
-    alert('Could not generate calendar file.');
+    console.error('Failed to open .ics', err);
+    alert('Could not open calendar file.');
   }
 };
 
@@ -1150,7 +1128,7 @@ const EventCard: React.FC<EventCardProps> = ({
           <div className="flex flex-wrap items-center gap-1.5 mt-3">
             {!isPast && (
               <button
-                onClick={() => downloadEventIcs(event)}
+                onClick={() => openAddToCalendar(event)}
                 className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-ink-primary/80 bg-surface-input hover:bg-line-default/20 rounded-full transition-colors"
                 title="Add to my phone calendar"
               >

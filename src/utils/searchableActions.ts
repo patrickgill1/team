@@ -88,6 +88,7 @@ const XP_ACTIONS: SearchableAction[] = [
   { id: 'xp-whisper', label: 'Toggle whisper XP', description: 'Private notes turn into XP', keywords: ['xp', 'whisper', 'whispers'], route: '/coach/xp', anchor: 'source-whisper', icon: 'trophy', visibleTo: coach },
   { id: 'xp-live-grant', label: 'Toggle live grant XP', description: 'Coach live-grants during a match', keywords: ['xp', 'live grant', 'coach live grant', 'coachlivegrant'], route: '/coach/xp', anchor: 'source-coachLiveGrant', icon: 'trophy', visibleTo: coach },
   { id: 'xp-kudos', label: 'Toggle kudos to XP', description: 'Kudos convert into XP', keywords: ['xp', 'kudos', 'kudos convert', 'kudosconvert'], route: '/coach/xp', anchor: 'source-kudosConvert', icon: 'trophy', visibleTo: coach },
+  { id: 'xp-log', label: 'See the XP log', description: 'Every XP grant on this team, most recent first', keywords: ['xp', 'xp log', 'log', 'history', 'audit', 'ledger'], route: '/coach/xp-log', icon: 'chart', visibleTo: coach },
 ];
 
 // Surveys deep actions.

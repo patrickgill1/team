@@ -158,10 +158,24 @@ const CoachXpLogInner: React.FC = () => {
   const { selectedTeam, selectedTeamId } = useTeam();
 
   // Hooks BEFORE any conditional return (per hooks-before-returns memory).
-  const [rows, setRows] = useState<XpRow[] | null>(null);
+  // Split first-page (live via onSnapshot) from Load-more pages (one-shot
+  // getDocs appended). Prior single-array shape wiped every appended page
+  // on the next snapshot tick — a coach who had scrolled to row 400 lost
+  // 200+ rows the moment any teammate logged an XP event.
+  const [firstPage, setFirstPage] = useState<XpRow[] | null>(null);
+  const [extraPages, setExtraPages] = useState<XpRow[]>([]);
   const [roster, setRoster] = useState<RosterEntry[]>([]);
   const [lastCursor, setLastCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [reachedEnd, setReachedEnd] = useState(false);
+  const rows = React.useMemo<XpRow[] | null>(() => {
+    if (firstPage === null) return null;
+    // Dedup on id in case a new event ticks into the first page while
+    // an appended page happened to be sitting on the boundary.
+    const seen = new Set(firstPage.map(r => r.id));
+    const merged = [...firstPage];
+    for (const r of extraPages) if (!seen.has(r.id)) { seen.add(r.id); merged.push(r); }
+    return merged;
+  }, [firstPage, extraPages]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [playerFilter, setPlayerFilter] = useState<string>('all');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
@@ -171,11 +185,13 @@ const CoachXpLogInner: React.FC = () => {
   // keyed on selectedTeamId in the wrapper).
   useEffect(() => {
     if (!selectedTeamId) {
-      setRows([]);
+      setFirstPage([]);
+      setExtraPages([]);
       setReachedEnd(true);
       return;
     }
-    setRows(null);
+    setFirstPage(null);
+    setExtraPages([]);
     setReachedEnd(false);
     setLastCursor(null);
     setRuleDenied(false);
@@ -189,16 +205,23 @@ const CoachXpLogInner: React.FC = () => {
       q,
       (snap: QuerySnapshot<DocumentData>) => {
         const next = snap.docs.map(rowFromDoc);
-        setRows(next);
+        setFirstPage(next);
         setLastCursor(snap.docs.length ? snap.docs[snap.docs.length - 1] : null);
-        if (snap.docs.length < PAGE_SIZE) setReachedEnd(true);
+        // Reset reachedEnd cleanly on every snapshot — if the first
+        // page now has PAGE_SIZE rows there might be more behind it,
+        // if it has fewer we know we've seen everything. Prior shape
+        // only ever SET reachedEnd true, never reset it, so a full
+        // first-page after a partial one left the "End of the log"
+        // marker up permanently.
+        setReachedEnd(snap.docs.length < PAGE_SIZE);
       },
       (err) => {
         console.warn('CoachXpLog listener failed', err);
         // Missing index or rule denial both land here. Show an empty
         // list rather than a spinner-forever state, and remember rule
         // denial for a targeted message.
-        setRows([]);
+        setFirstPage([]);
+        setExtraPages([]);
         setReachedEnd(true);
         if (String(err?.code || '').includes('permission')) setRuleDenied(true);
       },
@@ -307,7 +330,8 @@ const CoachXpLogInner: React.FC = () => {
       );
       const snap = await getDocs(q);
       const more = snap.docs.map(rowFromDoc);
-      setRows((prev) => (prev ? [...prev, ...more] : more));
+      // Append to extraPages so a live snapshot tick doesn't wipe them.
+      setExtraPages((prev) => [...prev, ...more]);
       setLastCursor(snap.docs.length ? snap.docs[snap.docs.length - 1] : lastCursor);
       if (snap.docs.length < PAGE_SIZE) setReachedEnd(true);
     } catch (err) {
@@ -379,7 +403,7 @@ const CoachXpLogInner: React.FC = () => {
               label={summary.uniquePlayers === 1 ? 'player earning' : 'players earning'}
             />
             <SummaryStat
-              value={summary.topName ? summary.topName.split(/\s+/)[0] : '—'}
+              value={summary.topName ? summary.topName.split(/\s+/)[0] : 'nobody yet'}
               label={summary.topName ? `${summary.topXp.toLocaleString()} XP top earner` : 'top earner'}
               tone={summary.topName ? 'brand' : 'muted'}
             />

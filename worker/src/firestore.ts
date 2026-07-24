@@ -370,7 +370,17 @@ export async function createDocument(projectId: string, collection: string, fiel
 
 export async function runQuery(projectId: string, collection: string, filters: QueryFilter[], sa: ServiceAccount, limit = 100): Promise<FirestoreDoc[]> {
   const token = await getAccessToken(sa, FIRESTORE_SCOPE);
-  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
+  // Subcollection support: split "players/{pid}/dev_checkins" into
+  // parent="players/{pid}" and leaf="dev_checkins". Firestore requires
+  // the parent doc to sit in the URL and only the leaf collectionId
+  // in the query body — passing the full path as collectionId returns
+  // "Collection id ... is invalid" and callers silently see [].
+  const segments = collection.split('/');
+  const leaf = segments[segments.length - 1];
+  const parentSegments = segments.slice(0, -1);
+  const encodedParent = parentSegments.map(encodeURIComponent).join('/');
+  const parentSuffix = encodedParent ? `/${encodedParent}` : '';
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents${parentSuffix}:runQuery`;
 
   const where = filters.length === 0 ? undefined : filters.length === 1 ? {
     fieldFilter: { field: { fieldPath: filters[0].field }, op: filters[0].op, value: encodeValue(filters[0].value) }
@@ -385,7 +395,7 @@ export async function runQuery(projectId: string, collection: string, filters: Q
 
   const body = {
     structuredQuery: {
-      from: [{ collectionId: collection }],
+      from: [{ collectionId: leaf }],
       ...(where ? { where } : {}),
       limit,
     },

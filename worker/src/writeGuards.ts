@@ -4858,8 +4858,10 @@ async function handleXpLogTap(req: Request, env: Env, payload: any): Promise<Res
   //      from xpBackfill.ts.
   let newStreak = 0;
   let streakBadgeXp = 0;
+  let streakComputeSucceeded = false;
   try {
     const checkins = await runQuery(pid, `players/${playerId}/dev_checkins`, [], sa, 500);
+    streakComputeSucceeded = true;
     const dayKeys: string[] = [];
     for (const row of checkins) {
       const d: any = row.data;
@@ -4919,12 +4921,24 @@ async function handleXpLogTap(req: Request, env: Env, payload: any): Promise<Res
   // failure here is safe to retry on the next tap. Fires even in
   // selfHeal mode; the whole point of self-heal is to correct drift
   // in this cached field from the client's memory of it.
-  try {
-    await patchDocument(pid, `players/${playerId}`, {
-      currentStreakDays: newStreak,
-    }, sa);
-  } catch (err) {
-    console.warn('[xp/log-tap] currentStreakDays persist failed (non-fatal):', (err as Error).message);
+  //
+  // Defensive guard: never CLOBBER a positive cached streak with 0 when
+  // the streak compute itself failed (subcollection read error, network
+  // blip). A read failure returns newStreak=0 with streakComputeSucceeded=false;
+  // writing 0 in that state wipes a real multi-day streak. Only persist when
+  // the compute succeeded OR when the new value would raise (not lower) the counter.
+  const priorStreak = Number(player.currentStreakDays) || 0;
+  const shouldPersistStreak = streakComputeSucceeded || newStreak > priorStreak;
+  if (shouldPersistStreak) {
+    try {
+      await patchDocument(pid, `players/${playerId}`, {
+        currentStreakDays: newStreak,
+      }, sa);
+    } catch (err) {
+      console.warn('[xp/log-tap] currentStreakDays persist failed (non-fatal):', (err as Error).message);
+    }
+  } else {
+    console.warn(`[xp/log-tap] skipping currentStreakDays persist for ${playerId} (compute failed, prior=${priorStreak})`);
   }
 
   return json({

@@ -249,10 +249,35 @@ export async function commitDocumentTransforms(
   const writes: any[] = [];
   if (patchFields && Object.keys(patchFields).length > 0) {
     const keys = Object.keys(patchFields);
+    // Same dotted-key unfold patchDocument now does — see the long
+    // "Silently-broken pre-fix" comment on patchDocument above.
+    // Without this, patchFields like { 'badges.streak_5': {...} }
+    // would land as a literal field named "badges.streak_5" (dot in
+    // name) that the fieldPaths mask "badges.streak_5" can't read,
+    // so Firestore accepts the write and quietly no-ops the target.
+    // applyBackfillBadge's atomic badge stamp AND writeXpGrant's
+    // alsoStampBadge both depend on this fix — do NOT remove.
+    const nested: Record<string, any> = {};
+    for (const k of keys) {
+      if (k.includes('.')) {
+        const parts = k.split('.');
+        let cursor: any = nested;
+        for (let i = 0; i < parts.length - 1; i++) {
+          const seg = parts[i];
+          cursor[seg] = (cursor[seg] && typeof cursor[seg] === 'object' && !Array.isArray(cursor[seg]) && !(cursor[seg] instanceof Date))
+            ? cursor[seg]
+            : {};
+          cursor = cursor[seg];
+        }
+        cursor[parts[parts.length - 1]] = patchFields[k];
+      } else {
+        nested[k] = patchFields[k];
+      }
+    }
     const update: any = {
       update: {
         name: docName,
-        fields: Object.fromEntries(keys.map(k => [k, encodeValue(patchFields[k])])),
+        fields: Object.fromEntries(Object.keys(nested).map(k => [k, encodeValue(nested[k])])),
       },
       updateMask: { fieldPaths: keys },
     };

@@ -329,6 +329,19 @@ service cloud.firestore {
       // stale-code writes from authed users. Applies even if the update
       // doesn't touch currentStreakDays (guard is a no-op then via
       // hasAny short-circuit).
+      //
+      // XP mirror denylist 2026-07-24: xp, xpCareer, badges, and the
+      // per-day cap counters (xpDailyCountBySource, xpDailyGrantCount)
+      // are server-authoritative — every legitimate write goes through
+      // /xp/log-grant or /xp/log-tap worker endpoints (service account
+      // path, bypasses this rule). No client code writes these fields
+      // directly (verified 2026-07-24). Denylist shape, not allowlist —
+      // every other field on the player doc stays exactly as writeable
+      // as before. currentStreakDays intentionally NOT denied: the
+      // streak-clobber guard above is the intended shield, and the
+      // self-heal path in InlineDevPlanCard / Dashboard legitimately
+      // needs client writes. lastSeenXpAt / lastSeenBadgeAt are UX
+      // cursors the client legitimately writes.
       allow update: if isAuthed() && (
         isPlatformAdmin()
         || (
@@ -337,6 +350,8 @@ service cloud.firestore {
             || request.resource.data.get('currentStreakDays', 0)
                 >= resource.data.get('currentStreakDays', 0) - 1
           )
+          && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['xp', 'xpCareer', 'badges', 'xpDailyCountBySource', 'xpDailyGrantCount'])
           && (
         (
           onTeam(resource.data.teamId)
@@ -1716,16 +1731,50 @@ service cloud.firestore {
     // dev-plan log, and game-stat entry that grants XP writes one
     // immutable doc here. Coaches + parents on the same team read
     // to display the "XP over time" story on the player profile.
-    // Writes are worker-only (/xp/award-recognition and later
-    // /xp/backfill) so the per-kid-per-week cap can't be bypassed.
+    // Writes are worker-only (/xp/log-grant) so the per-source daily
+    // cap can't be bypassed and player.xp / player.xpCareer increment
+    // atomically with the event row.
     //
-    // Same read-scope semantics as parent_whispers — team coaches
-    // + player's parents. Uses the collection's teamId + playerId
-    // fields; the callerCanReadWhisper helper works verbatim since
-    // it reads exactly those two fields.
+    // Read scope: team coach (checked against team.coachIds) OR the
+    // player's parents OR platform admin. Same substance as
+    // callerCanReadWhisper, but a dedicated helper because the shared
+    // whisper helper has a resource.data.coachUid == request.auth.uid
+    // branch that is DEAD here — no writer stamps coachUid on
+    // player_xp_events (awardedBy is used instead, but a raw
+    // awardedBy match would let a parent-mode coach read every
+    // event they granted regardless of team membership; not desired).
+    //
+    // LIST verification: the CoachXpLog surface issues
+    // `where teamId == X orderBy createdAt desc limit N`. The rule
+    // is per-doc via resource.data.teamId, so Firestore evaluates
+    // isTeamCoach() (1 get on teams/{teamId}) for each returned doc.
+    // Every returned doc shares the same teamId (query equality),
+    // so the check outcome is uniform — the caller either passes for
+    // all matched docs or fails for all. Static analysis is not
+    // required because the rule doesn't call userDoc() at LIST time
+    // (that was the players/users trap); it uses request.auth.uid +
+    // get() only, which Firestore accepts per-doc.
+    function callerCanReadXpEvent() {
+      return isPlatformAdmin()
+        || (
+          resource.data.teamId is string
+          && isTeamCoach(resource.data.teamId)
+        )
+        || (
+          resource.data.playerId is string
+          && exists(/databases/$(database)/documents/players/$(resource.data.playerId))
+          && get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.parentIds is list
+          && request.auth.uid in get(/databases/$(database)/documents/players/$(resource.data.playerId)).data.parentIds
+        );
+    }
     match /player_xp_events/{eventId} {
-      allow get: if isAuthed() && callerCanReadWhisper();
-      allow list: if isAuthed() && callerCanReadWhisper();
+      allow get: if isAuthed() && callerCanReadXpEvent();
+      allow list: if isAuthed() && callerCanReadXpEvent();
+      // All writes are worker-only via /xp/log-grant (service account
+      // bypasses these rules). Client updateDoc / setDoc / deleteDoc
+      // on this collection is intentionally denied so the audit trail
+      // stays immutable and the per-source daily cap can't be
+      // sidestepped by writing events directly.
       allow create, update, delete: if false;
     }
 

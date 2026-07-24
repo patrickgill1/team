@@ -393,7 +393,7 @@ const PlayerOfMatch: React.FC = () => {
         if (winners.length > 0 && selectedTeamId) {
           const { collection, getDocs, query, where, doc: fsDoc, updateDoc: fsUpdate } = await import('firebase/firestore');
           const { db } = await import('../utils/firebase');
-          const { computeFirstPotmPatch } = await import('../utils/badgeGrants');
+          const { maybeGrantFirstPotm } = await import('../utils/badgeGrants');
           const prev = await getDocs(query(
             collection(db, 'players'),
             where('teamIds', 'array-contains', selectedTeamId),
@@ -404,24 +404,25 @@ const PlayerOfMatch: React.FC = () => {
           await Promise.all(prev.docs
             .filter(d => !winnerIds.has(d.id))
             .map(d => fsUpdate(fsDoc(db, 'players', d.id), { isCurrentPotm: false, potmAt: null })));
-          // Mark new winners. Piggyback the first_potm badge grant so
-          // a kid's first-ever POTM lands the badge in the same write.
-          // Retroactive-safe: check reads existing badges — a kid with
-          // 3 pre-ship POTMs but no badge entry gets first_potm on this
-          // POTM (the FIRST from this ship forward).
-          await Promise.all(winners.map(w => {
+          // Mark new winners. The isCurrentPotm/potmAt flip is a client
+          // write (fields the rules already allow the coach to mutate).
+          // The first_potm badge + XP grant is fire-and-forget through
+          // the worker (maybeGrantFirstPotm → awardMicroXp) so the
+          // badge stamp + player_xp_events audit row + player.xp
+          // increment land as one atomic service-account commit.
+          // Retroactive-safe: existing badges gate the grant, so a kid
+          // with 3 pre-ship POTMs but no badge entry gets first_potm
+          // on this POTM (the FIRST from this ship forward).
+          await Promise.all(winners.map(async w => {
             const player = players.find(p => p.id === w.playerId);
-            const firstPotmPatch = computeFirstPotmPatch(
-              (player as any)?.badges,
-              {
-                gameTitle: activeVoting.gameTitle,
-                seasonId: (activeVoting as any).seasonId,
-                team: selectedTeam as any,
-              },
-            );
-            const patch: Record<string, any> = { isCurrentPotm: true, potmAt: new Date() };
-            if (firstPotmPatch) Object.assign(patch, firstPotmPatch);
-            return fsUpdate(fsDoc(db, 'players', w.playerId), patch);
+            void maybeGrantFirstPotm(w.playerId, {
+              existingBadges: (player as any)?.badges,
+              gameTitle: activeVoting.gameTitle,
+              seasonId: (activeVoting as any).seasonId,
+              team: selectedTeam as any,
+              teamId: selectedTeamId,
+            });
+            return fsUpdate(fsDoc(db, 'players', w.playerId), { isCurrentPotm: true, potmAt: new Date() });
           }));
         }
       } catch (e) { console.warn('POTM flag update failed', e); }

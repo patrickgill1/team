@@ -11,7 +11,8 @@
 //     selectedTeamId, orderBy createdAt desc, limit PAGE_SIZE. Load
 //     more pages another PAGE_SIZE via a startAfter cursor.
 //   - Roster load (one-shot getDocs on players) drives the avatar +
-//     name lookup and the player filter dropdown.
+//     name lookup, the player filter dropdown, AND the sum-vs-total
+//     banner (compares log history sum to player.xp / team xp sum).
 //
 // Rules:
 //   - firestore.rules already grants list on player_xp_events to any
@@ -23,12 +24,27 @@
 //     errors with FAILED_PRECONDITION on first load, add that index
 //     to firestore.indexes.json and re-deploy firestore rules+indexes.
 //
-// Silent-grant gap: the daily "I did it" / RSVP / attendance / streak
-// grants currently bypass player_xp_events (see reference in the
-// project spec). They won't show here until those writers route
-// through a worker endpoint. Copy in the empty state and the summary
-// caption acknowledges that so the log doesn't read as "broken" when
-// a team is XP-on but hasn't taken a coach action yet.
+// Row explosion — silent grants now write:
+//   Once backfill + going-forward silent grants route through the
+//   worker (dev_plan_log, practice_attendance, rsvp_going, streak,
+//   first_*, etc.) the log volume is 10-20x what it was when this
+//   surface was born as "coach actions only." Three affordances tame
+//   the density:
+//     1. Day-grouping — rows collapse under Denver day-key headers.
+//        A coach-authored day (any row with source in coach_live /
+//        coach_whisper / kudos_coach_convert / coach_recognition)
+//        auto-expands; silent-only days stay collapsed until tapped.
+//     2. Multi-select source chips (persisted per user) so a coach
+//        can hide the noisy habit rows without losing the milestone
+//        + coach-action rows.
+//     3. Two-tier visual weight — coach-authored rows render bold
+//        with colored source chip + coach avatar; silent/auto rows
+//        render muted with a small grey chip and no avatar.
+//
+// Sum-vs-total banner: when the visible log sum is less than the
+// selected player's totalled xp (or team total when unfiltered), we
+// surface a one-line banner explaining the gap so a coach who tries
+// to reconcile totals doesn't file it as a bug.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
@@ -57,9 +73,19 @@ import {
   dotClassForSource,
   COACH_LOG_SOURCE_OPTIONS,
 } from '../utils/xpSourceLabels';
+import { denverKeyOfDate } from '../utils/devPlanActions';
 
 const PAGE_SIZE = 200;
 const SUMMARY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Sources whose visual tier is "coach-authored" (bold, colored chip,
+// coach avatar). Everything else is silent/auto and renders muted.
+const COACH_AUTHORED_SOURCES = new Set([
+  'coach_live',
+  'coach_whisper',
+  'coach_recognition',
+  'kudos_coach_convert',
+]);
 
 interface XpRow {
   id: string;
@@ -80,6 +106,15 @@ interface RosterEntry {
   id: string;
   name: string;
   photoUrl: string | null;
+  xp: number;
+}
+
+interface DayGroup {
+  key: string;         // Denver day-key "YYYY-MM-DD"
+  latestMs: number;    // most-recent row in the group (for header label + sort)
+  rows: XpRow[];
+  totalXp: number;
+  hasCoachRow: boolean;
 }
 
 function rowFromDoc(d: QueryDocumentSnapshot<DocumentData>): XpRow {
@@ -139,6 +174,57 @@ function whenLabel(ms: number): string {
   return absoluteWhen(ms);
 }
 
+// Time-only label for a row inside an expanded day group (e.g. "4:15 PM").
+// The parent day header carries the date, so per-row date noise is
+// redundant.
+function timeOnlyLabel(ms: number): string {
+  if (!ms) return '';
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+// Day-header label anchored to Denver time so a late-night practice
+// bucketed by the worker on day X reads as day X here too. "Today" /
+// "Yesterday" shorthand when the row lands there, otherwise a compact
+// weekday-and-date like "Wed Jul 24" (or "Wed Jul 24, 2025" outside
+// the current year).
+function dayHeaderLabel(ms: number): string {
+  if (!ms) return '';
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '';
+  const now = new Date();
+  const rowKey = denverKeyOfDate(d);
+  const todayKey = denverKeyOfDate(now);
+  const yesterdayKey = denverKeyOfDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+  if (rowKey === todayKey) return 'Today';
+  if (rowKey === yesterdayKey) return 'Yesterday';
+  // The Denver year matters, not device-local year, but for the coach
+  // (Mountain Time) they line up. Still pass timeZone so a coach on a
+  // roadtrip in a different tz reads the same header the worker keyed.
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'America/Denver',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
+}
+
+// Short "Jul 10, 2026" for the sum-vs-total banner enabledAt reference.
+function shortDate(ms: number): string {
+  if (!ms) return '';
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'America/Denver',
+  });
+}
+
 // Initials for the fallback avatar circle. Two letters max so it
 // always fits without truncation.
 function initialsOf(name: string): string {
@@ -146,6 +232,17 @@ function initialsOf(name: string): string {
   if (parts.length === 0) return '?';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Which visual "chip color family" does a source belong to on the log
+// row? Coach-authored rows are amber (kudos, live grants) or brand
+// primary (whispers, the private-to-parents flavor). Everything else
+// is muted grey so the milestone / habit rows recede beneath coach
+// moments in a mixed feed.
+function chipToneForSource(source: string): 'amber' | 'brand' | 'muted' {
+  if (source === 'coach_live' || source === 'kudos_coach_convert' || source === 'coach_recognition') return 'amber';
+  if (source === 'coach_whisper') return 'brand';
+  return 'muted';
 }
 
 const CoachXpLog: React.FC = () => {
@@ -178,8 +275,52 @@ const CoachXpLogInner: React.FC = () => {
   }, [firstPage, extraPages]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [playerFilter, setPlayerFilter] = useState<string>('all');
-  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  // Multi-select source filter. Internal state is the DISABLED set, so
+  // default (empty set) means "all sources on" and we don't have to
+  // hydrate the full option list before we know what to select. Persisted
+  // per-user in localStorage so a coach's chosen slice sticks across
+  // sessions and devices sharing that browser profile.
+  const [disabledSources, setDisabledSources] = useState<Set<string>>(new Set());
   const [ruleDenied, setRuleDenied] = useState(false);
+  // Per-day expansion override. Absence in the map means "use the auto
+  // default" (coach-authored days expand, silent-only days collapse).
+  // A user tap flips just that day's override without touching auto
+  // behavior for the rest of the feed.
+  const [expandedOverride, setExpandedOverride] = useState<Map<string, boolean>>(new Map());
+
+  // Hydrate persisted source filter on user resolve. Storing an array of
+  // disabled source keys keeps the "default = all on" semantic clean:
+  // no localStorage value → empty set → all sources visible.
+  useEffect(() => {
+    const uid = userData?.uid;
+    if (!uid) return;
+    try {
+      const raw = localStorage.getItem(`coach-xp-log-disabled-${uid}`);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setDisabledSources(new Set(parsed.filter((x) => typeof x === 'string')));
+      }
+    } catch {
+      // Corrupt storage entry: ignore and let default (all on) stand.
+    }
+  }, [userData?.uid]);
+
+  // Persist source filter changes. Fire and forget; a full storage
+  // quota failure is not worth interrupting the coach for.
+  useEffect(() => {
+    const uid = userData?.uid;
+    if (!uid) return;
+    try {
+      localStorage.setItem(
+        `coach-xp-log-disabled-${uid}`,
+        JSON.stringify(Array.from(disabledSources)),
+      );
+    } catch {
+      // localStorage full or blocked; the in-memory state still works
+      // for the session.
+    }
+  }, [disabledSources, userData?.uid]);
 
   // Live listener for the first page. Reset on team change (component
   // keyed on selectedTeamId in the wrapper).
@@ -229,8 +370,10 @@ const CoachXpLogInner: React.FC = () => {
     return () => unsub();
   }, [selectedTeamId]);
 
-  // Roster load, one-shot. Powers the player filter dropdown and the
-  // avatar lookup. Tolerant of read failures.
+  // Roster load, one-shot. Powers the player filter dropdown, the
+  // avatar lookup, AND the sum-vs-total banner (player.xp is the source
+  // of truth for a player's cumulative XP; the log's summed rows are a
+  // subset of history). Tolerant of read failures.
   useEffect(() => {
     if (!selectedTeamId) {
       setRoster([]);
@@ -248,6 +391,7 @@ const CoachXpLogInner: React.FC = () => {
               id: d.id,
               name: p.name || 'Player',
               photoUrl: (p as any).profilePhotoUrl || null,
+              xp: Number((p as any).xp) || 0,
             };
           })
           .filter((p) => !!p.name)
@@ -270,10 +414,10 @@ const CoachXpLogInner: React.FC = () => {
     if (!rows) return [];
     return rows.filter((r) => {
       if (playerFilter !== 'all' && r.playerId !== playerFilter) return false;
-      if (sourceFilter !== 'all' && r.source !== sourceFilter) return false;
+      if (disabledSources.has(r.source)) return false;
       return true;
     });
-  }, [rows, playerFilter, sourceFilter]);
+  }, [rows, playerFilter, disabledSources]);
 
   // 7-day summary — always computed off the full loaded window (not
   // the filtered view) so a source filter doesn't visually change the
@@ -302,8 +446,8 @@ const CoachXpLogInner: React.FC = () => {
   }, [rows]);
 
   // Sources that actually appear in the loaded window, so the source
-  // dropdown only lists categories the coach has data for. Ordered by
-  // the coach-log canonical order first, then any surprise sources
+  // filter chips only list categories the coach has data for. Ordered
+  // by the coach-log canonical order first, then any surprise sources
   // trailing (alphabetical) so a new writer surfaces without a code
   // change here.
   const sourceOptions = useMemo(() => {
@@ -316,6 +460,55 @@ const CoachXpLogInner: React.FC = () => {
       .sort();
     return [...canonical, ...extras];
   }, [rows]);
+
+  // Fold filtered rows into Denver-day groups. Sort groups newest-first
+  // by the group's most-recent row (not the day key alphabetically) so
+  // the ordering matches "most recent activity" intuition regardless of
+  // clock changes or roadtrip tz shifts.
+  const dayGroups = useMemo<DayGroup[]>(() => {
+    const map = new Map<string, DayGroup>();
+    for (const r of filteredRows) {
+      const key = r.createdAtMs ? denverKeyOfDate(new Date(r.createdAtMs)) : 'unknown';
+      let group = map.get(key);
+      if (!group) {
+        group = { key, latestMs: r.createdAtMs, rows: [], totalXp: 0, hasCoachRow: false };
+        map.set(key, group);
+      }
+      group.rows.push(r);
+      group.totalXp += r.xp;
+      if (r.createdAtMs > group.latestMs) group.latestMs = r.createdAtMs;
+      if (COACH_AUTHORED_SOURCES.has(r.source)) group.hasCoachRow = true;
+    }
+    return Array.from(map.values()).sort((a, b) => b.latestMs - a.latestMs);
+  }, [filteredRows]);
+
+  // Sum-vs-total reconciliation for the banner. Compares the sum of xp
+  // across the currently-visible-and-filtered rows to the ground-truth
+  // player.xp (or team-wide sum when unfiltered). We only surface a
+  // banner when the log undershoots the truth — that's the "some
+  // history isn't logged" story worth explaining. Overshoots would
+  // signal a real bug (audit drift), not a UX explanation moment.
+  const banner = useMemo(() => {
+    if (!rows || rows.length === 0) return null;
+    if (roster.length === 0) return null;
+    // Player-scoped subset that matches the currently-selected player
+    // filter, ignoring the source filter (a source filter would create
+    // an artificial gap we don't want to explain — that's the coach
+    // knowingly hiding rows).
+    const scoped = rows.filter((r) => playerFilter === 'all' || r.playerId === playerFilter);
+    const logSum = scoped.reduce((n, r) => n + r.xp, 0);
+    let truth = 0;
+    if (playerFilter === 'all') {
+      truth = roster.reduce((n, p) => n + (p.xp || 0), 0);
+    } else {
+      truth = rosterById.get(playerFilter)?.xp || 0;
+    }
+    if (truth <= 0) return null;
+    if (logSum >= truth) return null;
+    const enabledAtRaw = (selectedTeam as any)?.xpConfig?.enabledAt;
+    const enabledAtMs = enabledAtRaw ? toMillis(enabledAtRaw) : 0;
+    return { logSum, truth, enabledAtMs };
+  }, [rows, roster, rosterById, playerFilter, selectedTeam]);
 
   const loadMore = async () => {
     if (loadingMore || reachedEnd || !selectedTeamId || !lastCursor) return;
@@ -340,6 +533,31 @@ const CoachXpLogInner: React.FC = () => {
     } finally {
       setLoadingMore(false);
     }
+  };
+
+  const toggleSource = (source: string) => {
+    setDisabledSources((prev) => {
+      const next = new Set(prev);
+      if (next.has(source)) next.delete(source);
+      else next.add(source);
+      return next;
+    });
+  };
+
+  const clearSourceFilter = () => setDisabledSources(new Set());
+
+  const toggleDay = (key: string, currentlyExpanded: boolean) => {
+    setExpandedOverride((prev) => {
+      const next = new Map(prev);
+      next.set(key, !currentlyExpanded);
+      return next;
+    });
+  };
+
+  const isDayExpanded = (day: DayGroup): boolean => {
+    const override = expandedOverride.get(day.key);
+    if (override !== undefined) return override;
+    return day.hasCoachRow;
   };
 
   // Conditional returns AFTER hooks.
@@ -387,6 +605,20 @@ const CoachXpLogInner: React.FC = () => {
       <Header title="XP log" subtitle="Every XP grant on this team, most recent first." />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-4">
 
+        {/* Sum-vs-total banner — quiet, single line, explains the gap
+            between what the log shows and player.xp when we're
+            undershooting the total (usually because history predates
+            the log or the coach filtered to a player who has activity
+            beyond the loaded window). */}
+        {banner && (
+          <ReconciliationBanner
+            logSum={banner.logSum}
+            truth={banner.truth}
+            enabledAtMs={banner.enabledAtMs}
+            scoped={playerFilter !== 'all'}
+          />
+        )}
+
         {/* Summary card — last 7 days at a glance */}
         <section className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5">
           <p className="text-[10px] uppercase tracking-widest font-bold text-ink-primary/55">
@@ -408,37 +640,66 @@ const CoachXpLogInner: React.FC = () => {
               tone={summary.topName ? 'brand' : 'muted'}
             />
           </div>
-          {rows && rows.length > 0 && (
-            <p className="mt-3 text-[11px] text-ink-primary/50 leading-snug">
-              Numbers pull from coach actions (recognitions, whispers, kudos) and milestone badges.
-              Silent daily grants show up on player profiles today; they'll appear here as they get
-              wired into the log.
-            </p>
-          )}
         </section>
 
-        {/* Filters */}
-        <section className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-3 sm:p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <FilterSelect
-              label="Player"
-              value={playerFilter}
-              onChange={setPlayerFilter}
-              options={[
-                { value: 'all', label: 'All players' },
-                ...roster.map((p) => ({ value: p.id, label: p.name })),
-              ]}
-            />
-            <FilterSelect
-              label="Source"
-              value={sourceFilter}
-              onChange={setSourceFilter}
-              options={[
-                { value: 'all', label: 'All sources' },
-                ...sourceOptions.map((s) => ({ value: s, label: coachSourceLabel(s) })),
-              ]}
-            />
-          </div>
+        {/* Filters — player dropdown (single-select) + source chips
+            (multi-select, persisted per-user). Coach XP volume is now
+            large enough that a single-select source is a footgun: hide
+            "practice tap" and you lose the whole habit column instead
+            of just muting it. */}
+        <section className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-3 sm:p-4 space-y-3">
+          <FilterSelect
+            label="Player"
+            value={playerFilter}
+            onChange={setPlayerFilter}
+            options={[
+              { value: 'all', label: 'All players' },
+              ...roster.map((p) => ({ value: p.id, label: p.name })),
+            ]}
+          />
+          {sourceOptions.length > 0 && (
+            <div>
+              <div className="flex items-baseline justify-between mb-1.5">
+                <span className="block text-[10px] uppercase tracking-widest font-bold text-ink-primary/55">
+                  Sources
+                </span>
+                {disabledSources.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearSourceFilter}
+                    className="text-[11px] font-semibold text-brand-primary min-h-[28px]"
+                  >
+                    Show all
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {sourceOptions.map((s) => {
+                  const enabled = !disabledSources.has(s);
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => toggleSource(s)}
+                      aria-pressed={enabled}
+                      className={
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold ring-1 transition min-h-[32px] ' +
+                        (enabled
+                          ? 'bg-brand-primary/10 text-brand-primary ring-brand-primary/30'
+                          : 'bg-surface-base text-ink-primary/45 ring-line-default/20')
+                      }
+                    >
+                      <span
+                        className={`shrink-0 w-1.5 h-1.5 rounded-full ${dotClassForSource(s as any)} ${enabled ? '' : 'opacity-40'}`}
+                        aria-hidden
+                      />
+                      {coachSourceLabel(s)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Feed */}
@@ -463,9 +724,25 @@ const CoachXpLogInner: React.FC = () => {
             </div>
           ) : (
             <ul className="divide-y divide-line-default/15">
-              {filteredRows.map((row) => (
-                <LogRow key={row.id} row={row} roster={rosterById} />
-              ))}
+              {dayGroups.map((day) => {
+                const expanded = isDayExpanded(day);
+                return (
+                  <li key={day.key}>
+                    <DayHeader
+                      day={day}
+                      expanded={expanded}
+                      onToggle={() => toggleDay(day.key, expanded)}
+                    />
+                    {expanded && (
+                      <ul className="divide-y divide-line-default/10 border-t border-line-default/15 bg-surface-base/40">
+                        {day.rows.map((row) => (
+                          <LogRow key={row.id} row={row} roster={rosterById} />
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
 
@@ -502,61 +779,136 @@ const CoachXpLogInner: React.FC = () => {
   );
 };
 
+// ─── Day header ─────────────────────────────────────────────────
+const DayHeader: React.FC<{
+  day: DayGroup;
+  expanded: boolean;
+  onToggle: () => void;
+}> = ({ day, expanded, onToggle }) => {
+  const eventLabel = day.rows.length === 1 ? '1 event' : `${day.rows.length} events`;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      className="w-full flex items-center gap-3 px-4 sm:px-5 py-3 text-left hover:bg-surface-base/60 active:bg-surface-base/80 transition min-h-[52px]"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="text-[14px] font-bold text-ink-primary truncate">
+            {dayHeaderLabel(day.latestMs)}
+          </span>
+          {day.hasCoachRow && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[9px] font-black uppercase tracking-wider">
+              Coach
+            </span>
+          )}
+        </div>
+        <div className="mt-0.5 flex items-baseline gap-2 text-[12px] text-ink-primary/60">
+          <span className="font-bold tabular-nums text-ink-primary/80">
+            +{day.totalXp.toLocaleString()} XP
+          </span>
+          <span aria-hidden>·</span>
+          <span className="tabular-nums">{eventLabel}</span>
+        </div>
+      </div>
+      <svg
+        className={`shrink-0 w-4 h-4 text-ink-primary/40 transition-transform ${expanded ? 'rotate-180' : ''}`}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        viewBox="0 0 24 24"
+        aria-hidden
+      >
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
+    </button>
+  );
+};
+
 // ─── Row ─────────────────────────────────────────────────────────
 const LogRow: React.FC<{ row: XpRow; roster: Map<string, RosterEntry> }> = ({ row, roster }) => {
   const player = roster.get(row.playerId);
   const photoUrl = player?.photoUrl || null;
   const displayName = player?.name || row.playerName;
   const sourceLabel = coachSourceLabel(row.source);
-  const isCoachAction = ['coach_live', 'coach_whisper', 'coach_recognition', 'kudos_coach_convert'].includes(row.source);
+  const isCoachAction = COACH_AUTHORED_SOURCES.has(row.source);
   const showCoach = isCoachAction && !!row.awardedByName;
+  const chipTone = chipToneForSource(row.source);
+
+  // Two-tier visual weight: coach-authored rows read bold with a colored
+  // chip; silent/auto rows recede to muted secondary ink so the coach's
+  // eye lands on the moments they actually authored inside a noisy day.
+  const nameClass = isCoachAction
+    ? 'text-[14px] font-bold text-ink-primary'
+    : 'text-[13px] font-semibold text-ink-primary/75';
+  const xpChipClass = isCoachAction
+    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[11px] font-black'
+    : 'bg-ink-secondary/10 text-ink-primary/60 text-[10px] font-bold';
+  const sourceChipClass =
+    chipTone === 'amber'
+      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+      : chipTone === 'brand'
+        ? 'bg-brand-primary/12 text-brand-primary'
+        : 'bg-ink-secondary/10 text-ink-primary/55';
+  const noteClass = isCoachAction
+    ? 'mt-1 text-[12px] italic text-ink-primary/75 leading-snug whitespace-pre-wrap break-words'
+    : 'mt-1 text-[11px] text-ink-primary/55 leading-snug whitespace-pre-wrap break-words';
 
   return (
-    <li className="px-4 sm:px-5 py-3 flex items-start gap-3">
-      {/* Player avatar */}
+    <li className="px-4 sm:px-5 py-2.5 flex items-start gap-3">
+      {/* Player avatar (always present so name-column alignment stays
+          consistent across coach and silent rows). Silent rows tone
+          down chrome elsewhere; the avatar helps a coach scan by kid. */}
       <div className="shrink-0">
         {photoUrl ? (
           <img
             src={photoUrl}
             alt=""
-            className="w-10 h-10 rounded-full object-cover ring-1 ring-line-default/20"
+            className={`${isCoachAction ? 'w-9 h-9' : 'w-7 h-7'} rounded-full object-cover ring-1 ring-line-default/20`}
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-brand-primary/10 text-brand-primary ring-1 ring-line-default/20 flex items-center justify-center text-[12px] font-black">
+          <div
+            className={`${isCoachAction ? 'w-9 h-9 text-[12px]' : 'w-7 h-7 text-[10px]'} rounded-full bg-brand-primary/10 text-brand-primary ring-1 ring-line-default/20 flex items-center justify-center font-black`}
+          >
             {initialsOf(displayName)}
           </div>
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        {/* Line 1: name + XP chip + source + when */}
+        {/* Line 1: name + XP chip + source chip + when */}
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="shrink-0 text-[14px] font-bold text-ink-primary truncate max-w-[10rem]">
+          <span className={`shrink-0 truncate max-w-[10rem] ${nameClass}`}>
             {displayName}
           </span>
-          <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[11px] font-black tabular-nums">
+          <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full tabular-nums ${xpChipClass}`}>
             +{row.xp} XP
           </span>
-          <span className="inline-flex items-center gap-1.5 min-w-0 text-[12px] text-ink-primary/70">
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${sourceChipClass}`}
+          >
             <span
               className={`shrink-0 w-1.5 h-1.5 rounded-full ${dotClassForSource(row.source as any)}`}
               aria-hidden
             />
             <span className="truncate">{sourceLabel}</span>
-            {row.backfilled && (
-              <span className="ml-1 shrink-0 text-[10px] uppercase tracking-wider text-ink-primary/50 font-bold">
-                retro
-              </span>
-            )}
           </span>
-          <span className="ml-auto shrink-0 text-[11px] text-ink-primary/55 tabular-nums">
-            {whenLabel(row.createdAtMs)}
+          {row.backfilled && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-ink-secondary/10 text-ink-primary/55 text-[10px] uppercase tracking-wider font-bold">
+              Retro
+            </span>
+          )}
+          <span className="ml-auto shrink-0 text-[11px] text-ink-primary/50 tabular-nums">
+            {timeOnlyLabel(row.createdAtMs) || whenLabel(row.createdAtMs)}
           </span>
         </div>
 
-        {/* Line 2: coach note (italic) */}
+        {/* Line 2: coach note (italic on coach rows, plain on silent) */}
         {row.note && (
-          <p className="mt-1 text-[12px] italic text-ink-primary/70 leading-snug whitespace-pre-wrap break-words">
+          <p className={noteClass}>
             {row.note}
           </p>
         )}
@@ -580,6 +932,29 @@ const LogRow: React.FC<{ row: XpRow; roster: Map<string, RosterEntry> }> = ({ ro
         )}
       </div>
     </li>
+  );
+};
+
+// ─── Reconciliation banner ──────────────────────────────────────
+const ReconciliationBanner: React.FC<{
+  logSum: number;
+  truth: number;
+  enabledAtMs: number;
+  scoped: boolean;
+}> = ({ logSum, truth, enabledAtMs, scoped }) => {
+  const totalLabel = scoped ? 'Player total' : 'Team total';
+  const historyStart = enabledAtMs
+    ? `History from before ${shortDate(enabledAtMs)} isn't logged.`
+    : 'Older activity may pre-date the log.';
+  return (
+    <section className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 px-4 py-3">
+      <p className="text-[12px] leading-snug text-ink-primary/70">
+        <span className="font-semibold text-ink-primary/85">
+          Log shows {logSum.toLocaleString()} XP of history.
+        </span>{' '}
+        {totalLabel} is {truth.toLocaleString()} XP. {historyStart}
+      </p>
+    </section>
   );
 };
 

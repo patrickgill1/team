@@ -424,6 +424,7 @@ const KidDashboard: React.FC = () => {
                     <KidRsvpButtons
                       eventId={e.id}
                       playerId={activeKidPlayerId}
+                      teamId={player.teamId || ''}
                       playerName={firstName}
                       playerPhotoUrl={player.profilePhotoUrl || null}
                       parentUid={(userData as any)?.uid}
@@ -652,12 +653,13 @@ const ChatEmptyIllustration: React.FC<{ className?: string }> = ({ className }) 
 const KidRsvpButtons: React.FC<{
   eventId: string;
   playerId: string;
+  teamId: string;
   playerName: string;
   playerPhotoUrl?: string | null;
   parentUid?: string;
   currentStatus?: RsvpStatus;
   xpEnabled?: boolean;
-}> = ({ eventId, playerId, playerName, playerPhotoUrl, parentUid, currentStatus, xpEnabled }) => {
+}> = ({ eventId, playerId, teamId, playerName, playerPhotoUrl, parentUid, currentStatus, xpEnabled }) => {
   const [busy, setBusy] = useState<RsvpStatus | null>(null);
 
   const setStatus = async (status: RsvpStatus) => {
@@ -666,8 +668,9 @@ const KidRsvpButtons: React.FC<{
     // Snapshot the transition BEFORE the write so the RSVP =>
     // 'going' micro-XP only fires on a fresh crossing. A kid tapping
     // 'going' twice in a row (once already going) will not double-
-    // grant. Toggling going -> no -> going grants twice, which is
-    // an accepted spam edge case in v1.
+    // grant. Toggling going -> no -> going is also idempotent now
+    // that the grant is keyed by sourceRef 'rsvp-{eventId}-{playerId}';
+    // the worker returns ALREADY_EXISTS on the second attempt.
     const crossedIntoGoing = status === 'going' && currentStatus !== 'going';
     try {
       await updateDoc(doc(db, 'events', eventId), {
@@ -685,9 +688,18 @@ const KidRsvpButtons: React.FC<{
         // Kid-in-app double (2026-07-17): this component only ever
         // renders inside the KidDashboard shell, so the actor is by
         // definition in kid mode. Award +10 instead of the base +5.
-        void awardMicroXp(playerId, 10, {
+        // Deterministic sourceRef ('rsvp-{eventId}-{playerId}') makes
+        // the toggling going -> no -> going case idempotent per event;
+        // if the kid crosses into 'going' a second time on the same
+        // event, the worker returns ALREADY_EXISTS and no double
+        // grant lands.
+        void awardMicroXp({
+          playerId,
+          teamId,
+          source: 'rsvp_going',
+          xp: 10,
+          sourceRef: `rsvp-${eventId}-${playerId}`,
           xpEnabled: Boolean(xpEnabled),
-          actionKey: 'rsvp_going',
         });
       }
     } catch (err) {

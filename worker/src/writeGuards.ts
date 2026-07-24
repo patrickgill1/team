@@ -41,10 +41,11 @@ import {
   runQuery,
   commitDocumentTransforms,
   FirestoreDoc,
+  FieldTransform,
   PreconditionFailedError,
   AlreadyExistsError,
 } from './firestore';
-import { computeBackfillPlan, backfillEventId, type BackfillPlan, type ComputedBadge } from './xpBackfill';
+import { computeBackfillPlan, computeStreakHistory, backfillEventId, type BackfillPlan, type ComputedBadge } from './xpBackfill';
 import { setCustomClaims } from './identityToolkit';
 import { createLeague, createFixture, reportFixtureScore, recomputeStandings } from './leagues';
 import { handleAdminSendPlayerInvite } from './adminPlayerInvite';
@@ -3736,6 +3737,362 @@ async function deleteAuditEventBestEffort(
   }
 }
 
+// ────────────────────────────────────────────────────────────────
+// SOURCE_ENUM + per-source daily caps
+//
+// Every worker-side XP write MUST use one of these source slugs so
+// the client's PlayerXpEvent.source union stays authoritative for
+// history rendering (see src/utils/xpSourceLabels.ts).
+//
+// 'coach_recognition' is grandfathered on READ only — the old
+// /xp/award-recognition endpoint that emitted it was deleted
+// 2026-07-13 (see feedback on WHISPER_XP block above). New writes
+// pick a specific coach-authored slug instead (coach_live /
+// coach_whisper / kudos_coach_convert).
+//
+// PER_SOURCE_DAILY_CAP is the TOTAL XP a given source may grant to a
+// single player in one Denver calendar day. Uncapped sources omit
+// the entry (undefined = no cap). Coach_live's 200/day intentionally
+// matches COACH_LIVE_XP_PER_PLAYER_PER_DAY because /xp/log-grant is
+// the new front door — sending a coach_live event through this path
+// must respect the same ceiling as the /xp/grant-coach handler even
+// though its cap is enforced via a separate map field.
+// ────────────────────────────────────────────────────────────────
+const XP_WRITE_SOURCES = [
+  'coach_live', 'coach_whisper', 'kudos_coach_convert',
+  'dev_plan_log', 'practice_attendance', 'game_attendance',
+  'effort_bonus', 'rsvp_going',
+  'first_goal', 'first_assist', 'first_save', 'first_clean_sheet',
+  'first_potm', 'perfect_attendance', 'streak_milestone',
+] as const;
+type XpWriteSource = typeof XP_WRITE_SOURCES[number];
+const XP_WRITE_SOURCE_SET: ReadonlySet<string> = new Set(XP_WRITE_SOURCES);
+
+const PER_SOURCE_DAILY_CAP: Partial<Record<XpWriteSource, number>> = {
+  coach_live: 200,
+  coach_whisper: 500,
+  kudos_coach_convert: 1000,
+  dev_plan_log: 20,
+  practice_attendance: 15,
+  game_attendance: 15,
+  effort_bonus: 10,
+  rsvp_going: 20,
+  first_goal: 100,
+  first_assist: 100,
+  first_save: 100,
+  first_clean_sheet: 100,
+  first_potm: 150,
+  perfect_attendance: 200,
+  streak_milestone: 400,
+};
+
+// Sources that a non-coach caller (parent, self kid) is allowed to
+// author via /xp/log-grant. Coach-authored sources (coach_live etc.)
+// require a coach identity; first-* achievements are earned via
+// stat-write flows that themselves auth as coach.
+const NON_COACH_ALLOWED_SOURCES: ReadonlySet<string> = new Set([
+  'dev_plan_log',
+  'rsvp_going',
+]);
+
+// Maps every /xp/log-grant source to the team.xpConfig.sources sub-key
+// that gates it. Only checked when explicitly set to `false` — undefined
+// means enabled by default (matches isXpSourceEnabled semantics in
+// src/utils/xpSource.ts). This mirrors the per-endpoint gate that
+// handleXpGrantCoach / handleXpAwardWhisper / handleXpConvertKudos
+// enforce directly so /xp/log-grant respects the same coach toggles.
+//
+// Keys MUST match exactly what CoachXpConfig writes to
+// team.xpConfig.sources (see XP_SOURCE_LABELS in src/utils/xpSource.ts).
+// A mismatch means the coach's OFF toggle is silently ignored and XP
+// still flows.
+const SOURCE_CONFIG_KEY: Partial<Record<XpWriteSource, string>> = {
+  coach_live: 'coachLiveGrant',
+  coach_whisper: 'whisper',
+  kudos_coach_convert: 'kudosConvert',
+  dev_plan_log: 'practice',
+  practice_attendance: 'practiceAttendance',
+  game_attendance: 'gameAttendance',
+  effort_bonus: 'effortBonus',
+  rsvp_going: 'rsvp',
+  first_goal: 'firstGoal',
+  first_assist: 'firstAssist',
+  first_save: 'firstSave',
+  first_clean_sheet: 'firstCleanSheet',
+  first_potm: 'firstPotm',
+  perfect_attendance: 'perfectAttendance',
+  streak_milestone: 'streaks',
+};
+
+// Ship 1 coarse-key fallbacks. Mirrors COARSE_FALLBACK in
+// src/utils/xpSource.ts so a team that only set the legacy
+// `participation` or `badges` coarse flag still propagates OFF into
+// /xp/log-grant. Consulted ONLY when the per-source key is
+// undefined — an explicit true/false on the per-source key wins.
+const SOURCE_COARSE_FALLBACK: Partial<Record<XpWriteSource, string>> = {
+  dev_plan_log: 'participation',
+  rsvp_going: 'participation',
+  first_goal: 'badges',
+  first_assist: 'badges',
+  first_save: 'badges',
+  first_clean_sheet: 'badges',
+  first_potm: 'badges',
+  perfect_attendance: 'badges',
+  streak_milestone: 'badges',
+  // coach_live, coach_whisper, kudos_coach_convert, practice_attendance,
+  // game_attendance, effort_bonus — no coarse fallback (Ship 2/3 keys).
+};
+
+// Sources that represent a single-earn achievement. A caller MUST
+// supply a sourceRef with these so writeXpGrant's deterministic-id
+// idempotency guard prevents a coach from minting duplicates by
+// tapping twice. See fix #7 in the xp-audit-trail-ship pass.
+const ACHIEVEMENT_SOURCES: ReadonlySet<string> = new Set([
+  'first_goal', 'first_assist', 'first_save', 'first_clean_sheet',
+  'first_potm', 'perfect_attendance', 'streak_milestone',
+]);
+
+// Whitelist of badge slugs alsoStampBadge may target. Mirrors
+// src/utils/badgeMeta.ts BadgeSlug plus streak_100 (reserved but
+// not yet in the client meta). Kept in sync manually — a mismatch
+// with badgeMeta means the client renders an unknown chip.
+const KNOWN_BADGE_SLUGS: ReadonlySet<string> = new Set([
+  'first_goal', 'first_assist', 'first_save', 'first_clean_sheet',
+  'first_potm', 'perfect_attendance',
+  'streak_5', 'streak_10', 'streak_25', 'streak_50', 'streak_100',
+  'coach_pick',
+]);
+
+// Regex for the streak_N slugs the streak_milestone source may stamp.
+const STREAK_SLUG_RE = /^streak_(5|10|25|50|100)$/;
+
+/** True when users/{uid}.selfPlayerId === playerId — the "kid runs
+ *  the app themselves" path (see project_youth_self_manage_account
+ *  memory). Same shape the client uses to gate self-nav. */
+async function isSelfKidOfPlayer(pid: string, sa: ServiceAccount, uid: string, playerId: string): Promise<boolean> {
+  try {
+    const doc = await getDocument(pid, `users/${uid}`, sa);
+    return String(doc?.data?.selfPlayerId || '') === playerId;
+  } catch { return false; }
+}
+
+// ────────────────────────────────────────────────────────────────
+// writeXpGrant — internal helper shared by every XP-writing endpoint.
+//
+// Contract:
+//   1. Resolves clubId (from team.clubId), seasonId + seasonName
+//      (from the ONE active season on the team), awardedByName and
+//      awardedByAvatarUrl (from users/{claims.uid}) unless the caller
+//      pre-loaded them in ctx.
+//   2. Builds a player_xp_events payload with the standard denormed
+//      shape (seasonId, clubId, awardedByName, awardedByAvatarUrl,
+//      note, sourceRef, createdAt, occurredAt, source, xp) and creates
+//      it — with a deterministic docId when sourceRef is supplied.
+//   3. If Firestore rejects the create with ALREADY_EXISTS, treat as
+//      idempotent no-op: return outcome='already_exists' WITHOUT
+//      incrementing player.xp again. This is how retries/backfill
+//      compose safely (same sourceRef → same doc id → 409 → skip).
+//   4. Otherwise commit an ATOMIC transform that increments
+//      player.xp + player.xpCareer by `xp`, optionally merging in
+//      badges.{slug} = { earnedAt, xp } when alsoStampBadge is set,
+//      and any caller-supplied extraTransforms (used by coach_live's
+//      xpDailyGrantCount counter). If that commit fails we undo the
+//      audit doc via deleteAuditEventBestEffort so a partial-success
+//      orphan doesn't inflate history without moving the player total.
+//
+// Cap enforcement lives OUTSIDE this helper — see /xp/log-grant for
+// the generic per-source ceiling and handleXpGrantCoach for the
+// legacy updateTime-precondition retry loop. Splitting responsibility
+// keeps the helper single-purpose and lets each endpoint pick its own
+// cap semantics.
+// ────────────────────────────────────────────────────────────────
+export interface WriteXpGrantInput {
+  pid: string;
+  sa: ServiceAccount;
+  actorUid: string;
+  actorRole?: 'coach' | 'team_manager' | 'system' | 'parent' | 'self';
+  teamId: string;
+  playerId: string;
+  source: XpWriteSource | string;
+  xp: number;
+  sourceRef?: string;
+  note?: string;
+  occurredAt?: Date;
+  alsoStampBadge?: { slug: string; earnedAt: Date; xp?: number };
+  /** Extra field transforms merged into the atomic commit. Used by
+   *  handleXpGrantCoach to increment its per-day counter in the same
+   *  commit as xp/xpCareer. */
+  extraTransforms?: FieldTransform[];
+  /** Optional updateTime precondition on the player doc. Caller
+   *  should catch PreconditionFailedError to retry. */
+  precondition?: { updateTime: string };
+  /** Pre-loaded lookups to skip redundant reads when the calling
+   *  handler already has them in hand. */
+  ctx?: {
+    teamData?: any;
+    playerData?: any;
+    seasonId?: string;
+    seasonName?: string;
+    clubId?: string;
+    awardedByName?: string | null;
+    awardedByAvatarUrl?: string | null;
+    playerName?: string;
+  };
+}
+
+export interface WriteXpGrantResult {
+  outcome: 'created' | 'already_exists';
+  eventId: string;
+  /** Season/club stamped on the event. Callers can use these to skip
+   *  their own follow-up lookups. */
+  seasonId: string;
+  clubId: string;
+  awardedByName: string | null;
+  awardedByAvatarUrl: string | null;
+}
+
+async function writeXpGrant(input: WriteXpGrantInput): Promise<WriteXpGrantResult> {
+  const {
+    pid, sa, actorUid, teamId, playerId, source, xp,
+    sourceRef, note, occurredAt, alsoStampBadge, extraTransforms, precondition,
+  } = input;
+  const ctx = input.ctx || {};
+
+  // Resolve clubId + season (only if not pre-supplied). Season lookup
+  // is non-fatal — if there's no active season we still stamp the
+  // event; downstream filters treat missing seasonId as "all-time".
+  let teamData = ctx.teamData;
+  if (!teamData) {
+    const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+    teamData = teamDoc?.data || null;
+  }
+  const clubId = ctx.clubId ?? (teamData?.clubId ? String(teamData.clubId) : '');
+
+  let seasonId = ctx.seasonId ?? '';
+  let seasonName = ctx.seasonName ?? '';
+  if (!ctx.seasonId) {
+    try {
+      const seasonQ = await runQuery(pid, 'seasons', [
+        { field: 'teamId', op: 'EQUAL', value: teamId },
+        { field: 'isActive', op: 'EQUAL', value: true },
+      ], sa, 1);
+      if (seasonQ.length > 0) {
+        seasonId = seasonQ[0].id;
+        seasonName = String((seasonQ[0].data as any)?.name || '');
+      }
+    } catch (err) {
+      console.warn('[xp/writeXpGrant] season lookup failed:', (err as Error).message);
+    }
+  }
+
+  // Player name + display avatar for the wall / audit row.
+  let playerName = ctx.playerName;
+  if (!playerName) {
+    if (ctx.playerData?.name) {
+      playerName = String(ctx.playerData.name);
+    } else {
+      const pDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+      playerName = String((pDoc?.data as any)?.name || 'Player');
+    }
+  }
+
+  // awardedByName / avatar are always resolved from the caller's
+  // users/{uid} doc so a coach that renamed themselves shows their
+  // current name on the audit trail (matches whisper handler intent).
+  let awardedByName: string | null = ctx.awardedByName ?? null;
+  let awardedByAvatarUrl: string | null = ctx.awardedByAvatarUrl ?? null;
+  if (ctx.awardedByName === undefined || ctx.awardedByAvatarUrl === undefined) {
+    try {
+      const u = await getDocument(pid, `users/${actorUid}`, sa);
+      const ud: any = u?.data || {};
+      if (ctx.awardedByName === undefined) {
+        const n = typeof ud.name === 'string' && ud.name.trim() ? ud.name.trim() : null;
+        awardedByName = n;
+      }
+      if (ctx.awardedByAvatarUrl === undefined) {
+        const avatar = ud.photoURL || ud.profilePhotoUrl || null;
+        awardedByAvatarUrl = typeof avatar === 'string' && avatar ? avatar : null;
+      }
+    } catch { /* non-fatal — display fields default to null */ }
+  }
+
+  const now = new Date();
+  const eventFields: Record<string, any> = {
+    playerId,
+    playerName,
+    teamId,
+    xp,
+    source,
+    awardedBy: actorUid,
+    awardedByRole: input.actorRole || 'coach',
+    awardedByName,
+    awardedByAvatarUrl,
+    createdAt: now,
+    occurredAt: occurredAt || now,
+  };
+  if (seasonId) eventFields.seasonId = seasonId;
+  if (clubId) eventFields.clubId = clubId;
+  if (note !== undefined && note !== null && note !== '') eventFields.note = String(note).slice(0, 500);
+  if (sourceRef) eventFields.sourceRef = sourceRef;
+
+  let eventId = '';
+  try {
+    eventId = await createDocument(pid, 'player_xp_events', eventFields, sa, sourceRef || undefined);
+  } catch (err) {
+    if (err instanceof AlreadyExistsError && sourceRef) {
+      // Deterministic sourceRef collided with a prior write. Idempotent
+      // no-op: the previous run already incremented player.xp; don't
+      // re-apply and don't re-stamp the badge (a prior commit landed).
+      return {
+        outcome: 'already_exists',
+        eventId: sourceRef,
+        seasonId, clubId, awardedByName, awardedByAvatarUrl,
+      };
+    }
+    throw err;
+  }
+
+  const transforms: FieldTransform[] = [
+    { fieldPath: 'xp', kind: 'increment', value: xp },
+    { fieldPath: 'xpCareer', kind: 'increment', value: xp },
+  ];
+  if (extraTransforms && extraTransforms.length > 0) {
+    for (const t of extraTransforms) transforms.push(t);
+  }
+
+  const patchFields: Record<string, any> | null = alsoStampBadge
+    ? {
+        [`badges.${alsoStampBadge.slug}`]: {
+          earnedAt: alsoStampBadge.earnedAt,
+          xp: alsoStampBadge.xp ?? xp,
+        },
+      }
+    : null;
+
+  try {
+    await commitDocumentTransforms(
+      pid,
+      `players/${playerId}`,
+      transforms,
+      patchFields,
+      sa,
+      precondition,
+    );
+  } catch (err) {
+    // Two-write atomicity guarantee: if the player commit fails we
+    // undo the audit doc so history doesn't credit an event whose
+    // XP never landed on the player.
+    await deleteAuditEventBestEffort(eventId, pid, sa);
+    throw err;
+  }
+
+  return {
+    outcome: 'created',
+    eventId,
+    seasonId, clubId, awardedByName, awardedByAvatarUrl,
+  };
+}
+
 /** Monday 00:00 America/Denver as a millisecond timestamp. Windows
  *  reset weekly so a coach's quota rolls over at the start of the
  *  next practice week (matches the streak-Sunday-skip cadence).
@@ -3869,6 +4226,7 @@ async function handleXpAwardWhisper(req: Request, env: Env, payload: any): Promi
 
   const playerId = String(payload?.playerId || '');
   if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+  const whisperId = String(payload?.whisperId || '').trim();
 
   const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
   if (!teamDoc?.data) return json({ ok: false, error: 'team_not_found' }, 404);
@@ -3885,7 +4243,6 @@ async function handleXpAwardWhisper(req: Request, env: Env, payload: any): Promi
   if (whisperFlag === false) {
     return json({ ok: false, error: 'xp_source_disabled' }, 403);
   }
-  const clubId = teamData.clubId ? String(teamData.clubId) : '';
 
   const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
   if (!playerDoc?.data) return json({ ok: false, error: 'player_not_found' }, 404);
@@ -3896,79 +4253,40 @@ async function handleXpAwardWhisper(req: Request, env: Env, payload: any): Promi
   if (!playerTeams.includes(teamId)) {
     return json({ ok: false, error: 'player_not_on_team' }, 403);
   }
-  const playerName = String(player.name || 'Player');
 
-  let seasonId = '';
-  let seasonName = '';
+  // Route through writeXpGrant so player_xp_events + xp increment
+  // ride the same code path as coach_live / kudos_coach_convert. The
+  // sourceRef ties the audit doc to the parent_whispers doc id so
+  // deleting a whisper (future feature) can trivially map back to the
+  // XP event; and a retry after a transform failure 409s cleanly.
+  let result;
   try {
-    const seasonQ = await runQuery(
-      pid,
-      'seasons',
-      [
-        { field: 'teamId', op: 'EQUAL', value: teamId },
-        { field: 'isActive', op: 'EQUAL', value: true },
-      ],
-      sa,
-      1,
-    );
-    if (seasonQ.length > 0) {
-      seasonId = seasonQ[0].id;
-      seasonName = String((seasonQ[0].data as any)?.name || '');
-    }
+    result = await writeXpGrant({
+      pid, sa,
+      actorUid: claims.uid,
+      actorRole: 'coach',
+      teamId, playerId,
+      source: 'coach_whisper',
+      xp: WHISPER_XP,
+      sourceRef: whisperId || undefined,
+      ctx: { teamData, playerData: player },
+    });
   } catch (err) {
-    console.warn('[xp] season lookup failed:', (err as Error).message);
+    console.error('[xp/award-whisper] write failed', (err as Error).message);
+    return json({ ok: false, error: 'write_failed' }, 500);
   }
 
-  const now = new Date();
-  // Look up caller name + photo so the wall's XP-note row can render
-  // the coach's face next to the note (matches the coach-whisper row
-  // that already had coachAvatarUrl). Without this the wall shows a
-  // letter placeholder for XP notes and a photo for whispers, side
-  // by side.
-  let awardedByName: string | null = null;
-  let awardedByAvatarUrl: string | null = null;
-  try {
-    const u = await getDocument(pid, `users/${claims.uid}`, sa);
-    const ud: any = u?.data || {};
-    if (typeof ud.name === 'string' && ud.name.trim()) awardedByName = ud.name.trim();
-    const avatar = ud.photoURL || ud.profilePhotoUrl || null;
-    if (typeof avatar === 'string' && avatar) awardedByAvatarUrl = avatar;
-  } catch { /* non-fatal */ }
-  const eventFields: Record<string, any> = {
-    playerId,
-    playerName,
-    teamId,
-    xp: WHISPER_XP,
-    source: 'coach_whisper',
-    awardedBy: claims.uid,
-    awardedByRole: 'coach',
-    awardedByName,
-    awardedByAvatarUrl,
-    createdAt: now,
-  };
-  if (seasonId) eventFields.seasonId = seasonId;
-  if (clubId) eventFields.clubId = clubId;
-
-  const eventId = await createDocument(pid, 'player_xp_events', eventFields, sa);
-  await commitDocumentTransforms(
-    pid,
-    `players/${playerId}`,
-    [
-      { fieldPath: 'xp', kind: 'increment', value: WHISPER_XP },
-      { fieldPath: 'xpCareer', kind: 'increment', value: WHISPER_XP },
-    ],
-    null,
-    sa,
-  );
-
   const currentBadges = (player.badges && typeof player.badges === 'object') ? player.badges : {};
-  const pick = await maybeGrantCoachPick(pid, sa, playerId, currentBadges, seasonId, seasonName);
+  const pick = await maybeGrantCoachPick(
+    pid, sa, playerId, currentBadges, result.seasonId, '',
+  );
 
   return json({
     ok: true,
-    eventId,
+    eventId: result.eventId,
+    outcome: result.outcome,
     xp: WHISPER_XP,
-    totalXp: (typeof player.xp === 'number' ? player.xp : 0) + WHISPER_XP,
+    totalXp: (typeof player.xp === 'number' ? player.xp : 0) + (result.outcome === 'created' ? WHISPER_XP : 0),
     coachPickEarned: pick.earned,
   });
 }
@@ -4014,7 +4332,6 @@ async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promi
   if (teamData?.xpConfig?.sources?.kudosConvert === false) {
     return json({ ok: false, error: 'xp-source-disabled' }, 403);
   }
-  const clubId = teamData.clubId ? String(teamData.clubId) : '';
 
   const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
   if (!playerDoc?.data) return json({ ok: false, error: 'player_not_found' }, 404);
@@ -4025,7 +4342,6 @@ async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promi
   if (!playerTeams.includes(teamId)) {
     return json({ ok: false, error: 'player_not_on_team' }, 403);
   }
-  const playerName = String(player.name || 'Player');
 
   // Load the kudos doc so we can carry sender info into the audit
   // event + fail cleanly if it doesn't exist or was already converted.
@@ -4039,83 +4355,33 @@ async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promi
     return json({ ok: false, error: 'kudos_player_mismatch' }, 400);
   }
 
-  let seasonId = '';
-  let seasonName = '';
-  try {
-    const seasonQ = await runQuery(
-      pid,
-      'seasons',
-      [
-        { field: 'teamId', op: 'EQUAL', value: teamId },
-        { field: 'isActive', op: 'EQUAL', value: true },
-      ],
-      sa,
-      1,
-    );
-    if (seasonQ.length > 0) {
-      seasonId = seasonQ[0].id;
-      seasonName = String((seasonQ[0].data as any)?.name || '');
-    }
-  } catch (err) {
-    console.warn('[xp/convert-kudos] season lookup failed:', (err as Error).message);
-  }
-
-  let coachName = '';
-  let coachAvatarUrl: string | null = null;
-  try {
-    const coachDoc = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
-    if (coachDoc?.data) {
-      coachName = String((coachDoc.data as any)?.name || '');
-      const avatar = (coachDoc.data as any)?.photoURL || (coachDoc.data as any)?.profilePhotoUrl || null;
-      if (typeof avatar === 'string' && avatar) coachAvatarUrl = avatar;
-    }
-  } catch { /* non-fatal */ }
-
-  // Deterministic doc id — safe against double-tap.
+  // Deterministic doc id — safe against double-tap. writeXpGrant
+  // treats an ALREADY_EXISTS on this id as a benign no-op, so a coach
+  // hammering the button twice returns outcome='already_exists'
+  // without double-crediting the player.
   const eventId = `kudos-${kudosId}`;
-  const eventFields: Record<string, any> = {
-    playerId,
-    playerName,
-    teamId,
-    xp: amount,
-    source: 'kudos_coach_convert',
-    awardedBy: claims.uid,
-    awardedByRole: 'coach',
-    awardedByName: coachName || null,
-    awardedByAvatarUrl: coachAvatarUrl,
-    note: coachNote || String(kudos.note || ''),
-    sourceRef: kudosId,
-    createdAt: now,
-  };
-  if (seasonId) eventFields.seasonId = seasonId;
-  if (clubId) eventFields.clubId = clubId;
+  const noteForEvent = coachNote || String(kudos.note || '');
 
+  let result;
   try {
-    await createDocument(pid, 'player_xp_events', eventFields, sa, eventId);
-  } catch (err: any) {
-    if (err?.name === 'AlreadyExistsError') {
-      return json({ ok: false, error: 'kudos_already_converted' }, 409);
-    }
-    throw err;
+    result = await writeXpGrant({
+      pid, sa,
+      actorUid: claims.uid,
+      actorRole: 'coach',
+      teamId, playerId,
+      source: 'kudos_coach_convert',
+      xp: amount,
+      sourceRef: eventId,
+      note: noteForEvent,
+      ctx: { teamData, playerData: player },
+    });
+  } catch (err) {
+    console.error('[xp/convert-kudos] write failed', (err as Error).message);
+    return json({ ok: false, error: 'write_failed' }, 500);
   }
 
-  try {
-    await commitDocumentTransforms(
-      pid,
-      `players/${playerId}`,
-      [
-        { fieldPath: 'xp', kind: 'increment', value: amount },
-        { fieldPath: 'xpCareer', kind: 'increment', value: amount },
-      ],
-      null,
-      sa,
-    );
-  } catch (err) {
-    // Orphan the audit doc if the player transform fails. Best-effort
-    // undo matches the whisper handler pattern (see
-    // deleteAuditEventBestEffort in the file).
-    await deleteAuditEventBestEffort(pid, sa, eventId);
-    throw err;
+  if (result.outcome === 'already_exists') {
+    return json({ ok: false, error: 'kudos_already_converted', xpEventId: eventId }, 409);
   }
 
   // Stamp the kudos doc bidirectionally so the profile UI can show
@@ -4125,7 +4391,7 @@ async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promi
     await patchDocument(pid, `kudos/${kudosId}`, {
       xpAwarded: amount,
       xpAwardedBy: claims.uid,
-      xpAwardedByName: coachName || '',
+      xpAwardedByName: result.awardedByName || '',
       xpAwardedAt: now,
       xpEventId: eventId,
       xpNote: coachNote || '',
@@ -4137,7 +4403,7 @@ async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promi
   // Coach's Pick derivation — kudos_coach_convert IS in
   // COACH_SOURCE_TYPES, so this sum includes the just-landed event.
   const pick = await maybeGrantCoachPick(
-    pid, sa, playerId, player.badges || {}, seasonId, seasonName,
+    pid, sa, playerId, player.badges || {}, result.seasonId, '',
   );
 
   return json({
@@ -4148,6 +4414,583 @@ async function handleXpConvertKudos(req: Request, env: Env, payload: any): Promi
     coachPickEarned: pick.earned,
     kudosId,
   });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// POST /xp/log-grant — GENERIC XP grant used by every client-side
+// path that previously wrote xp/xpCareer directly. Refactor 2026-07-24:
+// the client's src/utils/microXp.ts + src/utils/badgeGrants.ts
+// helpers migrate onto this endpoint so player.xp / player.xpCareer /
+// player.badges become worker-only fields (Firestore rules deny
+// direct client writes going forward).
+//
+// Auth acceptance ladder — first that matches wins:
+//   1. Coach of teamId (via requireCoachOfTeam) → any allowed source
+//   2. Player's parent (player.parentIds includes uid) → limited to
+//      NON_COACH_ALLOWED_SOURCES (dev_plan_log, rsvp_going)
+//   3. Self-kid (users/{uid}.selfPlayerId === playerId) → same limit
+//
+// The endpoint stays fire-and-forget from the caller's perspective:
+// non-fatal failures return a 4xx / 5xx JSON error and callers log +
+// swallow. The response tells you WHICH outcome landed so callers
+// that care can render "capped" state (mostly UI-side celebration).
+// ═══════════════════════════════════════════════════════════════
+async function handleXpLogGrant(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  const playerId = String(payload?.playerId || '');
+  const teamId = String(payload?.teamId || '');
+  const source = String(payload?.source || '');
+  const xpRaw = Number(payload?.xp);
+  const sourceRef = payload?.sourceRef ? String(payload.sourceRef) : undefined;
+  const note = payload?.note ? String(payload.note).slice(0, 500) : undefined;
+  const occurredAtRaw = payload?.occurredAt ? String(payload.occurredAt) : '';
+  const badgeInput = payload?.alsoStampBadge && typeof payload.alsoStampBadge === 'object'
+    ? payload.alsoStampBadge
+    : null;
+
+  if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+  if (!teamId) return json({ ok: false, error: 'team_id_required' }, 400);
+
+  // ── Contract-level validation ────────────────────────────────
+  if (!XP_WRITE_SOURCE_SET.has(source)) {
+    return json({ ok: false, error: 'invalid_source' }, 400);
+  }
+  if (!Number.isFinite(xpRaw) || xpRaw < 1 || xpRaw > 500) {
+    return json({ ok: false, error: 'xp_out_of_range' }, 400);
+  }
+  const xp = Math.round(xpRaw);
+
+  // Single-earn achievement sources REQUIRE a sourceRef. The
+  // deterministic doc-id it produces is the only idempotency guard
+  // stopping a coach from minting duplicates by tapping twice; without
+  // it, a re-fire on a page reload would double-credit.
+  if (ACHIEVEMENT_SOURCES.has(source) && !sourceRef) {
+    return json({ ok: false, error: 'sourceRef_required' }, 400);
+  }
+
+  // occurredAt clamp — defense against clock skew / tampered client
+  // timestamps stamping wildly-off event rows. Backfill has its own
+  // handler (handleXpBackfillCommit) and doesn't reach this path.
+  let occurredAt: Date | undefined;
+  if (occurredAtRaw) {
+    const parsed = new Date(occurredAtRaw);
+    if (!Number.isFinite(parsed.getTime())) {
+      return json({ ok: false, error: 'occurredAt_out_of_range' }, 400);
+    }
+    const nowMs = Date.now();
+    const minMs = nowMs - 7 * 24 * 60 * 60 * 1000;
+    const maxMs = nowMs + 60 * 60 * 1000;
+    if (parsed.getTime() < minMs || parsed.getTime() > maxMs) {
+      return json({ ok: false, error: 'occurredAt_out_of_range' }, 400);
+    }
+    occurredAt = parsed;
+  }
+
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  if (!teamDoc?.data) return json({ ok: false, error: 'team_not_found' }, 404);
+  const teamData: any = teamDoc.data;
+  if (teamData?.xpConfig?.enabled !== true) {
+    return json({ ok: false, error: 'xp_disabled' }, 400);
+  }
+  // Per-source subflag: coach can silence any specific source without
+  // disabling XP wholesale. Only rejects on explicit `false` — missing
+  // / undefined keeps the source enabled (matches isXpSourceEnabled).
+  // When the per-source key is undefined, fall back to the Ship 1
+  // coarse key (participation / badges) so a team that only ever set
+  // those coarse flags still propagates OFF here.
+  const cfgKey = SOURCE_CONFIG_KEY[source as XpWriteSource];
+  const sourcesMap = teamData?.xpConfig?.sources;
+  if (cfgKey && sourcesMap) {
+    const explicit = sourcesMap[cfgKey];
+    if (explicit === false) {
+      return json({ ok: false, error: 'source_disabled' }, 400);
+    }
+    if (explicit === undefined) {
+      const coarseKey = SOURCE_COARSE_FALLBACK[source as XpWriteSource];
+      if (coarseKey && sourcesMap[coarseKey] === false) {
+        return json({ ok: false, error: 'source_disabled' }, 400);
+      }
+    }
+  }
+
+  // ── alsoStampBadge whitelist + per-source scoping.
+  //     Coach-authored sources cannot stamp badges via this endpoint
+  //     — they have dedicated grant flows. Parent-authorable sources
+  //     may NEVER stamp a badge. Achievement sources may stamp only
+  //     the paired slug. streak_milestone may stamp only streak_N.
+  let alsoStampBadge: { slug: string; earnedAt: Date; xp?: number } | undefined;
+  if (badgeInput && String(badgeInput.slug || '').trim()) {
+    const slug = String(badgeInput.slug).trim();
+    if (!KNOWN_BADGE_SLUGS.has(slug)) {
+      return json({ ok: false, error: 'invalid_badge_slug' }, 400);
+    }
+    // Coach-authored sources: no badge stamp allowed here.
+    if (source === 'coach_live' || source === 'coach_whisper' || source === 'kudos_coach_convert') {
+      return json({ ok: false, error: 'badge_not_allowed_for_source' }, 400);
+    }
+    // Parent-authorable sources: no badge stamp allowed either.
+    if (NON_COACH_ALLOWED_SOURCES.has(source)) {
+      return json({ ok: false, error: 'badge_not_allowed_for_source' }, 400);
+    }
+    // First-* + perfect_attendance: slug MUST equal source string.
+    if (
+      source === 'first_goal' || source === 'first_assist' ||
+      source === 'first_save' || source === 'first_clean_sheet' ||
+      source === 'first_potm' || source === 'perfect_attendance'
+    ) {
+      if (slug !== source) {
+        return json({ ok: false, error: 'badge_not_allowed_for_source' }, 400);
+      }
+    } else if (source === 'streak_milestone') {
+      if (!STREAK_SLUG_RE.test(slug)) {
+        return json({ ok: false, error: 'badge_not_allowed_for_source' }, 400);
+      }
+    } else {
+      // Any remaining source (defensive; today none reach here) is
+      // not permitted to stamp a badge.
+      return json({ ok: false, error: 'badge_not_allowed_for_source' }, 400);
+    }
+    alsoStampBadge = {
+      slug,
+      earnedAt: badgeInput.earnedAt ? new Date(String(badgeInput.earnedAt)) : new Date(),
+      xp: typeof badgeInput.xp === 'number' ? badgeInput.xp : undefined,
+    };
+  }
+
+  // ── Auth ladder ──────────────────────────────────────────────
+  // We deliberately avoid the requireCoachOfTeam throw-to-catch dance
+  // here because parents / self-kids MUST fall through cleanly.
+  let isCoach = false;
+  try {
+    await requireCoachOfTeam(req, env, teamId);
+    isCoach = true;
+  } catch { /* not a coach — try parent / self next */ }
+
+  let authorized = isCoach;
+  let actorRole: 'coach' | 'parent' | 'self' = 'coach';
+  if (!authorized) {
+    if (!NON_COACH_ALLOWED_SOURCES.has(source)) {
+      // Non-coach caller trying to author a coach-only source. Reject
+      // cleanly so the client can distinguish "wrong actor" from
+      // "wrong team".
+      return json({ ok: false, error: 'forbidden' }, 403);
+    }
+    // Try parent, then self-kid.
+    const isParent = await isParentOfPlayer(pid, sa, claims.uid, playerId);
+    if (isParent) { authorized = true; actorRole = 'parent'; }
+  }
+  if (!authorized) {
+    const isSelf = await isSelfKidOfPlayer(pid, sa, claims.uid, playerId);
+    if (isSelf) { authorized = true; actorRole = 'self'; }
+  }
+  if (!authorized) {
+    return json({ ok: false, error: 'forbidden' }, 403);
+  }
+
+  // ── Read-check-commit retry loop (mirrors handleXpGrantCoach).
+  //     A concurrent /xp/log-grant from another tab could otherwise
+  //     see the same pre-cap counter and both writes could land — the
+  //     updateTime precondition on the player commit invalidates the
+  //     loser and we re-read to try again against the fresh counter.
+  const MAX_RETRIES = 3;
+  const now = new Date();
+  const dayKey = denverDayKey(now); // YYYY-MM-DD
+  const cap = PER_SOURCE_DAILY_CAP[source as XpWriteSource];
+  let attempt = 0;
+  let lastError: string = 'write_failed';
+  while (attempt < MAX_RETRIES) {
+    attempt++;
+
+    // Player-on-team check. Re-read on every retry so the
+    // updateTime precondition reflects the latest state.
+    const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+    if (!playerDoc?.data) return json({ ok: false, error: 'player_not_found' }, 404);
+    const player: any = playerDoc.data;
+    const playerTeams: string[] = Array.isArray(player.teamIds)
+      ? player.teamIds
+      : (player.teamId ? [player.teamId] : []);
+    if (!playerTeams.includes(teamId)) {
+      return json({ ok: false, error: 'forbidden' }, 403);
+    }
+
+    // ── Per-source daily cap. All-or-nothing per contract: if this
+    //     grant would exceed the ceiling, silently return outcome=
+    //     'capped' with no event row and no xp increment. Callers use
+    //     the outcome to decide UI (skip celebration; parent doesn't
+    //     see a "not counted" surprise).
+    let counterExtra: FieldTransform[] = [];
+    if (cap != null) {
+      // xpDailyCountBySource.{source}.{dayKey} — distinct from the
+      // legacy xpDailyGrantCount.{dayKey} map used by handleXpGrantCoach
+      // (which sums coach_live-only against COACH_LIVE_XP_PER_PLAYER_PER_DAY).
+      // Splitting the namespaces keeps each source's ceiling honest
+      // without conflating totals.
+      const bucket: any = (player.xpDailyCountBySource && typeof player.xpDailyCountBySource === 'object')
+        ? player.xpDailyCountBySource
+        : {};
+      const perSource: any = (bucket[source] && typeof bucket[source] === 'object') ? bucket[source] : {};
+      const already = Number(perSource[dayKey]) || 0;
+      if (already + xp > cap) {
+        return json({ ok: true, outcome: 'capped', eventId: null });
+      }
+      counterExtra = [
+        { fieldPath: `xpDailyCountBySource.${source}.${dayKey}`, kind: 'increment', value: xp },
+      ];
+    }
+
+    try {
+      const result = await writeXpGrant({
+        pid, sa,
+        actorUid: claims.uid,
+        actorRole,
+        teamId, playerId,
+        source,
+        xp,
+        sourceRef,
+        note,
+        occurredAt,
+        alsoStampBadge,
+        extraTransforms: counterExtra.length > 0 ? counterExtra : undefined,
+        precondition: playerDoc?.updateTime ? { updateTime: playerDoc.updateTime } : undefined,
+        ctx: { teamData, playerData: player },
+      });
+      return json({
+        ok: true,
+        outcome: result.outcome,
+        eventId: result.eventId,
+        newPlayerXp: result.outcome === 'created'
+          ? (Number(player.xp) || 0) + xp
+          : (Number(player.xp) || 0),
+        newXpCareer: result.outcome === 'created'
+          ? (Number(player.xpCareer) || 0) + xp
+          : (Number(player.xpCareer) || 0),
+      });
+    } catch (err) {
+      if (err instanceof PreconditionFailedError) {
+        lastError = 'precondition_retry';
+        continue;
+      }
+      console.error('[xp/log-grant] writeXpGrant failed', (err as Error).message);
+      return json({ ok: false, error: 'write_failed' }, 500);
+    }
+  }
+  return json({
+    ok: false,
+    error: lastError === 'precondition_retry' ? 'retry_exhausted' : lastError,
+  }, 500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// POST /xp/log-tap — CONSOLIDATED practice-tap XP handler.
+//
+// Body: { playerId, teamId, dayKey (Denver YYYY-MM-DD), isKidActor }.
+//
+// This endpoint replaces the client's recomputeAndPersistPlayerStreak
+// XP writes (which used to do a client-side updateDoc on player.xp,
+// player.currentStreakDays, and player.badges.streak_N). Every one of
+// those writes goes through the worker now so player.xp becomes
+// worker-only in Firestore rules.
+//
+// Order of operations:
+//   1. Idempotent write of the dev_checkins/{dayKey} row (409 is fine
+//      — same day, we've already got the check-in from /dev-plans/
+//      log-tap OR from an earlier /xp/log-tap call).
+//   2. Practice tick XP: kid actor grants +10, parent/coach actor
+//      grants +5. Deterministic sourceRef 'devlog-{playerId}-{dayKey}'
+//      so a re-tap same day is a benign already_exists (no double XP).
+//   3. Streak compute from ALL dev_checkins subcollection rows. If
+//      today's tick crossed a streak_N threshold (5/10/25/50), grant
+//      the paired badge via writeXpGrant with sourceRef
+//      'streak-{playerId}-{N}' — the deterministic id makes multiple
+//      crossings-in-a-row idempotent.
+//
+// Auth: coach OR parent OR self-kid (same ladder as /xp/log-grant,
+// but this endpoint doesn't accept coach-only sources so no extra
+// filter beyond the ladder).
+// ═══════════════════════════════════════════════════════════════
+async function handleXpLogTap(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  const playerId = String(payload?.playerId || '');
+  const teamId = String(payload?.teamId || '');
+  const dayKeyIn = String(payload?.dayKey || '').trim();
+  // NOTE: payload.isKidActor is accepted for backward compat but
+  // deliberately ignored. Tick amount is derived from the server-
+  // computed actorRole below so a client can't inflate +5 → +10
+  // by lying about identity.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _isKidActorIgnored = payload?.isKidActor === true;
+  // selfHeal mode: called by src/utils/devPlanActions.ts's mount-
+  // effect self-heal. Recomputes the streak counter + backfills any
+  // missing streak badges from EXISTING check-ins, but does NOT
+  // create a new dev_checkins row and does NOT grant the practice
+  // tick (opening the app must never mint XP).
+  const selfHeal = payload?.selfHeal === true;
+
+  if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+  if (!teamId) return json({ ok: false, error: 'team_id_required' }, 400);
+  // dayKey must be Denver YYYY-MM-DD. Client should compute via
+  // denverKeyOfDate. Fall back to the worker's own if missing so a
+  // client that forgets doesn't fail hard.
+  const dayKey = /^\d{4}-\d{2}-\d{2}$/.test(dayKeyIn) ? dayKeyIn : denverDayKey(new Date());
+
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  if (!teamDoc?.data) return json({ ok: false, error: 'team_not_found' }, 404);
+  const teamData: any = teamDoc.data;
+  if (teamData?.xpConfig?.enabled !== true) {
+    return json({ ok: false, error: 'xp_disabled' }, 400);
+  }
+
+  // Auth ladder — same shape as /xp/log-grant. Coach OR parent OR
+  // self-kid. dev_plan_log is in NON_COACH_ALLOWED_SOURCES so the
+  // non-coach branch is legit here.
+  let isCoach = false;
+  try {
+    await requireCoachOfTeam(req, env, teamId);
+    isCoach = true;
+  } catch { /* fall through */ }
+  let authorized = isCoach;
+  let actorRole: 'coach' | 'parent' | 'self' = 'coach';
+  if (!authorized) {
+    if (await isParentOfPlayer(pid, sa, claims.uid, playerId)) { authorized = true; actorRole = 'parent'; }
+  }
+  if (!authorized) {
+    if (await isSelfKidOfPlayer(pid, sa, claims.uid, playerId)) { authorized = true; actorRole = 'self'; }
+  }
+  if (!authorized) return json({ ok: false, error: 'forbidden' }, 403);
+
+  const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+  if (!playerDoc?.data) return json({ ok: false, error: 'player_not_found' }, 404);
+  const player: any = playerDoc.data;
+  const playerTeams: string[] = Array.isArray(player.teamIds)
+    ? player.teamIds
+    : (player.teamId ? [player.teamId] : []);
+  if (!playerTeams.includes(teamId)) return json({ ok: false, error: 'forbidden' }, 403);
+
+  // ── 1. Idempotent check-in write. Skipped entirely in selfHeal
+  //      mode — self-heal recomputes from EXISTING rows and must
+  //      never create one, otherwise mounting the KidDashboard
+  //      would silently backfill a missing day the kid didn't tap.
+  const now = new Date();
+  // Tick amount is derived from the server-computed actorRole, not
+  // the client's payload.isKidActor. Kid running the app themselves
+  // (users/{uid}.selfPlayerId === playerId) earns +10; parent/coach
+  // logging on their behalf earns +5. Ignoring payload.isKidActor
+  // stops a spoofed client from claiming the higher kid-actor tick.
+  const tickAmount = actorRole === 'self' ? 10 : 5;
+  const isKidActor = actorRole === 'self';
+  if (!selfHeal) {
+    try {
+      await createDocument(
+        pid,
+        `players/${playerId}/dev_checkins`,
+        {
+          date: now,
+          dayKey,
+          loggedBy: claims.uid,
+          loggedByRole: actorRole,
+          teamId,
+          isKidActor,
+        },
+        sa,
+        dayKey,
+      );
+    } catch (err) {
+      if (!(err instanceof AlreadyExistsError)) {
+        console.warn('[xp/log-tap] dev_checkins write failed:', (err as Error).message);
+        return json({ ok: false, error: 'checkin_write_failed' }, 500);
+      }
+      // Same-day re-tap — keep going; the XP write below is also
+      // idempotent via deterministic sourceRef so a resubmit costs
+      // nothing.
+    }
+  }
+
+  // ── 2. Practice tick. +10 for kid actor, +5 for parent/coach.
+  //      Per LOCKED DECISIONS memo — matches live-code today.
+  //      Skipped in selfHeal mode; the app opening must not tick XP.
+  const tickSourceRef = `devlog-${playerId}-${dayKey}`;
+  let tickOutcome: 'created' | 'already_exists' | 'capped' | 'skipped' = selfHeal ? 'skipped' : 'capped';
+  let tickXp = 0;
+
+  if (!selfHeal) {
+    // Honor the same dev_plan_log 20/day cap as /xp/log-grant.
+    // All-or-nothing to match the /xp/log-grant contract semantics —
+    // a would-overshoot tap is silently 'capped' rather than clamped.
+    const cap = PER_SOURCE_DAILY_CAP.dev_plan_log ?? Infinity;
+    const bucket: any = (player.xpDailyCountBySource && typeof player.xpDailyCountBySource === 'object')
+      ? player.xpDailyCountBySource
+      : {};
+    const perSource: any = (bucket.dev_plan_log && typeof bucket.dev_plan_log === 'object') ? bucket.dev_plan_log : {};
+    const alreadyToday = Number(perSource[dayKey]) || 0;
+    if (alreadyToday + tickAmount > cap) {
+      tickOutcome = 'capped';
+    } else {
+      try {
+        const result = await writeXpGrant({
+          pid, sa,
+          actorUid: claims.uid,
+          actorRole,
+          teamId, playerId,
+          source: 'dev_plan_log',
+          xp: tickAmount,
+          sourceRef: tickSourceRef,
+          extraTransforms: [
+            { fieldPath: `xpDailyCountBySource.dev_plan_log.${dayKey}`, kind: 'increment', value: tickAmount },
+          ],
+          ctx: { teamData, playerData: player },
+        });
+        tickOutcome = result.outcome;
+        tickXp = result.outcome === 'created' ? tickAmount : 0;
+      } catch (err) {
+        console.warn('[xp/log-tap] tick grant failed (non-fatal):', (err as Error).message);
+      }
+    }
+  }
+
+  // ── 3. Streak compute + optional streak-badge grant.
+  //      Read every dev_checkins row for this player (bounded — one
+  //      per day, so 365 days of streaks fit in a single 500-page
+  //      runQuery). Build the day-key set + reuse computeStreakHistory
+  //      from xpBackfill.ts.
+  let newStreak = 0;
+  let streakBadgeXp = 0;
+  try {
+    const checkins = await runQuery(pid, `players/${playerId}/dev_checkins`, [], sa, 500);
+    const dayKeys: string[] = [];
+    for (const row of checkins) {
+      const d: any = row.data;
+      const k = typeof d?.dayKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.dayKey) ? d.dayKey : row.id;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(k)) dayKeys.push(k);
+    }
+    const restDayOfWeek: number = Number(teamData?.streakConfig?.restDayOfWeek ?? 0);
+    const { maxStreak } = computeStreakHistory(dayKeys, restDayOfWeek);
+    // "newStreak" for the response is the CURRENT streak ending on
+    // dayKey — computeStreakHistory returns peak, so we also need the
+    // current-run tail. We derive it by asking: what's the run
+    // ending at dayKey today?
+    newStreak = computeStreakEndingAt(dayKeys, dayKey, restDayOfWeek);
+
+    // Streak-badge crossings — grant any threshold where the streak
+    // crossed exactly today. Peak-based idempotency: once a badge is
+    // stamped, a future dip-and-recross wouldn't re-grant, but the
+    // deterministic sourceRef `streak-{playerId}-{N}` also makes
+    // re-grants a benign already_exists no-op.
+    const existingBadges: Record<string, any> = (player.badges && typeof player.badges === 'object') ? player.badges : {};
+    const STREAK_BADGE_XP: Record<number, number> = { 5: 50, 10: 100, 25: 200, 50: 400 };
+    const thresholds = [5, 10, 25, 50] as const;
+    for (const t of thresholds) {
+      // Grant a threshold badge when the player just reached it AND
+      // hasn't earned it yet. maxStreak covers "peak reached today or
+      // in the past" — we only fire on a NEW threshold (badge absent).
+      if (maxStreak < t) break;
+      const slug = `streak_${t}`;
+      if (existingBadges?.[slug]?.earnedAt) continue;
+      try {
+        const streakRes = await writeXpGrant({
+          pid, sa,
+          actorUid: claims.uid,
+          actorRole,
+          teamId, playerId,
+          source: 'streak_milestone',
+          xp: STREAK_BADGE_XP[t],
+          sourceRef: `streak-${playerId}-${t}`,
+          note: `${t}-day streak`,
+          alsoStampBadge: { slug, earnedAt: now, xp: STREAK_BADGE_XP[t] },
+          ctx: { teamData, playerData: player },
+        });
+        if (streakRes.outcome === 'created') streakBadgeXp += STREAK_BADGE_XP[t];
+      } catch (err) {
+        console.warn(`[xp/log-tap] streak badge ${slug} grant failed (non-fatal):`, (err as Error).message);
+      }
+    }
+  } catch (err) {
+    console.warn('[xp/log-tap] streak compute failed (non-fatal):', (err as Error).message);
+  }
+
+  const newPlayerXp = (Number(player.xp) || 0) + tickXp + streakBadgeXp;
+
+  // Persist the cached currentStreakDays counter. Non-atomic with the
+  // XP writes above by design — streak count is a display cache, not
+  // authoritative (dev_checkins is the source of truth), so a partial
+  // failure here is safe to retry on the next tap. Fires even in
+  // selfHeal mode; the whole point of self-heal is to correct drift
+  // in this cached field from the client's memory of it.
+  try {
+    await patchDocument(pid, `players/${playerId}`, {
+      currentStreakDays: newStreak,
+    }, sa);
+  } catch (err) {
+    console.warn('[xp/log-tap] currentStreakDays persist failed (non-fatal):', (err as Error).message);
+  }
+
+  return json({
+    ok: true,
+    // Alias fields — client transition (src/utils/devPlanActions.ts)
+    // currently reads data.streak; the follow-up client fix will
+    // switch to data.newStreak. Emitting both keeps either reader
+    // safe until the migration lands.
+    newStreak,
+    streak: newStreak,
+    tickXp,
+    tickOutcome,
+    streakBadgeXp,
+    newPlayerXp,
+  });
+}
+
+/** Length of the run of consecutive-with-rest-day-bridge days ending
+ *  at `targetKey`. Rest-day-of-week bridges an unlogged day without
+ *  breaking the run (matches computeStreakDays client-side + Sunday-
+ *  skip memory).
+ *
+ *  Free-pass for `targetKey` (mirrors client computeStreakDaysFromKeys):
+ *  when the target day is NOT in the set and is NOT the rest day, we
+ *  walk the cursor back one full day so the run counts from the most-
+ *  recent-tappable-day-before-target. Without this, a selfHeal recompute
+ *  on Dashboard mount would zero out a live streak any time the kid
+ *  hadn't tapped yet today. Returns 0 only when the set is empty. */
+function computeStreakEndingAt(dayKeys: string[], targetKey: string, restDayOfWeek: number): number {
+  const daySet = new Set(dayKeys);
+  if (daySet.size === 0) return 0;
+  // Noon-Denver anchor avoids DST-edge day-shift. We step the cursor
+  // by full days backward and re-derive both the Denver YYYY-MM-DD
+  // key and the Denver weekday via Intl so worker's default UTC
+  // runtime can never contaminate the calc (feedback_worker_timezone).
+  const cursor = new Date(targetKey + 'T18:00:00Z'); // ~noon Denver year-round
+  const denverKeyFmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Denver', year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  const denverWeekdayFmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Denver', weekday: 'short',
+  });
+  const dowMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  // Target free-pass: if target isn't logged AND isn't the rest day
+  // (which the loop handles on its own), start the walk one day earlier.
+  {
+    const targetDow = dowMap[denverWeekdayFmt.format(cursor)] ?? 0;
+    if (!daySet.has(denverKeyFmt.format(cursor)) && targetDow !== restDayOfWeek) {
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
+    }
+  }
+  let run = 0;
+  for (let i = 0; i < 2000; i++) {
+    const key = denverKeyFmt.format(cursor);
+    const dow = dowMap[denverWeekdayFmt.format(cursor)] ?? 0;
+    const logged = daySet.has(key);
+    if (logged) {
+      run += 1;
+    } else if (dow === restDayOfWeek) {
+      // Rest day bridges — do not increment, do not break.
+    } else {
+      break;
+    }
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return run;
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -4205,7 +5048,10 @@ async function handleAdminPlayerResetXp(req: Request, env: Env, payload: any): P
         if (events.length === 0) break;
         for (const ev of events) {
           try {
-            await deleteAuditEventBestEffort(pid, sa, ev.id);
+            // Signature is (eventId, pid, sa). Prior call passed
+            // (pid, sa, eventId) which silently broke the reset flow
+            // — encodeURIComponent(sa) 404'd for every audit doc.
+            await deleteAuditEventBestEffort(ev.id, pid, sa);
             eventsDeleted++;
           } catch { /* keep going */ }
         }
@@ -4256,6 +5102,11 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
   const amountRaw = Number(payload?.amount);
   const reason = String(payload?.reason || '').trim();
   const savePreset = payload?.savePreset === true;
+  // Optional dispatchId lets a client stamp a stable sourceRef across
+  // every player in a single "bulk grant" so retries + client-side
+  // dedup can trace back to the coach's one intent (e.g. "winning
+  // team, +10 each"). Falls back to per-player auto-id when absent.
+  const dispatchId = String(payload?.dispatchId || '').trim();
 
   if (playerIds.length === 0) return json({ ok: false, error: 'players_required' }, 400);
   if (playerIds.length > COACH_LIVE_PLAYERS_MAX) {
@@ -4296,8 +5147,11 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
   // Caller display name + photo for the audit + kid toast + wall
   // avatar (paired with awardedByAvatarUrl in the event doc below so
   // Sideline Shouts renders the coach's face on XP notes, matching
-  // whispers).
-  let awardedByName = 'Coach';
+  // whispers). Fallback is null, not the literal 'Coach' — the UI's
+  // display layer already renders a bare "Coach" chip when the field
+  // is empty, and stamping 'Coach' as a real name pollutes audit rows
+  // for coaches who never set a profile name.
+  let awardedByName: string | null = null;
   let awardedByAvatarUrl: string | null = null;
   try {
     const u = await getDocument(pid, `users/${claims.uid}`, sa);
@@ -4328,6 +5182,13 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
   //   single-doc. Compromise: write audit first, attempt player
   //   commit, on any player-fail call deleteAuditEventBestEffort()
   //   to undo the orphan audit. Rare double failure is logged.
+  //
+  //   Refactor 2026-07-24: the audit+commit combo now lives in
+  //   writeXpGrant(). This handler still owns the retry loop + the
+  //   updateTime precondition + the daily-counter cap read because
+  //   those are coach_live-specific — writeXpGrant is deliberately
+  //   cap-agnostic so the same helper can serve /xp/log-grant with
+  //   its own separate ceiling shape.
   const MAX_RETRIES = 3;
 
   const results = await Promise.all(playerIds.map(async (playerId): Promise<{ playerId: string; ok: boolean; error?: string; xp?: number }> => {
@@ -4343,7 +5204,6 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
           ? player.teamIds
           : (player.teamId ? [player.teamId] : []);
         if (!playerTeams.includes(teamId)) return { playerId, ok: false, error: 'player_not_on_team' };
-        const playerName = String(player.name || 'Player');
 
         const counterMap: any = (player.xpDailyGrantCount && typeof player.xpDailyGrantCount === 'object')
           ? player.xpDailyGrantCount
@@ -4354,43 +5214,37 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
           return { playerId, ok: false, error: 'daily_cap_reached' };
         }
 
-        const eventFields: Record<string, any> = {
-          playerId,
-          playerName,
-          teamId,
-          xp: amount,
-          source: 'coach_live',
-          awardedBy: claims.uid,
-          awardedByRole: 'coach',
-          awardedByName,
-          awardedByAvatarUrl,
-          note: reason,
-          createdAt: now,
-        };
-        if (seasonId) eventFields.seasonId = seasonId;
-        if (clubId) eventFields.clubId = clubId;
-
-        const eventId = await createDocument(pid, 'player_xp_events', eventFields, sa);
-
         try {
-          await commitDocumentTransforms(
-            pid,
-            `players/${playerId}`,
-            [
-              { fieldPath: 'xp', kind: 'increment', value: amount },
-              { fieldPath: 'xpCareer', kind: 'increment', value: amount },
+          await writeXpGrant({
+            pid, sa,
+            actorUid: claims.uid,
+            actorRole: 'coach',
+            teamId, playerId,
+            source: 'coach_live',
+            xp: amount,
+            note: reason,
+            sourceRef: dispatchId ? `bulk-${dispatchId}-${playerId}` : undefined,
+            extraTransforms: [
               { fieldPath: counterPath, kind: 'increment', value: amount },
             ],
-            null,
-            sa,
-            playerDoc?.updateTime ? { updateTime: playerDoc.updateTime } : undefined,
-          );
+            precondition: playerDoc?.updateTime ? { updateTime: playerDoc.updateTime } : undefined,
+            ctx: {
+              teamData, playerData: player,
+              seasonId, seasonName: '', clubId,
+              awardedByName, awardedByAvatarUrl,
+            },
+          });
           return { playerId, ok: true, xp: amount };
         } catch (commitErr) {
-          await deleteAuditEventBestEffort(eventId, pid, sa);
           if (commitErr instanceof PreconditionFailedError) {
             lastError = 'precondition_retry';
             continue;
+          }
+          if (commitErr instanceof AlreadyExistsError) {
+            // Deterministic sourceRef collision — a prior request in
+            // this dispatch already landed. Treat as idempotent OK so
+            // client retry over the whole dispatch doesn't error.
+            return { playerId, ok: true, xp: amount };
           }
           console.error('[xp] grant-coach player commit failed', playerId, (commitErr as Error).message);
           lastError = 'write_failed';
@@ -4589,21 +5443,57 @@ async function applyBackfillBadge(
   claims: { uid: string; name?: string | null },
 ): Promise<'granted' | 'skipped'> {
   const eventId = backfillEventId(playerId, badge.source as any, badge.sourceRef);
-  const eventFields = {
+
+  // Denorm join to active season + club so backfilled events surface
+  // in season-filtered feeds identically to live-earn events. Missing
+  // fields silently degrade to all-time filters.
+  let seasonId = '';
+  let clubId = '';
+  try {
+    const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+    if (teamDoc?.data?.clubId) clubId = String(teamDoc.data.clubId);
+    const seasonQ = await runQuery(pid, 'seasons', [
+      { field: 'teamId', op: 'EQUAL', value: teamId },
+      { field: 'isActive', op: 'EQUAL', value: true },
+    ], sa, 1);
+    if (seasonQ.length > 0) seasonId = seasonQ[0].id;
+  } catch (err) {
+    console.warn('[xp/backfill] season/club lookup non-fatal:', (err as Error).message);
+  }
+
+  // Actor avatar so the timeline row renders the coach's face on
+  // backfilled events, matching live-earn rows.
+  let awardedByAvatarUrl: string | null = null;
+  try {
+    const u = await getDocument(pid, `users/${claims.uid}`, sa);
+    const ud: any = u?.data || {};
+    const avatar = ud?.photoURL || ud?.profilePhotoUrl || null;
+    if (typeof avatar === 'string' && avatar) awardedByAvatarUrl = avatar;
+  } catch { /* non-fatal */ }
+
+  const eventFields: Record<string, any> = {
     teamId,
     playerId,
     playerName,
     source: badge.source,
     sourceRef: badge.sourceRef,
     xp: badge.xp,
-    reason: `Retro credit: ${badge.label}`,
+    // NOTE 2026-07-24: renamed 'reason' → 'note' to match the
+    // PlayerXpEvent.note field the client reads. Old backfilled rows
+    // written before this rename still carry .reason; the timeline
+    // renderer falls back to .reason when .note is absent.
+    note: `Retro credit: ${badge.label}`,
     occurredAt: new Date(badge.earnedAtMs),
     backfilled: true,
     awardedBy: claims.uid,
     awardedByRole: 'coach',
-    awardedByName: claims.name || 'Coach',
+    awardedByName: claims.name || null,
+    awardedByAvatarUrl,
     createdAt: new Date(),
   };
+  if (seasonId) eventFields.seasonId = seasonId;
+  if (clubId) eventFields.clubId = clubId;
+
   try {
     await createDocument(pid, 'player_xp_events', eventFields, sa, eventId);
   } catch (err) {
@@ -5172,6 +6062,8 @@ export async function routeWriteGuard(
     case '/xp/award-whisper':      return handleXpAwardWhisper(req, env, payload);
     case '/xp/grant-coach':        return handleXpGrantCoach(req, env, payload);
     case '/xp/convert-kudos':      return handleXpConvertKudos(req, env, payload);
+    case '/xp/log-grant':          return handleXpLogGrant(req, env, payload);
+    case '/xp/log-tap':            return handleXpLogTap(req, env, payload);
     case '/admin/player-reset-xp': return handleAdminPlayerResetXp(req, env, payload);
     case '/admin/send-player-invite': return handleAdminSendPlayerInvite(req, env as any, payload);
     case '/xp/reward-presets':     return handleXpRewardPresets(req, env, payload);

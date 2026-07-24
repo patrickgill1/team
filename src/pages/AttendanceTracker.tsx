@@ -224,11 +224,12 @@ const AttendanceTracker: React.FC = () => {
       const effortBonusEnabled = isXpSourceEnabled(selectedTeam as any, 'effortBonus');
 
       // Queue of client-side XP grants to fire after the event write
-      // lands. Each entry is (playerId, amount, actionKey). We only
-      // queue when the player has NOT been credited yet for this
-      // event — the idempotency check reads the existing playerRsvps
-      // entry's *AwardedAt fields.
-      const xpQueue: Array<{ playerId: string; amount: number; actionKey: string }> = [];
+      // lands. Each entry carries the SOURCE_ENUM key + deterministic
+      // sourceRef so the worker treats retries as ALREADY_EXISTS
+      // no-ops. We only queue when the player has NOT been credited
+      // yet for this event, cross-checked against the existing
+      // playerRsvps entry's *AwardedAt fields.
+      const xpQueue: Array<{ playerId: string; amount: number; source: string; sourceRef: string }> = [];
 
       const savedAt = new Date();
 
@@ -255,10 +256,20 @@ const AttendanceTracker: React.FC = () => {
         let attendanceXpJustAwarded = false;
         if (isAttended && !wasAttended && !alreadyAwardedAttendance) {
           if (isPractice && practiceAttendanceEnabled) {
-            xpQueue.push({ playerId: player.id, amount: 10, actionKey: 'practiceAttendance' });
+            xpQueue.push({
+              playerId: player.id,
+              amount: 10,
+              source: 'practice_attendance',
+              sourceRef: `attn-${selectedEvent}-${player.id}`,
+            });
             attendanceXpJustAwarded = true;
           } else if (isGame && gameAttendanceEnabled) {
-            xpQueue.push({ playerId: player.id, amount: 15, actionKey: 'gameAttendance' });
+            xpQueue.push({
+              playerId: player.id,
+              amount: 15,
+              source: 'game_attendance',
+              sourceRef: `attn-${selectedEvent}-${player.id}`,
+            });
             attendanceXpJustAwarded = true;
           }
         }
@@ -272,7 +283,12 @@ const AttendanceTracker: React.FC = () => {
         const alreadyAwardedEffort = Boolean(prevEntry.effortBonusAwardedAt);
         let effortXpJustAwarded = false;
         if (isAttended && effort && !alreadyAwardedEffort && effortBonusEnabled) {
-          xpQueue.push({ playerId: player.id, amount: 5, actionKey: 'effortBonus' });
+          xpQueue.push({
+            playerId: player.id,
+            amount: 5,
+            source: 'effort_bonus',
+            sourceRef: `effort-${selectedEvent}-${player.id}`,
+          });
           effortXpJustAwarded = true;
         }
 
@@ -300,13 +316,22 @@ const AttendanceTracker: React.FC = () => {
 
       // Fire XP grants AFTER the event write lands so the *AwardedAt
       // stamp is durably persisted before we bump the player doc. If
-      // any single grant fails, awardMicroXp swallows the error — we
-      // accept losing a grant over double-granting on the next save.
-      if (xpQueue.length > 0) {
-        void Promise.all(xpQueue.map(({ playerId, amount, actionKey }) =>
-          awardMicroXp(playerId, amount, {
-            xpEnabled: (selectedTeam as any)?.xpConfig?.enabled === true,
-            actionKey: `${actionKey}:${selectedEvent}`,
+      // any single grant fails, awardMicroXp swallows the error (we
+      // accept losing a grant over double-granting on the next save).
+      // Idempotency now leans on the deterministic sourceRef sent to
+      // the worker: a retry against the same event+player collides
+      // on the player_xp_events doc id and comes back
+      // outcome='already_exists' with no player.xp bump.
+      if (xpQueue.length > 0 && selectedTeamId) {
+        const xpEnabled = (selectedTeam as any)?.xpConfig?.enabled === true;
+        void Promise.all(xpQueue.map(({ playerId, amount, source, sourceRef }) =>
+          awardMicroXp({
+            playerId,
+            teamId: selectedTeamId,
+            source,
+            xp: amount,
+            sourceRef,
+            xpEnabled,
           })
         )).catch(err => console.warn('[attendance] XP fanout partial failure', err));
       }

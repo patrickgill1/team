@@ -73,11 +73,11 @@ function labelForBadgeSlug(slug: string): string {
 // let both the badge AND the underlying grant/whisper appear — the
 // badge reads as its own milestone moment, the event reads as the earn.
 const BADGE_TO_XP_SOURCE: Record<string, PlayerXpEvent['source']> = {
-  first_goal: 'goal',
-  first_assist: 'assist',
-  first_save: 'save',
-  first_clean_sheet: 'clean_sheet',
-  first_potm: 'potm',
+  first_goal: 'first_goal',
+  first_assist: 'first_assist',
+  first_save: 'first_save',
+  first_clean_sheet: 'first_clean_sheet',
+  first_potm: 'first_potm',
   streak_5: 'streak_milestone',
   streak_10: 'streak_milestone',
   streak_25: 'streak_milestone',

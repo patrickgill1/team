@@ -785,22 +785,37 @@ export interface PlayerXpEvent {
   teamId: string;
   seasonId?: string;
   xp: number;
+  /** Canonical source enum. Must stay 1:1 with SOURCE_ENUM in
+   *  worker/src /xp/log-grant endpoint. Any new source string ships
+   *  here first, then in the worker enum, then in the label maps.
+   *  Legacy strings ('attendance', 'potm', 'goal', 'assist', 'save',
+   *  'clean_sheet', 'team_win', 'play_time', 'backfill') were retired
+   *  during the 2026-07 XP refactor: attendance split into
+   *  practice_attendance / game_attendance / perfect_attendance,
+   *  first-stat sources renamed with the 'first_' prefix, team_win /
+   *  play_time removed (never wired), and backfill collapsed into the
+   *  event's `backfilled` boolean flag rather than a distinct source. */
   source:
-    | 'coach_recognition' /* legacy, /xp/award-recognition deleted 2026-07-13 */
     | 'coach_live'
     | 'coach_whisper'
     | 'kudos_coach_convert' /* 2026-07-14 — Circle member's kudos promoted to XP by coach */
-    | 'attendance'
-    | 'potm'
-    | 'goal' | 'assist' | 'save' | 'clean_sheet'
     | 'dev_plan_log'
+    | 'practice_attendance'
+    | 'game_attendance'
+    | 'effort_bonus'
+    | 'rsvp_going'
+    | 'first_goal'
+    | 'first_assist'
+    | 'first_save'
+    | 'first_clean_sheet'
+    | 'first_potm'
+    | 'perfect_attendance'
     | 'streak_milestone'
-    | 'team_win' | 'play_time'
-    | 'backfill';
+    | 'coach_recognition'; /* legacy read-only, /xp/award-recognition deleted 2026-07-13 — kept in the union so old event rows still narrow. */
   /** Doc id of the underlying source (event id, plan id, stat id). */
   sourceRef?: string;
   awardedBy: string;
-  awardedByRole: 'coach' | 'team_manager' | 'system';
+  awardedByRole: 'coach' | 'team_manager' | 'system' | 'parent' | 'self';
   /** Required for coach_recognition; optional for auto-sourced. */
   note?: string;
   createdAt: Date;

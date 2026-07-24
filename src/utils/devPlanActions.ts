@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import type { DevelopmentGoal, DevelopmentPlan, PracticeLogEntry } from '../types';
 import { workerFetch } from './workerFetch';
@@ -304,231 +304,127 @@ export function computeStreakDays(
   return computeStreakDaysFromKeys(buildPracticeDayKeys(activePlans), restDayOfWeek);
 }
 
-/** Build the day-key Set for a player from their check-in subcollection
- *  (players/{playerId}/dev_checkins/*). Doc-id AND `data.dayKey` are
- *  Denver "YYYY-MM-DD" per the worker; we prefer the stored dayKey
- *  string over re-bucketing the Timestamp so the client's phone tz
- *  can never disagree with the worker's Denver truth.
- *
- *  THROWS on read failure. Caller (recomputeAndPersistPlayerStreak)
- *  must abort persist rather than write an empty-Set-derived streak
- *  of 0 that would silently clobber a legit cached value. */
-async function loadCheckinDayKeys(playerId: string): Promise<Set<string>> {
-  const dayKeys = new Set<string>();
-  const snap = await getDocs(collection(db, 'players', playerId, 'dev_checkins'));
-  snap.forEach(docSnap => {
-    const data = docSnap.data() as any;
-    if (data?.voided === true) return; // soft-delete path (coach undo)
-    // Prefer the stored Denver dayKey. Fall back to the docId (also
-    // Denver dayKey per worker), then to a Timestamp coercion for any
-    // legacy row that predates the dayKey field.
-    let key: string | null = null;
-    if (typeof data?.dayKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.dayKey)) {
-      key = data.dayKey;
-    } else if (/^\d{4}-\d{2}-\d{2}$/.test(docSnap.id)) {
-      key = docSnap.id;
-    } else {
-      const d = coerceLogDate(data?.date);
-      if (d) key = denverKeyOfDate(d);
-    }
-    if (key) dayKeys.add(key);
-  });
-  return dayKeys;
-}
-
 /** Recompute + persist the player's practice streak.
  *
- *  Source of truth (2026-07-21 player-scoped rework): the
- *  players/{id}/dev_checkins subcollection, populated by the worker
- *  on every "I did it" tap. Streak is plan-agnostic — retiring plan
- *  A and creating plan B for the same kid has zero effect on the
- *  counter. Prior implementation read from active plans only, so
- *  archiving a plan silently reset the streak (the design's fix).
+ *  2026-07-24 rewire: streak recompute + practice XP + streak-badge
+ *  grants all move to the worker via POST /xp/log-tap. Client is now a
+ *  thin driver — it reads priorXp for the level-up whisper trigger,
+ *  fires the tap, mirrors the returned streak into local state, and
+ *  hands off to the wall-post helper. All player.xp / player.badges /
+ *  player.currentStreakDays writes happen server-side under the service
+ *  account so the audit event row + increments + badge stamps land as
+ *  one atomic commit.
+ *
+ *  Distinction between the two call shapes:
+ *   - actor present → real "I did it today" tap. Worker fires the
+ *     +5 (parent/coach) or +10 (kid) practice XP grant, updates the
+ *     streak, and returns the new value. Client fires the milestone
+ *     wall post + level-up whisper.
+ *   - actor absent → mount-effect self-heal. Worker still recomputes
+ *     the streak counter + backfills any missing streak-milestone
+ *     badges, but SKIPS the practice XP grant (no real tap happened).
+ *     selfHeal:true tells the worker to take that shortcut. Client
+ *     does NOT fire the wall post.
  *
  *  `activePlansAfterUpdate` is accepted for API back-compat but no
- *  longer consulted for the streak math. Kept in the signature so
- *  every existing call site continues to compile without change.
+ *  longer consulted — check-ins are the source of truth server-side.
  *
- *  When `actor` is provided, also detects streak-milestone crossings
- *  (5/10/25/50 day) and fires an auto-post to the team wall.
- *  Fire-and-forget — the streak still persists if the post fails.
- *
- *  Sunday-skip is preserved via computeStreakDaysFromKeys (the
- *  streak_sunday_skip memory rule). */
+ *  Returns the new streak, or the cached priorStreak on any failure so
+ *  callers see the unchanged value rather than a spurious 0. */
 export async function recomputeAndPersistPlayerStreak(
   playerId: string,
   _activePlansAfterUpdate: DevelopmentPlan[],
   actor?: { uid: string; name: string; role?: string },
   /** Kid-in-app double (2026-07-17): when the "I did it" tap fires from
    *  the kid mode shell (KidDashboard, KidHeroCard etc.), the practice
-   *  micro-XP doubles from +5 to +10. Defaults false so parent + coach
-   *  callsites keep the base amount. Only affects the practice
-   *  participation micro-XP — badge XP + streak milestones + wall posts
-   *  are unchanged. */
+   *  micro-XP doubles from +5 to +10. Ignored when actor is absent
+   *  (self-heal path never grants practice XP). */
   isKidActor: boolean = false
 ): Promise<number> {
   try {
-    // Read the prior streak + player name/team + team rest-day config
-    // BEFORE computing so we honor the team's practice-streak setting
-    // (undefined → default Sunday-skip for back-compat). One extra
-    // round-trip per tap, but only on 'I did it today' — light traffic.
+    // Read the prior streak, teamId, and priorXp before firing the tap.
+    // teamId is needed for the worker's auth check; priorStreak is the
+    // fallback return on any failure so callers see the unchanged value;
+    // priorXp lets us fire the level-up whisper after the worker returns
+    // the post-write newPlayerXp.
     let priorStreak = 0;
-    let priorLongest = 0;
-    let playerName: string | undefined;
     let teamId: string | null | undefined;
-    let restDayOfWeek: number | null | undefined = 0;
-    let existingBadges: Record<string, any> | undefined;
-    let xpEnabled = false;
-    let teamDataForXp: any = null;
     let priorXp = 0;
+    let playerName: string | undefined;
     let parentIds: string[] | undefined;
     try {
       const snap = await getDoc(doc(db, 'players', playerId));
       if (snap.exists()) {
         const data = snap.data() as any;
         priorStreak = typeof data.currentStreakDays === 'number' ? data.currentStreakDays : 0;
-        priorLongest = typeof data.longestStreakDays === 'number' ? data.longestStreakDays : 0;
-        playerName = data.name;
         teamId = data.teamId;
-        existingBadges = data.badges;
         priorXp = Number(data.xp) || 0;
+        playerName = data.name;
         parentIds = Array.isArray(data.parentIds) ? data.parentIds : undefined;
       }
     } catch (err) {
       console.warn('streak prior read failed', err);
     }
-    if (teamId) {
-      try {
-        const teamSnap = await getDoc(doc(db, 'teams', teamId));
-        if (teamSnap.exists()) {
-          const teamData = teamSnap.data() as any;
-          const cfg = teamData.streakConfig;
-          if (cfg && Object.prototype.hasOwnProperty.call(cfg, 'restDayOfWeek')) {
-            restDayOfWeek = cfg.restDayOfWeek === null ? null : Number(cfg.restDayOfWeek);
-          }
-          // Piggyback the XP-enabled read on the same team fetch so
-          // streak-badge grants can gate on the team's opt-in state.
-          xpEnabled = teamData?.xpConfig?.enabled === true;
-          // Stash the team-shaped payload for per-source gates below —
-          // isXpSourceEnabled reads xpConfig.sources with the Ship 1
-          // participation/badges coarse fallbacks if per-source keys
-          // aren't defined yet on this team.
-          teamDataForXp = teamData;
-        }
-      } catch (err) {
-        console.warn('team streak config read failed', err);
-      }
-    }
-
-    // Read the player-scoped check-in subcollection. This is the
-    // source of truth (2026-07-21). Plan status changes can't reset
-    // or shrink the streak because check-ins live on the player, not
-    // on the plan.
-    //
-    // On transient read failure, ABORT the recompute entirely — writing
-    // a 0-derived streak would silently clobber a legit priorStreak of
-    // 30+ with zero user-facing error. Return prior so callers see the
-    // unchanged value.
-    let dayKeys: Set<string>;
-    try {
-      dayKeys = await loadCheckinDayKeys(playerId);
-    } catch (err) {
-      debugWarn('[dev-plans] loadCheckinDayKeys read failed — keeping prior streak', err);
+    if (!teamId) {
+      debugWarn('[dev-plans] recomputeAndPersistPlayerStreak: no teamId on player', playerId);
       return priorStreak;
     }
-    let streak = computeStreakDaysFromKeys(dayKeys, restDayOfWeek);
-    const computedLongest = computeLongestStreakFromKeys(dayKeys, restDayOfWeek);
-    // Defensive floor 2026-07-21: never write a value that drops
-    // streak by more than 1 vs the cached prior. A legit missed-day
-    // decay is at most 1 (since walk is monotonic and days pass one
-    // at a time). Bigger drops mean either (a) dev_checkins subcol
-    // read was partial (rule mid-flight, permission race, network
-    // hiccup returning a subset of docs) or (b) an OLD client bundle
-    // is still self-healing from plan-shape data via a stale
-    // recomputeAndPersistPlayerStreak that computes from ONE active
-    // plan and reports 1 for a player with a real 13-day history.
-    // Either way we prefer freezing the streak over clobbering it.
-    // If the drop is legit the next tap or full snapshot will
-    // correct it monotonically.
-    if (streak < priorStreak - 1 && priorStreak > 1) {
-      debugWarn(`[streak] refused clobber ${priorStreak} -> ${streak}; keeping ${priorStreak}. dayKeys=${dayKeys.size}`);
-      streak = priorStreak;
-    }
-    // Peak is monotonic. Never let a recompute pull it downward — a
-    // corrupted or partial checkin read shouldn't clobber a legit
-    // historical peak stamped by the migration.
-    const nextLongest = Math.max(priorLongest, computedLongest, streak);
 
-    // Piggyback the streak-milestone badge grants onto the same
-    // updateDoc so we don't cost an extra round-trip. Fires only on
-    // priorStreak < N && streak >= N — a kid at prior=30 who already
-    // crossed pre-ship doesn't get retroactive badges. XP-gated so
-    // teams that didn't opt into XP don't silently accumulate badges.
-    const { computeStreakBadgePatch } = await import('./badgeGrants');
-    const { isXpSourceEnabled } = await import('./xpSource');
-    // Streak-milestone badges gate on the 'streaks' per-source key
-    // (falling back to 'badges' coarse for Ship 1 teams). computeStreakBadgePatch
-    // returns {} when the gate is off — the outer streak-days write still commits.
-    const streakBadgeXpEnabled = isXpSourceEnabled(teamDataForXp, 'streaks');
-    const badgePatch = computeStreakBadgePatch(priorStreak, streak, existingBadges, { playerName, team: teamDataForXp });
-    // Compose +5 practice-log micro-XP into the SAME write. When a
-    // streak badge crossed on this tick, badgePatch already carries
-    // an xp/xpCareer increment sentinel — Firestore's increment does
-    // not stack across two updates to the same field in one write, so
-    // composeMicroXpIntoPatch recomputes the badge XP amount from the
-    // touched slugs and merges into a single combined increment.
-    const { composeMicroXpIntoPatch } = await import('./microXp');
-    // Practice tick +5 gates on the per-source 'practice' key (falling
-    // back to Ship 1 'participation' coarse). Badge XP already handled above.
-    const participationXpEnabled = isXpSourceEnabled(teamDataForXp, 'practice');
-    const practiceMicroXpAmount = isKidActor ? 10 : 5;
-    await composeMicroXpIntoPatch(badgePatch, practiceMicroXpAmount, participationXpEnabled);
-    // Compute the XP that lands on this tick BEFORE the write so we
-    // can trigger checkLevelUpAndWhisper against priorXp + granted.
-    // badgePatch.xp is a Firestore increment sentinel, not a plain
-    // number; we recompute from the touched slugs + the micro-XP add.
-    let xpGrantedThisTick = 0;
-    if (xpEnabled) {
-      try {
-        const { badgeXp } = await import('./badgeMeta');
-        if (streakBadgeXpEnabled) {
-          for (const key of Object.keys(badgePatch)) {
-            if (key.startsWith('badges.')) {
-              const slug = key.slice('badges.'.length);
-              xpGrantedThisTick += badgeXp(slug) || 0;
-            }
-          }
-        }
-        if (participationXpEnabled) {
-          // Must mirror composeMicroXpIntoPatch(., practiceMicroXpAmount, .) above
-          // so the level-up whisper trigger stays in sync with what actually landed.
-          xpGrantedThisTick += practiceMicroXpAmount;
-        }
-      } catch { /* ignore */ }
-    }
-    const writePatch: Record<string, any> = {
-      currentStreakDays: streak,
-      currentStreakUpdatedAt: new Date(),
-      ...badgePatch,
+    const dayKey = denverKeyOfDate(new Date());
+    const selfHeal = !actor;
+    const body: Record<string, any> = {
+      playerId,
+      teamId,
+      dayKey,
+      isKidActor: selfHeal ? false : Boolean(isKidActor),
     };
-    // Only write longestStreakDays when it actually changed — the
-    // common tap case (nextLongest == priorLongest) skips a field
-    // mutation and keeps the write minimal.
-    if (nextLongest !== priorLongest) {
-      writePatch.longestStreakDays = nextLongest;
+    if (selfHeal) body.selfHeal = true;
+
+    let streak = priorStreak;
+    let newPlayerXp: number | undefined;
+    try {
+      const res = await workerFetch('/xp/log-tap', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || data?.ok === false) {
+        debugWarn('[dev-plans] /xp/log-tap failed — keeping prior streak', {
+          status: res.status,
+          error: data?.error,
+        });
+        return priorStreak;
+      }
+      if (typeof data?.newStreak === 'number') {
+        streak = data.newStreak;
+      } else if (typeof data?.streak === 'number') {
+        streak = data.streak;
+      }
+      if (typeof data?.newPlayerXp === 'number') {
+        newPlayerXp = data.newPlayerXp;
+      }
+    } catch (err) {
+      debugWarn('[dev-plans] /xp/log-tap threw — keeping prior streak', err);
+      return priorStreak;
     }
-    await updateDoc(doc(db, 'players', playerId), writePatch);
-    if (xpEnabled && teamId && xpGrantedThisTick > 0) {
+
+    // Level-up whisper: worker returns the post-write player.xp so we
+    // can detect a level crossing without a second read. Fire-and-forget;
+    // whisper is a nice-to-have parent notification. Skipped on self-heal
+    // (no XP granted → no crossing possible).
+    if (!selfHeal && typeof newPlayerXp === 'number' && newPlayerXp > priorXp) {
       try {
         const { checkLevelUpAndWhisper } = await import('./levelUp');
-        void checkLevelUpAndWhisper(playerId, priorXp, priorXp + xpGrantedThisTick, teamId, {
+        void checkLevelUpAndWhisper(playerId, priorXp, newPlayerXp, teamId, {
           xpEnabled: true,
           playerData: { name: playerName, parentIds },
         });
       } catch { /* whisper is nice-to-have */ }
     }
 
-    if (actor && playerName && teamId) {
+    // Milestone wall post — only on real taps (actor present). Self-heal
+    // effects must never fire a "3 day streak!" wall post on a page mount.
+    if (actor && playerName) {
       try {
         const { streakMilestoneCrossed, autoPostStreakMilestoneToWall } = await import('./autoPostToWall');
         const milestone = streakMilestoneCrossed(priorStreak, streak);

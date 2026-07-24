@@ -57,7 +57,7 @@ const PlayerXpHistoryFeed: React.FC<Props> = ({ playerId }) => {
         return {
           id: d.id,
           xp: Number(data.xp) || 0,
-          source: (data.source as PlayerXpEvent['source']) || 'backfill',
+          source: (data.source as PlayerXpEvent['source']) || 'coach_recognition',
           reason: String(data.note || '').trim(),
           createdAtMs: toMillis(data.createdAt),
         };

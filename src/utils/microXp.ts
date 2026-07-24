@@ -1,211 +1,118 @@
-import { doc, getDoc, increment, updateDoc } from 'firebase/firestore';
-import { db } from './firebase';
-import { denverKeyOfDate } from './devPlanActions';
+import { workerFetch } from './workerFetch';
 
-// Micro-XP grants — the "everyday tap" side of the XP economy.
+// Micro-XP grants — worker-routed since 2026-07-24. Every XP write now
+// goes through POST /xp/log-grant so the player_xp_events audit row,
+// player.xp increment, and (optional) badge stamp land as a single
+// atomic commit under the service account. Rules deny client writes
+// against player_xp_events for exactly this reason; the client has no
+// legal path to hand-write the audit trail.
 //
-// Existing accrual paths (worker coach recognition, first-stat 0->N,
-// streak milestones, first POTM, perfect_attendance) are all threshold
-// rewards. Those are lumpy by design but they don't reinforce the
-// day-to-day behaviors we actually want repeated (log a practice,
-// RSVP going, send a chat message). Micro-XP fills that gap in small
-// amounts on kid-driven actions.
+// Contract summary (see worker /xp/log-grant handler for the source of truth):
+//   Request: { playerId, teamId, source, xp, sourceRef?, note?, alsoStampBadge? }
+//   Response: { outcome: 'created' | 'already_exists' | 'capped', eventId, newPlayerXp?, newXpCareer? }
+//   Auth: coach of teamId OR (for kid-actionable sources) player parent / self kid.
+//   Idempotency: pass sourceRef for anything that could be double-tapped
+//     (self-heal effects, retries, backfill). ALREADY_EXISTS is treated
+//     as success.
 //
-// Gates + guarantees:
-//   - Fail-closed on team.xpConfig.enabled. Passing xpEnabled=false or
-//     omitting it is a silent no-op — same pattern as badgeGrants.
-//   - Every grant writes BOTH player.xp and player.xpCareer via
-//     FieldValue.increment so the season rail and the career total
-//     move in lockstep.
-//   - Idempotent from the caller's perspective: safe to call multiple
-//     times on the same action. Daily-cap actions rate-limit through
-//     player.xpDailyCount; uncapped actions rely on the caller gating
-//     the transition (e.g. RSVP only grants when flipping into 'going'
-//     from a non-going state).
-//   - No worker round-trip. All writes are client-side against
-//     players/{playerId} using fields the rules already allow parents
-//     to mutate on their own kids.
+// Fail-closed gate the client still owns:
+//   - xpEnabled === false → immediate no-op, no network call. Caller
+//     computes this from team.xpConfig.enabled. The worker enforces the
+//     same gate authoritatively; the local check just saves a round-trip
+//     when the team hasn't opted in.
 //
-// player.xpDailyCount shape (owned here — not touched elsewhere):
-//   {
-//     yyyymmdd: 'YYYY-MM-DD',           // local-day key for the bucket
-//     counts:   { [actionKey]: number } // XP granted per action today
-//   }
-// The whole map is replaced when the day rolls over. Same-day
-// increments use a dot-path so concurrent taps within a day compose
-// via the Firestore server-side counter instead of racing on a full
-// map overwrite.
+// Fire-and-forget: callers should NOT block UX on the return value.
+// Errors are logged (console.warn) and swallowed into { ok: false }.
+//
+// NOTE: We used to do a local pre-flight against player.xpDailyCount to
+// short-circuit capped grants. That was removed 2026-07-24 — the field
+// name was stale (worker writes xpDailyCountBySource) so the read never
+// matched, and the worker enforces caps authoritatively either way.
+// Cheaper to eat one extra worker round-trip on capped calls than to
+// carry the dead code.
 
 export interface AwardMicroXpOpts {
-  /** Team.xpConfig.enabled. Fail-closed: anything other than true is
-   *  a no-op. Caller derives this from the player's team doc. */
-  xpEnabled: boolean;
-  /** Max XP this action may grant per calendar day (kid-local time).
-   *  When set, awardMicroXp reads the player doc first to check the
-   *  running count. Undefined = no cap (single write, no read). */
-  dailyCap?: number;
-  /** Bucket key for the dailyCap counter. Defaults to 'default' when
-   *  only one capped action exists per player; pass something like
-   *  'chat_message' when multiple capped actions share the doc. */
+  /** Player receiving the XP. Required. */
+  playerId: string;
+  /** Team the action fired against — worker uses this for the coach
+   *  auth check and to pull xpConfig / seasonId. Required. */
+  teamId: string;
+  /** SOURCE_ENUM key — must match one of the values the worker
+   *  accepts (see the /xp/log-grant contract). Required. */
+  source: string;
+  /** XP amount, 1..500 integer. Required. */
+  xp: number;
+  /** Deterministic doc id for the player_xp_events row. When set,
+   *  a re-run with the same id gets ALREADY_EXISTS back and is a
+   *  no-op — safe for retries + mount-effect self-heals. */
+  sourceRef?: string;
+  /** Optional short note stamped on the event row. */
+  note?: string;
+  /** Optional atomic badge stamp — worker writes badges.{slug} on the
+   *  player doc as part of the same commit as the XP increment. */
+  alsoStampBadge?: { slug: string; earnedAt: string };
+  /** Team.xpConfig.enabled precheck. false → no network call. */
+  xpEnabled?: boolean;
+  /** Legacy signature compat — unused server-side. The worker derives
+   *  the cap bucket from `source`. Kept in the type so old callers
+   *  compile without change. */
   actionKey?: string;
 }
 
-/** Grant a small XP amount for a kid-driven action.
- *
- *  Contract:
- *    - No-op unless opts.xpEnabled === true.
- *    - No-op if amount <= 0.
- *    - When dailyCap is set: reads the player doc, computes remaining
- *      cap for today, and only writes if remaining > 0. Amount is
- *      clamped to `remaining`.
- *    - Failures are logged (console.warn) and swallowed so the
- *      primary action's UX is not blocked by an XP hiccup.
- */
-export async function awardMicroXp(
-  playerId: string,
-  amount: number,
-  opts: AwardMicroXpOpts,
-): Promise<void> {
-  if (!playerId || amount <= 0) return;
-  if (opts.xpEnabled !== true) return;
+export interface AwardMicroXpResult {
+  ok: boolean;
+  outcome?: 'created' | 'already_exists' | 'capped';
+  error?: string;
+  /** Post-write player.xp (season total). Present when the worker
+   *  returns it — callers can compare to a pre-read priorXp to fire
+   *  a level-up whisper. */
+  newPlayerXp?: number;
+  /** Post-write player.xpCareer. */
+  newXpCareer?: number;
+}
 
-  const cap = opts.dailyCap && opts.dailyCap > 0 ? opts.dailyCap : null;
-  const key = opts.actionKey || 'default';
-  const today = todayKey();
+/** Fire an XP grant through the worker. See file header for the
+ *  contract + fail-closed rules. */
+export async function awardMicroXp(opts: AwardMicroXpOpts): Promise<AwardMicroXpResult> {
+  const { playerId, teamId, source } = opts;
+  const xp = Number(opts.xp);
+  if (!playerId || !teamId || !source) return { ok: false, error: 'missing-required' };
+  if (!Number.isFinite(xp) || xp <= 0) return { ok: false, error: 'invalid-xp' };
+  if (opts.xpEnabled === false) return { ok: false };
 
-  let grant = amount;
-  let sameDay = false;
-  // Snapshot player doc data for the level-up whisper. When capped
-  // we already read the player doc; when uncapped we do NOT add a
-  // second read (level-up trigger becomes a no-op — the streak /
-  // badge write paths handle level crossings on their own reads).
-  let priorXp = 0;
-  let teamId: string | null = null;
-  let playerName: string | undefined;
-  let parentIds: string[] | undefined;
-  let priorXpKnown = false;
-
-  if (cap != null) {
-    try {
-      const snap = await getDoc(doc(db, 'players', playerId));
-      if (snap.exists()) {
-        const data: any = snap.data();
-        priorXp = Number(data?.xp) || 0;
-        priorXpKnown = true;
-        teamId = typeof data?.teamId === 'string' ? data.teamId : null;
-        playerName = typeof data?.name === 'string' ? data.name : undefined;
-        parentIds = Array.isArray(data?.parentIds) ? data.parentIds : undefined;
-        const bucket = data?.xpDailyCount;
-        if (bucket && bucket.yyyymmdd === today) {
-          sameDay = true;
-          const already = Number(bucket?.counts?.[key] ?? 0) | 0;
-          const remaining = Math.max(0, cap - already);
-          if (remaining <= 0) return;
-          grant = Math.min(amount, remaining);
-        }
-      }
-    } catch (err) {
-      // Fail-closed: if we can't verify the cap, don't grant. Better
-      // to miss a tick than double-count a spammy day.
-      console.warn('[microXp] daily-cap read failed', playerId, err);
-      return;
-    }
-  }
-
-  const patch: Record<string, any> = {
-    xp: increment(grant),
-    xpCareer: increment(grant),
+  const body: Record<string, any> = {
+    playerId,
+    teamId,
+    source,
+    xp: Math.trunc(xp),
   };
-  if (cap != null) {
-    if (sameDay) {
-      patch[`xpDailyCount.counts.${key}`] = increment(grant);
-    } else {
-      patch.xpDailyCount = { yyyymmdd: today, counts: { [key]: grant } };
-    }
-  }
+  if (opts.sourceRef) body.sourceRef = opts.sourceRef;
+  if (opts.note) body.note = opts.note;
+  if (opts.alsoStampBadge) body.alsoStampBadge = opts.alsoStampBadge;
 
   try {
-    await updateDoc(doc(db, 'players', playerId), patch);
-    // Level-up parent whisper — only for capped actions where we
-    // already have priorXp + teamId from the pre-write read. Uncapped
-    // paths (RSVP, I did it) piggyback on other level-up triggers
-    // (streak crossings, badge grants) so we don't pay an extra read.
-    if (priorXpKnown && teamId && grant > 0) {
-      try {
-        const { checkLevelUpAndWhisper } = await import('./levelUp');
-        void checkLevelUpAndWhisper(playerId, priorXp, priorXp + grant, teamId, {
-          xpEnabled: true,
-          playerData: { name: playerName, parentIds },
-        });
-      } catch { /* dynamic import failure; whisper is a nice-to-have */ }
+    const res = await workerFetch('/xp/log-grant', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    const data: any = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.warn('[microXp] worker rejected grant', {
+        playerId,
+        source,
+        status: res.status,
+        error: data?.error,
+      });
+      return { ok: false, error: data?.error || `http-${res.status}` };
     }
+    return {
+      ok: true,
+      outcome: data?.outcome,
+      newPlayerXp: typeof data?.newPlayerXp === 'number' ? data.newPlayerXp : undefined,
+      newXpCareer: typeof data?.newXpCareer === 'number' ? data.newXpCareer : undefined,
+    };
   } catch (err) {
-    console.warn('[microXp] write failed', playerId, amount, err);
+    console.warn('[microXp] worker call failed', playerId, source, err);
+    return { ok: false, error: (err as Error).message };
   }
-}
-
-/** Same-write variant: returns a patch object callers can spread into
- *  their own updateDoc against players/{playerId}. Use when the
- *  primary action is ALREADY writing to the player doc and no other
- *  xp/xpCareer increment sentinel is in the outgoing patch (see
- *  composeMicroXpIntoPatch for the badge-grant collision case).
- *
- *  Fails closed. Uncapped — pass through awardMicroXp when you need
- *  rate limiting. */
-export function microXpPatch(amount: number, xpEnabled: boolean): Record<string, any> {
-  if (!xpEnabled || amount <= 0) return {};
-  return {
-    xp: increment(amount),
-    xpCareer: increment(amount),
-  };
-}
-
-/** Compose micro-XP INTO an existing badge patch that may already
- *  contain xp/xpCareer increment sentinels.
- *
- *  Firestore's FieldValue.increment does not stack within a single
- *  updateDoc: two increments on the same field means the second one
- *  wins. To piggyback micro-XP onto a badge grant in the same write
- *  we recompute the badge XP amount from the badge slugs the patch
- *  touched (via badgeMeta.badgeXp) and sum.
- *
- *  Mutates and returns `basePatch` for caller convenience. Safe to
- *  call with an empty patch. */
-export async function composeMicroXpIntoPatch(
-  basePatch: Record<string, any>,
-  microAmount: number,
-  xpEnabled: boolean,
-): Promise<Record<string, any>> {
-  if (!xpEnabled || microAmount <= 0) return basePatch;
-  let badgeXpSum = 0;
-  try {
-    const { badgeXp } = await import('./badgeMeta');
-    for (const key of Object.keys(basePatch)) {
-      if (key.startsWith('badges.')) {
-        const slug = key.slice('badges.'.length);
-        badgeXpSum += badgeXp(slug) || 0;
-      }
-    }
-  } catch (err) {
-    console.warn('[microXp] badgeXp import failed', err);
-    return basePatch;
-  }
-  const total = badgeXpSum + microAmount;
-  basePatch.xp = increment(total);
-  basePatch.xpCareer = increment(total);
-  return basePatch;
-}
-
-// -- day-key helper -------------------------------------------------
-//
-// Denver-anchored to match the worker + backfill + streak paths. A
-// parent tapping at 22:30 MT from an ET-configured device previously
-// bucketed to the ET day (already past midnight ET) and reset the
-// dailyCap counter — so a same-MT-day tap from the coach's Denver
-// phone treated the counter as fresh and double-awarded XP. Sharing
-// the same Denver key with everyone else that touches xp state closes
-// that race. See feedback_worker_timezone memory.
-
-function todayKey(): string {
-  return denverKeyOfDate(new Date());
 }

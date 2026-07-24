@@ -2391,14 +2391,20 @@ const PlanCard: React.FC<PlanCardProps> = ({
                               the player-level streak that shows on
                               their profile too. */}
                           {canLogPractice && plan.status === 'active' && !goal.coachVerified && (() => {
-                            // Denver-anchored: shares the exact walk math
-                            // as the player-level currentStreakDays. An ET
-                            // parent at 22:30 MT previously saw this chip
-                            // disagree with the profile streak because
-                            // this branch bucketed device-local.
+                            // Streak reads the player-scoped source of
+                            // truth (players/{pid}.currentStreakDays,
+                            // backed by the dev_checkins subcollection),
+                            // threaded in via the `streak` prop from
+                            // playerStreaks up above. Prior shape walked
+                            // THIS plan's practiceLog only, which meant
+                            // a player with two active plans saw two
+                            // different numbers on the same page and
+                            // the number drifted from the Dashboard /
+                            // squad chip. One log-tap on any plan
+                            // counts as one day for the player, so the
+                            // same number renders everywhere.
                             const loggedToday = didItToday(goal);
-                            const dayKeys = buildPracticeDayKeys([plan]);
-                            const streak = computeStreakDaysFromKeys(dayKeys);
+                            const streakToShow = typeof streak === 'number' ? streak : 0;
                             return (
                               <div className="mt-3">
                                 {loggedToday ? (
@@ -2410,7 +2416,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                       <div className="flex-1 min-w-0">
                                         <div className="text-[10px] font-extrabold tracking-widest uppercase opacity-90">Logged today</div>
                                         <div className="text-xl font-black leading-tight">
-                                          {streak > 1 ? `${streak}-day streak — keep it going` : "Nice work!"}
+                                          {streakToShow > 1 ? `${streakToShow}-day streak, keep it going` : "Nice work!"}
                                         </div>
                                       </div>
                                     </div>
@@ -2426,9 +2432,9 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                                       </span>
                                       <span className="text-lg font-black tracking-wide uppercase">I did it</span>
-                                      {streak > 0 && (
+                                      {streakToShow > 0 && (
                                         <span className="text-xs font-bold bg-white/25 px-2 py-0.5 rounded-full">
-                                          {streak}-day streak — don't break it
+                                          {streakToShow}-day streak, don't break it
                                         </span>
                                       )}
                                     </div>

@@ -353,6 +353,31 @@ const CoachXpConfigInner: React.FC = () => {
           </div>
         </section>
 
+        {/* XP log discovery — only shown when XP is on. Warm intro so
+            a coach who just enabled XP knows there's a full log to
+            check when they want the "how did they earn this" answer. */}
+        {enabled && (
+          <Link
+            to="/coach/xp-log"
+            className="block rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5 hover:ring-brand-primary/30 transition min-h-[44px]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-ink-primary">See the XP log</p>
+                <p className="mt-0.5 text-[12px] text-ink-primary/60 leading-snug">
+                  See how XP is being earned across the team.
+                </p>
+              </div>
+              <AppIcon name="arrow-right" className="w-4 h-4 text-ink-primary/40 shrink-0" />
+            </div>
+          </Link>
+        )}
+
         {/* Per-source sections — dimmed but visible when master is off, so the
             coach can preview / stage source config before flipping master on. */}
         <section

@@ -934,31 +934,22 @@ const PlayerDevelopment: React.FC = () => {
     return Math.round((plan.goals.filter(g => g.coachVerified).length / plan.goals.length) * 100);
   };
 
-  // — Streak: per player, count of most-recent consecutive coach-verified goals across all their plans.
-  // A goal is considered "attempted" once it has a playerCompletedAt OR coachVerifiedAt timestamp.
-  // Walk attempts most-recent-first; count while coachVerified === true; stop at first miss.
+  // Streak per player — reads the player-scoped source of truth
+  // (players/{pid}.currentStreakDays, backed by the dev_checkins
+  // subcollection). Prior shape derived a coach-verified-goals count
+  // from the plan docs, which reset every time a plan was retired or
+  // replaced — the exact per-plan drift Patrick called out
+  // ("dashboard has the right streak, but the plan page has the new
+  // one"). Reading the cache keeps every surface aligned with the
+  // Dashboard chip.
   const playerStreaks = React.useMemo(() => {
     const map: Record<string, number> = {};
-    const byPlayer: Record<string, { verified: boolean; t: number }[]> = {};
-    for (const pl of plans) {
-      for (const g of pl.goals) {
-        const verifiedAt: any = (g as any).coachVerifiedAt;
-        const playerAt: any = (g as any).playerCompletedAt;
-        const tRaw = verifiedAt || playerAt;
-        if (!tRaw) continue;
-        const t = tRaw?.toDate ? tRaw.toDate().getTime() : new Date(tRaw).getTime();
-        if (Number.isNaN(t)) continue;
-        (byPlayer[pl.playerId] = byPlayer[pl.playerId] || []).push({ verified: !!g.coachVerified, t });
-      }
-    }
-    for (const pid in byPlayer) {
-      const arr = byPlayer[pid].sort((a, b) => b.t - a.t);
-      let n = 0;
-      for (const item of arr) { if (item.verified) n++; else break; }
-      map[pid] = n;
+    for (const p of players) {
+      const n = Number((p as any).currentStreakDays);
+      if (Number.isFinite(n) && n > 0) map[p.id] = n;
     }
     return map;
-  }, [plans]);
+  }, [players]);
 
   // topStreak is computed once visiblePlans exists (declared below).
   // Delayed so parent view can't leak another family's kid name into

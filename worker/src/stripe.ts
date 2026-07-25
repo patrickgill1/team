@@ -25,6 +25,7 @@ export interface StripeEnv {
   STRIPE_SECRET_KEY?: string;
   STRIPE_CONNECT_CLIENT_ID?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  STRIPE_WEBHOOK_CONNECT_SECRET?: string;
   APP_ORIGIN: string;
   FCM_SERVICE_ACCOUNT?: string;
   FIREBASE_PROJECT_ID?: string;
@@ -2015,9 +2016,19 @@ async function verifyStripeSignature(rawBody: string, sigHeader: string, secret:
 }
 
 export async function handleWebhook(rawBody: string, sigHeader: string, env: StripeEnv): Promise<Response> {
-  if (!env.STRIPE_WEBHOOK_SECRET) return json({ ok: false, error: 'webhook-not-configured' }, 503);
-  const ok = await verifyStripeSignature(rawBody, sigHeader, env.STRIPE_WEBHOOK_SECRET);
-  if (!ok) return json({ ok: false, error: 'invalid-signature' }, 401);
+  // Two endpoints hit this same URL: the platform-account endpoint
+  // (STRIPE_WEBHOOK_SECRET) for GoalKickr subscription events, and the
+  // Connect endpoint (STRIPE_WEBHOOK_CONNECT_SECRET) for events on
+  // connected coach accounts (team payments, etc). Each endpoint has
+  // its own signing secret, so we try both — a matching signature on
+  // either is enough. Order doesn't matter; the payload is identical
+  // regardless of which secret signed it.
+  const platformSecret = env.STRIPE_WEBHOOK_SECRET;
+  const connectSecret = env.STRIPE_WEBHOOK_CONNECT_SECRET;
+  if (!platformSecret && !connectSecret) return json({ ok: false, error: 'webhook-not-configured' }, 503);
+  const okPlatform = platformSecret ? await verifyStripeSignature(rawBody, sigHeader, platformSecret) : false;
+  const okConnect = !okPlatform && connectSecret ? await verifyStripeSignature(rawBody, sigHeader, connectSecret) : false;
+  if (!okPlatform && !okConnect) return json({ ok: false, error: 'invalid-signature' }, 401);
 
   const projectId = projectIdFromEnv(env);
   const sa = getServiceAccount(env);

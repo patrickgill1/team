@@ -8,7 +8,7 @@ import {
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isOwner } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 
@@ -101,8 +101,14 @@ const newId = () => `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
 const PracticePlanBuilder: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId, currentTeam } = useTeam();
-  const isUserCoach = isCoachOfTeam(userData, currentTeam);
+  const { selectedTeamId, selectedTeam } = useTeam();
+  // Gate: coach of the currently-selected team, OR platform admin.
+  // Bug history: this used to destructure `currentTeam` (a property
+  // that doesn't exist on TeamContext — the real key is `selectedTeam`),
+  // which made `isCoachOfTeam(userData, undefined)` always return false
+  // and locked every coach out of Practice Plan. Match the rest of the
+  // app (Dashboard, AttendanceTracker, QuickGameLauncher, etc.).
+  const isUserCoach = isCoachOfTeam(userData, selectedTeam) || isOwner(userData);
 
   const [plans, setPlans] = useState<PracticePlan[]>([]);
   const [loading, setLoading] = useState(true);

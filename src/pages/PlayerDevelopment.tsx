@@ -1982,7 +1982,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
               )}
               {/* "Ready for review" badge removed — no verification flow. */}
               {typeof streak === 'number' && streak >= 2 && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-primary/20 text-charcoal-800 border border-brand-primary-soft/30" title={`${streak}-day practice streak`}>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-500 border border-orange-500/40" title={`${streak}-day practice streak`}>
                   <AppIcon name="highlight" className="w-3 h-3" />
                   <span>{streak} streak</span>
                 </span>

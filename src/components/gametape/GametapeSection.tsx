@@ -43,12 +43,6 @@ interface Props {
   /** Total team roster count. Powers the "Watched by N of M" pill
    *  when a clip targets the whole team. */
   totalTeamPlayers?: number;
-  /** Cosmetic gate for the Upload tab in the compose modal.
-   *  Server still enforces on /api/stream-upload-url. */
-  isPaidCoach?: boolean;
-  /** Hook the compose modal calls when a non-paid coach taps the
-   *  upgrade CTA. Optional; consumers wire it to TierPickerSheet. */
-  onOpenUpgrade?: () => void;
 }
 
 const COPY = {
@@ -56,7 +50,7 @@ const COPY = {
   headerSubtitle: 'Coach clips, one at a time. Watch, then tap Got it.',
   fromCoach: 'From Coach',
   library: 'Library',
-  emptyCoachFromCoach: 'Drop your first clip. A 60-second cutup of one moment beats a whole game reel every time.',
+  emptyCoachFromCoach: 'Drop your first clip. A 90-second moment beats a whole game reel every time.',
   emptyParentFromCoach: 'No clips yet. Your coach will drop tactical clips here when there is something worth focusing on this week.',
   emptyKidFromCoach: 'No clips yet. When coach sends you film, it lands here.',
   emptyLibrary: 'Watched clips land here. Come back anytime to rewatch.',
@@ -157,8 +151,6 @@ const GametapeSection: React.FC<Props> = ({
   effectiveView,
   showCoachControls = false,
   totalTeamPlayers,
-  isPaidCoach = false,
-  onOpenUpgrade,
 }) => {
   // Hooks BEFORE any conditional return (React #310 guard).
   const [clips, setClips] = useState<PlayerClip[]>([]);
@@ -403,8 +395,6 @@ const GametapeSection: React.FC<Props> = ({
           onClose={() => setComposeOpen(false)}
           teamId={teamId}
           players={visiblePlayers}
-          isPaidCoach={isPaidCoach}
-          onOpenUpgrade={onOpenUpgrade}
           onCreated={(res) => {
             if (res.autoArchivedCount > 0) {
               setToast(COPY.autoArchivedToast(res.autoArchivedCount));

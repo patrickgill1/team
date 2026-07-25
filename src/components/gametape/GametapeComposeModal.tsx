@@ -1,16 +1,18 @@
 // GametapeComposeModal — the coach-only compose flow. Two tabs:
-//   • Upload video — native picker, 90s cap, gated on paid Coach tier.
+//   • Upload video — native picker, 90s cap.
 //   • Paste link  — YouTube (and Vimeo) URL, always free.
 //
 // Targeting: single player / small group / whole team. All three
 // funnel to the same worker POST — the server treats an empty
 // playerIds array as "whole team" so the client stays simple.
 //
-// This is a UI-only shell; the actual coach-tier check is:
-//   1. UI: `isPaidCoach` prop, provided by the caller (which reads
-//      the useIsPaidCoach hook once for the surrounding page).
-//   2. Server: /api/stream-upload-url and /gametape/create both
-//      re-verify tier from the user doc. The client hint is cosmetic.
+// Paid-tier enforcement is SERVER-SIDE ONLY. /api/stream-upload-url
+// and /gametape/create both re-verify tier from the user doc and
+// return 402 with a warm inline message when a non-paid coach picks
+// a native upload. There is no client-side gate: an earlier prop
+// (`isPaidCoach`) was never wired to a hook in any caller, which
+// left the Upload button as a silent no-op. Rely on 402 handling
+// in handleFilePicked / handleSubmit instead.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Sheet } from '../ui';
@@ -27,14 +29,6 @@ interface Props {
   teamId: string;
   /** Coach roster the picker chooses from. */
   players: GametapePlayer[];
-  /** Cosmetic gate for the Upload tab. False = show upgrade CTA
-   *  instead of the file input. Server still enforces. */
-  isPaidCoach: boolean;
-  /** Fires the tier picker sheet (openWebSignup wrapper). Called when
-   *  a non-paid coach taps "Upgrade to upload video." Optional — if
-   *  omitted the button becomes a no-op tag so consumers who don't
-   *  wire tier upgrade yet don't crash. */
-  onOpenUpgrade?: () => void;
   /** Fires with the newly-created clipId after the worker responds
    *  ok. Parent can show a toast + rely on the Section's onSnapshot
    *  listener to render the row. */
@@ -55,9 +49,6 @@ const COPY = {
   uploadHint: 'MP4 or MOV, up to 90 seconds. Trim it in Photos first if it is longer.',
   uploadTooLong:
     'That clip is longer than 90 seconds. Trim it in Photos first, then try again. Short clips get watched.',
-  uploadPaidGateCta: 'Upgrade to upload video',
-  uploadPaidGateSubtitle:
-    'Native video upload is part of the paid Coach plan. YouTube and Vimeo links are always free.',
   linkPlaceholder: 'https://youtube.com/watch?v=... or vimeo.com/...',
   linkHint: 'Paste a YouTube or Vimeo link. Anything embed-friendly works.',
   linkInvalid: "That does not look like a YouTube or Vimeo link. Try pasting the share URL again.",
@@ -93,8 +84,6 @@ const GametapeComposeModal: React.FC<Props> = ({
   onClose,
   teamId,
   players,
-  isPaidCoach,
-  onOpenUpgrade,
   onCreated,
 }) => {
   const [tab, setTab] = useState<'upload' | 'link'>('upload');
@@ -124,7 +113,7 @@ const GametapeComposeModal: React.FC<Props> = ({
   // stale draft between sessions.
   useEffect(() => {
     if (!open) return;
-    setTab(isPaidCoach ? 'upload' : 'link');
+    setTab('upload');
     setTargetMode('single');
     setSelectedPlayerIds([]);
     setNote('');
@@ -138,7 +127,7 @@ const GametapeComposeModal: React.FC<Props> = ({
     setLinkError(null);
     setSubmitting(false);
     setSubmitError(null);
-  }, [open, isPaidCoach]);
+  }, [open]);
 
   const linkDetection = useMemo(() => detectLinkSource(linkUrl), [linkUrl]);
 
@@ -405,18 +394,7 @@ const GametapeComposeModal: React.FC<Props> = ({
 
           <div className="mt-3">
             {tab === 'upload' ? (
-              !isPaidCoach ? (
-                <div className="rounded-xl bg-surface-elevated ring-1 ring-line-default/15 p-4 text-center">
-                  <p className="text-sm text-ink-primary/90">{COPY.uploadPaidGateSubtitle}</p>
-                  <button
-                    type="button"
-                    onClick={() => onOpenUpgrade?.()}
-                    className="mt-3 px-4 py-2 rounded-lg text-sm font-extrabold bg-brand-primary text-brand-primary-fg hover:bg-brand-primary-hov"
-                  >
-                    {COPY.uploadPaidGateCta}
-                  </button>
-                </div>
-              ) : uploadedStreamUid ? (
+              uploadedStreamUid ? (
                 <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-500/30 px-3 py-2 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-xs font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">

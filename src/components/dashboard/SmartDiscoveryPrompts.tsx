@@ -4,6 +4,7 @@ import AppIcon, { type AppIconName } from '../common/AppIcon';
 import { useTeam } from '../../contexts/TeamContext';
 import { useTeamAudience } from '../../hooks/useTeamAudience';
 import { useDismissible } from '../../hooks/useDismissible';
+import { eventEndMs } from '../../utils/eventTiming';
 
 interface Prompt {
   key: string;
@@ -39,8 +40,13 @@ function isSoonGame(event: any): boolean {
   if (!['game', 'scrimmage', 'tournament'].includes(type)) return false;
   const date = event?.date instanceof Date ? event.date : new Date(event?.date || 0);
   if (Number.isNaN(date.getTime())) return false;
-  const ms = date.getTime() - Date.now();
-  return ms > -2 * 60 * 60 * 1000 && ms < 72 * 60 * 60 * 1000;
+  const now = Date.now();
+  const startMs = date.getTime();
+  // Show as "soon" from T-72h all the way through the event ending
+  // (whichever end our shared boundary agrees on). Same duration
+  // constants as Dashboard / WeekAheadRail / EventDetail.
+  const endMs = eventEndMs({ date, type, endDate: event?.endDate });
+  return now >= startMs - 72 * 60 * 60 * 1000 && now <= endMs;
 }
 
 const SmartDiscoveryPrompts: React.FC<Props> = ({ players, events, isCoach, dataLoading }) => {

@@ -1,5 +1,6 @@
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from './firebase';
+import { eventEndMs } from './eventTiming';
 
 export interface AttendanceCounts {
   attended: number;
@@ -42,7 +43,10 @@ export async function computeTeamAttendanceCounts(
         ...e,
         dateMs: (e.date?.toDate?.() ?? new Date(e.date || 0)).getTime?.() || 0,
       }))
-      .filter(e => e.dateMs > 0 && e.dateMs <= now)
+      // Only count events that are actually FINISHED — otherwise a
+      // mid-second-half game gets pulled into the denominator before
+      // anyone RSVPs "going," dragging the percent down.
+      .filter(e => e.dateMs > 0 && eventEndMs(e) <= now)
       .sort((a, b) => b.dateMs - a.dateMs)
       .slice(0, lookback);
     if (past.length === 0) return empty;
@@ -98,7 +102,9 @@ export async function computeTeamAttendancePercents(
         ...e,
         dateMs: (e.date?.toDate?.() ?? new Date(e.date || 0)).getTime?.() || 0,
       }))
-      .filter(e => e.dateMs > 0 && e.dateMs <= now)
+      // Only include events that have finished per the shared
+      // boundary (endDate / start + type default / end-of-Denver-day).
+      .filter(e => e.dateMs > 0 && eventEndMs(e) <= now)
       .sort((a, b) => b.dateMs - a.dateMs)
       .slice(0, lookback);
 
@@ -162,7 +168,9 @@ export async function computePlayerAttendance(
 
     const now = Date.now();
     // Filter to past events of the allowed types, sort by date desc,
-    // take the most recent `lookback` items.
+    // take the most recent `lookback` items. "Past" is measured
+    // against the shared eventEndMs boundary so an in-progress game
+    // doesn't dilute the kid's percent.
     const past = allEvents
       .filter(e => allowed.has(e.type))
       .filter(e => !e.isCancelled)
@@ -171,7 +179,7 @@ export async function computePlayerAttendance(
         ...e,
         dateMs: (e.date?.toDate?.() ?? new Date(e.date || 0)).getTime?.() || 0,
       }))
-      .filter(e => e.dateMs > 0 && e.dateMs <= now)
+      .filter(e => e.dateMs > 0 && eventEndMs(e) <= now)
       .sort((a, b) => b.dateMs - a.dateMs)
       .slice(0, lookback);
 

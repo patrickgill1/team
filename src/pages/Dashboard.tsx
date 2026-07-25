@@ -41,6 +41,7 @@ import { useViewMode } from '../contexts/ViewModeContext';
 import AdminCockpit from '../components/admin/AdminCockpit';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 import WeatherIcon from '../components/common/WeatherIcon';
+import { isEventPast } from '../utils/eventTiming';
 
 // Pick the best thumbnail image for a clip. Stream videos → Cloudflare's
 // auto-generated JPEG poster. Photos → the photo itself. Legacy R2 videos →
@@ -197,13 +198,16 @@ const Dashboard: React.FC = () => {
         const eventsWithDates = (teamEvents as any[]).map((e: any) => ({
           ...e,
           date: e.date?.toDate ? e.date.toDate() : new Date(e.date),
+          endDate: e.endDate?.toDate ? e.endDate.toDate() : (e.endDate ? new Date(e.endDate) : undefined),
           createdAt: e.createdAt?.toDate ? e.createdAt.toDate() : new Date(e.createdAt),
         })) as CalendarEvent[];
         const upcoming = eventsWithDates
           // Cancelled events still show on /calendar with a banner, but
           // the Dashboard hero is "what's next" — surfacing a cancelled
-          // event there is misleading.
-          .filter(ev => new Date(ev.date) >= new Date() && !(ev as any).isCancelled)
+          // event there is misleading. An in-progress event stays in
+          // "upcoming" until it finishes (endDate, or start + type
+          // duration, or end-of-Denver-day, whichever is later).
+          .filter(ev => !isEventPast(ev) && !(ev as any).isCancelled)
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
           .slice(0, 3);
         setUpcomingEvents(upcoming);

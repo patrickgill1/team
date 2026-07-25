@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
@@ -37,12 +37,24 @@ const CoachPayments: React.FC = () => {
     return () => window.clearTimeout(t);
   }, [loaded]);
 
+  // Listener is SCOPED BY TAB so the Active view never has to stream the
+  // full archive (rows carry purchases[]/paidUids/stripeSubscriptionIds
+  // which balloon after months of team-store activity). Switching tabs
+  // tears down + reopens with the other status filter; each side caps
+  // at 50 rows. Requires the composite index (teamId + status +
+  // createdAt DESC) added in firestore.indexes.json.
   useEffect(() => {
     if (!selectedTeamId) { setLoaded(true); return; }
+    setLoaded(false);
+    const statusFilter = tab === 'active'
+      ? where('status', '==', 'active')
+      : where('status', 'in', ['closed', 'archived']);
     const q = query(
       collection(db, 'payment_requests'),
       where('teamId', '==', selectedTeamId),
+      statusFilter,
       orderBy('createdAt', 'desc'),
+      limit(50),
     );
     const unsub = onSnapshot(q, (snap) => {
       const rows: PaymentRequest[] = snap.docs.map(d => {
@@ -61,11 +73,14 @@ const CoachPayments: React.FC = () => {
       setLoaded(true);
     });
     return () => unsub();
-  }, [selectedTeamId]);
+  }, [selectedTeamId, tab]);
 
   const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
   const { clubId: stripeClubId, isReady: stripeIsReady, isLoading: stripeStatusLoading } = useTeamClubStripeStatus();
 
+  // Server-side status filter already scopes the listener; this is a
+  // belt-and-suspenders guard so a mid-flight tab switch never renders
+  // the previous tab's rows for a paint.
   const filtered = useMemo(() => {
     return requests.filter(r => {
       if (tab === 'active') return r.status === 'active';

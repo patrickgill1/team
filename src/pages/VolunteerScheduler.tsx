@@ -6,6 +6,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { formatDateTime } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon, { AppIconName } from '../components/common/AppIcon';
+import { isEventPast } from '../utils/eventTiming';
 
 interface CalendarEvent {
   id: string;
@@ -78,7 +79,9 @@ const VolunteerScheduler: React.FC = () => {
         .filter((e: any) => e.teamId === selectedTeamId && e.isActive !== false)
         .map((e: any) => ({
           ...e,
-          date: e.date?.toDate ? e.date.toDate() : new Date(e.date || Date.now())
+          date: e.date?.toDate ? e.date.toDate() : new Date(e.date || Date.now()),
+          // Hydrate endDate so isEventPast honors coach-set end times.
+          endDate: e.endDate?.toDate ? e.endDate.toDate() : (e.endDate ? new Date(e.endDate) : undefined),
         }))
         .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
       
@@ -279,7 +282,9 @@ const VolunteerScheduler: React.FC = () => {
     return opportunities.filter(opp => opp.calendarEventId === eventId);
   };
 
-  const upcomingEvents = calendarEvents.filter(event => new Date(event.date) >= new Date());
+  // Parent wanting to grab a snack slot mid-warmup still needs to
+  // see the event; only drop it once the event is actually over.
+  const upcomingEvents = calendarEvents.filter(event => !isEventPast(event as any));
   const filteredOpportunities = opportunities.filter(opp => 
     filterType === 'all' || opp.type === filterType
   );

@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useViewMode } from '../../contexts/ViewModeContext';
 import { isCoachOfTeam } from '../../utils/helpers';
+import { readCache, writeCache } from '../../utils/queryCache';
 
 /**
  * Coach accordion bar — ambient status indicator for coaches. Patrick
@@ -126,6 +127,19 @@ const CoachAccordionBar: React.FC = () => {
       setItems([]);
       return;
     }
+    // Cache-first paint. Dashboard remounts (tab flips, back nav)
+    // otherwise fire the full three-query fan-out (events + roster
+    // count + recent chat) every time — this is the "coach section
+    // stalls" symptom on cold-open. Bucketed by 5-minute window so
+    // urgency ("within 24h") stays fresh enough to trust.
+    const bucket = Math.floor(Date.now() / (5 * 60 * 1000));
+    const cacheKey = `coach:accordion:${selectedTeamId}:${bucket}`;
+    const cached = readCache<{ items: StatusItem[]; inboxPreviews: MessagePreview[] }>(cacheKey);
+    if (cached) {
+      setItems(cached.items);
+      setInboxPreviews(cached.inboxPreviews);
+      setLoaded(true);
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -237,6 +251,7 @@ const CoachAccordionBar: React.FC = () => {
         // a single static cyan if there are recent (<24h) team chat
         // messages from someone other than the coach. Real unread
         // tracking is a follow-up — keeps this MVP query tight.
+        let nextPreviews: MessagePreview[] = [];
         try {
           const chatQ = query(
             collection(db, 'chat_messages'),
@@ -283,9 +298,7 @@ const CoachAccordionBar: React.FC = () => {
               });
               if (byThread.size >= 3) break;
             }
-            setInboxPreviews(Array.from(byThread.values()));
-          } else {
-            setInboxPreviews([]);
+            nextPreviews = Array.from(byThread.values());
           }
         } catch (err) {
           // Chat query may fail (rules, missing index); silent skip.
@@ -293,6 +306,11 @@ const CoachAccordionBar: React.FC = () => {
 
         if (cancelled) return;
         setItems(next);
+        setInboxPreviews(nextPreviews);
+        // Cache the fully-assembled outputs so the next mount within
+        // the 5-min bucket paints from memory instead of refiring the
+        // three-query fan-out.
+        writeCache(cacheKey, { items: next, inboxPreviews: nextPreviews });
       } catch (err) {
         console.warn('[coach-accordion-bar] load failed', err);
       } finally {

@@ -19,6 +19,7 @@ import { useTeamAudience } from '../hooks/useTeamAudience';
 import SplitTeamsModal from '../components/calendar/SplitTeamsModal';
 import { grossUpCents, coachNetCents, DROPIN_DEFAULT_PLATFORM_BPS } from '../utils/pricing';
 import { useActiveTripsForTeam, getTripForEvent, truncateTripName } from '../utils/eventTripContext';
+import { eventEndMs } from '../utils/eventTiming';
 
 // Authenticated event detail page — the "command center" for a single
 // event. Replaces the old inline-expanded Calendar row and the public
@@ -35,10 +36,13 @@ interface CountdownState {
   variant: 'upcoming' | 'live' | 'past';
 }
 
-function computeCountdown(start: Date, end?: Date): CountdownState {
+function computeCountdown(start: Date, end?: Date, type?: string | null): CountdownState {
   const now = Date.now();
   const startMs = start.getTime();
-  const endMs = end ? end.getTime() : startMs + 90 * 60 * 1000; // assume 90 min if no end
+  // Route through the shared eventEndMs so games/tournaments get
+  // their type-aware duration instead of a hardcoded 90m that could
+  // fire the post-event feedback module mid-second-half.
+  const endMs = end ? end.getTime() : eventEndMs({ date: start, type });
   if (now < startMs) {
     const diff = startMs - now;
     const minutes = Math.floor(diff / 60_000);
@@ -397,14 +401,18 @@ const EventDetail: React.FC = () => {
 
   const eventDate = event ? new Date(event.date) : null;
   const eventEnd = event?.endDate ? new Date(event.endDate) : undefined;
-  const eventEnded = !!eventDate && (eventEnd?.getTime() || eventDate.getTime() + 90 * 60_000) < now.getTime();
+  // Use the shared boundary — endDate if coach set one, else start
+  // + type-aware default, else end-of-Denver-day (whichever is
+  // later). Prevents "post-event" side effects from firing while a
+  // tournament game is still on the field.
+  const eventEnded = !!event && eventEndMs(event as any) < now.getTime();
   const eventFocus = ((event as any)?.developmentFocus || '').trim();
 
   const countdown = useMemo(() => {
     if (!eventDate) return null;
     void now; // re-tick dependency
-    return computeCountdown(eventDate, eventEnd);
-  }, [eventDate?.getTime(), eventEnd?.getTime(), now]);
+    return computeCountdown(eventDate, eventEnd, event?.type);
+  }, [eventDate?.getTime(), eventEnd?.getTime(), event?.type, now]);
 
   // RSVP aggregation. Patrick 2026-06-21 attribution rework:
   //   ROSTER = playerRsvps (kid attendance, source of truth)

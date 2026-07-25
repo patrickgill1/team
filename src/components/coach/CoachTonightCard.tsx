@@ -8,6 +8,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useViewMode } from '../../contexts/ViewModeContext';
 import { isCoachOfTeam } from '../../utils/helpers';
 import { useDismissible } from '../../hooks/useDismissible';
+import { readCache, writeCache } from '../../utils/queryCache';
 import type { CalendarEvent } from '../../types';
 
 /**
@@ -46,6 +47,17 @@ const CoachTonightCard: React.FC = () => {
 
   useEffect(() => {
     if (!isUserCoach || !selectedTeamId) { setLoaded(true); return; }
+    // Cache-first paint. Same rationale as CoachTeamHealthCard:
+    // Dashboard remounts blitz the same query stack, and this card's
+    // "next event within 36h" answer barely changes minute-to-minute.
+    // Bucketed key so we still refetch when the window slides an hour.
+    const bucket = Math.floor(Date.now() / (60 * 60 * 1000));
+    const cacheKey = `coach:tonight:${selectedTeamId}:${bucket}`;
+    const cached = readCache<CalendarEvent | null>(cacheKey);
+    if (cached !== undefined) {
+      setEvent(cached);
+      setLoaded(true);
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -68,16 +80,17 @@ const CoachTonightCard: React.FC = () => {
         // "Delete silently". `limit(1)` + a Firestore `!=` filter
         // would need a composite index, so we filter after the read.
         const doc0 = snap.docs.find(dSnap => (dSnap.data() as any).isActive !== false);
+        let nextEvent: CalendarEvent | null = null;
         if (doc0) {
           const d: any = doc0.data();
-          setEvent({
+          nextEvent = {
             id: doc0.id,
             ...d,
             date: d.date?.toDate?.() || new Date(d.date),
-          });
-        } else {
-          setEvent(null);
+          };
         }
+        writeCache(cacheKey, nextEvent);
+        setEvent(nextEvent);
       } catch (err) {
         console.warn('[coach-tonight] load failed', err);
       } finally {

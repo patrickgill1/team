@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useViewMode } from '../../contexts/ViewModeContext';
 import { isCoachOfTeam } from '../../utils/helpers';
+import { readCache, writeCache } from '../../utils/queryCache';
 
 /**
  * Coach team-health roll-up — one-glance summary of how the team's
@@ -49,6 +50,16 @@ const CoachTeamHealthCard: React.FC = () => {
 
   useEffect(() => {
     if (!isUserCoach || !selectedTeamId) { setLoaded(true); return; }
+    // Cache-first paint: repeat Dashboard mounts (tab switches, back
+    // nav from a player profile) render instantly instead of firing
+    // a fresh full-roster read while the eye waits. Refetch in the
+    // background so streak changes catch up within a tick.
+    const cacheKey = `coach:teamHealth:${selectedTeamId}`;
+    const cached = readCache<PlayerLite[]>(cacheKey);
+    if (cached) {
+      setPlayers(cached);
+      setLoaded(true);
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -76,6 +87,7 @@ const CoachTeamHealthCard: React.FC = () => {
             hasLoggedThisWeek: (p.currentStreakDays || 0) > 0,
           }));
 
+        writeCache(cacheKey, teamPlayers);
         setPlayers(teamPlayers);
       } catch (err) {
         console.warn('[coach-team-health] load failed', err);

@@ -11,6 +11,7 @@ import { intervalShort } from '../utils/paymentIntervals';
 import { workerFetch } from '../utils/workerFetch';
 import PaymentRequestEditModal from '../components/coach/PaymentRequestEditModal';
 import { getShareOrigin } from '../utils/origin';
+import { readCache, writeCache } from '../utils/queryCache';
 
 /**
  * Coach Payment Detail — /coach/payments/:id
@@ -61,17 +62,33 @@ const CoachPaymentDetail: React.FC = () => {
     return () => unsub();
   }, [id]);
 
+  // Roster is used across CoachPayments detail + list + AccordionBar +
+  // TeamHealthCard + PaymentRequestEditModal + CoachPaymentCreate.
+  // Cache-first paint so nav back-and-forth between the payment list
+  // and this detail doesn't refetch the whole team roster every time
+  // (the double-mark cleanup workflow lives inside this back-and-forth).
+  // Refetch in the background to pick up membership changes.
   useEffect(() => {
     if (!selectedTeamId) return;
+    const cacheKey = `roster:${selectedTeamId}`;
+    const cached = readCache<Player[]>(cacheKey);
+    if (cached) setPlayers(cached);
+    let cancelled = false;
     (async () => {
       try {
         const q = query(collection(db, 'players'), where('teamIds', 'array-contains', selectedTeamId));
         const snap = await getDocs(q);
-        setPlayers(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })).filter((p: any) => p.isActive !== false) as Player[]);
+        if (cancelled) return;
+        const rows = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((p: any) => p.isActive !== false) as Player[];
+        writeCache(cacheKey, rows);
+        setPlayers(rows);
       } catch (err) {
         console.warn('[coach-payment-detail] roster load failed', err);
       }
     })();
+    return () => { cancelled = true; };
   }, [selectedTeamId]);
 
   const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
@@ -82,6 +99,40 @@ const CoachPaymentDetail: React.FC = () => {
     const targets = new Set(pr.targetPlayerIds);
     return players.filter(p => targets.has(p.id));
   }, [pr, players]);
+
+  // Precompute per-player payment status ONCE per snapshot instead of
+  // rebuilding three Sets + running two `.some()` scans per row on
+  // every render. The old shape was O(P * R) allocations and O(R * U)
+  // scans; this collapses to O(P + R) with a shared Map lookup per row.
+  // Directly fixes the "Mark cash / Undo" tap lag the coach sees
+  // during the double-mark cleanup workflow — every mutation refires
+  // the parent snapshot which triggered a full re-render of the table.
+  const paymentStatusByPlayer = useMemo(() => {
+    const map = new Map<string, { paidStripe: boolean; paidCash: boolean; subActive: boolean }>();
+    if (!pr) return map;
+    const paidByCoachKids = new Set(pr.paidByCoachPlayerIds || []);
+    const paidByStripe = new Set(pr.paidUids || []);
+    const paidByCoachAdults = new Set(pr.paidByCoach || []);
+    const subUidMap = pr.stripeSubscriptionIds || {};
+    const isRecurring = pr.kind === 'recurring';
+    for (const p of relevantPlayers) {
+      const parents = ((p as any).parentIds as string[] | undefined) || [];
+      let paidStripe = false;
+      let paidCashByAdult = false;
+      let subActive = false;
+      for (const u of parents) {
+        if (paidByStripe.has(u)) paidStripe = true;
+        if (paidByCoachAdults.has(u)) paidCashByAdult = true;
+        if (isRecurring && subUidMap[u]) subActive = true;
+      }
+      map.set(p.id, {
+        paidStripe,
+        paidCash: paidByCoachKids.has(p.id) || paidCashByAdult,
+        subActive,
+      });
+    }
+    return map;
+  }, [pr, relevantPlayers]);
 
   if (!coachOnThisTeam) return <Navigate to="/coach" replace />;
 
@@ -272,13 +323,9 @@ const CoachPaymentDetail: React.FC = () => {
                     <p className="text-[13px] text-ink-primary/60">No players match this request.</p>
                   )}
                   {relevantPlayers.map(p => {
-                    const paidByCoachKids = new Set(pr.paidByCoachPlayerIds || []);
-                    const paidByStripe = new Set(pr.paidUids || []);
-                    const paidByCoachAdults = new Set(pr.paidByCoach || []);
+                    const status = paymentStatusByPlayer.get(p.id) || { paidStripe: false, paidCash: false, subActive: false };
+                    const { paidStripe, paidCash, subActive } = status;
                     const parents = (p as any).parentIds as string[] | undefined;
-                    const paidStripe = (parents || []).some(u => paidByStripe.has(u));
-                    const paidCash = paidByCoachKids.has(p.id) || (parents || []).some(u => paidByCoachAdults.has(u));
-                    const subActive = pr.kind === 'recurring' && (parents || []).some(u => (pr.stripeSubscriptionIds || {})[u]);
                     return (
                       <div key={p.id} className="flex items-center justify-between gap-2 py-2">
                         <div className="min-w-0">

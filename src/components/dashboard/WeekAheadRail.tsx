@@ -19,6 +19,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CalendarEvent } from '../../types';
+import { eventEndMs } from '../../utils/eventTiming';
 
 interface Props {
   events: CalendarEvent[];
@@ -88,7 +89,10 @@ function formatKickoff(d: Date): string {
  *  After    → "FULL TIME"      (event over, same day) */
 function countdownLabel(now: Date, nextEvent: CalendarEvent): string {
   const t = nextEvent.date.getTime();
-  const endMs = (nextEvent as any).endDate?.getTime?.() ?? t + 2 * 60 * 60 * 1000; // 2h default
+  // Shared boundary — same duration constants everywhere so LIVE /
+  // FULL TIME here aligns with Dashboard's "past" filter and
+  // EventDetail's post-event side effects.
+  const endMs = eventEndMs(nextEvent as any);
   const diff = t - now.getTime();
   const past = -diff;
   if (diff > 60_000) {

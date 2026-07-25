@@ -18,6 +18,7 @@ import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import WeatherIcon from '../common/WeatherIcon';
 import { useActiveTripsForTeam, getTripForEvent, truncateTripName } from '../../utils/eventTripContext';
 import { getShareOrigin } from '../../utils/origin';
+import { isEventPast } from '../../utils/eventTiming';
 import ImportScheduleModal from './ImportScheduleModal';
 import EventPhotos from './EventPhotos';
 import AppIcon from '../common/AppIcon';
@@ -633,11 +634,15 @@ const Calendar: React.FC<CalendarProps> = ({
 
   const renderListView = () => {
     const now = new Date();
+    // Boundary: event doesn't drop to "Past" until it's actually over
+    // (endDate, or start + type default, or end-of-Denver-day). A game
+    // at 5pm stays in Upcoming through the second half; a practice
+    // that ran 8:00pm stays "Today" through 11:59pm Denver.
     const upcomingEvents = events
-      .filter(event => new Date(event.date) >= now)
+      .filter(event => !isEventPast(event, now))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const pastEvents = events
-      .filter(event => new Date(event.date) < now)
+      .filter(event => isEventPast(event, now))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     let showing: CalendarEvent[];

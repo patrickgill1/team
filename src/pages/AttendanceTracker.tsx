@@ -6,6 +6,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Player } from '../types';
 import { formatDate, isCoachOfTeam } from '../utils/helpers';
 import { computeTeamAttendanceCounts } from '../utils/attendance';
+import { isEventPast } from '../utils/eventTiming';
 import { maybeGrantPerfectAttendance } from '../utils/badgeGrants';
 import { isXpSourceEnabled } from '../utils/xpSource';
 import { awardMicroXp } from '../utils/microXp';
@@ -83,9 +84,12 @@ const AttendanceTracker: React.FC = () => {
       // Auto-select the next upcoming team event of any type. Anything
       // a parent might bring their kid to deserves attendance tracking
       // (a watch party counts; an internal coach-only meeting wouldn't,
-      // but those aren't on the team calendar anyway).
+      // but those aren't on the team calendar anyway). An in-progress
+      // event stays in this list until it finishes — coach opening
+      // the tracker during practice should land on the practice
+      // that's happening now, not next week's.
       const upcomingEvents = calendarEvents
-        .filter(event => new Date(event.date) >= new Date())
+        .filter(event => !isEventPast(event as any))
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       if (upcomingEvents.length > 0) {
@@ -139,6 +143,10 @@ const AttendanceTracker: React.FC = () => {
         .map((e: any) => ({
           ...e,
           date: e.date?.toDate ? e.date.toDate() : new Date(e.date || Date.now()),
+          // Preserve endDate as a Date so isEventPast can honor
+          // explicit coach-set end times without going through the
+          // helper's Timestamp fallback path.
+          endDate: e.endDate?.toDate ? e.endDate.toDate() : (e.endDate ? new Date(e.endDate) : undefined),
           createdAt: e.createdAt?.toDate ? e.createdAt.toDate() : new Date(e.createdAt || Date.now())
         }))
         .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -469,11 +477,22 @@ const AttendanceTracker: React.FC = () => {
                     >
                       <option value="">Select an event...</option>
                       {calendarEvents.map(event => {
-                        const isPast = new Date(event.date) < new Date();
+                        // Use the shared boundary so an event mid-play
+                        // doesn't badge as "Past" while the whistle
+                        // is still blowing. "Today" always wins over
+                        // "Past" when the event is on today's calendar
+                        // day (a morning tournament game that finished
+                        // hours ago still reads as Today).
+                        const ended = isEventPast(event as any);
                         const isToday = new Date(event.date).toDateString() === new Date().toDateString();
+                        const label = isToday
+                          ? 'Today · '
+                          : ended
+                            ? 'Past · '
+                            : 'Upcoming · ';
                         return (
                           <option key={event.id} value={event.id}>
-                            {isPast && !isToday ? 'Past · ' : isToday ? 'Today · ' : 'Upcoming · '}
+                            {label}
                             {event.title} — {formatDate(event.date)}
                           </option>
                         );

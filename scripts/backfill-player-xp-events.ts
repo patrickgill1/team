@@ -458,13 +458,15 @@ async function backfillTeam(teamDoc: FirebaseFirestore.DocumentSnapshot): Promis
     playerBreakdown: [],
   };
 
-  const playerIds: string[] = Array.isArray(team.playerIds) ? team.playerIds : [];
-  if (playerIds.length === 0) return summary;
-
-  // Load players by id and index them so we can look up name / kids-only
-  // rows without a second read.
+  // Roster resolution: union of team.playerIds (forward index) AND
+  // players where teamIds array-contains teamId (reverse index). The
+  // forward index is stale on a lot of teams (84 mismatches spot-checked
+  // 2026-07-24 — Hunter Gill on Fire FC U10 PG was missing from
+  // team.playerIds despite living on that roster in the app). Union
+  // catches everyone the live code paths would credit.
   const playersById = new Map<string, any>();
-  for (const pid of playerIds) {
+  const forwardIds: string[] = Array.isArray(team.playerIds) ? team.playerIds : [];
+  for (const pid of forwardIds) {
     try {
       const snap = await db.collection('players').doc(pid).get();
       if (snap.exists) playersById.set(pid, { id: pid, ...(snap.data() as any) });
@@ -472,6 +474,15 @@ async function backfillTeam(teamDoc: FirebaseFirestore.DocumentSnapshot): Promis
       summary.errors++;
       console.warn(`  [err] player fetch ${pid}:`, (err as Error).message);
     }
+  }
+  try {
+    const reverseSnap = await db.collection('players').where('teamIds', 'array-contains', teamId).get();
+    reverseSnap.docs.forEach(s => {
+      if (!playersById.has(s.id)) playersById.set(s.id, { id: s.id, ...(s.data() as any) });
+    });
+  } catch (err) {
+    summary.errors++;
+    console.warn(`  [err] reverse-index roster fetch for ${teamId}:`, (err as Error).message);
   }
 
   const activePlayers = Array.from(playersById.values()).filter(p => p.isActive !== false);

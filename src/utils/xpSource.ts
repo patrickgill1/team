@@ -29,7 +29,8 @@ export type XpSourceKey =
   | 'perfectAttendance'
   | 'whisper'
   | 'coachLiveGrant'
-  | 'kudosConvert';
+  | 'kudosConvert'
+  | 'gametape';
 
 /** Which Ship 1 coarse key covers each per-source key when the
  *  per-source key is missing (undefined). `whisper` has no coarse
@@ -58,6 +59,10 @@ const COARSE_FALLBACK: Record<XpSourceKey, 'participation' | 'badges' | null> = 
   practiceAttendance: null,
   gameAttendance: null,
   effortBonus: null,
+  // Gametape "Got it" tap +3 XP. No coarse fallback; default on when
+  // absent so existing XP-enabled teams pick it up without touching
+  // Coach XP Config.
+  gametape: null,
 };
 
 /** Warm-voice labels for the per-source toggles surfaced in
@@ -84,6 +89,7 @@ export const XP_SOURCE_LABELS: Partial<Record<XpSourceKey, string>> = {
   whisper: 'Whisper XP',
   coachLiveGrant: 'Live grant',
   kudosConvert: 'Kudos to XP',
+  gametape: 'Gametape watched',
 };
 
 /**

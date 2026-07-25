@@ -811,6 +811,7 @@ export interface PlayerXpEvent {
     | 'first_potm'
     | 'perfect_attendance'
     | 'streak_milestone'
+    | 'gametape_watched' /* Player tapped "Got it" on a coach-assigned Gametape clip: +3 XP, single-earn per (clip, player). */
     | 'coach_recognition'; /* legacy read-only, /xp/award-recognition deleted 2026-07-13 — kept in the union so old event rows still narrow. */
   /** Doc id of the underlying source (event id, plan id, stat id). */
   sourceRef?: string;
@@ -2412,6 +2413,10 @@ export interface Team {
       /** Convert Circle Kudos to XP with one tap. Turn off to keep
        *  Kudos as celebration-only. */
       kudosConvert?: boolean;
+      /** Player tapped "Got it" on a coach-assigned Gametape clip:
+       *  +3 XP, single-earn per (clip, player). Ship 3 default-on for
+       *  existing XP-enabled teams (no coarse fallback). */
+      gametape?: boolean;
     };
   };
   /** Team Wall parent-post controls. Coach owns the master switch:
@@ -3312,6 +3317,117 @@ export interface PlayerMedia {
   shareCount?: number;    // total share taps (counts repeats)
   createdAt: Date;
   updatedAt?: Date;
+}
+
+// ================================
+// GAMETAPE (COACH-ASSIGNED CLIPS)
+// ================================
+
+/**
+ * player_clips/{clipId} — coach-authored short-form video assigned to
+ * a single player, a small group (2-4), or the whole team. Rendered in
+ * the "Gametape" section on Player Development.
+ *
+ * Field naming mirrors PlayerMedia (streamUid / streamReady / streamReadyAt
+ * / posterTimeSeconds) so CloudflareStreamIframe + streamThumbnailUrl +
+ * useStreamReadiness work with zero adapters. All writes go through the
+ * worker; client-side create/update/delete is denied at the Firestore
+ * rules level.
+ *
+ * Homework cap: 3 ACTIVE clips per player. When a coach posts a 4th
+ * targeting a player already at cap, the oldest slides to that player's
+ * Library (activeForPlayerIds → archivedForPlayerIds). No XP unwind.
+ *
+ * Soft-delete pattern: coach hard-remove sets isActive=false and pulls
+ * the Cloudflare Stream asset — never deleteDoc (PITR isn't enabled).
+ */
+export interface PlayerClip {
+  id: string;
+  teamId: string;
+  clubId?: string;
+  seasonId?: string;
+  createdBy: string;
+  createdByName: string;
+  /** Cached at write-time so the card avatar doesn't need a user lookup. */
+  createdByPhotoUrl?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+
+  /** Targeting. Empty array = whole team; 1 = single player; 2-4 = group.
+   *  targetsWholeTeam mirrors (playerIds.length === 0) so rules + queries
+   *  can fast-path without iterating the team roster. */
+  playerIds: string[];
+  targetsWholeTeam: boolean;
+  /** Denormalized union of parents of all targeted players. Written by
+   *  the worker at create-time so read-rules stay O(1). */
+  parentIds: string[];
+  /** Denormalized union of self-manage user uids for youth players
+   *  (U13+ with their own account). Written by the worker at create-time
+   *  so firestore.rules (see line 1247-1250) can grant read access to
+   *  the kid's own account without walking the roster. Empty array is
+   *  fine; the field must always be present. */
+  selfPlayerUids: string[];
+
+  /** Content source. 'upload' = native Cloudflare Stream (90s cap, paid
+   *  coach tier only); 'youtube' | 'vimeo' = external link (free path). */
+  source: 'upload' | 'youtube' | 'vimeo';
+  /** Coach caption. Max 500 chars; enforced worker-side. */
+  note: string;
+  /** Optional coach-authored title; renderer derives one if omitted. */
+  title?: string;
+
+  // --- Upload path (source === 'upload') ---
+  streamUid?: string;
+  streamReady?: boolean;
+  streamReadyAt?: Date;
+  /** Override Cloudflare's t=0 poster. Seconds. */
+  posterTimeSeconds?: number;
+  /** Client-probed pre-upload; server-verified against the Stream API
+   *  on the ready webhook. If breached, worker soft-deletes + pulls the
+   *  video and pushes the coach a "Clip was longer than 90s" notice. */
+  durationSeconds?: number;
+  fileSize?: number;
+  fileName?: string;
+  contentType?: string;
+
+  // --- Link path (source === 'youtube' | 'vimeo') ---
+  embedUrl?: string;
+  externalVideoId?: string;
+  /** yt: i.ytimg.com/vi/{id}/hqdefault.jpg; vimeo: fetched via oEmbed
+   *  at write-time. */
+  thumbnailUrl?: string;
+
+  // --- Per-player state (denormalized for O(1) list rendering + cap math) ---
+  /** Starts equal to (playerIds ?? teamPlayerIds); shrinks as auto-archive
+   *  fires (homework cap) or the player watches. */
+  activeForPlayerIds: string[];
+  /** arrayUnion on "Got it". Never shrinks. */
+  watchedByPlayerIds: string[];
+  /** playerId → Timestamp of the "Got it" tap. Used for Library sort. */
+  watchedAt?: Record<string, Date>;
+  /** Auto-archived by the homework cap but NOT watched. Shows up in the
+   *  player's Library so the queue stays short without losing the clip. */
+  archivedForPlayerIds: string[];
+  archivedAt?: Record<string, Date>;
+
+  // --- Soft-delete (coach hard-remove) ---
+  isActive: boolean;
+  deletedBy?: string;
+  deletedAt?: Date;
+}
+
+/** Viewer role hint for Gametape UI. Coach sees compose + kebab controls;
+ *  parent/kid see the "Got it" tap and Library. Distinct from user.role
+ *  because a coach can preview their own view as a parent. */
+export type GametapeViewer = 'coach' | 'parent' | 'kid';
+
+/** Compact player shape the Gametape UI reads off the shared Player
+ *  type. Kept narrow so the section doesn't force a full Player import
+ *  chain on every consumer. */
+export interface GametapePlayer {
+  id: string;
+  name: string;
+  profilePhotoUrl?: string | null;
 }
 
 // ================================

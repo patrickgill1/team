@@ -1180,6 +1180,79 @@ service cloud.firestore {
       allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
     }
 
+    // Gametape clips (2026-07-25) — coach-authored tactical film
+    // targeted at a single player, a small group of 2-4, or the whole
+    // team. Video source is either a native Cloudflare Stream upload
+    // (90-second cap, gated to the paid coach tier in the worker) or
+    // a YouTube/Vimeo link (free for all coaches).
+    //
+    // Read scope, per-doc, in priority order:
+    //   1. Platform admin (Patrick).
+    //   2. Coach on the clip's team (team.coachIds membership via
+    //      isTeamCoach — same posture as live_games/practice_plans).
+    //   3. Whole-team clip + any team member. targetsWholeTeam is a
+    //      boolean mirror of (playerIds.length == 0) stamped by the
+    //      worker at write time so the rule doesn't have to iterate
+    //      playerIds. Uses onTeam() so an assistant coach or team
+    //      member who isn't a parent of any specific kid still sees
+    //      the clip.
+    //   4. Denormalized parentIds — Circle members (parent user uids)
+    //      union'd across every targeted player. For a single-player
+    //      or small-group clip, only that player/those players'
+    //      parents. For a whole-team clip, the whole-team parent
+    //      union. Worker /player-clips/create is responsible for
+    //      computing this at write time.
+    //   5. Denormalized selfPlayerUids — user uids of any linked
+    //      player self-account (users/{uid}.selfPlayerId points at a
+    //      targeted player). Rules can't reverse-lookup selfPlayerId,
+    //      so the worker denormalizes this array at write time. Empty
+    //      for teams with no youth-self-manage kids; whole-team clips
+    //      get the union across the roster.
+    //
+    // Writes are worker-only. Every client mutation routes through
+    // /player-clips/{create,watch,archive,edit,delete} which run
+    // under the service account and bypass these rules. The homework
+    // cap (max 3 active clips per player), 90-second duration guard,
+    // paid-tier gate on native upload, and coach-of-team check all
+    // live in the worker.
+    //
+    // Soft-delete: isActive==false records are invisible to clients
+    // (matches the app-wide pattern — see feedback_soft_delete_pattern
+    // memory). Coach hard-remove flips isActive; the worker also
+    // calls Cloudflare deleteStreamVideo for source='upload' clips.
+    //
+    // LIST/GET split: branches 3 (onTeam) call userDoc(), which
+    // Firestore's LIST static analyzer can't resolve against a scoped
+    // `where teamId == X` query — same trap that bit players/users
+    // on July 9. Split into strict GET + permissive LIST. Every
+    // client query is expected to filter by teamId AND isActive; a
+    // rogue authed client could enumerate active clips across the
+    // collection, but note text is low-sensitivity and Stream
+    // playback still requires per-request signed URLs. Trust posture
+    // matches live_games/practice_plans/development_plans.
+    match /player_clips/{clipId} {
+      allow get: if isAuthed()
+        && resource.data.isActive == true
+        && (
+          isPlatformAdmin()
+          || isTeamCoach(resource.data.teamId)
+          || (
+            resource.data.targetsWholeTeam == true
+            && onTeam(resource.data.teamId)
+          )
+          || (
+            resource.data.parentIds is list
+            && request.auth.uid in resource.data.parentIds
+          )
+          || (
+            resource.data.selfPlayerUids is list
+            && request.auth.uid in resource.data.selfPlayerUids
+          )
+        );
+      allow list: if isAuthed();
+      allow create, update, delete: if false;
+    }
+
     // Live games (gameday tracker) — team-scoped throughout.
     // live_games / practice_plans / stats / development_plans — the
     // team-scoped foursome. Same LIST-authorization trap as users +

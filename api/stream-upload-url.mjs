@@ -7,6 +7,7 @@
 //                    FIREBASE_PROJECT_ID
 
 import { jwtVerify, createRemoteJWKSet } from 'jose';
+import { checkPaidCoach } from './_lib/subscription.mjs';
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
 const JWKS = createRemoteJWKSet(
@@ -22,6 +23,11 @@ async function verifyFirebaseToken(token) {
 }
 
 const MAX_DURATION_SECONDS = 60 * 60 * 4; // 4 h cap per clip
+// Gametape clips are intentionally short so parents actually watch.
+// Server-enforced belt to the client probeVideoDuration suspenders in
+// GametapeComposeModal. Kept in sync with worker/src/gametape.ts
+// createStreamDirectUpload maxDurationSeconds.
+const GAMETAPE_MAX_DURATION_SECONDS = 90;
 
 export default async function handler(req, res) {
   // CORS must be set on EVERY response, not just preflight. The
@@ -52,12 +58,28 @@ export default async function handler(req, res) {
     }
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-    const { fileName, size, name, playerId, teamId } = body;
+    const { fileName, size, name, playerId, teamId, feature } = body;
 
     const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
     const apiToken = process.env.CLOUDFLARE_STREAM_API_TOKEN;
     if (!accountId || !apiToken) {
       return res.status(500).json({ error: 'Server Stream config missing' });
+    }
+
+    // Feature gate — Gametape uploads must be short and paid-Coach-only.
+    // Any other value (including undefined) falls through to the legacy
+    // 4-hour cap the drill/highlight flows depend on.
+    const isGametape = feature === 'gametape';
+    if (isGametape) {
+      try {
+        const paid = await checkPaidCoach(userClaims.user_id || userClaims.sub);
+        if (!paid.ok) {
+          return res.status(402).json({ error: 'paid_coach_required', reason: paid.reason });
+        }
+      } catch (e) {
+        console.error('paid-coach check failed:', e);
+        return res.status(500).json({ error: 'subscription_check_failed', detail: e.message });
+      }
     }
 
     // Stream expects "Upload-Length" + "Upload-Metadata" for TUS, but for the
@@ -73,7 +95,7 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          maxDurationSeconds: MAX_DURATION_SECONDS,
+          maxDurationSeconds: isGametape ? GAMETAPE_MAX_DURATION_SECONDS : MAX_DURATION_SECONDS,
           // 1 hour expiry on the signed upload URL.
           expiry: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           creator: userClaims.user_id || userClaims.sub,
@@ -82,6 +104,7 @@ export default async function handler(req, res) {
             uploadedBy: userClaims.user_id || userClaims.sub,
             ...(playerId ? { playerId } : {}),
             ...(teamId ? { teamId } : {}),
+            ...(isGametape ? { feature: 'gametape' } : {}),
           },
           // Pre-enable MP4 download so users can grab the original later.
           // (Re-enable on the video once it finishes processing — Stream

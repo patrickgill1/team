@@ -49,7 +49,7 @@ const SECTIONS: SectionSpec[] = [
   {
     key: 'participation',
     title: 'Participation',
-    keys: ['practice', 'rsvp', 'practiceAttendance', 'gameAttendance'],
+    keys: ['practice', 'rsvp', 'practiceAttendance', 'gameAttendance', 'gametape'],
   },
   {
     key: 'milestones',
@@ -87,6 +87,7 @@ const XP_SOURCE_SUBTITLES: Partial<Record<XpSourceKey, string>> = {
   coachLiveGrant: 'Coach-picked XP handed out in Grant XP flow. Turn off to disable that action end-to-end.',
   kudosConvert: 'Convert Circle Kudos to XP with one tap. Turn off to keep Kudos as celebration-only.',
   effortBonus: '+5 XP on top of attendance when you tap the Effort checkbox during roll call.',
+  gametape: '+3 XP when a player taps "Got it" on a Gametape clip you sent them. Single-earn per clip.',
 };
 
 /** Resolve the initial per-source toggle state. Reads explicit per-source
@@ -111,7 +112,8 @@ function initialSourceValue(
     key === 'kudosConvert' ||
     key === 'practiceAttendance' ||
     key === 'gameAttendance' ||
-    key === 'effortBonus'
+    key === 'effortBonus' ||
+    key === 'gametape'
   ) {
     return true;
   }
@@ -154,6 +156,7 @@ const SOURCE_KEY_TO_SECTION: Record<UiXpKey, SectionKey> = {
   coachLiveGrant: 'coachActions',
   kudosConvert: 'coachActions',
   effortBonus: 'coachActions',
+  gametape: 'participation',
 };
 
 const CoachXpConfigInner: React.FC = () => {

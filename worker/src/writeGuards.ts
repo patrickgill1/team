@@ -3764,6 +3764,9 @@ const XP_WRITE_SOURCES = [
   'effort_bonus', 'rsvp_going',
   'first_goal', 'first_assist', 'first_save', 'first_clean_sheet',
   'first_potm', 'perfect_attendance', 'streak_milestone',
+  // Player tapped "Got it" on a coach-assigned gametape clip. Single-earn
+  // per (clip, player) via deterministic sourceRef `clip-{clipId}-{pid}`.
+  'gametape_watched',
 ] as const;
 type XpWriteSource = typeof XP_WRITE_SOURCES[number];
 const XP_WRITE_SOURCE_SET: ReadonlySet<string> = new Set(XP_WRITE_SOURCES);
@@ -3784,6 +3787,10 @@ const PER_SOURCE_DAILY_CAP: Partial<Record<XpWriteSource, number>> = {
   first_potm: 150,
   perfect_attendance: 200,
   streak_milestone: 400,
+  // Belt against pathological spam — sourceRef `clip-{clipId}-{pid}` is
+  // the real idempotency guard (rewatch/race no-op via AlreadyExistsError).
+  // 30 XP = 10 clips worth of headroom in a single Denver day.
+  gametape_watched: 30,
 };
 
 // Sources that a non-coach caller (parent, self kid) is allowed to
@@ -3793,6 +3800,9 @@ const PER_SOURCE_DAILY_CAP: Partial<Record<XpWriteSource, number>> = {
 const NON_COACH_ALLOWED_SOURCES: ReadonlySet<string> = new Set([
   'dev_plan_log',
   'rsvp_going',
+  // Player / parent taps "Got it" on a gametape clip. Coach never
+  // authors the watch event.
+  'gametape_watched',
 ]);
 
 // Maps every /xp/log-grant source to the team.xpConfig.sources sub-key
@@ -3822,6 +3832,7 @@ const SOURCE_CONFIG_KEY: Partial<Record<XpWriteSource, string>> = {
   first_potm: 'firstPotm',
   perfect_attendance: 'perfectAttendance',
   streak_milestone: 'streaks',
+  gametape_watched: 'gametape',
 };
 
 // Ship 1 coarse-key fallbacks. Mirrors COARSE_FALLBACK in
@@ -3850,6 +3861,10 @@ const SOURCE_COARSE_FALLBACK: Partial<Record<XpWriteSource, string>> = {
 const ACHIEVEMENT_SOURCES: ReadonlySet<string> = new Set([
   'first_goal', 'first_assist', 'first_save', 'first_clean_sheet',
   'first_potm', 'perfect_attendance', 'streak_milestone',
+  // Forces sourceRef required on /xp/log-grant; the deterministic
+  // `clip-{clipId}-{pid}` id is the only guard against a rewatch
+  // double-credit.
+  'gametape_watched',
 ]);
 
 // Whitelist of badge slugs alsoStampBadge may target. Mirrors
@@ -3951,7 +3966,7 @@ export interface WriteXpGrantResult {
   awardedByAvatarUrl: string | null;
 }
 
-async function writeXpGrant(input: WriteXpGrantInput): Promise<WriteXpGrantResult> {
+export async function writeXpGrant(input: WriteXpGrantInput): Promise<WriteXpGrantResult> {
   const {
     pid, sa, actorUid, teamId, playerId, source, xp,
     sourceRef, note, occurredAt, alsoStampBadge, extraTransforms, precondition,

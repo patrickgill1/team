@@ -100,6 +100,11 @@ export interface StreamUploadContext {
   name?: string;
   playerId?: string;
   teamId?: string;
+  /** When set to 'gametape', the presign endpoint enforces the 90s
+   *  clip cap AND rejects non-paid-Coach callers with 402
+   *  { error: 'paid_coach_required' }. Undefined = legacy 4-hour cap
+   *  used by drills / highlights (no tier gate). */
+  feature?: 'gametape';
 }
 
 export async function uploadToStream(
@@ -130,12 +135,18 @@ export async function uploadToStream(
       size: file.size,
       playerId: ctx.playerId,
       teamId: ctx.teamId,
+      ...(ctx.feature ? { feature: ctx.feature } : {}),
     }),
   });
 
   if (!presignRes.ok) {
     const text = await presignRes.text();
-    throw new Error(`Stream upload URL request failed (${presignRes.status}): ${text}`);
+    // Preserve the HTTP status so upstream callers (e.g. the Gametape
+    // compose flow) can distinguish 402 paid-coach-required from a
+    // generic upload failure and swap the surfaced copy.
+    const err: any = new Error(`Stream upload URL request failed (${presignRes.status}): ${text}`);
+    err.status = presignRes.status;
+    throw err;
   }
   const { uploadURL, uid } = await presignRes.json();
   if (!uploadURL || !uid) throw new Error('Stream upload URL response missing fields');

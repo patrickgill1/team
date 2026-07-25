@@ -31,6 +31,7 @@ export const SOURCE_LABEL: Record<XpSource, string> = {
   first_potm: 'First Player of the Match',
   perfect_attendance: 'Perfect attendance',
   streak_milestone: 'Streak milestone',
+  gametape_watched: 'Watched clip',
   coach_recognition: 'Coach recognition', // legacy, no new writes
 };
 
@@ -43,8 +44,9 @@ export const SOURCE_LABEL: Record<XpSource, string> = {
 //  - stats-earned (first_*, perfect_attendance): brand primary cyan,
 //    the milestone/achievement color used for badges elsewhere.
 //  - habit-earned (dev_plan_log, streak_milestone, practice_attendance,
-//    game_attendance, effort_bonus, rsvp_going): muted secondary ink so
-//    the daily-grind rows recede visually next to the rarer milestones.
+//    game_attendance, effort_bonus, rsvp_going, gametape_watched): muted
+//    secondary ink so the daily-grind rows recede visually next to the
+//    rarer milestones.
 //  - coach_recognition (legacy): muted grey; legacy rows should not
 //    compete with live-earn chrome.
 export function dotClassForSource(source: XpSource): string {
@@ -71,6 +73,7 @@ export function dotClassForSource(source: XpSource): string {
     case 'game_attendance':
     case 'effort_bonus':
     case 'rsvp_going':
+    case 'gametape_watched':
       return 'bg-ink-secondary/60';
 
     // Legacy read-only — greyed out
@@ -115,6 +118,7 @@ const COACH_SOURCE_LABEL_MAP: Record<XpSource, string> = {
   first_potm: 'First Player of the Match',
   perfect_attendance: 'Perfect attendance',
   streak_milestone: 'Streak milestone',
+  gametape_watched: 'Gametape watched',
   coach_recognition: 'Coach recognition',
 };
 
@@ -154,4 +158,5 @@ export const COACH_LOG_SOURCE_OPTIONS: readonly string[] = [
   'game_attendance',
   'effort_bonus',
   'rsvp_going',
+  'gametape_watched',
 ];

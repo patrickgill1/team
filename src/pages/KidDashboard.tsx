@@ -7,6 +7,7 @@ import { useViewMode } from '../contexts/ViewModeContext';
 import type { Player, Team, DevelopmentPlan, Season } from '../types';
 import { debugWarn } from '../utils/debug';
 import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
+import GametapeSection from '../components/gametape/GametapeSection';
 import KidModePinModal from '../components/player/KidModePinModal';
 import KidChatRoom from '../components/kidChat/KidChatRoom';
 import KidHeroCard from '../components/kidChat/KidHeroCard';
@@ -331,6 +332,22 @@ const KidDashboard: React.FC = () => {
             isKidActor
           />
         )}
+
+        {/* GAMETAPE — clips coach has dropped for this kid. Silent-
+            empty until a clip is targeted at them. Kid taps Got it
+            on each card to move it to their Library and pick up the
+            small one-time XP grant. Kid mode = warmer copy, no
+            compose entry point. */}
+        <GametapeSection
+          teamId={player.teamId || ''}
+          visiblePlayers={[{
+            id: activeKidPlayerId || (player as any).id,
+            name: player.name,
+            profilePhotoUrl: (player as any).profilePhotoUrl || null,
+          }]}
+          effectiveView="kid"
+          showCoachControls={false}
+        />
 
         {/* SEASON TIMELINE — chronological ribbon of every milestone
             the kid has earned this season. Kids scroll right to watch

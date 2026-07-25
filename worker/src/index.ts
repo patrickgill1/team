@@ -82,6 +82,7 @@ import {
   handleTripPublicInfo,
 } from './trips';
 import { handleWallParentPostNotify } from './wallPosts';
+import { routeGametape } from './gametape';
 
 export interface Env {
   // NOTIFY_SECRET is retained on the env for backwards compatibility
@@ -106,6 +107,14 @@ export interface Env {
   STRIPE_SECRET_KEY?: string;
   STRIPE_CONNECT_CLIENT_ID?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  /** Cloudflare Stream — used by /gametape/stream-upload-url and
+   *  /gametape/delete for the direct-upload presign + video removal
+   *  (mirrors api/stream-upload-url.mjs on the Vercel side). Configure
+   *  via `wrangler secret put CLOUDFLARE_ACCOUNT_ID` etc. If missing,
+   *  the gametape upload path 503s with 'stream_not_configured'; the
+   *  YouTube/Vimeo link path works without it. */
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_STREAM_API_TOKEN?: string;
 }
 
 interface MailMessage {
@@ -913,6 +922,19 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
         const headers = new Headers(guardResp.headers);
         for (const [k, v] of Object.entries(cors)) headers.set(k, v);
         return new Response(guardResp.body, { status: guardResp.status, headers });
+      }
+    }
+
+    // Gametape (coach-assigned tactical clips) — separate dispatcher
+    // rather than folding into routeWriteGuard so the module can own
+    // its own Env keys (CLOUDFLARE_*) without dragging them through
+    // every writeGuards handler signature.
+    {
+      const gametapeResp = await routeGametape(url.pathname, req, env, payload);
+      if (gametapeResp) {
+        const headers = new Headers(gametapeResp.headers);
+        for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+        return new Response(gametapeResp.body, { status: gametapeResp.status, headers });
       }
     }
 

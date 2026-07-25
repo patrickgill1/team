@@ -14,6 +14,7 @@ import { isCoachOfTeam, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import DataGate from '../components/common/DataGate';
+import GametapeSection from '../components/gametape/GametapeSection';
 
 // Extract YouTube video ID from any common YouTube URL shape (also accepts a raw 11-char ID)
 function extractYouTubeId(input: string): string | null {
@@ -1092,6 +1093,26 @@ const PlayerDevelopment: React.FC = () => {
             badge={topStreak ? 'Keep it up!' : undefined}
           />
         </div>
+
+        {/* GAMETAPE — coach-drops-a-clip section. Silent-empty when
+            there are no active clips. Coach view (showCoachControls)
+            gets the compose entry point + watched-by counter; parent
+            view gets Got it. Passes selectedPlayerId only when a
+            specific player is picked; 'all' collapses to team-wide.
+            See DESIGN.clientFiles: GametapeSection. */}
+        {selectedTeamId && (
+          <GametapeSection
+            teamId={selectedTeamId}
+            visiblePlayers={visiblePlayers.map(p => ({
+              id: p.id,
+              name: p.name,
+              profilePhotoUrl: (p as any).profilePhotoUrl || null,
+            }))}
+            effectiveView={effectiveView}
+            showCoachControls={showCoachControls && isUserCoach}
+            totalTeamPlayers={players.length}
+          />
+        )}
 
         {/* "Needs Review" coach banner removed — verification flow gone. */}
 

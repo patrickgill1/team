@@ -205,7 +205,7 @@ const AdultHeroCard: React.FC<Props> = ({ player, teamName }) => {
   const stadiumBg: React.CSSProperties = {
     backgroundImage: [
       'linear-gradient(180deg, rgba(15,15,20,0.78) 0%, rgba(15,15,20,0.55) 45%, rgba(15,15,20,0.88) 100%)',
-      'url(/hero/adult.jpg)',
+      'url(/hero/adultprofile.png)',
       'radial-gradient(ellipse 55% 40% at 18% -5%, rgba(255,255,255,0.09), transparent 60%)',
       'radial-gradient(ellipse 55% 40% at 82% -5%, rgba(255,255,255,0.09), transparent 60%)',
       'radial-gradient(ellipse 80% 45% at 50% 110%, rgba(255,255,255,0.06), transparent 65%)',

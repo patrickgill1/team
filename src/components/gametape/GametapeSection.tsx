@@ -43,6 +43,17 @@ interface Props {
   /** Total team roster count. Powers the "Watched by N of M" pill
    *  when a clip targets the whole team. */
   totalTeamPlayers?: number;
+  /** When true, render nothing (no header, no empty-state card) if
+   *  the viewer has no active clips and nothing in Library. Used on
+   *  Dashboard so the section only shows up when there's something
+   *  worth surfacing. Defaults to false so PlayerDevelopment and
+   *  KidDashboard keep their always-render behavior. */
+  silentWhenEmpty?: boolean;
+  /** When true, skip the Library shelf entirely and only render the
+   *  From Coach block. Used on Dashboard to keep the surface focused
+   *  on what needs the viewer's attention; the full Library still
+   *  lives on Player Development. Defaults to false. */
+  hideLibrary?: boolean;
 }
 
 const COPY = {
@@ -151,6 +162,8 @@ const GametapeSection: React.FC<Props> = ({
   effectiveView,
   showCoachControls = false,
   totalTeamPlayers,
+  silentWhenEmpty = false,
+  hideLibrary = false,
 }) => {
   // Hooks BEFORE any conditional return (React #310 guard).
   const [clips, setClips] = useState<PlayerClip[]>([]);
@@ -260,6 +273,19 @@ const GametapeSection: React.FC<Props> = ({
     }
     return { fromCoach: active, library: shelf };
   }, [clips, isCoachViewer, visibleIdSet]);
+
+  // Silent-empty: on surfaces like Dashboard we don't want a header
+  // + empty-state card taking up space when there is nothing to
+  // show. During initial load we also render nothing so we don't
+  // flash a skeleton that then disappears. Once the first snapshot
+  // lands, we bail if there's no active clip (and Library is either
+  // hidden or empty). Library is ignored when hideLibrary is set.
+  if (silentWhenEmpty) {
+    if (loading) return null;
+    if (fromCoach.length === 0 && (hideLibrary || library.length === 0)) {
+      return null;
+    }
+  }
 
   const handleWatch = async (clipId: string, playerId: string) => {
     try {
@@ -377,8 +403,11 @@ const GametapeSection: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Library — only rendered when there's something in it */}
-      {library.length > 0 ? (
+      {/* Library — only rendered when there's something in it, and
+          skipped entirely when the surface opts out (e.g. Dashboard
+          keeps the focus on "From Coach" only; full Library still
+          lives on Player Development). */}
+      {!hideLibrary && library.length > 0 ? (
         <div>
           <h3 className="text-xs font-extrabold uppercase tracking-widest text-ink-secondary mb-2">
             {COPY.library}

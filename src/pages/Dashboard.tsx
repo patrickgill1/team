@@ -17,6 +17,7 @@ import UpcomingEventsList from '../components/dashboard/UpcomingEventsList';
 import SnackAssignmentBanner from '../components/dashboard/SnackAssignmentBanner';
 import PaymentsDueCard from '../components/dashboard/PaymentsDueCard';
 import TodaysDevelopmentCard from '../components/dashboard/TodaysDevelopmentCard';
+import GametapeSection from '../components/gametape/GametapeSection';
 import FamilyFeed from '../components/dashboard/FamilyFeed';
 import WeeklySpotlightCard, { type SpotlightPotm, type SpotlightPick } from '../components/dashboard/WeeklySpotlightCard';
 import InThePoolHero from '../components/dashboard/InThePoolHero';
@@ -1519,6 +1520,33 @@ const Dashboard: React.FC = () => {
               />
             )}
           </div>
+        )}
+
+        {/* GAMETAPE — coach clips promoted to Dashboard so families
+            see them at app open, not just when they open Player
+            Development. Silent-empty when there are no active clips
+            for the viewer (parent = across all their linked kids;
+            coach = clips with at least one unwatched target). Library
+            is hidden here to keep Dashboard focused on "what needs
+            your attention"; the full Library still lives on Player
+            Development. Admin mode skips entirely. Parent mode only
+            mounts when the viewer has linked kids so the Firestore
+            subscription isn't spun up for nothing.
+            See DESIGN.clientFiles: GametapeSection. */}
+        {selectedTeamId && !isAdminMode && (isCoachMode || myPlayers.length > 0) && (
+          <GametapeSection
+            teamId={selectedTeamId}
+            visiblePlayers={(isCoachMode ? players : myPlayers).map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              profilePhotoUrl: p.profilePhotoUrl || null,
+            }))}
+            effectiveView={isCoachMode ? 'coach' : 'parent'}
+            showCoachControls={isCoachMode && isUserCoach}
+            totalTeamPlayers={players.length}
+            silentWhenEmpty
+            hideLibrary
+          />
         )}
 
         {/* This Week — up to 3 upcoming events with inline RSVP. */}

@@ -24,6 +24,7 @@ import StreamPlayer, { loadStreamSdk, StreamSdkPlayer } from '../components/comm
 import EmbedMediaModal from '../components/player/EmbedMediaModal';
 import FullGames from './FullGames';
 import PhotosTab from '../components/gallery/PhotosTab';
+import HighlightsNetflixTab from '../components/highlights/HighlightsNetflixTab';
 import { collection, query as fsQuery, where as fsWhere, getDocs as fsGetDocs } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 
@@ -98,15 +99,10 @@ const PlayerMediaPage: React.FC = () => {
   const [compressionStatus, setCompressionStatus] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedMedia, setSelectedMedia] = useState<PlayerMediaType | null>(null);
-  const [filterTags, setFilterTags] = useState<string[]>([]);
   const [editingTags, setEditingTags] = useState<string[] | null>(null); // null = not editing
   const [editingGoalScorerId, setEditingGoalScorerId] = useState<string>('');
   const [editingAssistByIds, setEditingAssistByIds] = useState<string[]>([]);
-  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const [activeTab, setActiveTab] = useState<'highlights' | 'fullgames' | 'photos'>('highlights');
-  const [searchQuery, setSearchQuery] = useState('');
-  // Media-type split — All / Videos only / Photos only.
-  const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'video' | 'photo' | 'highlight'>('all');
   // For parents — their linked player. Once loaded, the page auto-
   // selects that player so opening Media drops them straight onto their
   // kid's clips.
@@ -148,7 +144,6 @@ const PlayerMediaPage: React.FC = () => {
   // fetch below so we don't double-query.
   const [allTeamEvents, setAllTeamEvents] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const clipsSectionRef = useRef<HTMLElement | null>(null);
 
   const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
@@ -161,7 +156,6 @@ const PlayerMediaPage: React.FC = () => {
   const [savingThumbnail, setSavingThumbnail] = useState(false);
 
   useEffect(() => {
-    setVisibleCount(ITEMS_PER_PAGE);
     loadData();
   }, [selectedTeamId, selectedPlayerId]);
 
@@ -217,17 +211,6 @@ const PlayerMediaPage: React.FC = () => {
       setSearchParams(next, { replace: true });
     }
   }, [searchParams, media, setSearchParams]);
-
-  // When the user picks a player from BROWSE BY PLAYER, scroll the clips
-  // grid into view so it's obvious it loaded (otherwise the page stays
-  // anchored on the player chip row and the clips appear below the fold).
-  useEffect(() => {
-    if (selectedPlayerId && selectedPlayerId !== 'all') {
-      requestAnimationFrame(() => {
-        clipsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }
-  }, [selectedPlayerId]);
 
   const loadData = async () => {
     if (!selectedTeamId) { setLoading(false); return; }
@@ -1191,10 +1174,6 @@ const PlayerMediaPage: React.FC = () => {
     setUploadTaggedPlayers(prev => prev.includes(playerId) ? prev.filter(id => id !== playerId) : [...prev, playerId]);
   };
 
-  const toggleFilterTag = (tag: string) => {
-    setFilterTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
-  };
-
   const toggleEditTag = (tag: string) => {
     setEditingTags(prev => {
       if (!prev) return [tag];
@@ -1414,94 +1393,10 @@ const PlayerMediaPage: React.FC = () => {
     }
   };
 
-  // Get all unique tags across media for filter options
-  const allMediaTags = Array.from(new Set(media.flatMap(m => m.tags || [])));
-
-  // A clip "belongs to" a player if they are attributed on it in ANY of
-  // the four attribution paths: primary subject, tagged-in ("Who's in
-  // this clip?"), goal scorer, or assist. Prior versions only checked
-  // playerId + taggedPlayerIds, which missed anyone who was ONLY the
-  // scorer or assister — so a kid tagged as "Assisted by" on a
-  // teammate's goal clip didn't show up in Browse by Player at all,
-  // and multi-attribution players (scorer on one clip + assist on
-  // another) undercounted.
-  const mediaBelongsToPlayer = (m: PlayerMediaType, playerId: string): boolean => {
-    if (m.playerId === playerId) return true;
-    if ((m.taggedPlayerIds || []).includes(playerId)) return true;
-    if ((m as any).goalScorerId === playerId) return true;
-    if (Array.isArray((m as any).assistByIds) && (m as any).assistByIds.includes(playerId)) return true;
-    return false;
-  };
-
-  // Filter by selected player (any attribution). 'all' shows everything.
-  const playerFilteredMedia = (selectedPlayerId && selectedPlayerId !== 'all')
-    ? media.filter(m => mediaBelongsToPlayer(m, selectedPlayerId))
-    : media;
-  // Split by media type (videos / photos / both) before tags + search.
-  // 'highlight' is a filter across BOTH types — anything with a
-  // coach-tagged momentType shows here, video or photo.
-  const typeFilteredMedia = mediaTypeFilter === 'all'
-    ? playerFilteredMedia
-    : mediaTypeFilter === 'highlight'
-      ? playerFilteredMedia.filter(m => !!m.momentType)
-      : playerFilteredMedia.filter(m => (m.type || 'video') === mediaTypeFilter);
-  // Filter media by selected tags
-  const tagFilteredMedia = filterTags.length > 0
-    ? typeFilteredMedia.filter(m => filterTags.some(t => m.tags?.includes(t)))
-    : typeFilteredMedia;
-  // Then filter by search query (caption, player name, tags, fileName)
-  const allFilteredMedia = searchQuery.trim()
-    ? tagFilteredMedia.filter(m => {
-        const q = searchQuery.toLowerCase();
-        return (
-          (m.caption || '').toLowerCase().includes(q) ||
-          (m.playerName || '').toLowerCase().includes(q) ||
-          (m.fileName || '').toLowerCase().includes(q) ||
-          (m.tags || []).some(t => t.toLowerCase().includes(q))
-        );
-      })
-    : tagFilteredMedia;
-  const filteredMedia = allFilteredMedia.slice(0, visibleCount);
-  const hasMore = allFilteredMedia.length > visibleCount;
-
-  // ── Stats / Featured sections (computed on full unfiltered media) ──
-  const totalClips = media.filter(m => m.type === 'video').length;
-  const seasonStart = new Date();
-  seasonStart.setMonth(seasonStart.getMonth() - 6);
-  const thisSeasonCount = media.filter(m => {
-    const d: any = m.createdAt;
-    const date = d?.toDate ? d.toDate() : new Date(d);
-    return date >= seasonStart;
-  }).length;
-  const mostLikedItem = [...media].sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))[0];
-  // Recent highlights: latest videos first, then photos
-  const recentHighlights = [...media]
-    .sort((a, b) => {
-      const da: any = a.createdAt; const db: any = b.createdAt;
-      const ta = (da?.toDate ? da.toDate() : new Date(da)).getTime();
-      const tb = (db?.toDate ? db.toDate() : new Date(db)).getTime();
-      return tb - ta;
-    })
-    .slice(0, 3);
-  // Top plays this season: most-liked from last 6 months, top 3
-  const topPlaysThisSeason = media
-    .filter(m => {
-      const d: any = m.createdAt;
-      const date = d?.toDate ? d.toDate() : new Date(d);
-      return date >= seasonStart && (m.likeCount || 0) > 0;
-    })
-    .sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
-    .slice(0, 3);
-  // Players with clip counts (for browse-by-player row). Uses the same
-  // 4-attribution predicate as playerFilteredMedia so counts match what
-  // you see when you tap the chip.
-  const playersWithCounts = players
-    .map(p => ({
-      player: p,
-      count: media.filter(m => mediaBelongsToPlayer(m, p.id)).length,
-    }))
-    .filter(p => p.count > 0)
-    .sort((a, b) => b.count - a.count);
+  // NOTE: All highlights-tab derived data (filter chains, per-player
+  // counts, top-plays, recent-highlights, etc) moved into the Netflix
+  // rows component (HighlightsNetflixTab) as part of the redesign.
+  // Only the upload-flow helpers below remain here.
 
   // Video size cap lives in src/utils/streamUpload.ts (checkVideoLimit).
   const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -1587,14 +1482,6 @@ const PlayerMediaPage: React.FC = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // Group media by player. Same 4-attribution predicate as counts +
-  // filter so a kid who assisted on someone else's goal is still
-  // listed under their own player group.
-  const mediaByPlayer = players.map(player => ({
-    player,
-    items: filteredMedia.filter(m => mediaBelongsToPlayer(m, player.id)),
-  })).filter(group => group.items.length > 0);
-
   if (loading) return <DataGate when="loading" />;
 
   return (
@@ -1651,44 +1538,28 @@ const PlayerMediaPage: React.FC = () => {
               </button>
             )}
           </div>
-          {activeTab === 'highlights' && (
+          {activeTab === 'highlights' && canManageMedia && (
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search highlights..."
-                  className="w-44 sm:w-64 pl-9 pr-3 py-2 bg-surface-input border border-line-default/10 rounded-lg text-sm text-ink-primary placeholder:text-ink-primary/45 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary/50"
-                />
-                <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-ink-primary/50" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+              <button
+                onClick={() => setShowEmbedModal(true)}
+                className="bg-surface-elevated text-ink-primary ring-1 ring-line-default/15 hover:bg-line-default/[0.08] px-3 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+                title="Paste a YouTube or Trace link"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <span className="hidden sm:inline">Link</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (trialGated) { setTrialGateOpen(true); return; }
+                  resetUploadForm(); setShowUploadModal(true);
+                }}
+                className="bg-brand-primary hover:bg-brand-primary-soft text-ink-primary px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-              </div>
-              {canManageMedia && (
-                <>
-                  <button
-                    onClick={() => setShowEmbedModal(true)}
-                    className="bg-surface-elevated text-ink-primary ring-1 ring-line-default/15 hover:bg-line-default/[0.08] px-3 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
-                    title="Paste a YouTube or Trace link"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                    <span className="hidden sm:inline">Link</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (trialGated) { setTrialGateOpen(true); return; }
-                      resetUploadForm(); setShowUploadModal(true);
-                    }}
-                    className="bg-brand-primary hover:bg-brand-primary-soft text-ink-primary px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span className="hidden sm:inline">Upload</span>
-                  </button>
-                </>
-              )}
+                <span className="hidden sm:inline">Upload</span>
+              </button>
             </div>
           )}
         </div>
@@ -1705,283 +1576,15 @@ const PlayerMediaPage: React.FC = () => {
             />
           </div>
         ) : (
-          <>
-            {/* ── RECENT HIGHLIGHTS ─────────────────────────────────── */}
-            {selectedPlayerId === 'all' && recentHighlights.length > 0 && (
-              <section className="mb-10">
-                <SectionHeader title="Recent Highlights" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recentHighlights.map(item => {
-                    const player = players.find(p => p.id === item.playerId);
-                    const dateObj: any = item.createdAt;
-                    const date = dateObj?.toDate ? dateObj.toDate() : new Date(dateObj);
-                    return (
-                      <FeaturedCard
-                        key={item.id}
-                        item={item}
-                        player={player}
-                        timeAgo={timeAgo(date)}
-                        onClick={() => setSelectedMedia(item)}
-                      />
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* ── BROWSE BY PLAYER ──────────────────────────────────── */}
-            {playersWithCounts.length > 0 && (
-              <section className="mb-10">
-                <SectionHeader
-                  title="Browse by Player"
-                  action={selectedPlayerId !== 'all' ? { label: 'View all', onClick: () => setSelectedPlayerId('all') } : undefined}
-                />
-                {/* Horizontal-only scroll. The wrapper is the scroll
-                    container (overflow-x-auto, overflow-y-hidden), and
-                    the inner row uses pt-2 / pb-3 so the ring on selected
-                    avatars isn't clipped at top or bottom. Fade gradients
-                    on the right edge tell the user there's more. */}
-                <div className="relative">
-                  <div
-                    className="flex gap-4 overflow-x-auto overflow-y-hidden -mx-2 px-2 py-2 scrollbar-thin"
-                    style={{ scrollbarGutter: 'stable', WebkitOverflowScrolling: 'touch' }}
-                  >
-                    <button
-                      onClick={() => setSelectedPlayerId('all')}
-                      className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === 'all' ? 'scale-105' : ''}`}
-                    >
-                      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint flex items-center justify-center text-white text-2xl font-black ring-2 ring-offset-2 ring-offset-surface-base ${selectedPlayerId === 'all' ? 'ring-brand-primary-soft' : 'ring-transparent'}`}>
-                        ALL
-                      </div>
-                      <span className="text-xs text-ink-primary font-medium mt-2">All</span>
-                      <span className="text-[10px] text-ink-primary/50">{media.length} clips</span>
-                    </button>
-                    {/* Parent's kid floats to the front for them. */}
-                    {playersWithCounts
-                      .slice()
-                      .sort((a, b) => {
-                        if (a.player.id === parentLinkedPlayerId) return -1;
-                        if (b.player.id === parentLinkedPlayerId) return 1;
-                        return 0;
-                      })
-                      .map(({ player, count }) => (
-                      <button
-                        key={player.id}
-                        onClick={() => setSelectedPlayerId(player.id)}
-                        className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === player.id ? 'scale-105' : ''}`}
-                      >
-                        <div className="relative">
-                          {/* Circle with overflow-hidden clips the image.
-                              Jersey badge sits on the outer relative
-                              wrapper so it can sit half-outside the
-                              circle without getting clipped. Prior
-                              version had the badge inside the
-                              overflow-hidden div which cut the badge
-                              off at the photo edge. */}
-                          <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-surface-raised to-surface-elevated ring-2 ring-offset-2 ring-offset-surface-base ${selectedPlayerId === player.id ? 'ring-brand-primary-soft' : 'ring-transparent'}`}>
-                            {player.profilePhotoUrl ? (
-                              <img src={player.profilePhotoUrl} alt={player.name} className="w-full h-full object-cover" loading="lazy" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-white text-xl font-black">
-                                {player.jerseyNumber || player.name.charAt(0)}
-                              </div>
-                            )}
-                          </div>
-                          {player.profilePhotoUrl && player.jerseyNumber != null && (
-                            <span className="absolute -bottom-1 -right-1 bg-brand-primary text-white rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center text-[11px] font-black shadow-md ring-2 ring-surface-base">
-                              {player.jerseyNumber}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs text-ink-primary font-medium mt-2 max-w-[80px] truncate">{player.name.split(' ')[0]}</span>
-                        <span className="text-[10px] text-ink-primary/50">{count} clip{count !== 1 ? 's' : ''}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {/* Right-edge fade — discoverability cue that there's
-                      more to scroll. Hidden on small screens via
-                      pointer-events:none + gradient. */}
-                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-surface-base via-surface-base/70 to-transparent" />
-                </div>
-              </section>
-            )}
-
-            {/* ── TOP PLAYS THIS SEASON ─────────────────────────────── */}
-            {selectedPlayerId === 'all' && topPlaysThisSeason.length > 0 && (
-              <section className="mb-10">
-                <SectionHeader title="Top Plays This Season" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {topPlaysThisSeason.map((item, idx) => (
-                    <RankedCard
-                      key={item.id}
-                      rank={idx + 1}
-                      item={item}
-                      onClick={() => setSelectedMedia(item)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* ── ALL CLIPS / FILTERED VIEW ─────────────────────────── */}
-            <section ref={clipsSectionRef} className="mb-10 scroll-mt-24">
-              {selectedPlayerId !== 'all' && (
-                <button
-                  onClick={() => setSelectedPlayerId('all')}
-                  className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-line-default/5 ring-1 ring-line-default/10 text-sm font-medium text-brand-primary-soft hover:bg-line-default/10 hover:text-ink-primary transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                  Back to all clips
-                </button>
-              )}
-              <SectionHeader
-                title={selectedPlayerId === 'all' ? 'All Clips' : `${players.find(p => p.id === selectedPlayerId)?.name || 'Player'}'s Clips`}
-                action={
-                  allMediaTags.length > 0
-                    ? { label: filterTags.length > 0 ? `Filters (${filterTags.length}) ✕` : 'Filter by tag', onClick: () => filterTags.length > 0 ? setFilterTags([]) : null }
-                    : undefined
-                }
-              />
-
-              {/* Media-type toggle + tag chips. Always visible above the
-                  grid (not hidden in a sticky bar that pushed the avatar
-                  rings off-screen). */}
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                <div className="inline-flex bg-line-default/5 ring-1 ring-line-default/10 rounded-full p-0.5 flex-shrink-0">
-                  {[
-                    { k: 'all' as const, label: 'All' },
-                    { k: 'photo' as const, label: 'Photos' },
-                    { k: 'video' as const, label: 'Videos' },
-                    { k: 'highlight' as const, label: 'Moments' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.k}
-                      onClick={() => setMediaTypeFilter(opt.k)}
-                      className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
-                        mediaTypeFilter === opt.k ? 'bg-surface-elevated text-ink-primary shadow-sm' : 'text-ink-primary/60 hover:text-ink-primary'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-                {allMediaTags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleFilterTag(tag)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                      filterTags.includes(tag)
-                        ? 'bg-brand-primary text-ink-primary'
-                        : 'bg-line-default/5 text-ink-primary/35 hover:bg-line-default/10 border border-line-default/10'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-
-              {selectedPlayerId === 'all' ? (
-                mediaByPlayer.length > 0 ? (
-                  <div className="space-y-8">
-                    {mediaByPlayer.map(({ player, items }) => (
-                      <div key={player.id}>
-                        <div className="flex items-center space-x-3 mb-3">
-                          {player.profilePhotoUrl ? (
-                            <div className="relative w-9 h-9">
-                              <img src={player.profilePhotoUrl} alt={player.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-brand-primary/30" loading="lazy" />
-                              {player.jerseyNumber != null && (
-                                <span className="absolute -bottom-1 -right-1 bg-brand-primary text-ink-primary rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-black ring-1 ring-charcoal-950">
-                                  {player.jerseyNumber}
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="w-9 h-9 bg-gradient-to-br from-surface-raised to-surface-elevated rounded-full flex items-center justify-center text-white font-bold text-xs ring-2 ring-brand-primary/30">
-                              {player.jerseyNumber || player.name.charAt(0)}
-                            </div>
-                          )}
-                          <h3 className="text-base font-bold text-ink-primary">{player.name}</h3>
-                          <span className="text-xs text-ink-primary/50">{items.length} item{items.length !== 1 ? 's' : ''}</span>
-                        </div>
-                        <DarkMediaGrid items={items} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} isUserCoach={isUserCoach} />
-                      </div>
-                    ))}
-                    {hasMore && (
-                      <div className="text-center pt-4">
-                        <button
-                          onClick={() => setVisibleCount(c => c + ITEMS_PER_PAGE)}
-                          className="px-6 py-2.5 bg-line-default/5 border border-line-default/10 rounded-lg text-sm font-medium text-ink-primary hover:bg-line-default/10 transition-colors"
-                        >
-                          Load More ({allFilteredMedia.length - visibleCount} remaining)
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="relative overflow-hidden text-center py-12 sm:py-16 bg-surface-elevated rounded-2xl border border-line-default/10 shadow-sm">
-                    {/* Soft brand-tinted glow so the empty state reads
-                        as "intentional and awaiting content" rather
-                        than "the page failed to load." */}
-                    <div aria-hidden className="absolute -top-16 -right-16 w-48 h-48 bg-brand-primary/10 rounded-full blur-3xl pointer-events-none" />
-                    <div className="relative">
-                      <div className="mx-auto w-14 h-14 rounded-2xl bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft flex items-center justify-center mb-4">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-                      </div>
-                      <h3 className="text-lg font-black text-ink-primary">
-                        {isUserCoach ? 'The team highlight reel starts here' : 'Photos and clips will land here'}
-                      </h3>
-                      <p className="text-sm text-ink-primary/60 mt-1.5 max-w-xs mx-auto leading-snug">
-                        {isUserCoach
-                          ? isAdultTeam
-                            ? 'Drop in photos or short clips from training and games. Players get a notification the moment they show up in one.'
-                            : 'Drop in photos or short clips from practice and games. Parents get a notification the moment their kid shows up in one.'
-                          : isAdultTeam
-                            ? 'Your coach will start sharing photos and clips from training and games. Every one that features you gets pushed to you.'
-                            : 'Your coach will start sharing photos and clips from practices and games. Every one that features your kid gets pushed to you.'}
-                      </p>
-                      {isUserCoach && (
-                        <button
-                          type="button"
-                          onClick={() => setShowUploadModal(true)}
-                          className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-brand-primary hover:bg-brand-primary-dim text-white font-bold text-sm shadow-sm transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
-                          <span>Upload first media</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              ) : (
-                <>
-                  <DarkMediaGrid
-                    items={filteredMedia}
-                    onView={setSelectedMedia}
-                    onDelete={handleDelete}
-                    onLike={handleLike}
-                    onShare={handleShare}
-                    userData={userData}
-                    isUserCoach={isUserCoach}
-                    emptyLabel={mediaTypeFilter === 'highlight'
-                      ? (isUserCoach
-                          ? 'No moments tagged yet. Pick a moment (Goal, Assist, or Big play) next time you upload a clip.'
-                          : 'No moments tagged yet. Coaches can tag goals, assists, and big plays. They will show up here.')
-                      : undefined}
-                  />
-                  {hasMore && (
-                    <div className="text-center pt-4">
-                      <button
-                        onClick={() => setVisibleCount(c => c + ITEMS_PER_PAGE)}
-                        className="px-6 py-2.5 bg-line-default/5 border border-line-default/10 rounded-lg text-sm font-medium text-ink-primary hover:bg-line-default/10 transition-colors"
-                      >
-                        Load More ({allFilteredMedia.length - visibleCount} remaining)
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </section>
-          </>
+          <HighlightsNetflixTab
+            media={media}
+            players={players}
+            events={allTeamEvents}
+            canManageMedia={canManageMedia}
+            isUserCoach={isUserCoach}
+            selectedTeam={selectedTeam}
+            parentKidPlayerId={parentLinkedPlayerId}
+          />
         )}
 
         <EmbedMediaModal

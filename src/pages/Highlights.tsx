@@ -6,20 +6,10 @@ import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { formatDate } from '../utils/helpers';
 import StreamPlayer from '../components/common/StreamPlayer';
 import DataGate from '../components/common/DataGate';
-import { streamThumbnailUrl } from '../utils/streamUpload';
 import { getShareOrigin } from '../utils/origin';
+import { posterFor } from '../utils/mediaPoster';
 
 const ACTIVITY_TAGS = ['Goal', 'Assist', 'Save', 'Skill', 'Practice', 'Highlight', 'Celebration', 'Tournament', 'Training'];
-
-function posterFor(clip: PlayerMediaType): string | undefined {
-  if (clip.streamUid) {
-    return streamThumbnailUrl(clip.streamUid, {
-      height: 1080,
-      time: clip.posterTimeSeconds != null ? `${clip.posterTimeSeconds}s` : undefined,
-    });
-  }
-  return clip.thumbnailUrl;
-}
 
 const Highlights: React.FC = () => {
   const { selectedTeamId } = useTeam();
@@ -36,6 +26,10 @@ const Highlights: React.FC = () => {
 
   const reelRef = useRef<HTMLDivElement | null>(null);
   const slotRefs = useRef<Array<HTMLElement | null>>([]);
+  // Deep-link: ?clip=<id> lands directly on that clip. Consumed once so
+  // subsequent scrolls don't get yanked back to it. Mirrors the same
+  // idiom PlayerMediaPage uses for its lightbox deep-link.
+  const clipDeepLinkConsumedRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,6 +105,27 @@ const Highlights: React.FC = () => {
     const target = slotRefs.current[i];
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+
+  // Deep-link jump: honor ?clip=<id> once media has loaded. Waits a
+  // frame so the slot refs have been assigned; if the id isn't found
+  // (deleted / different team), the param is silently dropped and the
+  // reel opens at the top like normal.
+  useEffect(() => {
+    const clipId = searchParams.get('clip');
+    if (!clipId || filtered.length === 0) return;
+    if (clipDeepLinkConsumedRef.current === clipId) return;
+    const idx = filtered.findIndex(c => c.id === clipId);
+    if (idx === -1) return;
+    clipDeepLinkConsumedRef.current = clipId;
+    setActiveIndex(idx);
+    requestAnimationFrame(() => {
+      const target = slotRefs.current[idx];
+      if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+    });
+    const next = new URLSearchParams(searchParams);
+    next.delete('clip');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, filtered, setSearchParams]);
 
   const goNext = useCallback(() => {
     if (filtered.length === 0) return;

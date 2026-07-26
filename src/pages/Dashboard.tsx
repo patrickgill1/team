@@ -18,7 +18,7 @@ import SnackAssignmentBanner from '../components/dashboard/SnackAssignmentBanner
 import PaymentsDueCard from '../components/dashboard/PaymentsDueCard';
 import TodaysDevelopmentCard from '../components/dashboard/TodaysDevelopmentCard';
 import NextMatchCountdownCard from '../components/dashboard/NextMatchCountdownCard';
-import AdultMyStatsCard from '../components/dashboard/AdultMyStatsCard';
+import AdultHeroCard from '../components/dashboard/AdultHeroCard';
 import GametapeSection from '../components/gametape/GametapeSection';
 import FamilyFeed from '../components/dashboard/FamilyFeed';
 import WeeklySpotlightCard, { type SpotlightPotm, type SpotlightPick } from '../components/dashboard/WeeklySpotlightCard';
@@ -1424,7 +1424,7 @@ const Dashboard: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
         {/* NEXT MATCH countdown — adult teams only. Sits at the top
-            of the parent-mode stack, above AdultMyStatsCard /
+            of the parent-mode stack, above AdultHeroCard /
             MyPlayerCard / SiblingCarousel, because on an adult team
             "when is our next match?" is the emotional lead (youth
             teams get TodaysDevelopmentCard in the equivalent slot,
@@ -1449,13 +1449,14 @@ const Dashboard: React.FC = () => {
             CoachTonightCard further down). */}
         {isParentMode && myPlayers.length > 0 && (() => {
           // Adult-team branch. Swap the youth MyPlayerCard hero for
-          // the boxscore-flavored AdultMyStatsCard when (a) the team
-          // is flagged audienceType='adult' and (b) the viewer has a
-          // selfPlayerId that matches a player on this team's roster
-          // (they're playing FOR THIS TEAM, not just a coach's kid).
-          // When on an adult team but not on the roster (coach only,
-          // spectator), render nothing here — silent, per the
-          // atomic-render rule. Youth teams keep the existing card.
+          // the professional-footballer-flavored AdultHeroCard when
+          // (a) the team is flagged audienceType='adult' and (b) the
+          // viewer has a selfPlayerId that matches a player on this
+          // team's roster (they're playing FOR THIS TEAM, not just a
+          // coach's kid). When on an adult team but not on the roster
+          // (coach only, spectator), render nothing here — silent,
+          // per the atomic-render rule. Youth teams keep the existing
+          // MyPlayerCard.
           const isAdultTeam = (selectedTeam as any)?.audienceType === 'adult';
           if (isAdultTeam) {
             const selfPid: string | undefined = (userData as any)?.selfPlayerId;
@@ -1467,7 +1468,7 @@ const Dashboard: React.FC = () => {
             const me = myPlayers.find((pl: any) => pl.id === selfPid) || null;
             if (!me) return null;
             return (
-              <AdultMyStatsCard
+              <AdultHeroCard
                 player={me}
                 teamName={selectedTeam?.name}
               />

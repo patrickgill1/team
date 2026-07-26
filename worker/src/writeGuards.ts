@@ -2782,6 +2782,21 @@ async function handlePlayersCreate(req: Request, env: Env, payload: any): Promis
     const callerEmail = normEmail(claims.email);
     if (callerEmail && !parentEmails.includes(callerEmail)) parentEmails.push(callerEmail);
   }
+  // Adult wedge fix (2026-07-25): when the caller is adding themselves
+  // to the roster (People banner "Add me" → linkSelfAsParent), copy
+  // their user.photoURL into player.profilePhotoUrl in the same write.
+  // Without this the AdultHeroCard hero image stays blank until the
+  // user manually re-uploads on their player profile, even though the
+  // photo already exists on their user doc. One extra read, atomic
+  // create, no partial-state window.
+  let selfPhotoUrl = '';
+  if (linkSelfAsParent) {
+    const callerUserDoc = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+    const raw = callerUserDoc?.data?.photoURL;
+    if (typeof raw === 'string' && raw.length > 0) {
+      selfPhotoUrl = raw.slice(0, 2048);
+    }
+  }
   const fields: Record<string, any> = {
     name,
     teamId,
@@ -2797,6 +2812,15 @@ async function handlePlayersCreate(req: Request, env: Env, payload: any): Promis
   if (typeof payload?.jerseyNumber === 'number') fields.jerseyNumber = payload.jerseyNumber;
   if (Array.isArray(payload?.positions)) fields.positions = payload.positions.slice(0, 5);
   if (payload?.isAdultPlayer === true) fields.isAdultPlayer = true;
+  // Explicit payload wins over the user-doc mirror — coach flow may
+  // set profilePhotoUrl directly when adding a kid with their own
+  // photo. Only fall back to the caller's user photo when we're
+  // linking them onto the roster themselves.
+  if (typeof payload?.profilePhotoUrl === 'string' && payload.profilePhotoUrl.trim()) {
+    fields.profilePhotoUrl = String(payload.profilePhotoUrl).slice(0, 2048);
+  } else if (selfPhotoUrl) {
+    fields.profilePhotoUrl = selfPhotoUrl;
+  }
   // Guest player fields — tournament / trial / call-up path. Missing
   // == false everywhere; only stamp when the coach explicitly toggled.
   // expiresAt is parsed from YYYY-MM-DD (native <input type="date">)

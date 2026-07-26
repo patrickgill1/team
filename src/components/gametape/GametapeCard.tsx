@@ -128,7 +128,13 @@ const GametapeCard: React.FC<Props> = ({
     return null;
   }, [targetedPlayers, clip.activeForPlayerIds]);
 
-  const showGotIt = viewer !== 'coach' && !inLibrary && !!activePlayerId && !!onWatch;
+  // Show Got it whenever the current player is still an active target
+  // AND we have a write handler. Coach-who-is-also-parent-of-target
+  // sees it too, so a coach testing on their own kid's page can mark
+  // it watched (activePlayerId only resolves to a player the viewer's
+  // targetedPlayers actually include, so cross-kid marking isn't
+  // possible from here).
+  const showGotIt = !inLibrary && !!activePlayerId && !!onWatch;
 
   const handleGotIt = async () => {
     if (!activePlayerId || !onWatch || watching) return;

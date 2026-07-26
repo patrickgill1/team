@@ -694,11 +694,17 @@ const Dashboard: React.FC = () => {
             // parent tapping at 22:15 MT (00:15 ET the next day) had
             // their fresh log stamped BELOW that boundary and the card
             // then invited a duplicate tap.
+            //
+            // 2026-07-25: loggedToday now reads the SAME dayKeys set
+            // that powers the week-strip checkmark, not just the one
+            // `next` goal's practiceLog. Prior code let a kid tap goal
+            // B in kid mode while the parent's Dashboard selected goal
+            // A as `next`, producing "checkmark on today + red I-did-it
+            // button" — same underlying tap, two disagreeing surfaces.
+            // Semantically the card asks "did the kid practice today",
+            // not "did they log THIS specific goal today".
             const todayDenver = denverKeyOfDate(new Date());
-            const loggedToday = (next.practiceLog || []).some((l: any) => {
-              const d = coerceLogDate(l.date);
-              return d ? denverKeyOfDate(d) === todayDenver : false;
-            });
+            const loggedToday = dayKeys.has(todayDenver);
             // Find this week's Monday using Denver parts so the row's
             // day letters agree with its dayKey highlight regardless
             // of the parent's device timezone. Week runs Mon→Sat with

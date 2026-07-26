@@ -3401,8 +3401,17 @@ export interface PlayerClip {
   /** Starts equal to (playerIds ?? teamPlayerIds); shrinks as auto-archive
    *  fires (homework cap) or the player watches. */
   activeForPlayerIds: string[];
-  /** arrayUnion on "Got it". Never shrinks. */
+  /** arrayUnion on "Got it". Never shrinks. Keyed by playerId — drives
+   *  the coach's "Watched by N of M" counter (one household tap counts
+   *  the player as reached). */
   watchedByPlayerIds: string[];
+  /** arrayUnion on every "Got it" tap, keyed by user uid (not player).
+   *  Drives per-viewer From Coach vs Library partition so each
+   *  household member (self-account kid, parent, co-parent) manages
+   *  their own inbox independently. Worker-write only; client rules
+   *  deny direct writes. Legacy docs written before this field may
+   *  omit it — treat missing as []. */
+  watchedByUserIds: string[];
   /** playerId → Timestamp of the "Got it" tap. Used for Library sort. */
   watchedAt?: Record<string, Date>;
   /** Auto-archived by the homework cap but NOT watched. Shows up in the

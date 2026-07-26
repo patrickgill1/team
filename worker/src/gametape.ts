@@ -777,6 +777,13 @@ export async function handleGametapeCreate(req: Request, env: GametapeEnv, paylo
     note,
     activeForPlayerIds: targetPlayerIds,
     watchedByPlayerIds: [],
+    // Per-viewer independent watched state (see handleGametapeMarkWatched).
+    // Every user (kid uid, parent uid, other-parent uid, coach uid) who
+    // taps "I watched it" gets appended here. Client dashboards filter
+    // by `!watchedByUserIds.includes(currentUid)` so each household
+    // member clears their own dashboard independently. Coach counter
+    // still reads watchedByPlayerIds (household-first-touch).
+    watchedByUserIds: [],
     archivedForPlayerIds: [],
     watchedAt: {},
     archivedAt: {},
@@ -850,10 +857,19 @@ export async function handleGametapeCreate(req: Request, env: GametapeEnv, paylo
 //
 // Body: { clipId, playerId }
 // Auth: coach of team OR parent of player OR self-kid of player.
-// Behavior: idempotently remove pid from activeForPlayerIds + union
-// into watchedByPlayerIds + stamp watchedAt.{pid}. Fire +3 XP with
-// source='gametape_watched' and sourceRef=`clip-{clipId}-{playerId}`
-// so a rewatch or a race is a Firestore 409 no-op via writeXpGrant.
+// Behavior (per-viewer independent watched design):
+//   - arrayUnion claims.uid into watchedByUserIds — this is the
+//     per-viewer dashboard-clear signal. Every household member
+//     (kid self-account, parent, other parent) has their own uid
+//     in this set, so each clears their own dashboard independently.
+//   - arrayRemove playerId from activeForPlayerIds + arrayUnion into
+//     watchedByPlayerIds + stamp watchedAt.{playerId} — household-
+//     first-touch signals used by the coach counter ("watched by
+//     N of M"). These stay player-scoped and are idempotent.
+//   - Fire +3 XP with source='gametape_watched' and
+//     sourceRef=`clip-{clipId}-{playerId}` (per-PLAYER deterministic
+//     ref) so the first household tap grants once; subsequent taps
+//     by other members no-op via writeXpGrant's AlreadyExistsError.
 // ────────────────────────────────────────────────────────────────
 const GAMETAPE_WATCH_XP = 3;
 
@@ -912,27 +928,38 @@ export async function handleGametapeMarkWatched(req: Request, env: GametapeEnv, 
     }
   }
   const alreadyWatched = watched.includes(playerId);
+  // Per-viewer independent watched state: each user (kid uid on a self
+  // account, parent uid, other-parent uid) tracks their own dashboard
+  // clear-out. `watchedByPlayerIds` remains household-first-touch for
+  // the coach counter; `watchedByUserIds` is the per-viewer set.
+  const watchedByUserIds: string[] = Array.isArray(clip.watchedByUserIds) ? clip.watchedByUserIds : [];
+  const alreadyWatchedByUser = watchedByUserIds.includes(claims.uid);
 
   const now = new Date();
-  if (!alreadyWatched) {
-    try {
-      await commitDocumentTransforms(
-        pid,
-        `player_clips/${clipId}`,
-        [
-          { fieldPath: 'activeForPlayerIds', kind: 'arrayRemove', value: playerId },
-          { fieldPath: 'watchedByPlayerIds', kind: 'arrayUnion', value: playerId },
-        ],
-        {
-          [`watchedAt.${playerId}`]: now,
-          updatedAt: now,
-        },
-        sa,
-      );
-    } catch (err) {
-      console.warn('[gametape/mark-watched] commit failed', (err as Error).message);
-      return json({ ok: false, error: 'write_failed' }, 500);
-    }
+  // Always commit — even when `alreadyWatched === true` (another household
+  // member tapped first) we still need to arrayUnion claims.uid into
+  // watchedByUserIds so THIS viewer's dashboard clears. arrayRemove /
+  // arrayUnion on the player-scoped fields are idempotent, so re-running
+  // them is safe. `watchedAt.${playerId}` is a household-first-touch stamp
+  // that will get restamped on repeat taps — acceptable for coach timeline.
+  try {
+    await commitDocumentTransforms(
+      pid,
+      `player_clips/${clipId}`,
+      [
+        { fieldPath: 'activeForPlayerIds', kind: 'arrayRemove', value: playerId },
+        { fieldPath: 'watchedByPlayerIds', kind: 'arrayUnion', value: playerId },
+        { fieldPath: 'watchedByUserIds', kind: 'arrayUnion', value: claims.uid },
+      ],
+      {
+        [`watchedAt.${playerId}`]: now,
+        updatedAt: now,
+      },
+      sa,
+    );
+  } catch (err) {
+    console.warn('[gametape/mark-watched] commit failed', (err as Error).message);
+    return json({ ok: false, error: 'write_failed' }, 500);
   }
 
   // ── XP grant. Deterministic sourceRef = single-earn per (clip, player).
@@ -963,7 +990,7 @@ export async function handleGametapeMarkWatched(req: Request, env: GametapeEnv, 
     console.warn('[gametape/mark-watched] xp grant failed', (err as Error).message);
   }
 
-  return json({ ok: true, alreadyWatched, xpGranted });
+  return json({ ok: true, alreadyWatched, alreadyWatchedByUser, xpGranted });
   } catch (err) {
     const authResp = authErrorResponse(err);
     if (authResp) return authResp;

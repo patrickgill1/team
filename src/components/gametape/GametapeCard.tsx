@@ -123,14 +123,18 @@ const GametapeCard: React.FC<Props> = ({
     return `Watched by ${watchedCount} of ${totalTargets}`;
   }, [watchedCount, totalTargets]);
 
-  // Which of the viewer's players still has this clip active?
-  // If none, the Got it button hides (already watched or archived).
+  // Which of the viewer's targeted players should the "Got it" tap
+  // send with the worker call? Under the per-user watched model
+  // (see GametapeSection partition logic), whether this viewer sees
+  // the card at all is decided upstream by watchedByUserIds — the
+  // player-scoped activeForPlayerIds set can already be empty for
+  // this household (e.g. a co-parent tapped first), yet the current
+  // viewer still needs a valid targeted playerId to POST. Fall back
+  // to the first targeted player so the button surfaces whenever the
+  // parent Section left this card in the "From Coach" bucket.
   const activePlayerId = useMemo(() => {
-    for (const p of targetedPlayers) {
-      if (clip.activeForPlayerIds?.includes(p.id)) return p.id;
-    }
-    return null;
-  }, [targetedPlayers, clip.activeForPlayerIds]);
+    return targetedPlayers[0]?.id ?? null;
+  }, [targetedPlayers]);
 
   // Show Got it whenever the current player is still an active target
   // AND we have a write handler. Coach-who-is-also-parent-of-target

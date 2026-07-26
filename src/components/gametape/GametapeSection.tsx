@@ -23,6 +23,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
+import { useAuth } from '../../hooks/useAuth';
 import GametapeCard from './GametapeCard';
 import GametapeComposeModal from './GametapeComposeModal';
 import { markClipWatched, archiveClipForPlayer, deleteClip } from '../../utils/gametapeApi';
@@ -97,6 +98,10 @@ function docToClip(id: string, raw: any): PlayerClip {
   const playerIds: string[] = Array.isArray(raw?.playerIds) ? raw.playerIds : [];
   const activeForPlayerIds: string[] = Array.isArray(raw?.activeForPlayerIds) ? raw.activeForPlayerIds : [];
   const watchedByPlayerIds: string[] = Array.isArray(raw?.watchedByPlayerIds) ? raw.watchedByPlayerIds : [];
+  // Per-viewer independent-watched partition — see PlayerClip type
+  // doc. Fall back to [] on legacy docs; they'll drift into the new
+  // shape on next tap once the worker starts writing this field.
+  const watchedByUserIds: string[] = Array.isArray(raw?.watchedByUserIds) ? raw.watchedByUserIds : [];
   const archivedForPlayerIds: string[] = Array.isArray(raw?.archivedForPlayerIds) ? raw.archivedForPlayerIds : [];
   return {
     id,
@@ -134,6 +139,7 @@ function docToClip(id: string, raw: any): PlayerClip {
     thumbnailUrl: raw?.thumbnailUrl ?? null,
     activeForPlayerIds,
     watchedByPlayerIds,
+    watchedByUserIds,
     watchedAt: timestampMap(raw?.watchedAt),
     archivedForPlayerIds,
     archivedAt: timestampMap(raw?.archivedAt),
@@ -166,6 +172,12 @@ const GametapeSection: React.FC<Props> = ({
   hideLibrary = false,
 }) => {
   // Hooks BEFORE any conditional return (React #310 guard).
+  const { userData } = useAuth();
+  // Per-viewer independent-watched: each user (self-account kid,
+  // parent, co-parent) manages their own From Coach vs Library
+  // partition. Threaded through useAuth rather than prop-drilled since
+  // all consumer pages already gate on auth upstream.
+  const currentUserUid = userData?.uid ?? null;
   const [clips, setClips] = useState<PlayerClip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -244,10 +256,16 @@ const GametapeSection: React.FC<Props> = ({
   // Coach viewer: From Coach = any clip with at least one active target
   //               Library    = clip has no active targets left (everyone
   //                            watched or auto-archived)
-  // Parent/kid:   From Coach = clip has any of my player ids in
-  //                            activeForPlayerIds
-  //               Library    = my player ids appear in watched or
-  //                            archived buckets (and not active)
+  // Parent/kid:   From Coach = this user's uid is NOT in watchedByUserIds
+  //               Library    = this user's uid IS in watchedByUserIds
+  //   Every viewer maintains their own inbox independently: a parent
+  //   tapping "I watched it" does not clear the clip from a co-parent
+  //   or from a self-account kid, and vice versa. The homework cap
+  //   (activeForPlayerIds) is still player-scoped and still bounds the
+  //   worker's auto-archive; visibility here is purely per-uid.
+  //
+  //   Targeting gate is preserved: a clip that targets none of the
+  //   viewer's visible players is dropped regardless of watched state.
   const { fromCoach, library } = useMemo(() => {
     const active: PlayerClip[] = [];
     const shelf: PlayerClip[] = [];
@@ -261,18 +279,12 @@ const GametapeSection: React.FC<Props> = ({
       const targets = c.targetsWholeTeam ? Array.from(visibleIdSet) : (c.playerIds || []);
       const mine = targets.filter(id => visibleIdSet.has(id));
       if (mine.length === 0) continue; // not for me
-      const anyMineActive = mine.some(id => c.activeForPlayerIds?.includes(id));
-      if (anyMineActive) {
-        active.push(c);
-      } else {
-        const anyMineTouched = mine.some(
-          id => c.watchedByPlayerIds?.includes(id) || c.archivedForPlayerIds?.includes(id),
-        );
-        if (anyMineTouched) shelf.push(c);
-      }
+      const iWatched = !!currentUserUid && (c.watchedByUserIds || []).includes(currentUserUid);
+      if (iWatched) shelf.push(c);
+      else active.push(c);
     }
     return { fromCoach: active, library: shelf };
-  }, [clips, isCoachViewer, visibleIdSet]);
+  }, [clips, isCoachViewer, visibleIdSet, currentUserUid]);
 
   // Silent-empty: on surfaces like Dashboard we don't want a header
   // + empty-state card taking up space when there is nothing to

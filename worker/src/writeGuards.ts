@@ -1603,6 +1603,87 @@ async function handleUsersSetWidgetPlayer(req: Request, env: Env, payload: any):
 }
 
 // ────────────────────────────────────────────────────────────────
+// /users/set-photo — caller updates their own user.photoURL and the
+// worker cascades the same URL to every adult self-player doc they
+// own (parentIds contains uid AND isAdultPlayer===true).
+//
+// WHY (2026-07-25): Patrick's principle — "shouldn't have to upload
+// profile pics in multiple places." linkSelfAsParent already mirrors
+// the photo at player-create time, but subsequent user.photoURL
+// updates weren't propagating. This endpoint replaces the
+// client-side updateDoc(users/{uid}, { photoURL }) call in
+// Settings.tsx so the cascade fires on every change going forward.
+//
+// SCOPE — adult self-players only. Youth kids share parentIds with
+// the parent uid but never have isAdultPlayer=true, so Hunter's
+// photo stays Hunter's even when Patrick swaps his own avatar.
+//
+// PAYLOAD — { photoURL: string | null }. Null is honored (a future
+// "remove photo" UI clears user + all cascaded players in one call).
+// ────────────────────────────────────────────────────────────────
+async function handleUsersSetPhoto(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+
+  const raw = payload?.photoURL;
+  let photoURL: string | null;
+  if (raw === null || raw === undefined || raw === '') {
+    photoURL = null;
+  } else if (typeof raw === 'string') {
+    photoURL = raw.slice(0, 2048);
+  } else {
+    return json({ ok: false, error: 'photoURL_must_be_string_or_null' }, 400);
+  }
+
+  await patchDocument(
+    pid,
+    `users/${claims.uid}`,
+    { photoURL, updatedAt: new Date() },
+    sa,
+  );
+
+  // Cascade to adult self-player docs. Combined equality +
+  // array-contains filter is served by a composite index
+  // (firestore.indexes.json — players / isAdultPlayer + parentIds).
+  // A user typically owns 1–2 adult player docs (multi-team pickup
+  // adults), so the loop is cheap.
+  const cascadedTo: string[] = [];
+  try {
+    const players = await runQuery(
+      pid,
+      'players',
+      [
+        { field: 'isAdultPlayer', op: 'EQUAL', value: true },
+        { field: 'parentIds', op: 'ARRAY_CONTAINS', value: claims.uid },
+      ],
+      sa,
+      50,
+    );
+    for (const p of players) {
+      const data: any = p.data || {};
+      if (data.isActive === false) continue;
+      try {
+        await patchDocument(
+          pid,
+          `players/${p.id}`,
+          { profilePhotoUrl: photoURL, updatedAt: new Date() },
+          sa,
+        );
+        cascadedTo.push(p.id);
+      } catch (err) {
+        console.warn('[users/set-photo] cascade patch failed', p.id, err);
+      }
+    }
+  } catch (err) {
+    // Query failure shouldn't fail the user-doc update — the user's
+    // own photo has already been written. Log and return partial ok.
+    console.warn('[users/set-photo] cascade query failed', err);
+  }
+
+  return json({ ok: true, cascadedTo, count: cascadedTo.length });
+}
+
+// ────────────────────────────────────────────────────────────────
 // /club/set-admin — club owner adds an admin uid to clubs/{id}.
 // Also stamps user.isClubAdmin so Firestore rules unlock the
 // per-club admin surfaces for them. Owner-only.
@@ -6075,6 +6156,7 @@ export async function routeWriteGuard(
   switch (pathname) {
     case '/users/bootstrap':       return handleUsersBootstrap(req, env, payload);
     case '/users/set-widget-player': return handleUsersSetWidgetPlayer(req, env, payload);
+    case '/users/set-photo':       return handleUsersSetPhoto(req, env, payload);
     case '/users/set-role':        return handleUsersSetRole(req, env, payload);
     case '/users/set-self-role':   return handleUsersSetSelfRole(req, env, payload);
     case '/claim/invite':          return handleClaimInvite(req, env, payload);

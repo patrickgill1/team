@@ -216,7 +216,18 @@ const Settings: React.FC = () => {
     setUploadingPhoto(true);
     try {
       const url = await uploadUserPhoto(file, userData.uid);
-      await updateDocument('users', userData.uid, { photoURL: url });
+      // Route through the worker so user.photoURL updates cascade to any
+      // adult self-player docs (parentIds contains uid AND isAdultPlayer).
+      // Youth kids are excluded server-side; Hunter's photo stays his.
+      const { workerFetch } = await import('../utils/workerFetch');
+      const resp = await workerFetch('/users/set-photo', {
+        method: 'POST',
+        body: JSON.stringify({ photoURL: url }),
+      });
+      const j: any = await resp.json().catch(() => ({}));
+      if (!resp.ok || !j?.ok) {
+        throw new Error(j?.error || `HTTP ${resp.status}`);
+      }
       await refreshUserData();
     } catch (err: any) {
       alert(err?.message || 'Could not update photo. Try again.');

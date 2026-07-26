@@ -114,6 +114,10 @@ const GametapeCard: React.FC<Props> = ({
 
   const coachWatchedLabel = useMemo(() => {
     if (!totalTargets) return 'Not watched yet';
+    // Single-target case reads awkwardly as "Everyone's watched it" —
+    // there's only one target, saying "everyone" makes it sound like
+    // a broadcast when it was a solo assignment.
+    if (totalTargets === 1) return watchedCount >= 1 ? 'Watched' : 'Not watched yet';
     if (watchedCount >= totalTargets) return "Everyone's watched it";
     if (watchedCount <= 0) return 'Not watched yet';
     return `Watched by ${watchedCount} of ${totalTargets}`;
@@ -284,7 +288,7 @@ const GametapeCard: React.FC<Props> = ({
               ? (viewer === 'kid' ? 'Nice. Coach will see.' : 'Marked as watched.')
               : watching
                 ? 'Marking…'
-                : 'Got it'}
+                : 'I watched it'}
           </button>
         ) : null}
 

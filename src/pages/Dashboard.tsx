@@ -1546,6 +1546,7 @@ const Dashboard: React.FC = () => {
             totalTeamPlayers={players.length}
             silentWhenEmpty
             hideLibrary
+            maxVisibleActive={1}
           />
         )}
 

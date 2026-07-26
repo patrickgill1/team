@@ -15,6 +15,7 @@
 // The Card doesn't touch the network — it just fires callbacks.
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   collection,
   onSnapshot,
@@ -55,6 +56,12 @@ interface Props {
    *  on what needs the viewer's attention; the full Library still
    *  lives on Player Development. Defaults to false. */
   hideLibrary?: boolean;
+  /** Cap the From Coach queue displayed on this surface. When the
+   *  actual queue is longer, render only the newest N cards + a
+   *  "See all" chip that routes to Player Development so viewers can
+   *  reach the full queue. Undefined = render every card (default).
+   *  Dashboard passes 1 to stay focused on the newest clip. */
+  maxVisibleActive?: number;
 }
 
 const COPY = {
@@ -170,6 +177,7 @@ const GametapeSection: React.FC<Props> = ({
   totalTeamPlayers,
   silentWhenEmpty = false,
   hideLibrary = false,
+  maxVisibleActive,
 }) => {
   // Hooks BEFORE any conditional return (React #310 guard).
   const { userData } = useAuth();
@@ -410,7 +418,22 @@ const GametapeSection: React.FC<Props> = ({
           </div>
         ) : (
           <div className="space-y-3">
-            {fromCoach.map(c => renderCard(c, false))}
+            {(typeof maxVisibleActive === 'number' && maxVisibleActive > 0
+              ? fromCoach.slice(0, maxVisibleActive)
+              : fromCoach
+            ).map(c => renderCard(c, false))}
+            {typeof maxVisibleActive === 'number' &&
+             maxVisibleActive > 0 &&
+             fromCoach.length > maxVisibleActive ? (
+              <Link
+                to="/development"
+                className="block rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 px-4 py-3 text-sm font-bold text-brand-primary hover:bg-brand-primary/5 text-center"
+              >
+                {fromCoach.length - maxVisibleActive === 1
+                  ? '1 more clip waiting. See all →'
+                  : `${fromCoach.length - maxVisibleActive} more clips waiting. See all →`}
+              </Link>
+            ) : null}
           </div>
         )}
       </div>

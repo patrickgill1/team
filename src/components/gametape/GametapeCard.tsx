@@ -246,9 +246,13 @@ const GametapeCard: React.FC<Props> = ({
       ) : null}
 
       {/* Footer */}
-      <footer className="px-4 py-3 mt-2 border-t border-line-default/10 flex items-center justify-between gap-3">
+      <footer className="px-4 py-3 mt-2 border-t border-line-default/10 space-y-3">
+        {/* Coach info row: watched-by + source tag. Shows whenever
+            viewer === 'coach', independently of whether the coach can
+            also mark it (they might be a parent of a target and see the
+            Got it button below). */}
         {viewer === 'coach' ? (
-          <>
+          <div className="flex items-center justify-between gap-3">
             <div
               className={`text-xs font-bold uppercase tracking-wide ${
                 totalTargets && watchedCount >= totalTargets
@@ -261,34 +265,43 @@ const GametapeCard: React.FC<Props> = ({
             <div className="text-[11px] text-ink-secondary">
               {clip.source === 'upload' ? 'Native clip' : clip.source === 'youtube' ? 'YouTube' : 'Vimeo'}
             </div>
-          </>
-        ) : showGotIt ? (
-          <>
-            <div className="text-[11px] text-ink-secondary">
-              {viewer === 'kid' ? 'Watch it, then tap:' : 'Tap when the player has watched:'}
+          </div>
+        ) : null}
+
+        {/* Got it CTA: full-width primary. Noticeable without being
+            overwhelming: sits in the card footer, brand-primary color,
+            48px tall, only appears when the viewer has an active
+            target-player. Coach-who-is-also-parent-of-target sees this
+            BELOW the coach info row so both surfaces coexist. */}
+        {showGotIt ? (
+          <button
+            type="button"
+            onClick={handleGotIt}
+            disabled={watching || watchSuccess}
+            className="w-full py-3 rounded-xl text-base font-extrabold bg-brand-primary text-brand-primary-fg hover:bg-brand-primary-hov disabled:opacity-60 transition-colors"
+          >
+            {watchSuccess
+              ? (viewer === 'kid' ? 'Nice. Coach will see.' : 'Marked as watched.')
+              : watching
+                ? 'Marking…'
+                : 'Got it'}
+          </button>
+        ) : null}
+
+        {/* Passive states: only shown when there's no active Got it
+            button AND we're not in coach view (coach info row above
+            already tells them everything). */}
+        {!showGotIt && viewer !== 'coach' ? (
+          inLibrary ? (
+            <div className="text-[11px] text-ink-secondary italic">
+              In Library. Rewatch anytime.
             </div>
-            <button
-              type="button"
-              onClick={handleGotIt}
-              disabled={watching || watchSuccess}
-              className="px-4 py-2 rounded-lg text-sm font-extrabold bg-brand-primary text-brand-primary-fg hover:bg-brand-primary-hov disabled:opacity-60"
-            >
-              {watchSuccess
-                ? (viewer === 'kid' ? 'Nice. Coach will see.' : 'Marked as watched.')
-                : watching
-                  ? 'Marking…'
-                  : 'Got it'}
-            </button>
-          </>
-        ) : inLibrary ? (
-          <div className="text-[11px] text-ink-secondary italic">
-            In Library. Rewatch anytime.
-          </div>
-        ) : (
-          <div className="text-[11px] text-ink-secondary italic">
-            Already watched.
-          </div>
-        )}
+          ) : (
+            <div className="text-[11px] text-ink-secondary italic">
+              Already watched.
+            </div>
+          )
+        ) : null}
 
         {viewer !== 'coach' && !inLibrary && activePlayerId && onArchiveForPlayer ? (
           <button

@@ -17,6 +17,9 @@ interface Props {
    *  public wall. Defaults to false so the safer view wins if a
    *  future caller forgets to thread the coach signal. */
   isCoachView?: boolean;
+  /** When true, swaps the crown label to "MVP" for adult leagues.
+   *  Defaults to youth wording. */
+  isAdultTeam?: boolean;
 }
 
 const InitialAvatar: React.FC<{ name: string }> = ({ name }) => (
@@ -34,10 +37,11 @@ const fmtDate = (raw: any): string => {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 };
 
-const PotmWinnerCard: React.FC<Props> = ({ potm, timestamp, isCoachView = false }) => {
+const PotmWinnerCard: React.FC<Props> = ({ potm, timestamp, isCoachView = false, isAdultTeam = false }) => {
   const [photoFailed, setPhotoFailed] = React.useState(false);
   const dateStr = fmtDate(potm.gameDate) || timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  const title = potm.isCoWin ? 'Co-Player of the Match' : 'Player of the Match';
+  const potmLabel = isAdultTeam ? 'MVP' : 'Player of the Match';
+  const title = potm.isCoWin ? (isAdultTeam ? 'Co-MVP' : 'Co-Player of the Match') : potmLabel;
   const showPhoto = !!potm.playerPhotoUrl && !photoFailed;
 
   return (
@@ -88,7 +92,7 @@ const PotmWinnerCard: React.FC<Props> = ({ potm, timestamp, isCoachView = false 
 
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-black tracking-[0.3em] uppercase text-amber-200 mb-0.5">
-            Player of the Match
+            {potmLabel}
           </p>
           <h3 className="text-2xl sm:text-3xl font-black text-white leading-[1.1] break-words drop-shadow-lg">
             {potm.playerName}

@@ -36,6 +36,9 @@ interface Props {
   /** True when the viewer is a coach on this team. Swaps the primary
    *  action from "Vote now" to "Manage vote". */
   isCoach: boolean;
+  /** True on adult teams so we swap "Player of the Match" → "MVP".
+   *  Same voting mechanic, just league-appropriate copy. */
+  isAdultTeam?: boolean;
 }
 
 interface VotingSnapshot {
@@ -47,7 +50,8 @@ interface VotingSnapshot {
   isActive?: boolean;
 }
 
-const DashboardPotmVotingCard: React.FC<Props> = ({ teamId, currentUserId, myPlayerIds, isCoach }) => {
+const DashboardPotmVotingCard: React.FC<Props> = ({ teamId, currentUserId, myPlayerIds, isCoach, isAdultTeam = false }) => {
+  const potmLabel = isAdultTeam ? 'MVP' : 'Player of the Match';
   const [voting, setVoting] = useState<VotingSnapshot | null>(null);
 
   // Live subscribe to the team's active voting. Query returns 0 or 1
@@ -127,7 +131,7 @@ const DashboardPotmVotingCard: React.FC<Props> = ({ teamId, currentUserId, myPla
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-black tracking-widest uppercase text-amber-500">
-            Player of the Match
+            {potmLabel}
           </p>
           <h3 className="text-base sm:text-lg font-bold text-ink-primary leading-tight truncate">
             {gameTitle}

@@ -20,6 +20,10 @@ interface Props {
   post: WallPost;
   currentUserId: string | undefined;
   timestamp: Date;
+  /** When true, swaps "Player of the Match" → "MVP" in the header and
+   *  action copy so adult teams read as league-appropriate. Defaults
+   *  to youth wording when omitted (safer for legacy callers). */
+  isAdultTeam?: boolean;
 }
 
 interface VotingSnapshot {
@@ -29,7 +33,10 @@ interface VotingSnapshot {
   closedAt?: any;
 }
 
-const PotmVotingCard: React.FC<Props> = ({ post, currentUserId }) => {
+const PotmVotingCard: React.FC<Props> = ({ post, currentUserId, isAdultTeam = false }) => {
+  // Adult teams use "MVP"; youth stays with the traditional "Player of
+  // the Match" wording. Same underlying vote mechanic — copy swap only.
+  const voteHeader = isAdultTeam ? 'Vote for MVP' : 'Vote for Player of the Match';
   const open = post.potmVotingOpen!;
   const [voting, setVoting] = useState<VotingSnapshot | null>(null);
 
@@ -65,7 +72,7 @@ const PotmVotingCard: React.FC<Props> = ({ post, currentUserId }) => {
           </svg>
         </span>
         <span className="text-[10px] font-black tracking-widest uppercase text-amber-300/90">
-          {isClosed ? 'Voting closed' : 'Vote for Player of the Match'}
+          {isClosed ? 'Voting closed' : voteHeader}
         </span>
       </header>
 

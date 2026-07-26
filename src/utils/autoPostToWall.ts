@@ -20,12 +20,37 @@
 
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from './firebase';
+import { resolveSenderRole } from './helpers';
 import type { CalendarEvent, DevelopmentPlan, Player, PlayerMedia } from '../types';
 
 interface Actor {
   uid: string;
   name: string;
   role?: string;
+  // selfPlayerId + team enable team-scoped role resolution. When both
+  // are provided we call resolveSenderRole so a coach-on-Fire-FC who
+  // is also an adult player on Crushers gets stamped correctly per
+  // team. Legacy callers that only pass `role` still work — we fall
+  // back to actor.role.
+  selfPlayerId?: string;
+  team?: { coachIds?: string[]; audienceType?: string; playerIds?: string[] } | null;
+}
+
+// Team-scoped sender role for wall posts. Falls back to the actor's
+// global role (or 'coach') when the caller didn't supply a team — the
+// old, kid-only behavior. See helpers.resolveSenderRole for the
+// per-team resolution logic.
+function actorSenderRole(actor: Actor): 'coach' | 'parent' | 'player' {
+  if (actor.team) {
+    return resolveSenderRole(
+      { uid: actor.uid, role: actor.role, selfPlayerId: actor.selfPlayerId },
+      actor.team,
+    );
+  }
+  if (actor.role === 'coach' || actor.role === 'parent' || actor.role === 'player') {
+    return actor.role;
+  }
+  return 'coach';
 }
 
 async function postToWall(
@@ -49,7 +74,7 @@ async function postToWall(
       content,
       senderId: actor.uid,
       senderName: actor.name,
-      senderRole: actor.role || 'coach',
+      senderRole: actorSenderRole(actor),
       timestamp: new Date(),
       attachments: opts.attachments && opts.attachments.length > 0 ? opts.attachments : null,
       reactions: [],
@@ -213,7 +238,7 @@ export async function autoPostGoalOfTheMatchToWall(
       content,
       senderId: actor.uid,
       senderName: actor.name,
-      senderRole: actor.role || 'coach',
+      senderRole: actorSenderRole(actor),
       timestamp: new Date(),
       attachments: null,
       reactions: [],

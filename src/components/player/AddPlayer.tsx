@@ -528,6 +528,13 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
       // the "This player is my kid" toggle, fire /players/toggle-self-
       // parent — that endpoint owns the atomic parentIds + parentEmails
       // + user.teamIds sync so we don't try to reproduce it here.
+      //
+      // ADULT SELF-ADD FAST PATH: when creating a NEW player on an
+      // adult team with the "This is me" checkbox checked, route
+      // through /players/create with linkSelfAsParent+isAdultPlayer.
+      // This mirrors the People-banner "Add me" flow so a coach who
+      // spun up an adult team and forgot to check "I am a player" in
+      // the team-create modal can still self-onboard in one submit.
       let savedPlayerId: string;
       let savedPlayer: Player;
       if (editingPlayer) {
@@ -536,6 +543,52 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         savedPlayerId = editingPlayer.id;
         savedPlayer = { ...editingPlayer, ...basePlayerData } as Player;
         debug('Player updated successfully:', savedPlayer);
+      } else if ((isAdultTeam || isAdultPlayer) && isMyKid && userData?.uid) {
+        debug('Adult self-add: routing through worker /players/create');
+        const { workerFetch } = await import('../../utils/workerFetch');
+        const coachEmail = (userData.email || '').trim().toLowerCase();
+        const res = await workerFetch('/players/create', {
+          method: 'POST',
+          body: JSON.stringify({
+            teamId: effectiveTeamId,
+            name: (basePlayerData as any).name,
+            jerseyNumber: (basePlayerData as any).jerseyNumber,
+            positions: (basePlayerData as any).positions,
+            parentEmails: validParentEmails.length > 0
+              ? validParentEmails
+              : (coachEmail ? [coachEmail] : undefined),
+            linkSelfAsParent: true,
+            isAdultPlayer: true,
+          }),
+        });
+        const data: any = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || `create-${res.status}`);
+        }
+        savedPlayerId = String(data.playerId);
+        savedPlayer = { ...basePlayerData, id: savedPlayerId, createdAt: new Date() } as Player;
+        // Follow-up: apply the optional client-side fields the worker
+        // create endpoint doesn't take (DOB, medical, photo, kit-side
+        // metadata). Non-security-critical and gated by the same
+        // team-membership the worker just granted us via the create.
+        const clientPatch: any = {};
+        if ((basePlayerData as any).dateOfBirth) clientPatch.dateOfBirth = (basePlayerData as any).dateOfBirth;
+        if ((basePlayerData as any).medicalInfo) clientPatch.medicalInfo = (basePlayerData as any).medicalInfo;
+        if ((basePlayerData as any).profilePhotoUrl) clientPatch.profilePhotoUrl = (basePlayerData as any).profilePhotoUrl;
+        if ((basePlayerData as any).secondaryPosition) clientPatch.secondaryPosition = (basePlayerData as any).secondaryPosition;
+        if ((basePlayerData as any).preferredFoot) clientPatch.preferredFoot = (basePlayerData as any).preferredFoot;
+        if ((basePlayerData as any).pastClubs) clientPatch.pastClubs = (basePlayerData as any).pastClubs;
+        if ((basePlayerData as any).highestLevelPlayed) clientPatch.highestLevelPlayed = (basePlayerData as any).highestLevelPlayed;
+        if ((basePlayerData as any).skillLevel) clientPatch.skillLevel = (basePlayerData as any).skillLevel;
+        if (Object.keys(clientPatch).length > 0) {
+          try {
+            await updatePlayer(savedPlayerId, clientPatch);
+            savedPlayer = { ...savedPlayer, ...clientPatch } as Player;
+          } catch (err) {
+            console.warn('[adult self-add] client-side patch failed, non-fatal', err);
+          }
+        }
+        debug('Adult self-add succeeded, playerId:', savedPlayerId);
       } else {
         debug('Adding new player...');
         savedPlayerId = await addPlayer(basePlayerData as any);
@@ -684,7 +737,9 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             </div>
             <h2 className="text-xl font-black text-ink-primary">Player Added</h2>
             <p className="text-ink-primary/60 mt-1 text-sm">
-              Share this link with the player's parent so they can link their account.
+              {(isAdultPlayer || isAdultTeam)
+                ? 'Share this link with the player so they can create their account.'
+                : "Share this link with the player's parent so they can link their account."}
             </p>
           </div>
 
@@ -718,7 +773,9 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
           </div>
 
           <p className="text-xs text-ink-primary/50 text-center mb-4">
-            The parent clicks the link, signs in or creates a free account, and they'll be linked to this player's profile. They can then vote in Player of the Match polls.
+            {(isAdultPlayer || isAdultTeam)
+              ? 'The player clicks the link, signs in or creates a free account, and they\'ll be linked to their own profile. They can then RSVP to events and vote in MVP polls.'
+              : "The parent clicks the link, signs in or creates a free account, and they'll be linked to this player's profile. They can then vote in Player of the Match polls."}
           </p>
 
           <button
@@ -1061,10 +1118,16 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             </label>
           )}
 
-          {/* This player is my kid — coach-only shortcut. Hides on
-              adult teams (the player IS the user there) and for
-              users who aren't coaches on the target team. */}
-          {!isAdultPlayer && !isAdultTeam && userData && (
+          {/* Self-link toggle. Two flavors:
+                youth teams → "This player is my kid" (coach adding
+                their own kid to the roster).
+                adult teams → "This is me" (coach adding themself as
+                a player on the adult roster).
+              Both drive the same self-parent link; adult flow routes
+              new creates through the worker /players/create with
+              linkSelfAsParent+isAdultPlayer, youth flow saves the
+              base doc then fires /players/toggle-self-parent. */}
+          {!isAdultPlayer && userData && (
             <div className="rounded-xl bg-surface-input ring-1 ring-line-default/10 p-3">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
@@ -1076,10 +1139,12 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 />
                 <span className="flex-1">
                   <span className="block text-sm font-semibold text-ink-primary">
-                    This player is my kid
+                    {isAdultTeam ? 'This is me' : 'This player is my kid'}
                   </span>
                   <span className="block text-[11px] text-ink-primary/55 mt-0.5 leading-snug">
-                    Links you as a parent on this player alongside your coaching role, so you get parent-side updates (dev plan, media, chat). Your email is added to the parent list automatically.
+                    {isAdultTeam
+                      ? 'Adds you to the roster so you show up in RSVPs, tagged clips, and Split Teams. Your email is added automatically.'
+                      : 'Links you as a parent on this player alongside your coaching role, so you get parent-side updates (dev plan, media, chat). Your email is added to the parent list automatically.'}
                   </span>
                 </span>
               </label>

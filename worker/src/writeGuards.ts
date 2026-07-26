@@ -1169,11 +1169,16 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
     isActive: true,
     createdAt: new Date(),
     createdBy: claims.uid,
-    // XP + badges default ON for newly-created teams. Existing teams
-    // (created before this field existed) show undefined which the
-    // client reads as OFF — no surprise gamification for coaches
-    // who never opted in. See onboarding-xp memo.
-    xpConfig: { enabled: true, enabledAt: new Date() },
+    // XP + badges default ON for newly-created YOUTH teams. Adult
+    // teams default OFF: soccer for grown-ups doesn't want tier
+    // labels / level-ups / spendable-feeling mechanics. See
+    // feedback_no_currency_mechanics and adult-mode intent. Coach
+    // can still flip xpConfig.enabled=true later if they want it.
+    // Existing teams (created before this field existed) show
+    // undefined which the client reads as OFF.
+    xpConfig: audienceType === 'adult'
+      ? { enabled: false }
+      : { enabled: true, enabledAt: new Date() },
   };
   if (audienceType) teamFields.audienceType = audienceType;
   if (rosterMode) teamFields.rosterMode = rosterMode;

@@ -53,6 +53,19 @@ const TeamManagement: React.FC = () => {
   // Development Pathway visibility on this team's surfaces + swaps
   // the roster field set (adult adds position/foot/past clubs).
   const [teamAudience, setTeamAudience] = useState<'youth' | 'adult'>('youth');
+  // Tracks whether the coach manually picked a Match Format. Lets us
+  // auto-flip the default to 11v11 when the audience switches to
+  // 'adult' without clobbering an explicit choice. Reset by
+  // resetForm() alongside the format value.
+  const [teamFormatTouched, setTeamFormatTouched] = useState<boolean>(false);
+  // Adult-team create modal: "I am a player on this team". Default
+  // checked because most coaches spinning up an adult roster ARE the
+  // organizing player (Patrick's Saturday pickup, Utah men's league).
+  // On submit, if teamAudience==='adult' and this is checked, we
+  // POST /players/create with linkSelfAsParent:true + isAdultPlayer:true
+  // after the team lands, using the same worker call the People
+  // "Add me" banner uses.
+  const [teamAdultSelfAsPlayer, setTeamAdultSelfAsPlayer] = useState<boolean>(true);
   const [teamPublicFixtures, setTeamPublicFixtures] = useState<boolean>(false);
   // Weekly Team Wall summary — coach opts in per team, picks the
   // day. Default OFF so quiet teams stay quiet and Sunday-observing
@@ -235,6 +248,34 @@ const TeamManagement: React.FC = () => {
         await updateDocument('teams', newTeamId, extras).catch(() => undefined);
       }
 
+      // Adult-team + "I am a player" checkbox: seed the coach as a
+      // player on the new roster via /players/create with
+      // linkSelfAsParent + isAdultPlayer. Mirrors the People banner's
+      // one-tap self-add so the coach doesn't have to bounce over to
+      // People just to add themselves. Failure here doesn't block the
+      // team-create success — the banner will still offer the same
+      // action.
+      if (teamAudience === 'adult' && teamAdultSelfAsPlayer) {
+        try {
+          const coachName = ((userData as any)?.name || '').trim()
+            || ((userData as any)?.email || '').split('@')[0]
+            || 'Player';
+          const coachEmail = (((userData as any)?.email || '') as string).trim().toLowerCase();
+          await workerFetch('/players/create', {
+            method: 'POST',
+            body: JSON.stringify({
+              teamId: newTeamId,
+              name: coachName,
+              parentEmails: coachEmail ? [coachEmail] : undefined,
+              linkSelfAsParent: true,
+              isAdultPlayer: true,
+            }),
+          });
+        } catch (err) {
+          console.warn('[team-create] adult self-as-player create failed', err);
+        }
+      }
+
       resetForm();
       setShowCreateModal(false);
       await refreshTeams();
@@ -394,6 +435,10 @@ const TeamManagement: React.FC = () => {
     setTeamLeague(team.league || '');
     setTeamHomeField(team.homeField || '');
     setTeamFormat((team as any).format || '7v7');
+    // Editing an existing team — treat the loaded format as explicit
+    // (coach saved it before). Prevents an audience flip from
+    // clobbering their choice.
+    setTeamFormatTouched(true);
     setTeamHomeKit(team.homeKitColor || '');
     setTeamAwayKit(team.awayKitColor || '');
     setTeamAudience(team.audienceType === 'adult' ? 'adult' : 'youth');
@@ -522,6 +567,8 @@ const TeamManagement: React.FC = () => {
     setTeamLeague('');
     setTeamHomeField('');
     setTeamFormat('7v7');
+    setTeamFormatTouched(false);
+    setTeamAdultSelfAsPlayer(true);
     setTeamHomeKit('');
     setTeamAwayKit('');
     setTeamAudience('youth');
@@ -934,7 +981,7 @@ const TeamManagement: React.FC = () => {
                         <button
                           type="button"
                           key={f}
-                          onClick={() => setTeamFormat(f)}
+                          onClick={() => { setTeamFormat(f); setTeamFormatTouched(true); }}
                           className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition ${
                             teamFormat === f ? 'bg-brand-primary text-white shadow-sm' : 'text-ink-primary/65 hover:text-ink-primary'
                           }`}
@@ -952,7 +999,16 @@ const TeamManagement: React.FC = () => {
                         <button
                           type="button"
                           key={a}
-                          onClick={() => setTeamAudience(a)}
+                          onClick={() => {
+                            setTeamAudience(a);
+                            // Auto-default match format on the youth→adult
+                            // flip: 7v7 (youth default) becomes 11v11 for
+                            // adult teams unless the coach already tapped
+                            // a specific format. Preserves explicit picks.
+                            if (a === 'adult' && !teamFormatTouched) {
+                              setTeamFormat('11v11');
+                            }
+                          }}
                           className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition ${
                             teamAudience === a ? 'bg-brand-primary text-white shadow-sm' : 'text-ink-primary/65 hover:text-ink-primary'
                           }`}
@@ -967,6 +1023,29 @@ const TeamManagement: React.FC = () => {
                         : 'Kids and families. Full family features: Player Circle for guardians, Whispers, Development Pathway, age-band awareness.'}
                     </p>
                   </div>
+                  {/* Adult-team create-modal only: "I am a player on this
+                      team". Hidden while editing (edit flow has its own
+                      People-banner + AddPlayer.tsx toggle). Default
+                      checked because most coaches who spin up an adult
+                      team ARE the organizing player. */}
+                  {teamAudience === 'adult' && !editingTeam && (
+                    <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={teamAdultSelfAsPlayer}
+                          onChange={(e) => setTeamAdultSelfAsPlayer(e.target.checked)}
+                          className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                        />
+                        <span className="flex-1">
+                          <span className="block text-sm font-bold text-ink-primary">I am a player on this team</span>
+                          <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                            Adds you to the roster so you show up in RSVPs, tagged clips, and Split Teams. Uncheck if you only coach or organize.
+                          </span>
+                        </span>
+                      </label>
+                    </div>
+                  )}
                   <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
                     <label className="flex items-start gap-3 cursor-pointer">
                       <input

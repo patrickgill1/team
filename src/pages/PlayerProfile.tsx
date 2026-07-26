@@ -954,6 +954,7 @@ const PlayerProfile: React.FC = () => {
             streakDays={heroStreak}
             attendancePct={attendance.percent}
             jugglesBest={(player as any).juggles?.best || 0}
+            hideJuggles={isAdultTeam}
           />
         );
       })()}
@@ -1142,12 +1143,16 @@ const PlayerProfile: React.FC = () => {
             {/* BADGE COLLECTION — top-6 most-recent badges as a
                 preview strip. Hidden when the player has zero badges
                 (avoids Swiss-cheese scroll on brand-new profiles).
-                "See all" jumps to PlayerXpCard's Locker grid in Stats. */}
-            <BadgeCollection
-              player={player}
-              activeSeason={activeSeason}
-              onSeeAll={() => handleTabChange('stats', 'xpcard')}
-            />
+                "See all" jumps to PlayerXpCard's Locker grid in Stats.
+                Also hidden on adult teams (badge chrome reads as
+                kid-flavored; see feedback_no_currency_mechanics). */}
+            {!isAdultTeam && (
+              <BadgeCollection
+                player={player}
+                activeSeason={activeSeason}
+                onSeeAll={() => handleTabChange('stats', 'xpcard')}
+              />
+            )}
 
             {/* PLAYER CIRCLE — parents/guardians linked to this player.
                 Sits at the top of Story so a parent lands where the
@@ -1167,6 +1172,7 @@ const PlayerProfile: React.FC = () => {
               player={player}
               canEdit={!!userData && (isCoachOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid))}
               onUpdated={loadProfile}
+              isAdultTeam={isAdultTeam}
             />
 
             {/* DEVELOPMENT PLAN — promoted out of Stats into Story
@@ -1226,7 +1232,7 @@ const PlayerProfile: React.FC = () => {
               player={player}
               teamId={selectedTeamId}
               season={activeSeason}
-              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
+              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true && !isAdultTeam}
             />
 
             {/* EMPTY STATE — kept as a warm hint when the profile is
@@ -1286,12 +1292,14 @@ const PlayerProfile: React.FC = () => {
               }
               votingWins={votingWins}
               votingNominations={allPlayerVotings.map(v => v.voting)}
+              hideJuggles={isAdultTeam}
             />
 
             {/* JUGGLE COUNTER — self-reported personal best + last
                 week's attempts. Coach + parents can log an attempt.
-                Moved from Overview → Stats (numbers cluster). */}
-            {userData && (isCoachOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid)) && (() => {
+                Moved from Overview → Stats (numbers cluster).
+                Hidden on adult teams (kid-flavored feature). */}
+            {!isAdultTeam && userData && (isCoachOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid)) && (() => {
               const j = (player as any).juggles || {};
               const history: Array<{ count: number; date: any }> = Array.isArray(j.history) ? j.history : [];
               const best = typeof j.best === 'number' ? j.best : 0;
@@ -1402,7 +1410,7 @@ const PlayerProfile: React.FC = () => {
             <CoachRecognitionsArchive
               playerId={playerId!}
               teamId={selectedTeamId}
-              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
+              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true && !isAdultTeam}
             />
 
             {/* 2026-07-15 Direction B: Dev Plans section relocated to

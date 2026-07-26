@@ -865,7 +865,7 @@ const GameDay: React.FC = () => {
         senderId: userData.uid,
         senderName: userData.name,
         senderPhotoUrl: (userData as any).photoURL || undefined,
-        senderRole: resolveSenderRole(userData),
+        senderRole: resolveSenderRole(userData, selectedTeam as any),
         timestamp: new Date(),
         teamId: event.teamId,
       } as any);

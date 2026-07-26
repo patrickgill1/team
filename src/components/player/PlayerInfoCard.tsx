@@ -33,9 +33,12 @@ interface Props {
   player: Player;
   canEdit: boolean;
   onUpdated?: () => void;
+  /** Adult teams: hide the "Favorite Player" row (kid-fandom
+   *  vitals don't fit an adult roster). */
+  isAdultTeam?: boolean;
 }
 
-const PlayerInfoCard: React.FC<Props> = ({ player, canEdit, onUpdated }) => {
+const PlayerInfoCard: React.FC<Props> = ({ player, canEdit, onUpdated, isAdultTeam }) => {
   const [editing, setEditing] = useState(false);
   const joined = player.joinedAt
     ? (player.joinedAt instanceof Date ? player.joinedAt : new Date(player.joinedAt as any))
@@ -80,7 +83,9 @@ const PlayerInfoCard: React.FC<Props> = ({ player, canEdit, onUpdated }) => {
           <Row icon={<QuoteIcon />} label="Nickname" value={player.nickname ? `"${player.nickname}"` : undefined} />
           <Row icon={<FootIcon />} label="Preferred Foot" value={player.preferredFoot} />
           <Row icon={<PinIcon />} label="Favorite Position" value={player.favoritePosition} />
-          <Row icon={<StarIcon />} label="Favorite Player" value={player.favoritePlayer} />
+          {!isAdultTeam && (
+            <Row icon={<StarIcon />} label="Favorite Player" value={player.favoritePlayer} />
+          )}
           <Row icon={<ShieldIcon />} label="Favorite Team" value={player.favoriteTeam} />
           <Row icon={<HashIcon />} label="Favorite Number" value={favoriteNumberDisplay} />
           <Row icon={<CalendarIcon />} label="Joined" value={joined ? joined.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : undefined} />

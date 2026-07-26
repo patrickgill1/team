@@ -44,6 +44,20 @@ export interface TeamAudienceCopy {
   inviteAudience: string;
   /** Prefix on the "Kick off" button copy on GameDay. */
   matchNoun: string;
+  /** Long title for the top-vote-getter award. Youth: "Player of the
+   *  Match". Adult: "MVP". Used everywhere the ballot / winner card
+   *  headline the award, so the label stays consistent across Wall,
+   *  Dashboard, and the /player-of-match page. */
+  potmTitle: string;
+  /** Short/spoken form for CTAs and short subtitles ("Vote for MVP",
+   *  "Vote for Player of the Match"). Keeps the badge / chip copy
+   *  from wrapping in tight spaces. */
+  potmShort: string;
+  /** Verb clause the coach sees when opening the ballot. */
+  potmVoteVerb: string;
+  /** Placeholder inside the "why does this person deserve it?" input
+   *  on the ballot. */
+  potmReasonPlaceholder: string;
 }
 
 export function copyForAudience(audience: TeamAudience): TeamAudienceCopy {
@@ -60,6 +74,10 @@ export function copyForAudience(audience: TeamAudience): TeamAudienceCopy {
       chatTitle: 'Team chat',
       inviteAudience: 'Players',
       matchNoun: 'Match',
+      potmTitle: 'MVP',
+      potmShort: 'MVP',
+      potmVoteVerb: 'Vote for MVP',
+      potmReasonPlaceholder: 'Why does this player deserve MVP?',
     };
   }
   return {
@@ -74,6 +92,10 @@ export function copyForAudience(audience: TeamAudience): TeamAudienceCopy {
     chatTitle: 'Team chat',
     inviteAudience: 'Parents',
     matchNoun: 'Game',
+    potmTitle: 'Player of the Match',
+    potmShort: 'Player of the Match',
+    potmVoteVerb: 'Vote for Player of the Match',
+    potmReasonPlaceholder: 'Why does this player deserve to be Player of the Match?',
   };
 }
 

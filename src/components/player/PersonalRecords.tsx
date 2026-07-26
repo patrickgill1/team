@@ -38,6 +38,8 @@ interface Props {
   seasonId: string;
   votingWins: MatchVoting[];
   votingNominations: MatchVoting[];
+  /** Adult teams: hide the Juggles PB tile (kid-flavored feature). */
+  hideJuggles?: boolean;
 }
 
 interface RecordTile {
@@ -46,7 +48,7 @@ interface RecordTile {
   context?: string;
 }
 
-const PersonalRecords: React.FC<Props> = ({ playerId, player, seasonId, votingWins, votingNominations }) => {
+const PersonalRecords: React.FC<Props> = ({ playerId, player, seasonId, votingWins, votingNominations, hideJuggles }) => {
   // null = still loading. Empty array = loaded, no rows. Downstream
   // memo relies on the null sentinel to hide the whole card during
   // the atomic-render window.
@@ -167,12 +169,15 @@ const PersonalRecords: React.FC<Props> = ({ playerId, player, seasonId, votingWi
       { label: 'Career POTM wins', value: (votingWins || []).length },
       { label: 'Longest scoring streak', value: longestStreak },
       { label: 'Practice streak', value: streakDays, context: 'days' },
-      { label: 'Juggles PB', value: juggleBest, context: juggleBestAtMs ? shortDate(juggleBestAtMs) : undefined },
     );
+    // Juggles PB is kid-flavored — adult teams drop the tile.
+    if (!hideJuggles) {
+      tiles.push({ label: 'Juggles PB', value: juggleBest, context: juggleBestAtMs ? shortDate(juggleBestAtMs) : undefined });
+    }
 
     // Silence beats zero-filler: drop any tile with no signal.
     return tiles.filter((t) => typeof t.value === 'number' && t.value > 0);
-  }, [gameStats, votingWins, votingNominations, player, seasonId, playerId]);
+  }, [gameStats, votingWins, votingNominations, player, seasonId, playerId, hideJuggles]);
 
   // Atomic render: nothing during load, fade the card in only once
   // we've decided there's something worth showing.

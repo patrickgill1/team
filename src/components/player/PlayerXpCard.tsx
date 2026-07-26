@@ -147,6 +147,13 @@ const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
 const PlayerXpCard: React.FC<Props> = ({ player, team, isCoach, onGiveXp }) => {
   const xpConfig = (team as any)?.xpConfig;
   const xpEnabled = xpConfig?.enabled === true;
+  // Adult teams: hide the whole player-facing card. Coach still sees
+  // it (they may want to grant/audit XP even if the roster is
+  // grown-ups). See feedback_no_currency_mechanics + adult-mode
+  // intent — level/tier chrome reads as kid-flavored on an adult
+  // roster.
+  const isAdult = (team as any)?.audienceType === 'adult';
+  if (isAdult && !isCoach) return null;
 
   const xp = typeof (player as any).xp === 'number' ? (player as any).xp : 0;
   const xpCareer = typeof (player as any).xpCareer === 'number' ? (player as any).xpCareer : xp;

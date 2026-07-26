@@ -16,6 +16,7 @@ import { getShareOrigin } from '../utils/origin';
 import RosterAvatar from '../components/common/RosterAvatar';
 import WeatherIcon from '../components/common/WeatherIcon';
 import { useTeamAudience } from '../hooks/useTeamAudience';
+import AttendanceMotivationCard from '../components/calendar/AttendanceMotivationCard';
 import SplitTeamsModal from '../components/calendar/SplitTeamsModal';
 import { grossUpCents, coachNetCents, DROPIN_DEFAULT_PLATFORM_BPS } from '../utils/pricing';
 import { useActiveTripsForTeam, getTripForEvent, truncateTripName } from '../utils/eventTripContext';
@@ -406,7 +407,12 @@ const EventDetail: React.FC = () => {
   // later). Prevents "post-event" side effects from firing while a
   // tournament game is still on the field.
   const eventEnded = !!event && eventEndMs(event as any) < now.getTime();
-  const eventFocus = ((event as any)?.developmentFocus || '').trim();
+  // Development focus is a training/practice concept — silence it
+  // on games/tournaments/social events so the "How did <focus>
+  // feel today?" pulse copy doesn't fire on a match.
+  const eventFocus = (event as any)?.type === 'practice'
+    ? ((event as any)?.developmentFocus || '').trim()
+    : '';
 
   const countdown = useMemo(() => {
     if (!eventDate) return null;
@@ -1678,6 +1684,21 @@ const EventDetail: React.FC = () => {
           </section>
         );
       })()}
+
+      {/* ATTENDANCE MOTIVATION — adult-league only. Two positive
+          signals: "N of X teammates going" social proof + personal
+          "You: N of last M events" habit stat. Youth teams route
+          RSVPs through parents, so the personal-stat framing doesn't
+          fit — gated on isAdultTeam here. */}
+      {isAdultTeam && event && (
+        <AttendanceMotivationCard
+          teamId={event.teamId}
+          myPlayerIds={myLinkedPlayers.map(p => p.id)}
+          goingCount={buckets.going.length}
+          rosterSize={roster.length}
+          currentEventStartMs={eventDate ? eventDate.getTime() : Date.now()}
+        />
+      )}
 
       {/* ROSTER PREVIEW — avatar stack of going families. Tap to jump
           to the full RSVP list below. QoL 1 promotion: parents want to

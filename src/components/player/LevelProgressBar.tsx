@@ -35,7 +35,12 @@ interface Props {
 const LevelProgressBar: React.FC<Props> = ({ player, team, onSeeDetails }) => {
   const xpConfig = (team as any)?.xpConfig;
   const xpEnabled = xpConfig?.enabled === true;
-  if (!xpEnabled) return null;
+  // Adult teams always hide the XP progress mini-card. Even if a
+  // coach flipped xpConfig.enabled = true, the player-facing tier /
+  // level chrome reads as kid-flavored on an adult roster (see
+  // feedback_no_currency_mechanics + adult-mode intent).
+  const isAdult = (team as any)?.audienceType === 'adult';
+  if (!xpEnabled || isAdult) return null;
 
   const xp = typeof (player as any).xp === 'number' ? (player as any).xp : 0;
   const level = computeXpLevel(xp);

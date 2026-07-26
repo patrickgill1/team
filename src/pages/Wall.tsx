@@ -6,6 +6,7 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoachOfTeam, resolveSenderRole } from '../utils/helpers';
+import { audienceOf } from '../hooks/useTeamAudience';
 import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 import { uploadToR2 } from '../utils/r2Upload';
 import AppIcon from '../components/common/AppIcon';
@@ -860,7 +861,7 @@ const Wall: React.FC = () => {
         // came from a Circle member); senderRole mirrors it for the
         // renderer + legacy consumers.
         const asCoach = isCoachOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin;
-        const roleValue = asCoach ? 'coach' : resolveSenderRole(userData);
+        const roleValue = asCoach ? 'coach' : resolveSenderRole(userData, selectedTeam as any);
         const authorRole = asCoach ? 'coach' : 'parent';
         const status: 'live' | 'pending' = (!asCoach && requireCoachApproval) ? 'pending' : 'live';
         wasPending = status === 'pending';
@@ -1909,11 +1910,11 @@ const Wall: React.FC = () => {
                     </div>
                   ) : (p as any).potmResult ? (
                     <div className="px-3 pb-3">
-                      <PotmWinnerCard potm={(p as any).potmResult} timestamp={p.timestamp} isCoachView={isCoachOfTeam(userData, selectedTeam)} />
+                      <PotmWinnerCard potm={(p as any).potmResult} timestamp={p.timestamp} isCoachView={isCoachOfTeam(userData, selectedTeam)} isAdultTeam={audienceOf(selectedTeam as any) === 'adult'} />
                     </div>
                   ) : (p as any).potmVotingOpen ? (
                     <div className="px-3 pb-3">
-                      <PotmVotingCard post={p as any} currentUserId={userData?.uid} timestamp={p.timestamp} />
+                      <PotmVotingCard post={p as any} currentUserId={userData?.uid} timestamp={p.timestamp} isAdultTeam={audienceOf(selectedTeam as any) === 'adult'} />
                     </div>
                   ) : p.content ? (
                     <article className="px-4 pb-3 text-ink-primary/90 break-words text-[15.5px] leading-relaxed">

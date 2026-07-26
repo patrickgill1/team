@@ -8,7 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { ChatThread, ChatMessage } from '../types';
-import { resolveSenderRole } from '../utils/helpers';
+import { resolveSenderRole, isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import MessageBubble from '../components/chat/MessageBubble';
 import SilentErrorBoundary from '../components/common/SilentErrorBoundary';
 import DataGate from '../components/common/DataGate';
@@ -405,9 +405,13 @@ const TeamChat: React.FC = () => {
   // Chat image lightbox — when set, the URL is shown full-screen.
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
-  const currentRole = (userData as any)?.role;
-  const isCoach = currentRole === 'coach';
-  const isTeamStaff = currentRole === 'coach' || currentRole === 'team_manager';
+  // PER-TEAM role gating. The old check keyed on user.role globally,
+  // which corrupted identity the moment Patrick added himself as an
+  // adult player on Crushers: on Fire FC he suddenly could not see
+  // the Coach thread scope, and on Crushers he could see it when he
+  // shouldn't. Coach + staff are properties of a TEAM, not of a user.
+  const isCoach = isCoachOfTeam(userData as any, selectedTeam as any);
+  const isTeamStaff = isStaffOfTeam(userData as any, selectedTeam as any);
   const isUserClubAdmin = !!(userData as any)?.isClubAdmin;
   const canCreateTeamThread = !!selectedTeamId && (isTeamStaff || isUserClubAdmin);
   const canCreateAnyThread = canCreateTeamThread || isUserClubAdmin;
@@ -1448,7 +1452,7 @@ const TeamChat: React.FC = () => {
       senderId: userData.uid,
       senderName: userData.name,
       senderPhotoUrl: (userData as any).photoURL || undefined,
-      senderRole: resolveSenderRole(userData),
+      senderRole: resolveSenderRole(userData, selectedTeam as any),
       senderRelationship: (userData as any).relationship || undefined,
       timestamp: sendTimestamp,
       teamId: selectedTeamId || '',
@@ -1516,7 +1520,7 @@ const TeamChat: React.FC = () => {
       senderId: userData.uid,
       senderName: userData.name,
       senderPhotoUrl: (userData as any).photoURL || undefined,
-      senderRole: resolveSenderRole(userData),
+      senderRole: resolveSenderRole(userData, selectedTeam as any),
       senderRelationship: (userData as any).relationship || undefined,
       timestamp: sendTimestamp,
       teamId: selectedTeamId,
@@ -1885,7 +1889,7 @@ const TeamChat: React.FC = () => {
       senderId: userData.uid,
       senderName: userData.name,
       senderPhotoUrl: (userData as any).photoURL || undefined,
-      senderRole: resolveSenderRole(userData),
+      senderRole: resolveSenderRole(userData, selectedTeam as any),
       senderRelationship: (userData as any).relationship || undefined,
       timestamp: new Date(),
       teamId: selectedTeamId,

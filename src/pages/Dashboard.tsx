@@ -17,6 +17,8 @@ import UpcomingEventsList from '../components/dashboard/UpcomingEventsList';
 import SnackAssignmentBanner from '../components/dashboard/SnackAssignmentBanner';
 import PaymentsDueCard from '../components/dashboard/PaymentsDueCard';
 import TodaysDevelopmentCard from '../components/dashboard/TodaysDevelopmentCard';
+import NextMatchCountdownCard from '../components/dashboard/NextMatchCountdownCard';
+import AdultMyStatsCard from '../components/dashboard/AdultMyStatsCard';
 import GametapeSection from '../components/gametape/GametapeSection';
 import FamilyFeed from '../components/dashboard/FamilyFeed';
 import WeeklySpotlightCard, { type SpotlightPotm, type SpotlightPick } from '../components/dashboard/WeeklySpotlightCard';
@@ -927,6 +929,28 @@ const Dashboard: React.FC = () => {
 
   const nextEvent = upcomingEvents[0] || null;
 
+  // Adult-team NEXT MATCH card — the first upcoming game/tournament
+  // within the next 14 days. Falls out of `upcomingEvents` (already
+  // filtered !isEventPast + !isCancelled + sorted asc). Only surfaces
+  // on adult teams; youth Dashboards have TodaysDevelopmentCard in
+  // the equivalent slot instead. 'tournament' isn't a first-class
+  // event.type today but eventTiming already tolerates it, so we
+  // match both for forward-compat with a future tournament type.
+  const nextMatchEvent = useMemo(() => {
+    const isAdult = (selectedTeam as any)?.audienceType === 'adult';
+    if (!isAdult) return null;
+    const horizonMs = Date.now() + 14 * 24 * 60 * 60 * 1000;
+    for (const ev of upcomingEvents) {
+      const t = String((ev as any).type || '').toLowerCase();
+      if (t !== 'game' && t !== 'tournament') continue;
+      const startMs = new Date(ev.date).getTime();
+      if (!Number.isFinite(startMs)) continue;
+      if (startMs > horizonMs) return null; // sorted asc — nothing closer will follow
+      return ev;
+    }
+    return null;
+  }, [upcomingEvents, selectedTeam]);
+
   // Weather lookup for the next event — best-effort, only renders a chip
   // on the card if we get something back within ~16 days.
   const [nextEventWeather, setNextEventWeather] = useState<WeatherSummary | null>(null);
@@ -1399,6 +1423,23 @@ const Dashboard: React.FC = () => {
       <div className="relative">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+        {/* NEXT MATCH countdown — adult teams only. Sits at the top
+            of the parent-mode stack, above AdultMyStatsCard /
+            MyPlayerCard / SiblingCarousel, because on an adult team
+            "when is our next match?" is the emotional lead (youth
+            teams get TodaysDevelopmentCard in the equivalent slot,
+            so we skip this card there entirely). Silent when no
+            game/tournament is within 14 days — no empty state, no
+            placeholder card. */}
+        {isParentMode && nextMatchEvent && (
+          <NextMatchCountdownCard
+            event={nextMatchEvent}
+            teamPlayerCount={players.length}
+            myPlayerId={myPlayers[0]?.id}
+            onRsvp={rsvpForEvent}
+          />
+        )}
+
         {/* Parent-mode emotional lead. Patrick 2026-07-13: "the
             player profile should be first. that is the most
             important thing." Promoted from below the coach cards
@@ -1406,13 +1447,38 @@ const Dashboard: React.FC = () => {
             parent with a look at their kid before any chrome.
             Coach-mode leaves this null (their equivalent hero is
             CoachTonightCard further down). */}
-        {isParentMode && myPlayers.length > 0 && (
-          myPlayers.length === 1 ? (
+        {isParentMode && myPlayers.length > 0 && (() => {
+          // Adult-team branch. Swap the youth MyPlayerCard hero for
+          // the boxscore-flavored AdultMyStatsCard when (a) the team
+          // is flagged audienceType='adult' and (b) the viewer has a
+          // selfPlayerId that matches a player on this team's roster
+          // (they're playing FOR THIS TEAM, not just a coach's kid).
+          // When on an adult team but not on the roster (coach only,
+          // spectator), render nothing here — silent, per the
+          // atomic-render rule. Youth teams keep the existing card.
+          const isAdultTeam = (selectedTeam as any)?.audienceType === 'adult';
+          if (isAdultTeam) {
+            const selfPid: string | undefined = (userData as any)?.selfPlayerId;
+            const teamPlayerIds: string[] = Array.isArray((selectedTeam as any)?.playerIds)
+              ? (selectedTeam as any).playerIds
+              : [];
+            const isOnRoster = !!(selfPid && teamPlayerIds.includes(selfPid));
+            if (!isOnRoster) return null;
+            const me = myPlayers.find((pl: any) => pl.id === selfPid) || null;
+            if (!me) return null;
+            return (
+              <AdultMyStatsCard
+                player={me}
+                teamName={selectedTeam?.name}
+              />
+            );
+          }
+          return myPlayers.length === 1 ? (
             <MyPlayerCard
               player={myPlayers[0]}
               latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
               isPotm={isPotmThisWeek}
-              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
+              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true && (selectedTeam as any)?.audienceType !== 'adult'}
               teamName={selectedTeam?.name}
             />
           ) : (
@@ -1420,11 +1486,11 @@ const Dashboard: React.FC = () => {
               players={myPlayers}
               latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
               isPotmForPrimary={isPotmThisWeek}
-              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true}
+              xpEnabled={(selectedTeam as any)?.xpConfig?.enabled === true && (selectedTeam as any)?.audienceType !== 'adult'}
               teamName={selectedTeam?.name}
             />
-          )
-        )}
+          );
+        })()}
 
         {/* Trip roster chips — parent-mode only. Warm one-line pill
             when one of the linked kids is on an active tournament
@@ -1661,6 +1727,7 @@ const Dashboard: React.FC = () => {
           currentUserId={userData?.uid}
           myPlayerIds={myPlayers.map((p: any) => p.id)}
           isCoach={isUserCoach}
+          isAdultTeam={(selectedTeam as any)?.audienceType === 'adult'}
         />
 
         {/* The no-event empty state lives in DashboardHero now — no

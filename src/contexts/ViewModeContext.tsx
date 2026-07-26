@@ -3,7 +3,8 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
-import { isCoach, isClubAdmin as isClubAdminFn } from '../utils/helpers';
+import { useTeam } from './TeamContext';
+import { isCoach, isCoachOfTeam, isClubAdmin as isClubAdminFn } from '../utils/helpers';
 import {
   getDedicatedKidPlayerId,
   verifyPin,
@@ -71,8 +72,15 @@ interface ViewModeContextValue {
 
 const ViewModeContext = createContext<ViewModeContextValue | null>(null);
 
-function storageKey(uid?: string): string {
-  return `gk.viewMode.${uid || 'anon'}`;
+// Per-team storage so switching Fire FC → Crushers correctly flips
+// coach chrome off on the team the user only PLAYS on. Previously
+// the viewMode was a single per-user value: a Fire FC head coach
+// who joined an adult pickup team as a player still saw coach-only
+// tools on the pickup team. Audit 2026-07-25.
+function storageKey(uid?: string, teamId?: string): string {
+  const u = uid || 'anon';
+  const t = teamId || 'none';
+  return `gk.viewMode.${u}.${t}`;
 }
 
 function defaultModeFor(modes: ViewMode[]): ViewMode {
@@ -86,8 +94,32 @@ function defaultModeFor(modes: ViewMode[]): ViewMode {
   return 'parent';
 }
 
+// Team-scoped default: coach view when the user is on THIS team's
+// coachIds, parent view otherwise. An adult-team self-player (in
+// team.playerIds but not team.coachIds) also lands on 'parent' —
+// their MyPlayerCard + adult surfaces render off that same code
+// path. Falls back to the global defaultModeFor when the preferred
+// mode isn't available (e.g. user is a coach of team A but they're
+// viewing team B as a pure parent — team B default 'parent' still
+// respects availableModes if 'parent' isn't listed).
+function defaultModeForTeam(
+  user: any,
+  team: any,
+  modes: ViewMode[],
+): ViewMode {
+  const wantCoach = isCoachOfTeam(user, team);
+  const preferred: ViewMode = wantCoach ? 'coach' : 'parent';
+  if (modes.includes(preferred)) return preferred;
+  return defaultModeFor(modes);
+}
+
 export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { userData } = useAuth();
+  // ViewModeProvider is rendered INSIDE TeamProvider (App.tsx), so
+  // useTeam() is always safe here. We key persistence + defaults on
+  // the currently selected team so a coach-of-A + player-of-B user
+  // gets team-appropriate chrome per team, not one global setting.
+  const { selectedTeam, selectedTeamId } = useTeam();
 
   // `User.children` exists in the schema but isn't reliably
   // populated (Patrick caught this 2026-06-21 — his account is a
@@ -140,25 +172,35 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return defaultModeFor(availableModes);
   });
 
-  // Hydrate from localStorage once auth resolves with a uid.
+  // Hydrate from localStorage once auth AND the selected team
+  // resolve. Re-runs when the user switches teams so team A's stored
+  // preference doesn't leak into team B. If nothing is stored, we
+  // default per-team: coach when the user is on THIS team's coachIds,
+  // parent otherwise (per the coach-role-model — global 'coach' role
+  // doesn't imply coach chrome on every team).
   useEffect(() => {
-    if (!(userData as any)?.uid) return;
+    const uid = (userData as any)?.uid;
+    if (!uid) return;
+    // No team resolved yet — leave viewMode at whatever state has.
+    // Fires again once selectedTeamId lands.
+    if (!selectedTeamId) return;
     try {
-      const raw = localStorage.getItem(storageKey((userData as any).uid));
+      const raw = localStorage.getItem(storageKey(uid, selectedTeamId));
       if (raw && (raw === 'parent' || raw === 'coach' || raw === 'admin') && availableModes.includes(raw as ViewMode)) {
         setViewModeState(raw as ViewMode);
       } else {
-        setViewModeState(defaultModeFor(availableModes));
+        setViewModeState(defaultModeForTeam(userData, selectedTeam, availableModes));
       }
     } catch { /* ignore localStorage failures (private mode etc) */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [(userData as any)?.uid, availableModes.join('|')]);
+  }, [(userData as any)?.uid, selectedTeamId, availableModes.join('|')]);
 
   const setViewMode = (m: ViewMode) => {
     setViewModeState(m);
     try {
-      if ((userData as any)?.uid) {
-        localStorage.setItem(storageKey((userData as any).uid), m);
+      const uid = (userData as any)?.uid;
+      if (uid && selectedTeamId) {
+        localStorage.setItem(storageKey(uid, selectedTeamId), m);
       }
     } catch { /* ignore */ }
   };

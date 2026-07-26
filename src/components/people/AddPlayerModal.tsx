@@ -22,6 +22,7 @@ interface Team {
   id: string;
   name: string;
   clubId?: string;
+  audienceType?: 'youth' | 'adult';
 }
 
 interface Props {
@@ -46,7 +47,14 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
   // leagues, over-35s, etc. When on, the parent-invite section
   // becomes a self-signup invite that links the user as both
   // parent (for permissions) AND the player themself (for UI).
-  const [isAdultPlayer, setIsAdultPlayer] = useState(false);
+  //
+  // Seeded from the default team's audienceType so a coach adding a
+  // player on an adult-flagged team never has to remember to toggle
+  // this. Coach can still uncheck for a mixed roster (rare).
+  const [isAdultPlayer, setIsAdultPlayer] = useState(() => {
+    const defaultTeam = clubTeams.find(t => t.id === defaultTeamId);
+    return (defaultTeam?.audienceType === 'adult');
+  });
   // Guest player mode (tournament call-ups, tryouts, one-off ringers).
   // Guests get FULL team-member access during the window — chat,
   // roster, media, RSVP, POTM, XP visibility — not a sandboxed shell.
@@ -211,15 +219,23 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
         <div className="space-y-3">
           {result.inviteUrl ? (
             <div className="rounded-lg ring-1 ring-brand-primary/30 bg-brand-primary/10 p-3 space-y-2">
-              <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Parent invite link</div>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">
+                {isAdultPlayer ? 'Player invite link' : 'Parent invite link'}
+              </div>
               <div className="text-xs font-mono text-ink-primary break-all">{result.inviteUrl}</div>
               <Button variant="primary" onClick={copy} fullWidth size="sm">
                 {copied ? 'Copied' : 'Copy link'}
               </Button>
-              <p className="text-[10px] text-ink-primary/50">Send this to {parentEmail.trim() || 'the parent'}. Link expires in 30 days.</p>
+              <p className="text-[10px] text-ink-primary/50">
+                Send this to {parentEmail.trim() || (isAdultPlayer ? 'the player' : 'the parent')}. Link expires in 30 days.
+              </p>
             </div>
           ) : (
-            <p className="text-[11px] text-ink-primary/50">No parent invite generated. You can send one anytime via the + Invite button.</p>
+            <p className="text-[11px] text-ink-primary/50">
+              {isAdultPlayer
+                ? 'No player invite generated. You can send one anytime via the + Invite button.'
+                : 'No parent invite generated. You can send one anytime via the + Invite button.'}
+            </p>
           )}
         </div>
       ) : (

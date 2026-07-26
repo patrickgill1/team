@@ -91,7 +91,7 @@ const Navigation: React.FC = () => {
   // families have, well, multiple). We surface all of them in the More
   // sheet + Settings so a parent never has to "switch contexts" just
   // to see their second kid.
-  const [linkedPlayers, setLinkedPlayers] = useState<Array<{ id: string; name: string; teamName?: string }>>([]);
+  const [linkedPlayers, setLinkedPlayers] = useState<Array<{ id: string; name: string; teamName?: string; teamId?: string }>>([]);
   useEffect(() => {
     if (!userData?.uid) { setLinkedPlayers([]); return; }
     (async () => {
@@ -139,6 +139,7 @@ const Navigation: React.FC = () => {
           id: r.id,
           name: r.name,
           teamName: (nameCounts.get(r.name) || 0) > 1 ? teamNameById.get(r.teamId || '') : undefined,
+          teamId: r.teamId as string | undefined,
         }));
         setLinkedPlayers(rows);
       } catch (err) {
@@ -146,7 +147,18 @@ const Navigation: React.FC = () => {
       }
     })();
   }, [userData?.uid]);
-  const linkedPlayer = linkedPlayers[0] || null; // back-compat for old refs
+  // Scope the linked-player tiles to the currently-selected team so
+  // Patrick (coach on Fire FC, adult player on Crushers) doesn't see
+  // his son's Fire FC tile leaking into the Crushers More sheet.
+  // Falls back to the full list only when no team is selected —
+  // otherwise every switch would show a kid who isn't on this team.
+  const linkedPlayersForTeam = useMemo(
+    () => (selectedTeamId
+      ? linkedPlayers.filter(p => !p.teamId || p.teamId === selectedTeamId)
+      : linkedPlayers),
+    [linkedPlayers, selectedTeamId],
+  );
+  const linkedPlayer = linkedPlayersForTeam[0] || null; // back-compat for old refs
 
   // Close more menu on route change
   useEffect(() => {
@@ -169,8 +181,8 @@ const Navigation: React.FC = () => {
     isClubAdmin: isClubAdmin(userData),
     isParentMode: (userData as any)?.role === 'parent',
     isAdultTeam,
-    myPlayer: linkedPlayers[0] ? ({ id: linkedPlayers[0].id, name: linkedPlayers[0].name } as any) : null,
-  }), [userData, selectedTeam, isAdultTeam, linkedPlayers]);
+    myPlayer: linkedPlayersForTeam[0] ? ({ id: linkedPlayersForTeam[0].id, name: linkedPlayersForTeam[0].name } as any) : null,
+  }), [userData, selectedTeam, isAdultTeam, linkedPlayersForTeam]);
 
   const searchResults = useMemo(
     () => filterActions(SEARCHABLE_ACTIONS, moreSearch, searchCtx),
@@ -219,7 +231,7 @@ const Navigation: React.FC = () => {
     // Multi-kid: each linked player gets their own shortcut. Use full
     // name (not split) so two kids with the same first name still
     // disambiguate (rare but happens — siblings nicknames overlap).
-    ...linkedPlayers.map(p => ({
+    ...linkedPlayersForTeam.map(p => ({
       // When two linked players share a first name (the duplicate-
       // Hunter case), suffix the team name so each tile is
       // distinguishable. Single-kid families keep the clean name.
@@ -313,7 +325,7 @@ const Navigation: React.FC = () => {
       items: [
         // Each linked kid gets their own entry — multi-kid families
         // see both, not just the first one Firestore returned.
-        ...linkedPlayers.map(p => p.name.split(' ')[0]),
+        ...linkedPlayersForTeam.map(p => p.name.split(' ')[0]),
         VOCAB.squad, 'Vote', 'Stats', 'Development',
       ].map((n) => findItem(n as string)).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },

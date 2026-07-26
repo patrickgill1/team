@@ -405,10 +405,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               )}
 
               {(() => {
+                const isAdult = (playerTeam as any)?.audienceType === 'adult';
                 const vitals: string[] = [];
-                if ((player as any).favoritePlayer) vitals.push(`♥ ${(player as any).favoritePlayer}`);
+                // favoritePlayer + juggles are kid-flavored; hide on
+                // adult teams.
+                if (!isAdult && (player as any).favoritePlayer) vitals.push(`♥ ${(player as any).favoritePlayer}`);
                 const jb = (player as any).juggles?.best;
-                if (typeof jb === 'number' && jb > 0) vitals.push(`${jb} juggle${jb === 1 ? '' : 's'}`);
+                if (!isAdult && typeof jb === 'number' && jb > 0) vitals.push(`${jb} juggle${jb === 1 ? '' : 's'}`);
                 if (attendancePct != null) vitals.push(`${attendancePct}% attend`);
                 if (vitals.length === 0) return null;
                 return (

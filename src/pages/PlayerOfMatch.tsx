@@ -4,6 +4,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { Player, CalendarEvent } from '../types';
 import { formatDate, isCoachOfTeam } from '../utils/helpers';
+import { useTeamAudience } from '../hooks/useTeamAudience';
 import { isXpSourceEnabled } from '../utils/xpSource';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../utils/firebase';
@@ -74,6 +75,13 @@ const PlayerOfMatch: React.FC = () => {
   const [editingVotingId, setEditingVotingId] = useState<string | null>(null);
 
   const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  const { isAdult: isAdultTeam, copy: teamCopy } = useTeamAudience(selectedTeam as any);
+  // Adult teams use "MVP" / "Vote for MVP"; youth stays "Player of the
+  // Match". Both use the same underlying voting model — this is a copy
+  // swap only, no separate ballot page.
+  const potmTitle = teamCopy.potmTitle;
+  const potmVoteVerb = teamCopy.potmVoteVerb;
+  const potmReasonPlaceholder = teamCopy.potmReasonPlaceholder;
 
   useEffect(() => {
     loadData();
@@ -150,7 +158,7 @@ const PlayerOfMatch: React.FC = () => {
     // Check if voting already exists for this calendar event
     const existingVoting = votings.find(v => v.calendarEventId === resolvedId);
     if (existingVoting) {
-      alert('A Player of the Match voting already exists for this game.');
+      alert(`A ${potmTitle} voting already exists for this game.`);
       return;
     }
 
@@ -470,7 +478,9 @@ const PlayerOfMatch: React.FC = () => {
 
             // Native push to parents who have the app installed.
             sendPushToPlayerParents(w.playerId, {
-              title: isCoWin ? `${w.playerName} is co-Player of the Match!` : `${w.playerName} is Player of the Match!`,
+              title: isCoWin
+                ? (isAdultTeam ? `${w.playerName} is co-${potmTitle}!` : `${w.playerName} is co-Player of the Match!`)
+                : `${w.playerName} is ${potmTitle}!`,
               body: `${w.voteCount} vote${w.voteCount === 1 ? '' : 's'} · ${activeVoting.gameTitle}`,
               path: `/player/${w.playerId}`,
             }, 'potm');
@@ -567,7 +577,7 @@ const PlayerOfMatch: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-surface-base">
-      <Header title="Player of the Match" subtitle="Vote up the standout from every match." />
+      <Header title={potmTitle} subtitle={isAdultTeam ? 'Vote up the best player from every match.' : 'Vote up the standout from every match.'} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {isUserCoach && (
           <div className="mb-6 flex justify-end">
@@ -592,7 +602,7 @@ const PlayerOfMatch: React.FC = () => {
                   </svg>
                   <div className="flex-1">
                     <h3 className="text-sm font-medium text-brand-primary-dim mb-2">
-                      Games available for Player of the Match voting
+                      Games available for {potmTitle} voting
                     </h3>
                     <p className="text-sm text-brand-primary-soft mb-3">
                       Create voting sessions for recent or upcoming games
@@ -636,7 +646,7 @@ const PlayerOfMatch: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-ink-primary mb-1">No games scheduled yet</h3>
                     <p className="text-sm text-ink-primary/65 mb-3">
-                      Add a game to your calendar to start a Player of the Match vote — or hit <span className="font-semibold text-ink-primary/90">Create Voting</span> above to build a custom vote for any game.
+                      Add a game to your calendar to start a {potmTitle} vote, or hit <span className="font-semibold text-ink-primary/90">Create Voting</span> above to build a custom vote for any game.
                     </p>
                     <Link
                       to="/calendar"
@@ -657,7 +667,7 @@ const PlayerOfMatch: React.FC = () => {
                   <div>
                     <h3 className="text-sm font-medium text-ink-primary/85 mb-1">All Recent Games Have Voting</h3>
                     <p className="text-sm text-ink-primary/65">
-                      All your recent and upcoming games already have Player of the Match voting sessions. 
+                      All your recent and upcoming games already have {potmTitle} voting sessions.
                       You can create a custom voting session if needed.
                     </p>
                   </div>
@@ -764,7 +774,7 @@ const PlayerOfMatch: React.FC = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-ink-primary/85 mb-2">
-                      Choose Player of the Match
+                      Choose {potmTitle}
                     </label>
                     <select
                       value={selectedPlayer}
@@ -794,7 +804,7 @@ const PlayerOfMatch: React.FC = () => {
                       onChange={(e) => setVoteReason(e.target.value)}
                       rows={3}
                       className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                      placeholder="Why does this player deserve to be Player of the Match?"
+                      placeholder={potmReasonPlaceholder}
                     />
                   </div>
 
@@ -921,7 +931,7 @@ const PlayerOfMatch: React.FC = () => {
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z"/></svg>
               </span>
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-amber-300">Current Player of the Match</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-amber-300">Current {potmTitle}</div>
                 <div className="text-sm font-bold text-ink-primary truncate">
                   {players.filter(p => (p as any).isCurrentPotm).map(p => p.name).join(' · ')}
                 </div>
@@ -929,7 +939,7 @@ const PlayerOfMatch: React.FC = () => {
               <button
                 type="button"
                 onClick={async () => {
-                  if (!window.confirm('Clear the gold ring from this player? It stays cleared until the next POTM is voted in.')) return;
+                  if (!window.confirm(`Clear the gold ring from this player? It stays cleared until the next ${potmTitle} is voted in.`)) return;
                   try {
                     const { collection, getDocs, query, where, doc: fsDoc, updateDoc: fsUpdate } = await import('firebase/firestore');
                     const { db } = await import('../utils/firebase');
@@ -967,7 +977,7 @@ const PlayerOfMatch: React.FC = () => {
                   </svg>
                 </div>
                 <h3 className="text-lg font-medium text-ink-primary mb-2">No completed votings</h3>
-                <p className="text-ink-primary/65">Previous Player of the Match results will appear here</p>
+                <p className="text-ink-primary/65">Previous {potmTitle} results will appear here</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -1273,7 +1283,7 @@ const PlayerOfMatch: React.FC = () => {
                 <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-ink-primary/50 mb-2">
                   {availableGames.length > 0 ? 'Or create a custom vote' : 'Create a custom vote'}
                 </h3>
-                <CustomGameForm onSubmit={handleCreateCustomVoting} />
+                <CustomGameForm onSubmit={handleCreateCustomVoting} isAdultTeam={isAdultTeam} />
               </div>
             </div>
 
@@ -1295,9 +1305,10 @@ const PlayerOfMatch: React.FC = () => {
 // Custom Game Form Component
 interface CustomGameFormProps {
   onSubmit: (gameTitle: string, gameDate: Date, location?: string, opponent?: string, homeAway?: 'home' | 'away') => void;
+  isAdultTeam?: boolean;
 }
 
-const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
+const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit, isAdultTeam }) => {
   const [gameTitle, setGameTitle] = useState('');
   const [gameDate, setGameDate] = useState('');
   const [gameTime, setGameTime] = useState('15:00');
@@ -1397,9 +1408,11 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
         />
       </div>
 
-      <p className="text-[12px] text-ink-primary/50">
-        <span className="font-bold text-ink-primary/85">Note:</span> Parents cannot vote for their own children to keep the vote clean.
-      </p>
+      {!isAdultTeam && (
+        <p className="text-[12px] text-ink-primary/50">
+          <span className="font-bold text-ink-primary/85">Note:</span> Parents cannot vote for their own children to keep the vote clean.
+        </p>
+      )}
 
       <button
         type="submit"

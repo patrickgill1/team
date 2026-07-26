@@ -93,7 +93,13 @@ const NextEventPoster: React.FC<Props> = ({
   const eventDay   = eventDate ? eventDate.getDate() : 0;
   const eventDow   = eventDate ? DOWS_SHORT[eventDate.getDay()] : '';
   const location: string = (nextEvent as any)?.location || '';
-  const developmentFocus: string = ((nextEvent as any)?.developmentFocus || '').trim();
+  // Development focus is a training concept — only surface on
+  // practice events. On games/tournaments/social events the
+  // "practice focus" pill reads as noise (and confuses players
+  // scanning for kickoff details).
+  const developmentFocus: string = (nextEvent as any)?.type === 'practice'
+    ? ((nextEvent as any)?.developmentFocus || '').trim()
+    : '';
   // Pill label prefix for the development focus. Was hardcoded
   // "Today: <focus>", which read wrong when the practice was
   // tomorrow / later this week. Compare event date to today in the

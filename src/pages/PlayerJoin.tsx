@@ -11,7 +11,14 @@ import { auth, db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Player } from '../types';
 
-const TEAM_ID = "team_1752188125868";
+// Historically this file hardcoded TEAM_ID to Fire FC's id and
+// passed role='parent' to bootstrap, which meant every teammate who
+// signed in via a Fire FC invite got dropped onto Fire FC's roster —
+// and every Crushers (or any-other-team) invite ALSO created a Fire
+// FC 'parent' bootstrap. The /claim/player-link worker endpoint
+// already stamps user.teamIds / users.selfPlayerId correctly from the
+// invited player doc; there is no reason to pre-seed a team on
+// bootstrap. Sign in cleanly, then let the claim call assign identity.
 
 const PlayerJoin: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -138,7 +145,10 @@ const PlayerJoin: React.FC = () => {
       // directly, which broke inside the Capacitor app (COOP + a
       // failed sign-in) whenever a parent opened the invite deep
       // link from inside the installed app.
-      await signInWithGoogle(TEAM_ID, 'parent');
+      // No team / role pre-seed. /claim/player-link (called from
+      // checkAndLink after auth resolves) grants team membership and
+      // stamps selfPlayerId when the player doc is an adult.
+      await signInWithGoogle();
     } catch (err: any) {
       setAuthError(err.message || 'Google sign-in failed. Please try again.');
     } finally {
@@ -231,6 +241,11 @@ const PlayerJoin: React.FC = () => {
     );
   }
 
+  // Adult-player invites (Saturday pickup, men's league, college
+  // club) don't have a parent intermediary. Copy needs to talk
+  // roster-and-teammates, not "link to your kid".
+  const isAdultInvite = (player as any)?.isAdultPlayer === true;
+
   // Player loaded, now show the appropriate state
   return (
     <div className="min-h-screen bg-surface-base flex items-center justify-center p-4">
@@ -265,8 +280,12 @@ const PlayerJoin: React.FC = () => {
               </h2>
               <p className="text-ink-primary/65 text-sm mb-4">
                 {linked
-                  ? `Your account is now linked to ${player?.name}'s profile. You can vote in Player of the Match polls and stay connected with the team.`
-                  : `Your account is already linked to ${player?.name}'s profile.`}
+                  ? (isAdultInvite
+                      ? `You're on the roster as ${player?.name}. Head to the app to RSVP, chat with teammates, and see the schedule.`
+                      : `Your account is now linked to ${player?.name}'s profile. You can vote in Player of the Match polls and stay connected with the team.`)
+                  : (isAdultInvite
+                      ? `You're already on the roster as ${player?.name}.`
+                      : `Your account is already linked to ${player?.name}'s profile.`)}
               </p>
               <button
                 onClick={() => navigate('/dashboard')}
@@ -289,12 +308,18 @@ const PlayerJoin: React.FC = () => {
           {!currentUser && !linking && !linked && !alreadyLinked && (
             <div>
               <h2 className="text-lg font-bold text-ink-primary mb-1">
-                {authMode === 'login' ? 'Sign in to claim this profile' : 'Create an account'}
+                {authMode === 'login'
+                  ? (isAdultInvite ? 'Sign in to join the roster' : 'Sign in to claim this profile')
+                  : 'Create an account'}
               </h2>
               <p className="text-ink-primary/50 text-sm mb-4">
                 {authMode === 'login'
-                  ? `Sign in to link your account to ${player?.name}'s profile.`
-                  : `Create a free account to link to ${player?.name}'s profile and join the team.`}
+                  ? (isAdultInvite
+                      ? `Sign in to join ${player?.name ? `as ${player.name}` : 'the roster'} and see your team schedule, RSVPs, and chat.`
+                      : `Sign in to link to your kid's profile (${player?.name}).`)
+                  : (isAdultInvite
+                      ? `Create a free account to join the roster${player?.name ? ` as ${player.name}` : ''}.`
+                      : `Create a free account to link to ${player?.name}'s profile and join the team.`)}
               </p>
 
               {/* Google Sign In */}

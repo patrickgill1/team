@@ -171,11 +171,38 @@ export const isAdultPlayer = (user: { selfPlayerId?: string } | null | undefined
   return !!user?.selfPlayerId;
 };
 
-// Resolves the senderRole stamped on chat/wall messages. Adult
-// players write as 'player' so the bubble label reads correctly;
-// everyone else falls through to their user role.
-export const resolveSenderRole = (user: { role?: string; selfPlayerId?: string } | null | undefined): 'coach' | 'parent' | 'player' => {
+// Resolves the senderRole stamped on chat/wall messages.
+//
+// TEAM-SCOPED (preferred): pass the team so identity resolves per-team.
+// Patrick is a coach on Fire FC but an adult player on Crushers — the
+// global check would stamp every message as 'player' the moment he
+// added himself to the Crushers roster. Per-team resolution gives:
+//   - 'coach' when the user is in team.coachIds
+//   - 'player' when team.audienceType==='adult' AND team.playerIds
+//     contains user.selfPlayerId (they play FOR THIS TEAM)
+//   - 'parent' otherwise (youth default)
+//
+// LEGACY (team not passed): falls back to the old global behavior so
+// callers without team context (settings pages, generic surfaces) keep
+// working. Every chat/wall/gameday call site SHOULD pass its team.
+export const resolveSenderRole = (
+  user: { uid?: string; role?: string; selfPlayerId?: string } | null | undefined,
+  team?: { coachIds?: string[]; audienceType?: string; playerIds?: string[] } | null | undefined,
+): 'coach' | 'parent' | 'player' => {
   if (!user) return 'parent';
+  if (team) {
+    if (isCoachOfTeam(user, team)) return 'coach';
+    if (
+      team.audienceType === 'adult'
+      && user.selfPlayerId
+      && Array.isArray(team.playerIds)
+      && team.playerIds.includes(user.selfPlayerId)
+    ) {
+      return 'player';
+    }
+    return 'parent';
+  }
+  // Legacy fallback — no team context available.
   if (isAdultPlayer(user)) return 'player';
   if (user.role === 'coach') return 'coach';
   return 'parent';

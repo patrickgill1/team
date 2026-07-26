@@ -14,12 +14,15 @@ interface Props {
    *  in the player's team(s). */
   attendancePct: number | null;
   jugglesBest: number;
+  /** Adult teams: hide the juggle tile (kid-flavored feature) and
+   *  drop the grid to 3 columns. */
+  hideJuggles?: boolean;
 }
 
-const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePct, jugglesBest }) => {
+const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePct, jugglesBest, hideJuggles }) => {
   return (
     <section className="bg-surface-base px-4 sm:px-6 py-4 border-b border-line-default/10">
-      <div className="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+      <div className={`max-w-6xl mx-auto grid grid-cols-2 ${hideJuggles ? 'sm:grid-cols-3' : 'sm:grid-cols-4'} gap-2 sm:gap-3`}>
         <StatTile
           accent="amber"
           icon={<TrophyIcon />}
@@ -41,13 +44,15 @@ const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePc
           label="Practice"
           sub="Attendance"
         />
-        <StatTile
-          accent="cyan"
-          icon={<BallIcon />}
-          value={String(jugglesBest)}
-          label="Juggle"
-          sub="Personal best"
-        />
+        {!hideJuggles && (
+          <StatTile
+            accent="cyan"
+            icon={<BallIcon />}
+            value={String(jugglesBest)}
+            label="Juggle"
+            sub="Personal best"
+          />
+        )}
       </div>
     </section>
   );

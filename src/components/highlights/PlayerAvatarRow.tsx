@@ -18,16 +18,15 @@ interface Props {
   onSelect: (playerId: string | 'all') => void;
 }
 
-// v6 iteration: shape change + bigger canvas. Circles kept clipping
-// faces because a portrait phone selfie has the face 20-35% down the
-// frame and a circle carves both sides AND the top. Switching to a
-// rounded-square card (with slight portrait aspect 96x112) plus
-// object-position 50% 20% means the crop box shape matches the
-// source shape, so faces survive. v3/v4/v5 kept tuning padding and
-// object-position on a circle; this rounds out the actual root cause
-// (crop-box aspect vs source aspect mismatch).
+// v6.1 iteration: circles reinstated per coach preference. The card
+// shape (v6) fixed the crop but Patrick prefers the softer circular
+// look for the row. To keep faces from clipping inside a circle, the
+// photo now renders with object-contain (letterbox) against a subtle
+// gradient bg, so the whole face is always visible no matter how the
+// source photo is framed. Trade-off is a thin gradient wash on the
+// sides for portrait crops, but no face ever gets carved.
 const AVATAR_W = 96;
-const AVATAR_H = 112;
+const AVATAR_H = 96;
 
 const PlayerAvatarRow: React.FC<Props> = ({ players, media, selectedPlayerId, onSelect }) => {
   // Pre-compute per-player counts once per (players, media) so scroll
@@ -110,12 +109,12 @@ const AvatarPill: React.FC<PillProps> = ({ label, photoUrl, selected, count, onC
       aria-label={`${label}, ${count} clip${count === 1 ? '' : 's'}`}
     >
       <span
-        className={`relative inline-flex rounded-2xl transition p-1 bg-surface-elevated ${ringClass}`}
+        className={`relative inline-flex rounded-full transition p-1 bg-surface-elevated ${ringClass}`}
         style={{ width: AVATAR_W, height: AVATAR_H }}
       >
         {label === 'All' ? (
           <span
-            className="inline-flex items-center justify-center rounded-xl bg-brand-primary text-brand-primary-fg font-black"
+            className="inline-flex items-center justify-center rounded-full bg-brand-primary text-brand-primary-fg font-black"
             style={{ width: innerW, height: innerH, fontSize: 22 }}
           >
             All
@@ -126,7 +125,8 @@ const AvatarPill: React.FC<PillProps> = ({ label, photoUrl, selected, count, onC
             photoUrl={photoUrl}
             size={innerW}
             height={innerH}
-            shape="card"
+            shape="circle"
+            fit="contain"
           />
         )}
         {count > 0 && (

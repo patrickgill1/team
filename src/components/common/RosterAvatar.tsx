@@ -63,6 +63,11 @@ interface Props {
    *  selfies and coach-shot portraits survive). Prior code hardcoded
    *  object-top which sacrificed centered selfies. */
   objectPosition?: string;
+  /** How the photo fills the crop box. 'cover' (default) fills and
+   *  crops; 'contain' fits the whole photo with letterbox on the
+   *  short side. Use 'contain' when the surface must never clip the
+   *  face (e.g. the PlayerAvatarRow filter row on Media page). */
+  fit?: 'cover' | 'contain';
 }
 
 const RosterAvatar: React.FC<Props> = ({
@@ -73,6 +78,7 @@ const RosterAvatar: React.FC<Props> = ({
   className = '',
   shape = 'circle',
   objectPosition,
+  fit = 'cover',
 }) => {
   const [photoLoaded, setPhotoLoaded] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -113,7 +119,7 @@ const RosterAvatar: React.FC<Props> = ({
           decoding="async"
           onLoad={() => setPhotoLoaded(true)}
           onError={() => setPhotoFailed(true)}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ease-out"
+          className={`absolute inset-0 w-full h-full transition-opacity duration-300 ease-out ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
           style={{ opacity: photoLoaded ? 1 : 0, objectPosition: objPos }}
         />
       )}

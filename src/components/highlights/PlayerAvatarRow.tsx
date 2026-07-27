@@ -18,15 +18,16 @@ interface Props {
   onSelect: (playerId: string | 'all') => void;
 }
 
-// v6.1 iteration: circles reinstated per coach preference. The card
-// shape (v6) fixed the crop but Patrick prefers the softer circular
-// look for the row. To keep faces from clipping inside a circle, the
-// photo now renders with object-contain (letterbox) against a subtle
-// gradient bg, so the whole face is always visible no matter how the
-// source photo is framed. Trade-off is a thin gradient wash on the
-// sides for portrait crops, but no face ever gets carved.
-const AVATAR_W = 96;
-const AVATAR_H = 96;
+// v6.2: back to the ORIGINAL 64px circle size per coach. The "avatars
+// getting clipped" complaint the last few iterations misread as face-
+// clipping was actually the count BADGE clipping — the badge uses
+// negative offsets (-top-1.5 -right-1.5) to poke out of the circle,
+// and the parent scroll container has overflow-y-hidden which chops
+// the top of each badge. Fix: add pt-4 to the row so badges have
+// vertical room, and pointerless -top-1 keeps the badge fully inside
+// the padded area. Faces render via object-contain so nothing crops.
+const AVATAR_W = 64;
+const AVATAR_H = 64;
 
 const PlayerAvatarRow: React.FC<Props> = ({ players, media, selectedPlayerId, onSelect }) => {
   // Pre-compute per-player counts once per (players, media) so scroll
@@ -55,7 +56,7 @@ const PlayerAvatarRow: React.FC<Props> = ({ players, media, selectedPlayerId, on
 
   return (
     <div
-      className="flex gap-3 overflow-x-auto overflow-y-hidden -mx-1 px-1 pb-2 mb-4"
+      className="flex gap-3 overflow-x-auto overflow-y-hidden -mx-1 px-1 pt-3 pb-2 mb-4"
       style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
       aria-label="Filter clips by player"
     >
@@ -131,7 +132,7 @@ const AvatarPill: React.FC<PillProps> = ({ label, photoUrl, selected, count, onC
         )}
         {count > 0 && (
           <span
-            className="absolute -top-1.5 -right-1.5 min-w-[24px] h-6 px-1.5 rounded-full bg-red-600 text-white text-xs font-black flex items-center justify-center ring-2 ring-surface-base"
+            className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-red-600 text-white text-[11px] font-black flex items-center justify-center ring-2 ring-surface-base"
             aria-hidden
           >
             {count > 99 ? '99+' : count}

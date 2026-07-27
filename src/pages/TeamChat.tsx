@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useSearchParams } from 'react-router-dom';
 import { where, doc, updateDoc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, onIdTokenChanged } from 'firebase/auth';
@@ -496,6 +497,18 @@ const TeamChat: React.FC = () => {
   const [vvInset, setVvInset] = useState(0);
   const [capInset, setCapInset] = useState(0);
   const kbInset = Math.max(vvInset, capInset);
+
+  // Platform-gated keyboard inset. On iOS, Capacitor Keyboard runs in
+  // resize:'native' mode, so WKWebView already shrinks window.innerHeight
+  // by the IME height. The Keyboard plugin STILL fires keyboardWillShow
+  // with a non-zero keyboardHeight regardless of resize mode, so if we
+  // also subtract kbInset from the container height we double-subtract
+  // and the composer floats a full keyboard-height above the IME with a
+  // visible empty gap. Android's adjustResize is the same story on well-
+  // behaved ROMs, but some OEM builds mishandle it, so we keep the JS
+  // safety-net there (and on web, where there is no native resize).
+  const platform = Capacitor.getPlatform(); // 'ios' | 'android' | 'web'
+  const androidKbInset = platform === 'ios' ? 0 : kbInset;
 
   useEffect(() => {
     const vv = typeof window !== 'undefined' ? window.visualViewport : null;
@@ -2662,10 +2675,21 @@ const TeamChat: React.FC = () => {
           // Uses --gk-safe-top so Android (where MainActivity already
           // applied the inset) doesn't double-count it and leak a
           // white strip between the top chrome and chat container.
+          //
+          // Also subtract androidKbInset (the max of visualViewport delta
+          // and the Capacitor Keyboard plugin's reported IME height, but
+          // ZEROED on iOS). This is a JS-side safety net for Android OEM
+          // ROMs where adjustResize is flaky and for the web fallback.
+          // iOS is excluded because Capacitor Keyboard's resize:'native'
+          // already shrinks winHeight via WKWebView, but the plugin still
+          // reports a non-zero keyboardHeight on keyboardWillShow — so
+          // subtracting kbInset on top of the already-shrunk winHeight
+          // double-subtracts and floats the composer a full keyboard-
+          // height above the IME with a visible empty gap.
           height:
             currentView === 'chat' && selectedThread
-              ? `calc(${winHeight}px - var(--gk-safe-top) - 3.5rem)`
-              : `calc(${winHeight}px - var(--gk-safe-top) - 3.5rem - 3rem)`,
+              ? `calc(${winHeight}px - var(--gk-safe-top) - 3.5rem - ${androidKbInset}px)`
+              : `calc(${winHeight}px - var(--gk-safe-top) - 3.5rem - 3rem - ${androidKbInset}px)`,
         }}
       >
         {currentView === 'threads' ? (

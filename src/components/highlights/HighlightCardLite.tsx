@@ -1,12 +1,13 @@
 // Chrome-light card used inside every Netflix-style row on the
 // Highlights tab. Deliberately minimal: just the poster, a hover-only
-// play triangle, and a two-line label overlaid at the bottom
-// (player name + secondary meta). No like/view/share/kebab/tag chips
-// — the reel is where those live.
+// play triangle, and a bottom label overlay with the tagged player's
+// avatar + name + secondary meta. No like/view/share/kebab/tag chips
+// - the reel is where those live.
 
 import React from 'react';
 import type { PlayerMedia as PlayerMediaType, Player } from '../../types';
 import { posterFor } from '../../utils/mediaPoster';
+import RosterAvatar from '../common/RosterAvatar';
 
 interface Props {
   clip: PlayerMediaType;
@@ -34,21 +35,43 @@ function shortDate(v: any): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+/** Resolve the "primary tagged player" for this clip. Priority:
+ *  1. goalScorerId (this clip is celebrating a goal by that kid)
+ *  2. playerId (the media's owning player)
+ *  3. first entry in taggedPlayerIds
+ *  Returns the resolved Player if found in the roster, otherwise null. */
+export function primaryTaggedPlayer(
+  clip: PlayerMediaType,
+  players?: Player[],
+): Player | null {
+  if (!players || players.length === 0) return null;
+  const ids: string[] = [];
+  if (clip.goalScorerId) ids.push(clip.goalScorerId);
+  if (clip.playerId) ids.push(clip.playerId);
+  if (Array.isArray(clip.taggedPlayerIds)) {
+    for (const id of clip.taggedPlayerIds) if (id) ids.push(id);
+  }
+  for (const id of ids) {
+    const found = players.find(p => p.id === id);
+    if (found) return found;
+  }
+  return null;
+}
+
 /** Resolve the "who is this clip really about?" name. For goal clips
  *  where the uploader is the parent and the goalScorerId points at a
- *  different kid, prefer the actual scorer — that's the person the
+ *  different kid, prefer the actual scorer - that's the person the
  *  card is celebrating. Falls back to the stored playerName. */
 function displayName(clip: PlayerMediaType, players?: Player[]): string {
-  if (clip.goalScorerId && players && players.length > 0) {
-    const scorer = players.find(p => p.id === clip.goalScorerId);
-    if (scorer?.name) return scorer.name;
-  }
+  const tagged = primaryTaggedPlayer(clip, players);
+  if (tagged?.name) return tagged.name;
   return clip.playerName || 'Highlight';
 }
 
 const HighlightCardLite: React.FC<Props> = ({ clip, players, onOpen, fullWidth }) => {
   const poster = posterFor(clip);
   const name = displayName(clip, players);
+  const tagged = primaryTaggedPlayer(clip, players);
   const secondary = momentLabel(clip.momentType) || shortDate(clip.createdAt);
 
   const widthClasses = fullWidth
@@ -93,14 +116,24 @@ const HighlightCardLite: React.FC<Props> = ({ clip, players, onOpen, fullWidth }
         </span>
       </span>
 
-      {/* Bottom-left label overlay. Two lines, both truncate. */}
+      {/* Bottom-left label overlay. Avatar + name/secondary column. */}
       <div className="absolute inset-x-0 bottom-0 p-2.5 pt-8 bg-gradient-to-t from-black/80 via-black/50 to-transparent pointer-events-none">
-        <div className="text-white text-sm font-bold truncate leading-tight">{name}</div>
-        {secondary && (
-          <div className="text-white/70 text-[11px] font-medium truncate leading-tight mt-0.5">
-            {secondary}
+        <div className="flex items-center gap-2 min-w-0">
+          <RosterAvatar
+            name={tagged?.name || name}
+            photoUrl={tagged?.profilePhotoUrl || undefined}
+            size={28}
+            className="ring-1 ring-white/40"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="text-white text-sm font-bold truncate leading-tight">{name}</div>
+            {secondary && (
+              <div className="text-white/70 text-[11px] font-medium truncate leading-tight mt-0.5">
+                {secondary}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </button>
   );

@@ -14,12 +14,12 @@
 // opens on that exact clip — unifies tab-consumption and reel-
 // consumption per spec.
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Player, PlayerMedia as PlayerMediaType, Team } from '../../types';
 import { mediaBelongsToPlayer } from '../../utils/mediaAttribution';
 import HighlightHero from './HighlightHero';
-import HighlightRow from './HighlightRow';
+import HighlightTopThreeRow from './HighlightTopThreeRow';
 import HighlightCardLite from './HighlightCardLite';
 import PlayerAvatarRow from './PlayerAvatarRow';
 import SortPill, { SortKey } from './SortPill';
@@ -81,6 +81,10 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   const [sortKey, setSortKey] = useState<SortKey>('recent');
   const [creditFilter, setCreditFilter] = useState(false);
   const [gridLimit, setGridLimit] = useState(GRID_PAGE);
+  // Ref to the grid section so we can smooth-scroll to it after a
+  // player is picked from the avatar row. Without this the filter
+  // takes effect way below the fold and reads as "nothing happened".
+  const gridSectionRef = useRef<HTMLDivElement | null>(null);
 
   // Media pre-conditioned: normalize createdAt to a Date and drop
   // dead placeholders. Sorted newest-first as the default order.
@@ -177,6 +181,39 @@ const HighlightsNetflixTab: React.FC<Props> = ({
     navigate(`/highlights?clip=${encodeURIComponent(clipId)}`);
   };
 
+  // Player-tap feedback: bring the grid into view so the user sees
+  // the filter actually applied. Skips the scroll when the grid is
+  // already comfortably in the viewport (avoids jarring jumps when
+  // toggling between adjacent avatars on a large screen).
+  const revealGrid = () => {
+    const el = gridSectionRef.current;
+    if (!el) return;
+    // rAF so the state update + chip re-render commit before we
+    // measure the grid's new top position.
+    requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      // "Comfortably visible" = top edge is somewhere in the upper
+      // 60% of the viewport. Anywhere below that and the user won't
+      // see the chip flash in without a scroll.
+      const alreadyVisible = rect.top >= 0 && rect.top < vh * 0.6;
+      if (alreadyVisible) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const handleSelectPlayer = (id: string | 'all') => {
+    setSelectedPlayerId(id);
+    setCreditFilter(false);
+    setGridLimit(GRID_PAGE);
+    if (id !== 'all') revealGrid();
+  };
+
+  const selectedPlayer = useMemo(() => {
+    if (selectedPlayerId === 'all') return null;
+    return players.find(p => p.id === selectedPlayerId) || null;
+  }, [players, selectedPlayerId]);
+
   const totalClips = clips.length;
   const visibleGrid = gridClips.slice(0, gridLimit);
   const canLoadMore = gridClips.length > visibleGrid.length;
@@ -216,18 +253,13 @@ const HighlightsNetflixTab: React.FC<Props> = ({
             players={players}
             media={clips}
             selectedPlayerId={selectedPlayerId}
-            onSelect={(id) => {
-              setSelectedPlayerId(id);
-              setCreditFilter(false);
-              setGridLimit(GRID_PAGE);
-            }}
+            onSelect={handleSelectPlayer}
           />
 
           {/* 3. Top 3 clips this season (silent-hide when < 3) */}
           {showTop3 && (
-            <HighlightRow
+            <HighlightTopThreeRow
               key="top3"
-              title="Top 3 Clips This Season"
               clips={top3}
               players={players}
               onCardTap={openClip}
@@ -256,7 +288,33 @@ const HighlightsNetflixTab: React.FC<Props> = ({
             </div>
           )}
 
-          {/* 6. Main clip grid */}
+          {/* 6. Main clip grid (with a sticky "you filtered to X" chip
+              at its top edge so the user sees the filter took hold as
+              soon as the scroll lands them here). */}
+          <div ref={gridSectionRef}>
+          {selectedPlayer && (
+            <div className="sticky top-0 z-20 mb-3 -mx-1 px-1 py-2 bg-surface-base/85 backdrop-blur-sm">
+              <div className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full bg-brand-primary-soft/20 text-brand-primary ring-1 ring-brand-primary-soft/30">
+                <span className="text-sm font-bold truncate max-w-[60vw]">
+                  {selectedPlayer.name}
+                </span>
+                <span className="text-xs font-bold opacity-70">
+                  {gridClips.length} {gridClips.length === 1 ? 'clip' : 'clips'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSelectPlayer('all')}
+                  className="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-full hover:bg-brand-primary/15 focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+                  aria-label="Clear player filter"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
           {visibleGrid.length === 0 ? (
             <div className="text-center py-14 bg-surface-elevated rounded-2xl border border-line-default/10">
               <p className="text-ink-primary font-bold">No clips match this view.</p>
@@ -294,6 +352,7 @@ const HighlightsNetflixTab: React.FC<Props> = ({
               )}
             </>
           )}
+          </div>
         </>
       )}
     </div>

@@ -115,13 +115,34 @@ module.exports = {
       animation: {
         // Subtle scale/opacity pulse for the game-day glow on the
         // next-event card. Not the standard tailwind pulse (which is
-        // too aggressive) — this one fades the shadow + ring softly.
+        // too aggressive) - this one fades the shadow + ring softly.
         'pulse-soft': 'pulseSoft 2.4s ease-in-out infinite',
+        // Post-watch heart nudge: gentle scale + rose glow that draws
+        // the eye to the like button without shouting.
+        'heart-pulse': 'heartPulse 1.4s ease-in-out infinite',
+        // Post-watch next-clip chip pulse (softer scale, no color
+        // shift - color comes from the brand-primary bg swap).
+        'next-pulse': 'nextPulse 1.6s ease-in-out infinite',
+        // 200ms fade-in for the "Loved it? Tap the heart" bubble so
+        // it doesn't just snap into existence.
+        'fade-in': 'fadeIn 200ms ease-out both',
       },
       keyframes: {
         pulseSoft: {
           '0%, 100%': { boxShadow: '0 0 0 0 rgba(244,63,94,0.0)' },
           '50%':      { boxShadow: '0 0 24px 4px rgba(244,63,94,0.35)' },
+        },
+        heartPulse: {
+          '0%, 100%': { transform: 'scale(1)',    boxShadow: '0 0 0 0 rgba(244,63,94,0.55)' },
+          '50%':      { transform: 'scale(1.08)', boxShadow: '0 0 0 8px rgba(244,63,94,0.0)' },
+        },
+        nextPulse: {
+          '0%, 100%': { transform: 'scale(1)',    boxShadow: '0 0 0 0 rgba(6,182,212,0.55)' },
+          '50%':      { transform: 'scale(1.04)', boxShadow: '0 0 0 6px rgba(6,182,212,0.0)' },
+        },
+        fadeIn: {
+          '0%':   { opacity: '0', transform: 'translateY(-2px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
     },

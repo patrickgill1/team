@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
+import { useAuth } from '../hooks/useAuth';
 import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { formatDate } from '../utils/helpers';
 import StreamPlayer from '../components/common/StreamPlayer';
@@ -13,7 +14,8 @@ const ACTIVITY_TAGS = ['Goal', 'Assist', 'Save', 'Skill', 'Practice', 'Highlight
 
 const Highlights: React.FC = () => {
   const { selectedTeamId } = useTeam();
-  const { getPlayerMediaByTeam, getPlayersByTeam } = useFirestore();
+  const { getPlayerMediaByTeam, getPlayersByTeam, updateDocument } = useFirestore();
+  const { userData } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [players, setPlayers] = useState<Player[]>([]);
@@ -23,6 +25,14 @@ const Highlights: React.FC = () => {
   const [tagFilter, setTagFilter] = useState<string>(searchParams.get('tag') || 'all');
   const [activeIndex, setActiveIndex] = useState(0);
   const [muted, setMuted] = useState(true);
+  // Per-clip "video finished playing" latch. Used to (a) subtly pulse
+  // the Next-clip affordance and (b) show a 3-second "Loved it? Tap
+  // the heart" nudge pointing at the like button. Keyed by clip id so
+  // scrolling to another clip doesn't retrigger and dismiss resets on
+  // the current clip only.
+  const [endedClipId, setEndedClipId] = useState<string | null>(null);
+  const [nudgeVisibleFor, setNudgeVisibleFor] = useState<string | null>(null);
+  const nudgeTimerRef = useRef<number | null>(null);
 
   const reelRef = useRef<HTMLDivElement | null>(null);
   const slotRefs = useRef<Array<HTMLElement | null>>([]);
@@ -131,6 +141,63 @@ const Highlights: React.FC = () => {
     if (filtered.length === 0) return;
     scrollToIndex(Math.min(activeIndex + 1, filtered.length - 1));
   }, [activeIndex, filtered.length, scrollToIndex]);
+
+  // Reset the "ended" state whenever the user scrolls to a new clip -
+  // the pulse and heart-nudge only ever belong to the clip that just
+  // finished, not the one now in view.
+  useEffect(() => {
+    setEndedClipId(null);
+    setNudgeVisibleFor(null);
+    if (nudgeTimerRef.current) {
+      window.clearTimeout(nudgeTimerRef.current);
+      nudgeTimerRef.current = null;
+    }
+  }, [activeIndex]);
+
+  useEffect(() => {
+    return () => {
+      if (nudgeTimerRef.current) window.clearTimeout(nudgeTimerRef.current);
+    };
+  }, []);
+
+  // Video-ended handler: NO auto-advance (Patrick 2026-07-26 - "people
+  // will get lost"). Instead we pulse the Next-clip affordance and
+  // pop the "Loved it? Tap the heart" nudge for 3s so the user gets
+  // an obvious next-step cue.
+  const handleVideoEnded = useCallback((clipId: string) => {
+    setEndedClipId(clipId);
+    setNudgeVisibleFor(clipId);
+    if (nudgeTimerRef.current) window.clearTimeout(nudgeTimerRef.current);
+    nudgeTimerRef.current = window.setTimeout(() => {
+      setNudgeVisibleFor(prev => (prev === clipId ? null : prev));
+      nudgeTimerRef.current = null;
+    }, 3000);
+  }, []);
+
+  // Optimistic like toggle (mirrors PlayerMediaPage.handleLike). The
+  // heart flips instantly; on failure we revert. player_media only -
+  // the reel never shows gallery items.
+  const handleLike = useCallback(async (clip: PlayerMediaType) => {
+    if (!userData?.uid) return;
+    const uid = userData.uid;
+    const likes = clip.likes || [];
+    const already = likes.includes(uid);
+    const nextLikes = already ? likes.filter(id => id !== uid) : [...likes, uid];
+    setMedia(prev => prev.map(m => (
+      m.id === clip.id ? { ...m, likes: nextLikes, likeCount: nextLikes.length } : m
+    )));
+    try {
+      await updateDocument('player_media', clip.id, {
+        likes: nextLikes,
+        likeCount: nextLikes.length,
+      });
+    } catch (err) {
+      console.error('[Highlights] like toggle failed', err);
+      setMedia(prev => prev.map(m => (
+        m.id === clip.id ? { ...m, likes, likeCount: likes.length } : m
+      )));
+    }
+  }, [userData?.uid, updateDocument]);
 
   const share = async (clip: PlayerMediaType) => {
     const url = `${getShareOrigin()}/player-media?id=${clip.id}`;
@@ -261,7 +328,7 @@ const Highlights: React.FC = () => {
                       muted={muted}
                       title={clip.caption || clip.playerName}
                       className="w-full h-full"
-                      onEnded={goNext}
+                      onEnded={() => handleVideoEnded(clip.id)}
                     />
                   </div>
                 )}
@@ -273,15 +340,73 @@ const Highlights: React.FC = () => {
                     autoPlay
                     playsInline
                     muted={muted}
-                    onEnded={goNext}
+                    onEnded={() => handleVideoEnded(clip.id)}
                   />
                 )}
 
-                {/* Floating action stack — sits on top-right of the
+                {/* Floating action stack - sits on top-right of the
                     video so it's reachable without covering the
-                    important pixels in the middle of the frame. */}
-                <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
+                    important pixels in the middle of the frame. Heart
+                    lives at the top of the stack because "did you love
+                    it" is the primary post-watch ask. */}
+                <div className="absolute top-3 right-3 flex flex-col gap-2.5 z-10">
+                  {(() => {
+                    const liked = !!(userData?.uid && (clip.likes || []).includes(userData.uid));
+                    const nudging = nudgeVisibleFor === clip.id && !liked;
+                    return (
+                      <div className="relative">
+                        {nudging && (
+                          <div
+                            className="absolute right-full mr-2 top-1/2 -translate-y-1/2 pointer-events-none animate-fade-in whitespace-nowrap"
+                            aria-live="polite"
+                          >
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-slate-900 shadow-lg text-xs font-bold">
+                              Loved it? Tap the heart
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                                <polyline points="12 5 19 12 12 19" />
+                              </svg>
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => { handleLike(clip); setNudgeVisibleFor(null); }}
+                          className={`relative w-12 h-12 rounded-full ring-1 ring-line-default/20 backdrop-blur flex items-center justify-center transition ${liked ? 'bg-rose-600/85 hover:bg-rose-600' : 'bg-black/55 hover:bg-black/75'} ${nudging ? 'animate-heart-pulse ring-2 ring-rose-400/80' : ''}`}
+                          aria-label={liked ? 'Unlike' : 'Like'}
+                          aria-pressed={liked}
+                        >
+                          <svg
+                            className="w-6 h-6 text-white"
+                            viewBox="0 0 24 24"
+                            fill={liked ? 'currentColor' : 'none'}
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden
+                          >
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                          </svg>
+                          {(clip.likeCount || 0) > 0 && (
+                            <span className="absolute -bottom-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-slate-900 text-[10px] font-black flex items-center justify-center ring-2 ring-black/70">
+                              {(clip.likeCount || 0) > 99 ? '99+' : clip.likeCount}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })()}
                   <button
+                    type="button"
+                    onClick={() => share(clip)}
+                    className="w-12 h-12 rounded-full bg-black/55 hover:bg-black/75 ring-1 ring-line-default/20 backdrop-blur flex items-center justify-center"
+                    aria-label="Share"
+                  >
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setMuted(m => !m)}
                     className="w-10 h-10 rounded-full bg-black/55 hover:bg-black/75 ring-1 ring-line-default/20 backdrop-blur flex items-center justify-center"
                     aria-label={muted ? 'Unmute' : 'Mute'}
@@ -293,13 +418,6 @@ const Highlights: React.FC = () => {
                         <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></>
                       )}
                     </svg>
-                  </button>
-                  <button
-                    onClick={() => share(clip)}
-                    className="w-10 h-10 rounded-full bg-black/55 hover:bg-black/75 ring-1 ring-line-default/20 backdrop-blur flex items-center justify-center"
-                    aria-label="Share"
-                  >
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                   </button>
                 </div>
               </div>
@@ -329,16 +447,21 @@ const Highlights: React.FC = () => {
                     </div>
                   )}
 
-                  {i < filtered.length - 1 && (
-                    <button
-                      type="button"
-                      onClick={goNext}
-                      className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/65 hover:text-ink-primary"
-                    >
-                      Next clip
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-                    </button>
-                  )}
+                  {i < filtered.length - 1 && (() => {
+                    const justEnded = endedClipId === clip.id;
+                    return (
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        className={`mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold tracking-widest uppercase transition ${justEnded
+                          ? 'bg-brand-primary text-brand-primary-fg animate-next-pulse'
+                          : 'text-ink-primary/65 hover:text-ink-primary'}`}
+                      >
+                        Next clip
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
 

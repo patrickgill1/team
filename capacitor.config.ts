@@ -59,15 +59,25 @@ const config: CapacitorConfig = {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
     Keyboard: {
-      // 'native' resizes the WebView itself when the keyboard opens —
+      // 'native' resizes the WebView itself when the keyboard opens,
       // window.innerHeight drops by the keyboard height, so any
       // position:fixed bottom-anchored element automatically rides above
       // the keyboard with no JS offset gymnastics. This is what
       // iMessage/Telegram/Slack effectively do via UIScrollView.
       // (We tried 'none' + manual padding-bottom in the chat container, but
       // diagnostic HUD showed the WebView didn't honor any of our manual
-      // offsets — composer stayed behind the keyboard at y=599.)
+      // offsets, composer stayed behind the keyboard at y=599.)
+      //
+      // NOTE: `resize` is an iOS-only key on @capacitor/keyboard v7. On
+      // Android, the WebView is resized ONLY when the Activity has
+      // android:windowSoftInputMode="adjustResize" set in AndroidManifest.xml
+      // (we set this on MainActivity, 2026-07-26). `resizeOnFullScreen` is
+      // an Android-only belt-and-suspenders flag: if any future activity
+      // ever renders fullscreen (video, immersive splash, etc.), the
+      // plugin will still translate the IME up under the WebView so the
+      // composer keeps riding above the keyboard.
       resize: 'native' as any,
+      resizeOnFullScreen: true,
     },
     FirebaseAuthentication: {
       // Was `skipNativeAuth: true` for months — we used the plugin only

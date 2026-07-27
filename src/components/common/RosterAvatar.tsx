@@ -46,22 +46,56 @@ export function avatarGradientFor(name: string): string {
 interface Props {
   name: string;
   photoUrl?: string;
-  size?: number; // pixels; default 28 (w-7 h-7)
+  size?: number; // pixels; default 28 (w-7 h-7). Sets width.
+  /** Optional pixel height. Defaults to `size` (square). Pass a
+   *  larger value than size to get a portrait-aspect card crop,
+   *  which fits phone-shot faces better than a hard square/circle. */
+  height?: number;
   className?: string;
+  /** 'circle' (default) = rounded-full medallion; 'card' = rounded
+   *  square/portrait tile. The card shape carves only corners from
+   *  the source photo instead of chopping the top + sides like a
+   *  circle does, so portrait selfies keep their face intact. */
+  shape?: 'circle' | 'card';
+  /** CSS object-position for the underlying <img>. Defaults tuned per
+   *  shape: 50% 20% for cards (face-sweet-spot for portrait crops),
+   *  50% 25% for circles (splits center vs top so both centered
+   *  selfies and coach-shot portraits survive). Prior code hardcoded
+   *  object-top which sacrificed centered selfies. */
+  objectPosition?: string;
 }
 
-const RosterAvatar: React.FC<Props> = ({ name, photoUrl, size = 28, className = '' }) => {
+const RosterAvatar: React.FC<Props> = ({
+  name,
+  photoUrl,
+  size = 28,
+  height,
+  className = '',
+  shape = 'circle',
+  objectPosition,
+}) => {
   const [photoLoaded, setPhotoLoaded] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
   const initial = (name || '?').charAt(0).toUpperCase();
   const gradient = avatarGradientFor(name);
-  const fontSize = Math.max(10, Math.round(size * 0.42));
+  const w = size;
+  const h = height ?? size;
+  // Use the smaller dimension for the initials letter so the "L" in
+  // a tall portrait card doesn't blow up disproportionately.
+  const fontSize = Math.max(10, Math.round(Math.min(w, h) * 0.42));
   const showPhoto = !!photoUrl && !photoFailed;
+  const shapeClass = shape === 'card' ? 'rounded-xl' : 'rounded-full';
+  // Card crops handle portrait phone shots by trimming corners only,
+  // so pull the framing slightly higher (20%) to guarantee the face
+  // sits above the vertical midline. Circles clip more aggressively
+  // so 25% is a safer split for centered vs top-framed sources.
+  const defaultObjPos = shape === 'card' ? '50% 20%' : '50% 25%';
+  const objPos = objectPosition ?? defaultObjPos;
 
   return (
     <span
-      className={`relative inline-flex items-center justify-center rounded-full shrink-0 overflow-hidden ${gradient} ${className}`}
-      style={{ width: size, height: size }}
+      className={`relative inline-flex items-center justify-center shrink-0 overflow-hidden ${shapeClass} ${gradient} ${className}`}
+      style={{ width: w, height: h }}
       aria-label={name}
     >
       <span
@@ -79,12 +113,8 @@ const RosterAvatar: React.FC<Props> = ({ name, photoUrl, size = 28, className = 
           decoding="async"
           onLoad={() => setPhotoLoaded(true)}
           onError={() => setPhotoFailed(true)}
-          // object-top so portrait-crop profile photos (face near the top
-          // of the frame) don't clip the head off inside the circle.
-          // Center-cover was cutting off heads in the Browse-by-Player
-          // avatar row (Patrick 2026-07-26).
-          className="absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-300 ease-out"
-          style={{ opacity: photoLoaded ? 1 : 0 }}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ease-out"
+          style={{ opacity: photoLoaded ? 1 : 0, objectPosition: objPos }}
         />
       )}
     </span>

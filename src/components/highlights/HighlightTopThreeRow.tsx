@@ -69,22 +69,29 @@ function rankStyle(rank: 1 | 2 | 3): { color: string; glow: string; label: strin
 
 const HighlightTopThreeRow: React.FC<Props> = ({ clips, players, onCardTap, title }) => {
   if (!clips || clips.length === 0) return null;
-  const heading = title || 'Top 3 Clips This Season';
+  // Empty-string title is the sentinel a wrapping section uses to
+  // suppress the internal h2 (the wash-card zone on the Highlights tab
+  // supplies its own trophy header). Undefined falls back to the
+  // legacy default heading for standalone consumers.
+  const suppressHeading = title === '';
+  const heading = suppressHeading ? '' : (title || 'Top 3 Clips This Season');
   return (
-    <section className="mb-8">
-      <div className="flex items-baseline justify-between gap-2 mb-3 px-1">
-        <div className="min-w-0 flex items-center gap-2">
-          <svg
-            aria-hidden
-            className="w-4 h-4 text-amber-400 shrink-0"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
-            <path d="M12 2l2.39 4.84 5.34.78-3.87 3.77.92 5.32L12 14.9l-4.78 2.51.92-5.32L4.27 7.62l5.34-.78L12 2z" />
-          </svg>
-          <h2 className="text-lg font-bold text-ink-primary truncate">{heading}</h2>
+    <section className={suppressHeading ? '' : 'mb-8'}>
+      {!suppressHeading && (
+        <div className="flex items-baseline justify-between gap-2 mb-3 px-1">
+          <div className="min-w-0 flex items-center gap-2">
+            <svg
+              aria-hidden
+              className="w-4 h-4 text-amber-400 shrink-0"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M12 2l2.39 4.84 5.34.78-3.87 3.77.92 5.32L12 14.9l-4.78 2.51.92-5.32L4.27 7.62l5.34-.78L12 2z" />
+            </svg>
+            <h2 className="text-lg font-bold text-ink-primary truncate">{heading}</h2>
+          </div>
         </div>
-      </div>
+      )}
       <div
         className="flex gap-4 overflow-x-auto overflow-y-hidden snap-x snap-mandatory pb-3 -mx-1 px-1 highlight-row-scroll"
         style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}

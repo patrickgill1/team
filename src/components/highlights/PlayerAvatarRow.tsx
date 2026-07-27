@@ -18,12 +18,16 @@ interface Props {
   onSelect: (playerId: string | 'all') => void;
 }
 
-// v5 iteration: bumped 64→80 for more presence on the row, with
-// p-1 breathing room inside the ring so faces don't touch the
-// edge. Larger red count badge (w-6 h-6, text-xs) rides the new
-// scale so it doesn't read as small change against the bigger
-// circle.
-const AVATAR_PX = 80;
+// v6 iteration: shape change + bigger canvas. Circles kept clipping
+// faces because a portrait phone selfie has the face 20-35% down the
+// frame and a circle carves both sides AND the top. Switching to a
+// rounded-square card (with slight portrait aspect 96x112) plus
+// object-position 50% 20% means the crop box shape matches the
+// source shape, so faces survive. v3/v4/v5 kept tuning padding and
+// object-position on a circle; this rounds out the actual root cause
+// (crop-box aspect vs source aspect mismatch).
+const AVATAR_W = 96;
+const AVATAR_H = 112;
 
 const PlayerAvatarRow: React.FC<Props> = ({ players, media, selectedPlayerId, onSelect }) => {
   // Pre-compute per-player counts once per (players, media) so scroll
@@ -89,7 +93,14 @@ interface PillProps {
 }
 
 const AvatarPill: React.FC<PillProps> = ({ label, photoUrl, selected, count, onClick }) => {
-  const ringClass = selected ? 'ring-2 ring-brand-primary ring-offset-2 ring-offset-surface-base' : 'ring-0';
+  // Selection ring hugs the outer card. Kept the offset ring pattern
+  // so the selection state reads as a picked-up trading card, not a
+  // colored border touching the photo.
+  const ringClass = selected
+    ? 'ring-2 ring-brand-primary ring-offset-2 ring-offset-surface-base'
+    : 'ring-1 ring-line-default/15';
+  const innerW = AVATAR_W - 8;
+  const innerH = AVATAR_H - 8;
   return (
     <button
       type="button"
@@ -98,20 +109,29 @@ const AvatarPill: React.FC<PillProps> = ({ label, photoUrl, selected, count, onC
       aria-pressed={selected}
       aria-label={`${label}, ${count} clip${count === 1 ? '' : 's'}`}
     >
-      <span className={`relative inline-flex rounded-full transition p-1 bg-surface-elevated ${ringClass}`}>
+      <span
+        className={`relative inline-flex rounded-2xl transition p-1 bg-surface-elevated ${ringClass}`}
+        style={{ width: AVATAR_W, height: AVATAR_H }}
+      >
         {label === 'All' ? (
           <span
-            className="inline-flex items-center justify-center rounded-full bg-brand-primary text-brand-primary-fg font-black"
-            style={{ width: AVATAR_PX - 8, height: AVATAR_PX - 8, fontSize: 18 }}
+            className="inline-flex items-center justify-center rounded-xl bg-brand-primary text-brand-primary-fg font-black"
+            style={{ width: innerW, height: innerH, fontSize: 22 }}
           >
             All
           </span>
         ) : (
-          <RosterAvatar name={label} photoUrl={photoUrl} size={AVATAR_PX - 8} />
+          <RosterAvatar
+            name={label}
+            photoUrl={photoUrl}
+            size={innerW}
+            height={innerH}
+            shape="card"
+          />
         )}
         {count > 0 && (
           <span
-            className="absolute -top-1 -right-1 min-w-[24px] h-6 px-1.5 rounded-full bg-red-600 text-white text-xs font-black flex items-center justify-center ring-2 ring-surface-base"
+            className="absolute -top-1.5 -right-1.5 min-w-[24px] h-6 px-1.5 rounded-full bg-red-600 text-white text-xs font-black flex items-center justify-center ring-2 ring-surface-base"
             aria-hidden
           >
             {count > 99 ? '99+' : count}

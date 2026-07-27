@@ -21,17 +21,24 @@ interface Props {
 
 const HighlightRow: React.FC<Props> = ({ title, subtitle, clips, players, onCardTap, accent }) => {
   if (!clips || clips.length === 0) return null;
+  // When the caller supplies its own section header (e.g. wash-card
+  // section wrappers on the Highlights tab) it passes an empty title
+  // to suppress the internal h2 + mb-8 spacing that would otherwise
+  // duplicate the outer chrome.
+  const showHeader = !!title || !!subtitle || !!accent;
   return (
-    <section className="mb-8">
-      <div className="flex items-baseline justify-between gap-2 mb-3 px-1">
-        <div className="min-w-0">
-          <h2 className="text-lg font-bold text-ink-primary truncate">{title}</h2>
-          {subtitle && (
-            <p className="text-xs text-ink-secondary/80 truncate mt-0.5">{subtitle}</p>
-          )}
+    <section className={showHeader ? 'mb-8' : ''}>
+      {showHeader && (
+        <div className="flex items-baseline justify-between gap-2 mb-3 px-1">
+          <div className="min-w-0">
+            {title && <h2 className="text-lg font-bold text-ink-primary truncate">{title}</h2>}
+            {subtitle && (
+              <p className="text-xs text-ink-secondary/80 truncate mt-0.5">{subtitle}</p>
+            )}
+          </div>
+          {accent && <div className="shrink-0">{accent}</div>}
         </div>
-        {accent && <div className="shrink-0">{accent}</div>}
-      </div>
+      )}
       <div
         className="flex gap-3 overflow-x-auto overflow-y-hidden snap-x snap-mandatory pb-3 -mx-1 px-1 highlight-row-scroll"
         style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}

@@ -108,6 +108,10 @@ const PlayerMediaPage: React.FC = () => {
   const [editingTags, setEditingTags] = useState<string[] | null>(null); // null = not editing
   const [editingGoalScorerId, setEditingGoalScorerId] = useState<string>('');
   const [editingAssistByIds, setEditingAssistByIds] = useState<string[]>([]);
+  // Coach-only: whether this clip is pinned to "From Your Coach" on the
+  // Highlights tab. Written alongside tags in handleSaveTags. Undefined
+  // on legacy clips reads as unfeatured.
+  const [editingFeaturedByCoach, setEditingFeaturedByCoach] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'highlights' | 'fullgames' | 'photos'>('highlights');
   // For parents — their linked player. Once loaded, the page auto-
   // selects that player so opening Media drops them straight onto their
@@ -1356,6 +1360,19 @@ const PlayerMediaPage: React.FC = () => {
           : {},
       );
 
+      // Coach-only "Feature in From Your Coach" toggle. Coaches can
+      // flip it inside the tag editor; non-coaches never see the row
+      // so their save round-trip must preserve whatever value already
+      // lives on the doc (don't stomp a coach's pin because a manager
+      // fixed a tag).
+      const prevFeatured = (m as any).featuredByCoach === true;
+      const shouldWriteFeatured = isUserCoach && (editingFeaturedByCoach !== prevFeatured);
+      const featuredPatch = shouldWriteFeatured
+        ? (editingFeaturedByCoach
+            ? { featuredByCoach: true, featuredByCoachAt: new Date() }
+            : { featuredByCoach: null, featuredByCoachAt: null })
+        : {};
+
       const update: any = {
         tags: editingTags,
         taggedPlayerIds: taggedPlayerIds.length > 0 ? taggedPlayerIds : [],
@@ -1370,6 +1387,7 @@ const PlayerMediaPage: React.FC = () => {
         // keeps skipping the stat bump; legacy undefined stays undefined
         // (reads as true, matches pre-toggle behavior).
         ...(m.countsForStats === false ? { countsForStats: false } : {}),
+        ...featuredPatch,
       };
       await updateDocument(collection, docId, update);
 
@@ -1415,13 +1433,19 @@ const PlayerMediaPage: React.FC = () => {
       } catch (e) { console.warn('tag-add notify failed', e); }
 
       // Update local state
-      const localPatch: any = { tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!willBumpScorerId, statsCreditedAssistIds: willBumpAssistIds, gameId: newGameId, isOwnGoal };
+      const localFeaturedPatch: any = shouldWriteFeatured
+        ? (editingFeaturedByCoach
+            ? { featuredByCoach: true, featuredByCoachAt: new Date() }
+            : { featuredByCoach: undefined, featuredByCoachAt: undefined })
+        : {};
+      const localPatch: any = { tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!willBumpScorerId, statsCreditedAssistIds: willBumpAssistIds, gameId: newGameId, isOwnGoal, ...localFeaturedPatch };
       setMedia(prev => prev.map(m2 => m2.id === selectedMedia.id ? { ...m2, ...localPatch } as PlayerMediaType : m2));
       setSelectedMedia({ ...selectedMedia, ...localPatch } as PlayerMediaType);
       setEditingTags(null);
       setEditingGoalScorerId('');
       setEditingAssistByIds([]);
       setEditingGameId('');
+      setEditingFeaturedByCoach(false);
     } catch (err) {
       console.error('Error saving tags:', err);
       alert('Failed to save tags.');
@@ -1533,49 +1557,70 @@ const PlayerMediaPage: React.FC = () => {
         </div>
 
         {/* ── TABS + LINK + UPLOAD ──────────────────────────────────
-            v5 iteration: ReelKickr is now a tab in the primary strip
-            (between Game Clips and Full Games) but taps route to
-            /highlights instead of switching activeTab. The standalone
-            ReelKickr button + the cold UPGRADE pill are gone — upgrade
-            asks now fire from the upload flow itself (see
-            openUploadFlow below) so parents/coaches see how good the
-            product is before hitting a paywall. */}
-        <div className="flex items-center justify-between flex-wrap gap-4 mb-6 border-b border-line-default/10 pb-2">
-          <div className="flex items-center space-x-1">
+            v6 iteration: segmented-control chrome. Old bare-text + floating
+            underline had no visual weight and read as 4 pieces of copy with
+            a pencil line under one. New shape is a recessed rounded track
+            (bg-surface-raised inside a ring) with an elevated pill for the
+            active tab (bg-surface-elevated + shadow-sm + inner ring). CTAs
+            now live on their own row so the tab strip has clean edges and
+            the underline no longer dilutes into the Link/Upload buttons.
+            Works in both themes because bg-surface-raised / -elevated flip
+            per token layer.
+
+            Note on order: ReelKickr sits inline but is NAVIGATION not a
+            tab state — tap fires navigate('/highlights'). It never renders
+            as "active" here because /media never sets activeTab to it. */}
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+          <div
+            role="tablist"
+            aria-label="Media sections"
+            className="inline-flex items-center gap-1 p-1 rounded-2xl bg-surface-raised ring-1 ring-line-default/15 shadow-inner"
+          >
             <button
+              role="tab"
+              aria-selected={activeTab === 'highlights'}
               onClick={() => setActiveTab('highlights')}
-              className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
-                activeTab === 'highlights' ? 'text-brand-primary-soft' : 'text-ink-primary/50 hover:text-ink-primary'
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
+                activeTab === 'highlights'
+                  ? 'bg-surface-elevated text-brand-primary-soft shadow-sm ring-1 ring-line-default/10'
+                  : 'text-ink-secondary hover:text-ink-primary'
               }`}
             >
               Game Clips
-              {activeTab === 'highlights' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-brand-primary-soft rounded-full" />}
             </button>
             <button
+              role="tab"
+              aria-selected={false}
               onClick={() => navigate('/highlights')}
-              className="px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative text-ink-primary/50 hover:text-ink-primary"
+              className="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all text-ink-secondary hover:text-ink-primary"
               title="Open the fullscreen ReelKickr feed"
               aria-label="Open ReelKickr"
             >
               ReelKickr
             </button>
             <button
+              role="tab"
+              aria-selected={activeTab === 'fullgames'}
               onClick={() => setActiveTab('fullgames')}
-              className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
-                activeTab === 'fullgames' ? 'text-brand-primary-soft' : 'text-ink-primary/50 hover:text-ink-primary'
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
+                activeTab === 'fullgames'
+                  ? 'bg-surface-elevated text-brand-primary-soft shadow-sm ring-1 ring-line-default/10'
+                  : 'text-ink-secondary hover:text-ink-primary'
               }`}
             >
               Full Games
-              {activeTab === 'fullgames' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-brand-primary-soft rounded-full" />}
             </button>
             <button
+              role="tab"
+              aria-selected={activeTab === 'photos'}
               onClick={() => setActiveTab('photos')}
-              className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
-                activeTab === 'photos' ? 'text-brand-primary-soft' : 'text-ink-primary/50 hover:text-ink-primary'
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
+                activeTab === 'photos'
+                  ? 'bg-surface-elevated text-brand-primary-soft shadow-sm ring-1 ring-line-default/10'
+                  : 'text-ink-secondary hover:text-ink-primary'
               }`}
             >
               Photos
-              {activeTab === 'photos' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-brand-primary-soft rounded-full" />}
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -1623,6 +1668,32 @@ const PlayerMediaPage: React.FC = () => {
             isUserCoach={isUserCoach}
             selectedTeam={selectedTeam}
             parentKidPlayerId={parentLinkedPlayerId}
+            onFeatureClip={isUserCoach ? async (clipId: string) => {
+              // One-tap "Feature this" from the grid card. Optimistic:
+              // flip local state first so the ghost pill hides
+              // immediately, then persist. On failure, roll back and
+              // yell — the card re-renders with the ghost pill back.
+              const target = media.find(m => m.id === clipId);
+              if (!target) return;
+              const now = new Date();
+              setMedia(prev => prev.map(m => m.id === clipId
+                ? ({ ...m, featuredByCoach: true, featuredByCoachAt: now } as PlayerMediaType)
+                : m));
+              try {
+                const collectionName = clipId.startsWith('gallery_') ? 'gallery' : 'player_media';
+                const docId = clipId.startsWith('gallery_') ? clipId.replace('gallery_', '') : clipId;
+                await updateDocument(collectionName, docId, {
+                  featuredByCoach: true,
+                  featuredByCoachAt: now,
+                });
+              } catch (err) {
+                console.error('Failed to feature clip:', err);
+                setMedia(prev => prev.map(m => m.id === clipId
+                  ? ({ ...m, featuredByCoach: (target as any).featuredByCoach, featuredByCoachAt: (target as any).featuredByCoachAt } as PlayerMediaType)
+                  : m));
+                alert('Could not feature that clip. Try again from the clip’s edit menu.');
+              }
+            } : undefined}
           />
         )}
 
@@ -2332,8 +2403,24 @@ const PlayerMediaPage: React.FC = () => {
                       <p className="text-[10px] text-white/40 mt-1">Linking dedupes against the coach’s live taps so stats aren’t doubled.</p>
                     </div>
                   )}
+                  {isUserCoach && (
+                    <div className="px-2 mt-2">
+                      <label className="flex items-start gap-2.5 cursor-pointer select-none rounded-lg bg-cyan-500/10 ring-1 ring-cyan-400/30 px-2.5 py-2 hover:bg-cyan-500/15 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={editingFeaturedByCoach}
+                          onChange={e => setEditingFeaturedByCoach(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded accent-cyan-400 cursor-pointer"
+                        />
+                        <span className="min-w-0 leading-tight">
+                          <span className="block text-xs font-black uppercase tracking-wider text-cyan-100">Feature in From Your Coach</span>
+                          <span className="block text-[10px] text-cyan-100/60 mt-0.5">Pins this clip to the coach rail on every family’s Media page.</span>
+                        </span>
+                      </label>
+                    </div>
+                  )}
                   <div className="flex justify-center gap-2">
-                    <button onClick={() => { setEditingTags(null); setEditingGoalScorerId(''); setEditingAssistByIds([]); setEditingGameId(''); }} className="px-3 py-1 text-xs text-white/60 hover:text-white">Cancel</button>
+                    <button onClick={() => { setEditingTags(null); setEditingGoalScorerId(''); setEditingAssistByIds([]); setEditingGameId(''); setEditingFeaturedByCoach(false); }} className="px-3 py-1 text-xs text-white/60 hover:text-white">Cancel</button>
                     <button onClick={handleSaveTags} className="px-3 py-1 bg-brand-primary text-white text-xs rounded-full hover:bg-brand-primary-dim">Save Tags</button>
                   </div>
                 </div>
@@ -2350,6 +2437,7 @@ const PlayerMediaPage: React.FC = () => {
                         setEditingGoalScorerId(m.goalScorerId || selectedMedia.playerId || '');
                         setEditingAssistByIds(m.assistByIds || []);
                         setEditingGameId(m.gameId || '');
+                        setEditingFeaturedByCoach(m.featuredByCoach === true);
                       }}
                       className="px-2 py-0.5 border border-line-default/20 text-white/50 rounded-full text-xs hover:text-white/80 hover:border-line-default/40 transition-colors"
                     >

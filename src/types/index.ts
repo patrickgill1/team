@@ -3299,6 +3299,13 @@ export interface PlayerMedia {
   // no season stat bump, no XP, no badges. Undefined/missing reads as true
   // (backwards-compat with pre-3.9.334 docs where every credited clip counted).
   countsForStats?: boolean;
+  // Coach-curated: when true, this clip surfaces in the "From Your Coach"
+  // rail on Media > Highlights. Coach-only write; defaults undefined
+  // (unfeatured). Ordered by featuredByCoachAt desc so pinning a fresh
+  // clip bumps it to the front. Missing on old clips = never shown in
+  // the rail (no auto-migration; coach curates going forward).
+  featuredByCoach?: boolean;
+  featuredByCoachAt?: Date;
   // Marks the clip as documenting an opponent own goal: team scored, but no
   // player on our roster gets the goal credit. Assists may still be awarded
   // (e.g. the kicker who forced the deflection).

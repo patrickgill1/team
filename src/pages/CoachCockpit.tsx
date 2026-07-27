@@ -5,7 +5,7 @@ import { collection, doc, getDocs, limit, orderBy, query, updateDoc, where, Time
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoach } from '../utils/helpers';
+import { isCoachOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import type { CalendarEvent, Player } from '../types';
 import { REQUIRED_COACH_CERT_KINDS, isGuestActive } from '../types';
@@ -21,9 +21,15 @@ import XpIntroCard from '../components/coach/XpIntroCard';
  * so the surface is useful immediately; depth ships in follow-ups.
  *
  * Visible in More menu under the 'Coach' entry (Navigation.tsx adds it
- * when isCoach is true). Pure parents don't see this; pure admins
+ * when isCoachOfTeam is true — i.e. the current user's uid is in the
+ * selected team's coachIds). Pure parents don't see this; pure admins
  * don't need it (they have /club); regular coaches and multi-role
  * users (admin+coach) get this as the cleanest coach-specific surface.
+ *
+ * Gate is per-team, not global (user.role). A club admin who's also
+ * a head coach on Fire FC but a parent on Crushers should see this
+ * page on Fire FC and the empty state on Crushers. Never gate coach
+ * features on user.role globally — role is per-team on the team doc.
  *
  * Scaffold sections:
  *   1. Hero: selected team + age group + format + next event mini
@@ -232,12 +238,17 @@ const CoachCockpit: React.FC = () => {
         ];
   }, [nextEvent]);
 
-  const isUserCoach = isCoach((userData as any)?.role);
+  const isUserCoach = isCoachOfTeam(userData as any, selectedTeam as any);
   if (!isUserCoach) {
+    const teamName = (selectedTeam as any)?.name;
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 text-center">
         <p className="text-ink-primary/85 font-semibold mb-1">Coach view</p>
-        <p className="text-ink-primary/55 text-sm mb-4">This page is for coaches.</p>
+        <p className="text-ink-primary/55 text-sm mb-4">
+          {teamName
+            ? `You aren't a coach on ${teamName}. Switch teams to open your coach view.`
+            : 'Select a team you coach to open the coach view.'}
+        </p>
         <Link to="/dashboard" className="text-brand-primary-soft font-bold text-sm hover:text-brand-primary-soft">← Back to dashboard</Link>
       </div>
     );

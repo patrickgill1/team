@@ -450,12 +450,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     ? `rounded-[20px] ${isFirstInGroup ? '' : 'rounded-tr-md'} ${isLastInGroup ? '' : 'rounded-br-md'}`
     : `rounded-[20px] ${isFirstInGroup ? '' : 'rounded-tl-md'} ${isLastInGroup ? '' : 'rounded-bl-md'}`;
 
-  // iMessage-style fills: clean gradient on outgoing, soft white-ish
-  // gray on incoming. No shadow ring — looks dated. The colors are
-  // calibrated to look like Apple's Messages app on iOS 17+.
+  // iMessage-style fills: clean brand fill on outgoing, theme-aware
+  // neutral on incoming. Uses surface + ink tokens so dark mode
+  // renders a dark bubble with light text (was hardcoded #E9E9EB
+  // light gray + #0B0B0F near-black which stayed a white blob on
+  // dark theme — sender names + content became unreadable per the
+  // web app dark-mode bug report).
   const bubbleBg = isOwn
     ? 'bg-brand-primary text-white'
-    : 'bg-[#E9E9EB] text-[#0B0B0F]';
+    : 'bg-surface-elevated text-ink-primary ring-1 ring-line-default/15';
 
   // Swipe-gesture state. We resolve each touch into ONE of three modes:
   //   null        — undetermined (the first few px of any drag)
@@ -667,7 +670,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             }}
             disabled={!replyTarget}
             className={`text-xs mb-1 px-3 py-1.5 rounded-xl max-w-full text-left transition-opacity ${
-              isOwn ? 'bg-brand-primary-soft text-brand-primary-dim' : 'bg-gray-100 text-gray-700'
+              isOwn ? 'bg-brand-primary-soft text-brand-primary-dim' : 'bg-surface-base text-ink-secondary ring-1 ring-line-default/15'
             } ${replyTarget ? 'hover:opacity-80 cursor-pointer' : 'cursor-default opacity-60'}`}
           >
             <div className="text-[10px] font-bold opacity-70">
@@ -688,7 +691,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {editing && message.content ? (
           <div
             className={`px-3.5 py-2 rounded-[20px] shadow-sm ${
-              isOwn ? 'bg-brand-primary-soft ring-1 ring-brand-primary-soft' : 'bg-slate-50 ring-1 ring-slate-300'
+              isOwn ? 'bg-brand-primary-soft ring-1 ring-brand-primary-soft' : 'bg-surface-elevated ring-1 ring-line-default/20'
             }`}
           >
             <textarea
@@ -696,7 +699,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               onChange={(e) => setEditDraft(e.target.value)}
               rows={Math.min(6, Math.max(2, editDraft.split('\n').length))}
               autoFocus
-              className="w-full bg-transparent border-0 focus:outline-none text-[15px] text-slate-900 resize-none"
+              className="w-full bg-transparent border-0 focus:outline-none text-[15px] text-ink-primary resize-none"
             />
             <div className="mt-1.5 flex items-center justify-end gap-2">
               <button

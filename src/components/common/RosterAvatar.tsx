@@ -79,7 +79,11 @@ const RosterAvatar: React.FC<Props> = ({ name, photoUrl, size = 28, className = 
           decoding="async"
           onLoad={() => setPhotoLoaded(true)}
           onError={() => setPhotoFailed(true)}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ease-out"
+          // object-top so portrait-crop profile photos (face near the top
+          // of the frame) don't clip the head off inside the circle.
+          // Center-cover was cutting off heads in the Browse-by-Player
+          // avatar row (Patrick 2026-07-26).
+          className="absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-300 ease-out"
           style={{ opacity: photoLoaded ? 1 : 0 }}
         />
       )}

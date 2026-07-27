@@ -1508,7 +1508,7 @@ const PlayerMediaPage: React.FC = () => {
                 activeTab === 'highlights' ? 'text-brand-primary-soft' : 'text-ink-primary/50 hover:text-ink-primary'
               }`}
             >
-              Highlights
+              Game Clips
               {activeTab === 'highlights' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-brand-primary-soft rounded-full" />}
             </button>
             <button
@@ -1538,30 +1538,50 @@ const PlayerMediaPage: React.FC = () => {
               </button>
             )}
           </div>
-          {activeTab === 'highlights' && canManageMedia && (
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            {/* ReelKickr — sub-brand entry point to the fullscreen
+                vertical reel. Available to every viewer (parents and
+                coaches) on the Game Clips tab. Red-glow ring mirrors
+                the KidHeroCard/HighlightHero crimson treatment so the
+                CTA reads as the loudest thing in the tab bar. */}
+            {activeTab === 'highlights' && (
               <button
-                onClick={() => setShowEmbedModal(true)}
-                className="bg-surface-elevated text-ink-primary ring-1 ring-line-default/15 hover:bg-line-default/[0.08] px-3 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
-                title="Paste a YouTube or Trace link"
+                onClick={() => navigate('/highlights')}
+                className="bg-brand-primary hover:bg-brand-primary-soft text-white px-4 py-2 rounded-full text-sm font-black uppercase tracking-wide transition-colors flex items-center gap-1.5 ring-2 ring-brand-primary/50 shadow-[0_8px_20px_-8px_rgba(200,32,44,0.6)]"
+                title="Open the fullscreen ReelKickr feed"
+                aria-label="Open ReelKickr"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                <span className="hidden sm:inline">Link</span>
-              </button>
-              <button
-                onClick={() => {
-                  if (trialGated) { setTrialGateOpen(true); return; }
-                  resetUploadForm(); setShowUploadModal(true);
-                }}
-                className="bg-brand-primary hover:bg-brand-primary-soft text-ink-primary px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M8 5v14l11-7z" />
                 </svg>
-                <span className="hidden sm:inline">Upload</span>
+                <span>ReelKickr</span>
               </button>
-            </div>
-          )}
+            )}
+            {activeTab === 'highlights' && canManageMedia && (
+              <>
+                <button
+                  onClick={() => setShowEmbedModal(true)}
+                  className="bg-surface-elevated text-ink-primary ring-1 ring-line-default/15 hover:bg-line-default/[0.08] px-3 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+                  title="Paste a YouTube or Trace link"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  <span className="hidden sm:inline">Link</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (trialGated) { setTrialGateOpen(true); return; }
+                    resetUploadForm(); setShowUploadModal(true);
+                  }}
+                  className="bg-brand-primary hover:bg-brand-primary-soft text-ink-primary px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span className="hidden sm:inline">Upload</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {activeTab === 'fullgames' ? (

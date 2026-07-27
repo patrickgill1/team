@@ -57,7 +57,7 @@ const HighlightHero: React.FC<Props> = ({ clip, players, onOpen, label, labelTon
     <button
       type="button"
       onClick={onOpen}
-      className="group relative w-full aspect-video max-h-[420px] rounded-2xl overflow-hidden bg-surface-elevated ring-1 ring-line-default/10 text-left transition-transform focus:outline-none focus:ring-2 focus:ring-brand-primary/60 mb-8"
+      className="group relative w-full aspect-video max-h-[420px] rounded-3xl overflow-hidden bg-surface-elevated ring-1 ring-brand-primary/25 shadow-[0_18px_50px_-24px_rgba(200,32,44,0.45)] text-left transition-transform focus:outline-none focus:ring-2 focus:ring-brand-primary/60 mb-8"
       aria-label={`Play ${name}`}
     >
       {/* Poster layer — always mounted so the tile has something to

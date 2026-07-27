@@ -20,6 +20,7 @@ import type { Player, PlayerMedia as PlayerMediaType, Team } from '../../types';
 import { mediaBelongsToPlayer } from '../../utils/mediaAttribution';
 import HighlightHero from './HighlightHero';
 import HighlightTopThreeRow from './HighlightTopThreeRow';
+import HighlightRow from './HighlightRow';
 import HighlightCardLite from './HighlightCardLite';
 import PlayerAvatarRow from './PlayerAvatarRow';
 import SortPill, { SortKey } from './SortPill';
@@ -74,6 +75,7 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   media,
   players,
   isUserCoach,
+  selectedTeam,
   parentKidPlayerId,
 }) => {
   const navigate = useNavigate();
@@ -129,6 +131,33 @@ const HighlightsNetflixTab: React.FC<Props> = ({
     return withViews.slice(0, 3);
   }, [clips]);
   const showTop3 = top3.length >= 3;
+
+  // ── From Your Coach strip (available to every viewer) ────────────
+  // Set of uids treated as "coach" for uploader-attribution. Includes
+  // coachIds, headCoachId (mirrored into coachIds elsewhere but check
+  // both defensively), and assistantCoachIds so an assistant's clips
+  // still land in the row.
+  const coachUidSet = useMemo(() => {
+    const s = new Set<string>();
+    const t = selectedTeam as any;
+    if (!t) return s;
+    if (Array.isArray(t.coachIds)) for (const u of t.coachIds) if (u) s.add(u);
+    if (Array.isArray(t.assistantCoachIds)) for (const u of t.assistantCoachIds) if (u) s.add(u);
+    if (t.headCoachId) s.add(t.headCoachId);
+    return s;
+  }, [selectedTeam]);
+
+  const coachClips = useMemo(() => {
+    if (coachUidSet.size === 0) return [];
+    const list = clips.filter(m => {
+      const role = (m as any).uploadedByRole;
+      if (role === 'coach') return true;
+      return !!m.uploadedBy && coachUidSet.has(m.uploadedBy);
+    });
+    // Already newest-first from `clips` sort; slice to the top 5 so
+    // the strip stays scannable and doesn't recreate the full grid.
+    return list.slice(0, 5);
+  }, [clips, coachUidSet]);
 
   // ── Needs-credit count (coach chip) ───────────────────────────────
   const needsCreditCount = useMemo(() => {
@@ -256,11 +285,55 @@ const HighlightsNetflixTab: React.FC<Props> = ({
             onSelect={handleSelectPlayer}
           />
 
+          {/* 2b. Selected-player section header — sits directly under
+              the avatars so the current filter is obvious without the
+              old sticky chip clobbering scroll. When "All" is active
+              this is a lightweight all-clips label. */}
+          <div className="flex items-center justify-between gap-3 mb-4 px-1">
+            <div className="min-w-0 flex items-baseline gap-2 truncate">
+              <span className="text-xs font-black uppercase tracking-widest text-ink-primary truncate">
+                {selectedPlayer ? (selectedPlayer.name || 'Player') : 'All clips'}
+              </span>
+              <span aria-hidden className="text-xs font-bold text-ink-secondary/70">·</span>
+              <span className="text-xs font-black uppercase tracking-widest text-ink-secondary/80 tabular-nums">
+                {selectedPlayer
+                  ? `${gridClips.length} ${gridClips.length === 1 ? 'clip' : 'clips'}`
+                  : `${totalClips} ${totalClips === 1 ? 'clip' : 'clips'}`}
+              </span>
+            </div>
+            {selectedPlayer && (
+              <button
+                type="button"
+                onClick={() => handleSelectPlayer('all')}
+                className="shrink-0 inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-brand-primary-soft hover:text-ink-primary focus:outline-none focus:underline"
+                aria-label="Clear player filter"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+                <span>Show all</span>
+              </button>
+            )}
+          </div>
+
           {/* 3. Top 3 clips this season (silent-hide when < 3) */}
           {showTop3 && (
             <HighlightTopThreeRow
               key="top3"
               clips={top3}
+              players={players}
+              onCardTap={openClip}
+            />
+          )}
+
+          {/* 3b. From Your Coach — the 5 most-recent clips uploaded by
+              a coach on this team. Silent-hide when there are none
+              (parent-only teams, or before any coach has uploaded). */}
+          {coachClips.length > 0 && (
+            <HighlightRow
+              title="From Your Coach"
+              clips={coachClips}
               players={players}
               onCardTap={openClip}
             />
@@ -292,29 +365,9 @@ const HighlightsNetflixTab: React.FC<Props> = ({
               at its top edge so the user sees the filter took hold as
               soon as the scroll lands them here). */}
           <div ref={gridSectionRef}>
-          {selectedPlayer && (
-            <div className="sticky top-0 z-20 mb-3 -mx-1 px-1 py-2 bg-surface-base/85 backdrop-blur-sm">
-              <div className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full bg-brand-primary-soft/20 text-brand-primary ring-1 ring-brand-primary-soft/30">
-                <span className="text-sm font-bold truncate max-w-[60vw]">
-                  {selectedPlayer.name}
-                </span>
-                <span className="text-xs font-bold opacity-70">
-                  {gridClips.length} {gridClips.length === 1 ? 'clip' : 'clips'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlayer('all')}
-                  className="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-full hover:bg-brand-primary/15 focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
-                  aria-label="Clear player filter"
-                >
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Sticky "you filtered to X" chip removed 2026-07-26 — the
+              section header directly under the avatar row now carries
+              the same information without hijacking scroll. */}
           {visibleGrid.length === 0 ? (
             <div className="text-center py-14 bg-surface-elevated rounded-2xl border border-line-default/10">
               <p className="text-ink-primary font-bold">No clips match this view.</p>

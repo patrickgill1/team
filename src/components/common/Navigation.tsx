@@ -250,7 +250,9 @@ const Navigation: React.FC = () => {
     { name: 'Events', path: '/calendar', icon: 'calendar', group: 'apps' },
     { name: 'Stats', path: '/stats', icon: 'stats', group: 'apps' },
     { name: 'Full Games', path: '/full-games', icon: 'film', group: 'apps' },
-    { name: 'Highlights', path: '/highlights', icon: 'highlight', group: 'apps' },
+    // Highlights (ReelKickr fullscreen reel) intentionally NOT in the
+    // nav — reel is only accessible via the ReelKickr button on the
+    // Media page, per Patrick 2026-07-26.
     { name: 'Attendance', path: '/attendance', icon: 'check', group: 'apps' },
     { name: 'Volunteers', path: '/volunteers', icon: 'handshake', group: 'apps' },
     { name: 'Directory', path: '/directory', icon: 'phone', group: 'apps' },
@@ -334,7 +336,7 @@ const Navigation: React.FC = () => {
       // Wall (the primary media destination). Kept in More for the
       // 'give me the grid of everything, by kid' navigation intent.
       label: 'Media',
-      items: ['Media', 'Full Games', 'Highlights']
+      items: ['Media', 'Full Games']
         .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {

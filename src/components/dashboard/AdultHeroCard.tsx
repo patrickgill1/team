@@ -218,7 +218,7 @@ const AdultHeroCard: React.FC<Props> = ({ player, teamName }) => {
   return (
     <Link
       to={`/player/${p.id}`}
-      className="relative block overflow-hidden rounded-3xl bg-surface-elevated ring-1 ring-line-default/40 dark:ring-white/10 shadow-[0_18px_50px_-24px_rgba(0,0,0,0.55)] active:scale-[0.995] transition"
+      className="relative block overflow-hidden rounded-3xl bg-surface-elevated ring-1 ring-brand-primary/25 shadow-[0_18px_50px_-24px_rgba(200,32,44,0.45)] active:scale-[0.995] transition"
     >
       {/* Stadium wash + inner neutral rim. Both absolute so they sit
           behind content without affecting layout. */}

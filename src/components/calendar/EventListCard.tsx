@@ -327,7 +327,7 @@ const EventListCard: React.FC<Props> = ({
                 <>
                   <span className="text-charcoal-500">·</span>
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-brand-primary/15 text-brand-primary-soft text-[9px] font-extrabold tracking-widest uppercase ring-1 ring-brand-primary-soft/30">
-                    {(event as any).fieldNumber}
+                    Field {(event as any).fieldNumber}
                   </span>
                 </>
               )}

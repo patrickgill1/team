@@ -1059,6 +1059,14 @@ const EventCard: React.FC<EventCardProps> = ({
               <h4 className={`font-bold text-[15px] leading-snug break-words ${isPast ? 'text-ink-primary/80' : 'text-ink-primary'}`}>
                 {event.title}
               </h4>
+              {/* Opponent subtitle — game rows only. Shows "vs Utah Rush"
+                  when the coach set it on the event; silent otherwise so
+                  scrimmages don't read "vs Opponent". */}
+              {event.type === 'game' && (event as any).opponent && (
+                <div className={`text-[13px] font-semibold mt-0.5 ${isPast ? 'text-ink-primary/60' : 'text-ink-primary/75'}`}>
+                  vs {(event as any).opponent}
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-1.5 mt-1">
                 <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full ${colors.pill}`}>
                   {event.type.charAt(0).toUpperCase() + event.type.slice(1)}

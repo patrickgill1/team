@@ -1292,6 +1292,14 @@ const EventDetail: React.FC = () => {
             <h1 className="mt-1 text-3xl sm:text-4xl font-black text-ink-primary leading-[1.05] tracking-tight">
               {event.title}
             </h1>
+            {/* Opponent subtitle — game-only, only when a coach set one.
+                Sits directly under the title so parents see "vs Utah Rush"
+                without hunting through the jersey card or the description. */}
+            {event.type === 'game' && (event as any).opponent && (
+              <div className="mt-2 text-base sm:text-lg font-bold text-ink-primary/85">
+                vs {(event as any).opponent}
+              </div>
+            )}
             <p className="mt-3 text-[13.5px] text-ink-primary/70 flex items-center gap-1.5 flex-wrap">
               <span className="inline-flex items-center gap-1.5">
                 <Icon name="cal" className="w-3.5 h-3.5 text-brand-primary-soft" />
@@ -1362,10 +1370,34 @@ const EventDetail: React.FC = () => {
             {(event as any).fieldNumber && (
               <div className="mt-2">
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 text-[10px] font-extrabold tracking-widest uppercase">
-                  {(event as any).fieldNumber}
+                  Field {(event as any).fieldNumber}
                 </span>
               </div>
             )}
+            {/* Arrive-by line. The form stores an offset (minutes before
+                start); render the concrete Denver-local time so a coach
+                doesn't have to do the math. Silent when unset. Kicker
+                label + bold time reads like the top meta row so it's
+                easy to spot without shouting. */}
+            {typeof (event as any).arriveOffsetMinutes === 'number' && (event as any).arriveOffsetMinutes > 0 && (() => {
+              const offset = Number((event as any).arriveOffsetMinutes);
+              const arrive = new Date(eventDate.getTime() - offset * 60_000);
+              const arriveText = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Denver',
+                hour: 'numeric',
+                minute: '2-digit',
+              }).format(arrive);
+              const kickoffLabel = event.type === 'game' ? 'kickoff' : 'start';
+              return (
+                <div className="mt-3 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-amber-500/12 ring-1 ring-amber-400/40 text-amber-800 dark:text-amber-200">
+                  <Icon name="clock" className="w-3.5 h-3.5" />
+                  <span className="text-[12.5px] font-semibold">
+                    Team meets at <span className="font-black tabular-nums">{arriveText}</span>
+                    <span className="text-amber-800/75 dark:text-amber-200/75"> · {offset} min before {kickoffLabel}</span>
+                  </span>
+                </div>
+              );
+            })()}
             {/* Add-to-calendar chip. Uses the .ics URL we serve from
                 api/calendar/event/[event].mjs so Apple/Google Calendar
                 bring in the title, location, and notes. Hidden on

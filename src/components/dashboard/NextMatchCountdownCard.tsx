@@ -171,6 +171,19 @@ const NextMatchCountdownCard: React.FC<Props> = ({ event, teamPlayerCount, myPla
   const countdown = useMemo(() => computeCountdown(start, now), [start, now]);
   const kickoff = useMemo(() => formatDenverKickoff(start), [start]);
 
+  // Arrive-by line — offset stored on the event doc. Auto-shifts if the
+  // coach reschedules. Denver-anchored so travel across timezones never
+  // flips the time on the family reading back home. Silent when unset.
+  const arriveText = useMemo(() => {
+    const offset = Number((event as any).arriveOffsetMinutes || 0);
+    if (offset <= 0) return null;
+    const arrive = new Date(start.getTime() - offset * 60_000);
+    const time = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Denver', hour: 'numeric', minute: '2-digit',
+    }).format(arrive);
+    return { time, offset };
+  }, [event, start]);
+
   const opponentLine = (event.opponent && event.opponent.trim())
     || (event.title && event.title.trim())
     || 'Next match';
@@ -279,6 +292,23 @@ const NextMatchCountdownCard: React.FC<Props> = ({ event, teamPlayerCount, myPla
             </>
           )}
         </div>
+
+        {/* Arrive-by chip. Renders only when the coach set arrive-early
+            on the event. Warmer phrasing than the coach-facing detail
+            page ("Get there by 4:45"), since this card sits on the
+            parent-mode Dashboard. */}
+        {arriveText && (
+          <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/12 ring-1 ring-amber-400/40 text-amber-800 dark:text-amber-200 text-[11px] font-bold">
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+            <span>
+              Get there by <span className="tabular-nums font-black">{arriveText.time}</span>
+              <span className="text-amber-800/70 dark:text-amber-200/70"> · {arriveText.offset} min before kickoff</span>
+            </span>
+          </div>
+        )}
 
         {/* Social proof — "N of X teammates going". Positive framing
             per the attendance-motivation ask. Silent when the squad

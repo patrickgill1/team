@@ -172,7 +172,6 @@ export async function runEventReminders(env: ReminderEnv): Promise<{
         title,
         body,
         url,
-        badge: 1,
       }, env.FCM_SERVICE_ACCOUNT);
       sentPushes += result.sent;
       await patchDocument(projectId, `events/${eid}`, {

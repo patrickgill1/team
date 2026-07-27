@@ -681,7 +681,6 @@ async function sendCreationPush(
       title,
       body,
       url,
-      badge: 1,
     }, env.FCM_SERVICE_ACCOUNT);
   } catch (err) {
     console.warn('[payments] push failed', err);
@@ -732,7 +731,6 @@ export async function pushPaymentConfirmed(
       title: 'Payment received',
       body,
       url: `${appOrigin}/coach/payments/${args.paymentRequestId}`,
-      badge: 1,
     }, env.FCM_SERVICE_ACCOUNT);
   } catch (err) {
     console.warn('[payments] confirmed push failed', err);
@@ -785,7 +783,6 @@ export async function pushPaymentFailed(
       title: 'Payment issue',
       body: parentBody,
       url: `${appOrigin}/payments`,
-      badge: 1,
     }, env.FCM_SERVICE_ACCOUNT).catch(() => {});
   }
   if (coachTokens.length > 0) {
@@ -793,7 +790,6 @@ export async function pushPaymentFailed(
       title: 'Payment issue',
       body: coachBody,
       url: `${appOrigin}/coach/payments/${args.paymentRequestId}`,
-      badge: 1,
     }, env.FCM_SERVICE_ACCOUNT).catch(() => {});
   }
 }

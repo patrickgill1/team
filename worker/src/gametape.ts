@@ -445,7 +445,6 @@ async function fanOutPush(args: PushArgs): Promise<{ sent: number; failed: numbe
       title,
       body,
       url,
-      badge: 1,
     }, env.FCM_SERVICE_ACCOUNT);
     return { sent: result.sent, failed: result.failed, recipients: uids.length };
   } catch (err) {

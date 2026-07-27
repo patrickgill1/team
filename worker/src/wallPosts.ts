@@ -153,7 +153,6 @@ async function pushCoachesOfTeam(
       title: args.title,
       body: args.body,
       url: args.url,
-      badge: 1,
     }, env.FCM_SERVICE_ACCOUNT);
     return { sent: result.sent, failed: result.failed, recipients: targets.length };
   } catch (err) {

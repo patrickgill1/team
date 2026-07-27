@@ -6138,7 +6138,6 @@ async function handleSurveyResponseCreated(_req: Request, env: Env, payload: any
       title: pushTitle,
       body: pushBody,
       url,
-      badge: 1,
     }, env.FCM_SERVICE_ACCOUNT);
     return json({ ok: true, sent: result.sent, tokens: uniqueTokens.length });
   } catch (err: any) {

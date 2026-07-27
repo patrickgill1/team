@@ -63,6 +63,7 @@ const EventForm: React.FC<EventFormProps> = ({
     location: '',
     fieldNumber: '',
     homeAway: '' as '' | 'home' | 'away',
+    opponent: '',
     type: 'practice' as 'game' | 'practice' | 'event',
     createAttendance: true, // New field for creating attendance
     createVolunteerOpps: false, // New field for creating volunteer opportunities
@@ -161,6 +162,7 @@ const EventForm: React.FC<EventFormProps> = ({
         location: editingEvent.location,
         fieldNumber: (editingEvent as any).fieldNumber || '',
         homeAway: ((editingEvent as any).homeAway as 'home' | 'away' | undefined) || '',
+        opponent: (editingEvent as any).opponent || '',
         type: editingEvent.type,
         createAttendance: false, // Don't auto-create for existing events
         createVolunteerOpps: false,
@@ -199,6 +201,7 @@ const EventForm: React.FC<EventFormProps> = ({
         location: '',
         fieldNumber: '',
         homeAway: '',
+        opponent: '',
         type: 'practice',
         createAttendance: true,
         createVolunteerOpps: false,
@@ -564,6 +567,10 @@ const EventForm: React.FC<EventFormProps> = ({
         locationAddress: pickedAddress || null,
         fieldNumber: formData.fieldNumber.trim() || null,
         homeAway: formData.type === 'game' && formData.homeAway ? formData.homeAway : null,
+        // Opponent is game-only meta. Some scrimmages/pickup games don't
+        // have a named opponent — save null so cards silently omit the
+        // "vs X" line rather than rendering "vs " with a trailing space.
+        opponent: formData.type === 'game' && formData.opponent.trim() ? formData.opponent.trim() : null,
         // Game-only opt-outs. Reads treat undefined/null as true, so
         // we only write an explicit false when the coach opted out.
         // Non-game events get null (no meaning outside games).
@@ -736,6 +743,7 @@ const EventForm: React.FC<EventFormProps> = ({
         location: '',
         fieldNumber: '',
         homeAway: '',
+        opponent: '',
         type: 'practice',
         createAttendance: true,
         createVolunteerOpps: false,
@@ -1223,6 +1231,29 @@ const EventForm: React.FC<EventFormProps> = ({
               className="w-full px-3 py-2 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
             />
           </div>
+
+          {/* Opponent — game-only. Optional (some scrimmages don't have a
+              named opponent). When set, every downstream surface renders
+              "vs Utah Rush" so parents know who they're playing without
+              having to open the description. */}
+          {formData.type === 'game' && (
+            <div>
+              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
+                Opponent (optional)
+              </label>
+              <input
+                type="text"
+                value={formData.opponent}
+                onChange={(e) => setFormData({ ...formData, opponent: e.target.value })}
+                placeholder="e.g. Utah Rush"
+                maxLength={80}
+                className="w-full px-3 py-2 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              />
+              <p className="text-[11px] text-ink-primary/50 mt-1 leading-snug">
+                Shown as "vs {formData.opponent.trim() || 'Utah Rush'}" on the event, dashboard, and calendar. Leave blank for a scrimmage.
+              </p>
+            </div>
+          )}
 
           {/* Home / Away — game-only. Kit labels come from the team doc
               (selectedTeam.homeKitColor / awayKitColor) so each team's

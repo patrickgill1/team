@@ -1390,7 +1390,14 @@ const Dashboard: React.FC = () => {
           at dusk/night, a faint pitch silhouette, and the day's
           most important glance-able info (next-event RSVP count,
           unread chats, fresh photos). Replaces the standalone
-          greeting + the Next Event card. */}
+          greeting + the Next Event card.
+
+          Wrapped in the same max-w-7xl container as the cards below
+          so on desktop the hero edges align with the cards instead
+          of stretching edge-to-edge while the cards float in a
+          narrower column (Patrick 2026-07-27). Mobile is unchanged
+          because the viewport is already narrower than max-w-7xl. */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5">
       <NextEventPoster
         greeting={greeting}
         firstName={firstName}
@@ -1420,6 +1427,7 @@ const Dashboard: React.FC = () => {
           chrome competing with the photo above. Hidden entirely when
           there's nothing to show. Patrick 2026-06-21 dialogue. */}
       <CoachAccordionBar />
+      </div>
       <div className="relative">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">

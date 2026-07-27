@@ -10,12 +10,13 @@
 // Every mutation is derived from the already-loaded team media +
 // players. No new Firestore queries, no new composite indexes.
 //
-// Card taps navigate to /highlights?clip=<id> so the vertical Reel
-// opens on that exact clip — unifies tab-consumption and reel-
-// consumption per spec.
+// Card taps open the inline lightbox on PlayerMediaPage (video/photo
+// plays in a fixed-inset overlay, close x or tap-outside dismisses
+// back to the Media page with scroll preserved). The vertical Reel is
+// reached ONLY via the ReelKickr tab-bar entry on PlayerMediaPage;
+// there is no card-to-Reel navigation from this tab.
 
 import React, { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { Player, PlayerMedia as PlayerMediaType, Team } from '../../types';
 import { mediaBelongsToPlayer } from '../../utils/mediaAttribution';
 import HighlightHero from './HighlightHero';
@@ -42,6 +43,11 @@ interface Props {
   // grid cards so the coach doesn't have to dig into the lightbox
   // editor to promote a clip.
   onFeatureClip?: (clipId: string) => Promise<void> | void;
+  // Card taps route through here so PlayerMediaPage can open its
+  // existing inline lightbox (video/photo overlay + tag editor +
+  // coach controls). Card taps never navigate to the vertical Reel;
+  // that surface has its own tab-bar entry point.
+  onOpenLightbox: (clipId: string) => void;
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -84,8 +90,8 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   selectedTeam,
   parentKidPlayerId,
   onFeatureClip,
+  onOpenLightbox,
 }) => {
-  const navigate = useNavigate();
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | 'all'>('all');
   const [sortKey, setSortKey] = useState<SortKey>('recent');
   const [creditFilter, setCreditFilter] = useState(false);
@@ -240,7 +246,7 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   }, [clips, selectedPlayerId, sortKey, creditFilter, isUserCoach]);
 
   const openClip = (clipId: string) => {
-    navigate(`/highlights?clip=${encodeURIComponent(clipId)}`);
+    onOpenLightbox(clipId);
   };
 
   // Player-tap feedback: bring the grid into view so the user sees

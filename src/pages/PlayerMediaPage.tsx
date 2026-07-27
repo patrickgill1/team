@@ -1668,6 +1668,14 @@ const PlayerMediaPage: React.FC = () => {
             isUserCoach={isUserCoach}
             selectedTeam={selectedTeam}
             parentKidPlayerId={parentLinkedPlayerId}
+            onOpenLightbox={(clipId: string) => {
+              // Mirror the deep-link handler above: look up the clip
+              // by id and open the existing inline lightbox. Card taps
+              // must never leave the Media page (no navigate to
+              // /highlights); ReelKickr is a separate tab-bar entry.
+              const target = media.find(m => m.id === clipId);
+              if (target) setSelectedMedia(target);
+            }}
             onFeatureClip={isUserCoach ? async (clipId: string) => {
               // One-tap "Feature this" from the grid card. Optimistic:
               // flip local state first so the ghost pill hides

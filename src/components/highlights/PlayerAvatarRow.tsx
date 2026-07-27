@@ -18,7 +18,12 @@ interface Props {
   onSelect: (playerId: string | 'all') => void;
 }
 
-const AVATAR_PX = 64;
+// v5 iteration: bumped 64→80 for more presence on the row, with
+// p-1 breathing room inside the ring so faces don't touch the
+// edge. Larger red count badge (w-6 h-6, text-xs) rides the new
+// scale so it doesn't read as small change against the bigger
+// circle.
+const AVATAR_PX = 80;
 
 const PlayerAvatarRow: React.FC<Props> = ({ players, media, selectedPlayerId, onSelect }) => {
   // Pre-compute per-player counts once per (players, media) so scroll
@@ -93,20 +98,20 @@ const AvatarPill: React.FC<PillProps> = ({ label, photoUrl, selected, count, onC
       aria-pressed={selected}
       aria-label={`${label}, ${count} clip${count === 1 ? '' : 's'}`}
     >
-      <span className={`relative inline-flex rounded-full transition ${ringClass}`}>
+      <span className={`relative inline-flex rounded-full transition p-1 bg-surface-elevated ${ringClass}`}>
         {label === 'All' ? (
           <span
             className="inline-flex items-center justify-center rounded-full bg-brand-primary text-brand-primary-fg font-black"
-            style={{ width: AVATAR_PX, height: AVATAR_PX, fontSize: 16 }}
+            style={{ width: AVATAR_PX - 8, height: AVATAR_PX - 8, fontSize: 18 }}
           >
             All
           </span>
         ) : (
-          <RosterAvatar name={label} photoUrl={photoUrl} size={AVATAR_PX} />
+          <RosterAvatar name={label} photoUrl={photoUrl} size={AVATAR_PX - 8} />
         )}
         {count > 0 && (
           <span
-            className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-600 text-white text-[11px] font-black flex items-center justify-center ring-2 ring-surface-base"
+            className="absolute -top-1 -right-1 min-w-[24px] h-6 px-1.5 rounded-full bg-red-600 text-white text-xs font-black flex items-center justify-center ring-2 ring-surface-base"
             aria-hidden
           >
             {count > 99 ? '99+' : count}
@@ -114,7 +119,7 @@ const AvatarPill: React.FC<PillProps> = ({ label, photoUrl, selected, count, onC
         )}
       </span>
       <span
-        className={`text-xs truncate max-w-[80px] ${selected ? 'text-ink-primary font-bold' : 'text-ink-secondary'}`}
+        className={`text-xs truncate max-w-[96px] ${selected ? 'text-ink-primary font-bold' : 'text-ink-secondary'}`}
       >
         {label.split(' ')[0]}
       </span>

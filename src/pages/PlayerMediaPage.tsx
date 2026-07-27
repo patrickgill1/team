@@ -16,7 +16,7 @@ import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/v
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamThumbnailUrl, getStreamDownloadUrl, checkVideoLimit } from '../utils/streamUpload';
 import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
-import { checkUploadQuota, probeVideoDuration, incrementTeamVideoUsage, type QuotaCheck } from '../utils/videoQuota';
+import { checkUploadQuota, probeVideoDuration, incrementTeamVideoUsage, TIER_LIMITS, getTierFor, type QuotaCheck } from '../utils/videoQuota';
 import VideoQuotaModal from '../components/common/VideoQuotaModal';
 import { downloadFile } from '../utils/downloadFile';
 import { getShareOrigin } from '../utils/origin';
@@ -95,6 +95,12 @@ const PlayerMediaPage: React.FC = () => {
   // total storage). Phase 1 is informational; Phase 2 wires the
   // upgrade CTA to Stripe Checkout.
   const [quotaBlocked, setQuotaBlocked] = useState<QuotaCheck | null>(null);
+  // Warm "near the cap" prompt — fires on the coach's tap of the
+  // Upload button when their free-tier team is within 3 clips of
+  // the limit (or already over). Different from quotaBlocked, which
+  // is the hard stop mid-upload. State is the remaining-clip count
+  // so the modal body reads "N clips left" without recomputing.
+  const [nearLimitState, setNearLimitState] = useState<{ remaining: number; tierLabel: string } | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [compressionStatus, setCompressionStatus] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -446,6 +452,35 @@ const PlayerMediaPage: React.FC = () => {
         },
       };
     }));
+  };
+
+  // Entry point for the coach's + Upload button. Runs the trial
+  // gate first (unchanged behavior), then a soft quota check so we
+  // can surface the "N clips left" upsell BEFORE the coach picks
+  // files. Well within limits = straight through to the picker;
+  // near or over = warm modal with an Upgrade / Not yet split.
+  //
+  // The hard cap still fires inside handleUpload once the coach
+  // has actually chosen a file (probes duration too, which we
+  // can't do until they've picked). This is the "you've seen how
+  // good this is" shift Patrick asked for.
+  const openUploadFlow = () => {
+    if (trialGated) { setTrialGateOpen(true); return; }
+    const tier = getTierFor(selectedTeam);
+    const limits = TIER_LIMITS[tier];
+    const clipCount = selectedTeam?.videoClipCount || 0;
+    const remaining = Number.isFinite(limits.maxClips)
+      ? Math.max(0, limits.maxClips - clipCount)
+      : Infinity;
+    // Only free tier has a finite maxClips today (addon/pro are
+    // Infinity). Trigger when they've got 3 or fewer clips left,
+    // OR they've already exceeded the cap.
+    if (Number.isFinite(remaining) && (remaining as number) <= 3) {
+      setNearLimitState({ remaining: remaining as number, tierLabel: limits.label });
+      return;
+    }
+    resetUploadForm();
+    setShowUploadModal(true);
   };
 
   const handleUpload = async () => {
@@ -1487,19 +1522,24 @@ const PlayerMediaPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-surface-base">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Page title — Patrick's half-empty critique flagged the
-            previous 'MEDIA / HIGHLIGHTS · MOMENTS · MEMORIES' hero
-            as a 200px banner that earned nothing. Replaced with a
-            single-row title; the tab bar below carries the rest of
-            the navigation. */}
-        <div className="mb-4 flex items-baseline gap-3">
-          <h1 className="text-2xl sm:text-3xl font-black text-ink-primary">Media</h1>
-          <span className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40">
-            Highlights · Moments · Memories
-          </span>
+        {/* Page title — v5 header polish: bigger title (text-4xl
+            font-black), drop the HIGHLIGHTS · MOMENTS · MEMORIES
+            eyebrow (redundant with the tab bar directly below), add
+            a subtle red accent stripe so the header has weight
+            without volume. */}
+        <div className="mb-4">
+          <h1 className="text-3xl sm:text-4xl font-black text-ink-primary leading-tight">Media</h1>
+          <span className="mt-2 block w-12 h-0.5 bg-brand-primary rounded-full" aria-hidden />
         </div>
 
-        {/* ── TABS + SEARCH + UPLOAD ──────────────────────────────── */}
+        {/* ── TABS + LINK + UPLOAD ──────────────────────────────────
+            v5 iteration: ReelKickr is now a tab in the primary strip
+            (between Game Clips and Full Games) but taps route to
+            /highlights instead of switching activeTab. The standalone
+            ReelKickr button + the cold UPGRADE pill are gone — upgrade
+            asks now fire from the upload flow itself (see
+            openUploadFlow below) so parents/coaches see how good the
+            product is before hitting a paywall. */}
         <div className="flex items-center justify-between flex-wrap gap-4 mb-6 border-b border-line-default/10 pb-2">
           <div className="flex items-center space-x-1">
             <button
@@ -1510,6 +1550,14 @@ const PlayerMediaPage: React.FC = () => {
             >
               Game Clips
               {activeTab === 'highlights' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-brand-primary-soft rounded-full" />}
+            </button>
+            <button
+              onClick={() => navigate('/highlights')}
+              className="px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative text-ink-primary/50 hover:text-ink-primary"
+              title="Open the fullscreen ReelKickr feed"
+              aria-label="Open ReelKickr"
+            >
+              ReelKickr
             </button>
             <button
               onClick={() => setActiveTab('fullgames')}
@@ -1529,34 +1577,8 @@ const PlayerMediaPage: React.FC = () => {
               Photos
               {activeTab === 'photos' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-brand-primary-soft rounded-full" />}
             </button>
-            {canManageMedia && (selectedTeam?.videoTier || 'free') === 'free' && (
-              <button
-                onClick={() => navigate('/upgrade/video')}
-                className="ml-2 px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest bg-amber-500/15 text-amber-600 ring-1 ring-amber-500/40 hover:bg-amber-500/25 transition-colors"
-              >
-                Upgrade
-              </button>
-            )}
           </div>
           <div className="flex items-center gap-2">
-            {/* ReelKickr — sub-brand entry point to the fullscreen
-                vertical reel. Available to every viewer (parents and
-                coaches) on the Game Clips tab. Red-glow ring mirrors
-                the KidHeroCard/HighlightHero crimson treatment so the
-                CTA reads as the loudest thing in the tab bar. */}
-            {activeTab === 'highlights' && (
-              <button
-                onClick={() => navigate('/highlights')}
-                className="bg-brand-primary hover:bg-brand-primary-soft text-white px-4 py-2 rounded-full text-sm font-black uppercase tracking-wide transition-colors flex items-center gap-1.5 ring-2 ring-brand-primary/50 shadow-[0_8px_20px_-8px_rgba(200,32,44,0.6)]"
-                title="Open the fullscreen ReelKickr feed"
-                aria-label="Open ReelKickr"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                <span>ReelKickr</span>
-              </button>
-            )}
             {activeTab === 'highlights' && canManageMedia && (
               <>
                 <button
@@ -1568,10 +1590,7 @@ const PlayerMediaPage: React.FC = () => {
                   <span className="hidden sm:inline">Link</span>
                 </button>
                 <button
-                  onClick={() => {
-                    if (trialGated) { setTrialGateOpen(true); return; }
-                    resetUploadForm(); setShowUploadModal(true);
-                  }}
+                  onClick={openUploadFlow}
                   className="bg-brand-primary hover:bg-brand-primary-soft text-ink-primary px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -2406,6 +2425,59 @@ const PlayerMediaPage: React.FC = () => {
         onClose={() => setQuotaBlocked(null)}
         teamId={selectedTeamId || undefined}
       />
+      {/* Warm near-cap prompt on upload tap. Fired from
+          openUploadFlow before the picker opens. "Not yet, keep
+          going" dismisses AND opens the upload so a coach can
+          burn their last clip without a second tap. */}
+      {nearLimitState && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
+          onClick={() => setNearLimitState(null)}
+        >
+          <div
+            className="bg-surface-elevated w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-sheet-up sm:animate-pop-in"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-5 py-3">
+              <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Video storage</p>
+            </div>
+            <div className="p-5">
+              <h2 className="text-lg font-black text-ink-primary leading-tight">
+                {nearLimitState.remaining <= 0
+                  ? `You're at the ${nearLimitState.tierLabel} clip cap`
+                  : `You have ${nearLimitState.remaining} clip${nearLimitState.remaining === 1 ? '' : 's'} left on the ${nearLimitState.tierLabel} plan`}
+              </h2>
+              <p className="mt-3 text-sm text-ink-primary/85 leading-relaxed">
+                Upgrade to keep dropping game moments. Unlimited 60s clips, no more picking which memory has to go.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setNearLimitState(null); navigate('/upgrade/video'); }}
+                className="w-full mt-5 px-4 py-3 rounded-lg bg-brand-primary hover:bg-brand-primary-soft text-white text-sm font-black uppercase tracking-wider transition-colors"
+              >
+                Upgrade
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNearLimitState(null);
+                  // Only proceed if they still have room. At the cap, the
+                  // hard quota gate would fire mid-upload anyway; skip
+                  // the picker so it doesn't look like nothing happened.
+                  if (nearLimitState.remaining > 0) {
+                    resetUploadForm();
+                    setShowUploadModal(true);
+                  }
+                }}
+                className="w-full mt-2 px-4 py-2.5 rounded-lg bg-surface-input hover:bg-surface-raised ring-1 ring-line-default/10 text-ink-primary text-xs font-extrabold tracking-widest uppercase"
+              >
+                {nearLimitState.remaining > 0 ? 'Not yet, keep going' : 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

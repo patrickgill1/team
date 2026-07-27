@@ -285,12 +285,16 @@ const HighlightsNetflixTab: React.FC<Props> = ({
             onSelect={handleSelectPlayer}
           />
 
-          {/* 2b. Selected-player section header — sits directly under
-              the avatars so the current filter is obvious without the
-              old sticky chip clobbering scroll. When "All" is active
-              this is a lightweight all-clips label. */}
-          <div className="flex items-center justify-between gap-3 mb-4 px-1">
-            <div className="min-w-0 flex items-baseline gap-2 truncate">
+          {/* 3. Section header + sort control on a single row. Left
+              stripe in brand-primary anchors the filter as the active
+              context. Show-all affordance appears next to the count
+              when a player is selected; credit filter suppresses the
+              sort control (sort is meaningless for that queue). */}
+          <div
+            ref={gridSectionRef}
+            className="border-l-4 border-brand-primary pl-3 mb-3 flex items-center justify-between gap-3"
+          >
+            <div className="min-w-0 flex items-center gap-2 flex-wrap">
               <span className="text-xs font-black uppercase tracking-widest text-ink-primary truncate">
                 {selectedPlayer ? (selectedPlayer.name || 'Player') : 'All clips'}
               </span>
@@ -300,46 +304,105 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                   ? `${gridClips.length} ${gridClips.length === 1 ? 'clip' : 'clips'}`
                   : `${totalClips} ${totalClips === 1 ? 'clip' : 'clips'}`}
               </span>
+              {selectedPlayer && (
+                <button
+                  type="button"
+                  onClick={() => handleSelectPlayer('all')}
+                  className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-brand-primary-soft hover:text-ink-primary focus:outline-none focus:underline"
+                  aria-label="Clear player filter"
+                >
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                  <span>Show all</span>
+                </button>
+              )}
             </div>
-            {selectedPlayer && (
-              <button
-                type="button"
-                onClick={() => handleSelectPlayer('all')}
-                className="shrink-0 inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-brand-primary-soft hover:text-ink-primary focus:outline-none focus:underline"
-                aria-label="Clear player filter"
-              >
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-                <span>Show all</span>
-              </button>
+            {!creditFilter && (
+              <div className="shrink-0">
+                <SortPill value={sortKey} onChange={(k) => { setSortKey(k); setGridLimit(GRID_PAGE); }} />
+              </div>
             )}
           </div>
 
-          {/* 3. Top 3 clips this season (silent-hide when < 3) */}
+          {/* 4. Main clip grid — sits IMMEDIATELY below the header so
+              the count you just read matches the cards you scroll into. */}
+          <div className="mb-8">
+            {visibleGrid.length === 0 ? (
+              <div className="text-center py-14 bg-surface-elevated rounded-2xl border border-line-default/10">
+                <p className="text-ink-primary font-bold">No clips match this view.</p>
+                <button
+                  type="button"
+                  onClick={() => { setSelectedPlayerId('all'); setCreditFilter(false); }}
+                  className="mt-3 text-sm font-bold text-brand-primary-soft hover:text-ink-primary"
+                >
+                  Show all clips
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                  {visibleGrid.map(clip => (
+                    <HighlightCardLite
+                      key={clip.id}
+                      clip={clip}
+                      players={players}
+                      onOpen={() => openClip(clip.id)}
+                      fullWidth
+                    />
+                  ))}
+                </div>
+                {canLoadMore && (
+                  <div className="flex justify-center mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setGridLimit(n => n + GRID_PAGE)}
+                      className="px-4 py-2 rounded-full bg-surface-elevated ring-1 ring-line-default/20 text-sm font-bold text-ink-primary hover:bg-line-default/10"
+                    >
+                      Load more
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* 5. Top 3 clips this season (silent-hide when < 3). Amber
+              left-stripe + eyebrow signals the season-leaderboard tone. */}
           {showTop3 && (
-            <HighlightTopThreeRow
-              key="top3"
-              clips={top3}
-              players={players}
-              onCardTap={openClip}
-            />
+            <div className="border-l-4 border-amber-500 pl-3 mb-8">
+              <div className="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1">
+                Season highlights
+              </div>
+              <HighlightTopThreeRow
+                key="top3"
+                clips={top3}
+                players={players}
+                onCardTap={openClip}
+              />
+            </div>
           )}
 
-          {/* 3b. From Your Coach — the 5 most-recent clips uploaded by
-              a coach on this team. Silent-hide when there are none
-              (parent-only teams, or before any coach has uploaded). */}
+          {/* 6. From Your Coach — cyan left-stripe + eyebrow separates
+              coach-curated clips from the season leaderboard. Silent-
+              hide when no coach has uploaded yet. */}
           {coachClips.length > 0 && (
-            <HighlightRow
-              title="From Your Coach"
-              clips={coachClips}
-              players={players}
-              onCardTap={openClip}
-            />
+            <div className="border-l-4 border-cyan-500 pl-3 mb-8">
+              <div className="text-[10px] font-black uppercase tracking-widest text-cyan-500 mb-1">
+                Coach shared
+              </div>
+              <HighlightRow
+                title="From Your Coach"
+                clips={coachClips}
+                players={players}
+                onCardTap={openClip}
+              />
+            </div>
           )}
 
-          {/* 4. Coach-only needs-credit chip banner */}
+          {/* 7. Coach-only needs-credit chip banner. Kept last so the
+              consumer-facing sections lead. */}
           {isUserCoach && needsCreditCount > 0 && (
             <div className="mb-3">
               <NeedsCreditChip
@@ -352,60 +415,6 @@ const HighlightsNetflixTab: React.FC<Props> = ({
               />
             </div>
           )}
-
-          {/* 5. Sort pill (right-aligned) — hidden while credit filter
-              is active because sort is meaningless for that queue. */}
-          {!creditFilter && (
-            <div className="flex items-center justify-end mb-3 px-1">
-              <SortPill value={sortKey} onChange={(k) => { setSortKey(k); setGridLimit(GRID_PAGE); }} />
-            </div>
-          )}
-
-          {/* 6. Main clip grid (with a sticky "you filtered to X" chip
-              at its top edge so the user sees the filter took hold as
-              soon as the scroll lands them here). */}
-          <div ref={gridSectionRef}>
-          {/* Sticky "you filtered to X" chip removed 2026-07-26 — the
-              section header directly under the avatar row now carries
-              the same information without hijacking scroll. */}
-          {visibleGrid.length === 0 ? (
-            <div className="text-center py-14 bg-surface-elevated rounded-2xl border border-line-default/10">
-              <p className="text-ink-primary font-bold">No clips match this view.</p>
-              <button
-                type="button"
-                onClick={() => { setSelectedPlayerId('all'); setCreditFilter(false); }}
-                className="mt-3 text-sm font-bold text-brand-primary-soft hover:text-ink-primary"
-              >
-                Show all clips
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                {visibleGrid.map(clip => (
-                  <HighlightCardLite
-                    key={clip.id}
-                    clip={clip}
-                    players={players}
-                    onOpen={() => openClip(clip.id)}
-                    fullWidth
-                  />
-                ))}
-              </div>
-              {canLoadMore && (
-                <div className="flex justify-center mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setGridLimit(n => n + GRID_PAGE)}
-                    className="px-4 py-2 rounded-full bg-surface-elevated ring-1 ring-line-default/20 text-sm font-bold text-ink-primary hover:bg-line-default/10"
-                  >
-                    Load more
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-          </div>
         </>
       )}
     </div>

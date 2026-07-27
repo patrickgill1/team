@@ -123,14 +123,14 @@ const TopCard: React.FC<TopCardProps> = ({ rank, clip, players, onTap }) => {
     <button
       type="button"
       onClick={onTap}
-      className="group relative w-[260px] md:w-[320px] snap-start shrink-0 aspect-video rounded-xl overflow-hidden bg-surface-elevated ring-1 ring-line-default/10 text-left transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-brand-primary/60"
+      className="group relative w-[260px] md:w-[320px] snap-start shrink-0 aspect-video rounded-xl overflow-hidden bg-zinc-950 ring-1 ring-line-default/10 text-left transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-brand-primary/60"
       aria-label={`Rank ${rank} (${label}): Play ${name}`}
     >
       {poster ? (
         <img
           src={poster}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-contain"
           loading="lazy"
         />
       ) : (

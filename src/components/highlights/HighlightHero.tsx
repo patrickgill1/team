@@ -1,13 +1,11 @@
 // Hero clip at the top of the Netflix Highlights tab. Big 16:9 tile
-// bound to a single clip — never ambient wallpaper. For Cloudflare
-// Stream clips we attempt a muted, looping autoplay preview so the
-// tile feels alive on desktop; the poster stays as a fallback until
-// the iframe is ready and on browsers that block autoplay.
+// bound to a single clip. Static poster + play triangle: auto-play is
+// intentionally OFF on the hero (2026-07-26) so only the reel section
+// pulls video weight. Tap opens the reel via onOpen.
 
 import React from 'react';
 import type { PlayerMedia as PlayerMediaType, Player } from '../../types';
 import { posterFor } from '../../utils/mediaPoster';
-import StreamPlayer from '../common/StreamPlayer';
 
 interface Props {
   clip: PlayerMediaType | null;
@@ -47,7 +45,6 @@ const HighlightHero: React.FC<Props> = ({ clip, players, onOpen, label, labelTon
   const poster = posterFor(clip);
   const name = displayName(clip, players);
   const secondary = clip.caption || momentLabel(clip.momentType) || shortDate(clip.createdAt);
-  const canPreview = clip.type === 'video' && !!clip.streamUid;
 
   const pillTone = labelTone === 'attention'
     ? 'bg-amber-500/90 text-black ring-amber-300/50'
@@ -73,23 +70,9 @@ const HighlightHero: React.FC<Props> = ({ clip, players, onOpen, label, labelTon
         <div className="absolute inset-0 bg-gradient-to-br from-surface-raised to-surface-elevated" />
       )}
 
-      {/* Muted autoplay preview for Stream clips. Wrapped in a div
-          with pointer-events-none so the underlying <button> still
-          receives the tap; the iframe just paints. */}
-      {canPreview && (
-        <div className="absolute inset-0 pointer-events-none">
-          <StreamPlayer
-            uid={clip.streamUid as string}
-            autoplay
-            muted
-            loop
-            streamReady={clip.streamReady === true}
-            className="!aspect-auto w-full h-full"
-            poster={poster}
-            title={clip.caption || name}
-          />
-        </div>
-      )}
+      {/* Auto-play intentionally disabled here (2026-07-26). Only the
+          reel section pulls video weight; the hero stays a still
+          poster + play-triangle affordance. */}
 
       {/* Optional attention pill top-left. */}
       {label && (
@@ -98,12 +81,14 @@ const HighlightHero: React.FC<Props> = ({ clip, players, onOpen, label, labelTon
         </span>
       )}
 
-      {/* Play triangle overlay — subtle so it doesn't fight the preview. */}
+      {/* Centered play triangle. Full-opacity now that there's no
+          background preview to compete with; this is the primary
+          "tap to play" affordance for the hero. */}
       <span
-        className="absolute inset-0 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity pointer-events-none"
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
         aria-hidden
       >
-        <span className="w-16 h-16 rounded-full bg-black/45 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/25">
+        <span className="w-16 h-16 rounded-full bg-black/55 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/30 shadow-lg">
           <svg
             className="w-7 h-7 text-white translate-x-[1.5px]"
             viewBox="0 0 24 24"

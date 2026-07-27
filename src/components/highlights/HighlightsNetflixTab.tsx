@@ -26,6 +26,7 @@ import HighlightCardLite from './HighlightCardLite';
 import PlayerAvatarRow from './PlayerAvatarRow';
 import SortPill, { SortKey } from './SortPill';
 import NeedsCreditChip from './NeedsCreditChip';
+import GameFilterSheet, { GameFilterOption } from './GameFilterSheet';
 
 interface Props {
   media: PlayerMediaType[];
@@ -77,7 +78,11 @@ function needsCredit(m: PlayerMediaType): boolean {
   return true;
 }
 
-const GRID_PAGE = 60;
+// Initial cap on the main grid. Parent-brain scans stall past ~10
+// tiles, so we cut hard here and expose a full-expand "View all"
+// button below the last card. Once expanded, we render every clip
+// and the button vanishes — no incremental paging.
+const GRID_INITIAL = 10;
 
 // ────────────────────────────────────────────────────────────────────
 // Component
@@ -86,6 +91,7 @@ const GRID_PAGE = 60;
 const HighlightsNetflixTab: React.FC<Props> = ({
   media,
   players,
+  events,
   isUserCoach,
   selectedTeam,
   parentKidPlayerId,
@@ -93,9 +99,10 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   onOpenLightbox,
 }) => {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | 'all'>('all');
+  const [selectedGameId, setSelectedGameId] = useState<string | 'all'>('all');
   const [sortKey, setSortKey] = useState<SortKey>('recent');
   const [creditFilter, setCreditFilter] = useState(false);
-  const [gridLimit, setGridLimit] = useState(GRID_PAGE);
+  const [gridExpanded, setGridExpanded] = useState(false);
   // Ref to the grid section so we can smooth-scroll to it after a
   // player is picked from the avatar row. Without this the filter
   // takes effect way below the fold and reads as "nothing happened".
@@ -198,6 +205,53 @@ const HighlightsNetflixTab: React.FC<Props> = ({
     return s;
   }, [clips, coachUidSet, isUserCoach]);
 
+  // ── Game filter options ───────────────────────────────────────────
+  // Derived from clips: any gameId a clip carries becomes a picker
+  // row (if the event exists in `events` and is a real game). Sorted
+  // by event date desc. If no clip has a gameId, the picker chip is
+  // silent-hidden — an empty dropdown is useless.
+  const gameOptions = useMemo<GameFilterOption[]>(() => {
+    const clipGameIds = new Set<string>();
+    for (const c of clips) {
+      const gid = (c as any).gameId;
+      if (typeof gid === 'string' && gid) clipGameIds.add(gid);
+    }
+    if (clipGameIds.size === 0) return [];
+    const eventById = new Map<string, any>();
+    for (const e of events || []) {
+      if (e && e.id) eventById.set(e.id, e);
+    }
+    const out: GameFilterOption[] = [];
+    // Array.from to sidestep the ts target's Set-iterator lint.
+    for (const gid of Array.from(clipGameIds)) {
+      const ev = eventById.get(gid);
+      if (!ev) continue;
+      // Games only (per PlayerMediaPage the events prop is already
+      // filtered to game|event; tournaments come in as 'event' with
+      // a non-empty opponent, so we accept those too).
+      if (ev.type !== 'game' && ev.type !== 'tournament' && ev.type !== 'event') continue;
+      const date: Date = ev.date instanceof Date ? ev.date : (ev.date?.toDate ? ev.date.toDate() : new Date(ev.date));
+      if (!(date instanceof Date) || isNaN(date.getTime())) continue;
+      // Skip 'event' rows that have no opponent — those are banquets /
+      // team dinners, not something a parent would filter clips by.
+      const opponent = String(ev.opponent || '').trim();
+      if (ev.type !== 'game' && !opponent) continue;
+      out.push({
+        gameId: gid,
+        opponent,
+        title: String(ev.title || '').trim() || (opponent ? `vs ${opponent}` : 'Game'),
+        date,
+      });
+    }
+    out.sort((a, b) => b.date.getTime() - a.date.getTime());
+    return out;
+  }, [clips, events]);
+
+  const selectedGame = useMemo(() => {
+    if (selectedGameId === 'all') return null;
+    return gameOptions.find(g => g.gameId === selectedGameId) || null;
+  }, [gameOptions, selectedGameId]);
+
   // ── Needs-credit count (coach chip) ───────────────────────────────
   const needsCreditCount = useMemo(() => {
     if (!isUserCoach) return 0;
@@ -207,12 +261,19 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   }, [clips, isUserCoach]);
 
   // ── Filter + sort logic for the main grid ─────────────────────────
+  // Filters intersect: creditFilter (coach-only) short-circuits the
+  // player filter (it's a mutex chip in the header), but the game
+  // filter always applies on top so a coach can hunt for "unlabeled
+  // clips from the Utah Rush game" without losing either lens.
   const gridClips = useMemo(() => {
     let list = clips;
     if (creditFilter && isUserCoach) {
       list = list.filter(needsCredit);
     } else if (selectedPlayerId !== 'all') {
       list = list.filter(m => mediaBelongsToPlayer(m, selectedPlayerId));
+    }
+    if (selectedGameId !== 'all') {
+      list = list.filter(m => (m as any).gameId === selectedGameId);
     }
     const sorted = list.slice();
     switch (sortKey) {
@@ -243,7 +304,7 @@ const HighlightsNetflixTab: React.FC<Props> = ({
         break;
     }
     return sorted;
-  }, [clips, selectedPlayerId, sortKey, creditFilter, isUserCoach]);
+  }, [clips, selectedPlayerId, selectedGameId, sortKey, creditFilter, isUserCoach]);
 
   const openClip = (clipId: string) => {
     onOpenLightbox(clipId);
@@ -273,7 +334,13 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   const handleSelectPlayer = (id: string | 'all') => {
     setSelectedPlayerId(id);
     setCreditFilter(false);
-    setGridLimit(GRID_PAGE);
+    setGridExpanded(false);
+    if (id !== 'all') revealGrid();
+  };
+
+  const handleSelectGame = (id: string | 'all') => {
+    setSelectedGameId(id);
+    setGridExpanded(false);
     if (id !== 'all') revealGrid();
   };
 
@@ -283,8 +350,8 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   }, [players, selectedPlayerId]);
 
   const totalClips = clips.length;
-  const visibleGrid = gridClips.slice(0, gridLimit);
-  const canLoadMore = gridClips.length > visibleGrid.length;
+  const visibleGrid = gridExpanded ? gridClips : gridClips.slice(0, GRID_INITIAL);
+  const canExpand = gridClips.length > visibleGrid.length;
 
   return (
     <div className="relative">
@@ -333,7 +400,7 @@ const HighlightsNetflixTab: React.FC<Props> = ({
             ref={gridSectionRef}
             className="rounded-2xl bg-brand-primary/[0.05] ring-1 ring-brand-primary/20 p-3 sm:p-4 mb-6"
           >
-            <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-3">
               <div className="min-w-0 flex items-center gap-2 flex-wrap">
                 <svg className="w-4 h-4 text-brand-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -341,12 +408,21 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                   <line x1="16" y1="4" x2="16" y2="20" />
                   <line x1="3" y1="12" x2="21" y2="12" />
                 </svg>
+                {/* Header text reflects both filters when active. Pattern:
+                    "PLAYER vs OPPONENT · N CLIPS", "vs OPPONENT · N CLIPS",
+                    "PLAYER · N CLIPS", or "ALL CLIPS · N CLIPS". */}
                 <span className="text-xs font-black uppercase tracking-widest text-brand-primary-soft truncate">
-                  {selectedPlayer ? (selectedPlayer.name || 'Player') : 'All clips'}
+                  {(() => {
+                    const parts: string[] = [];
+                    if (selectedPlayer) parts.push(selectedPlayer.name || 'Player');
+                    if (selectedGame) parts.push(`vs ${selectedGame.opponent || selectedGame.title}`);
+                    if (parts.length === 0) return 'All clips';
+                    return parts.join(' ');
+                  })()}
                 </span>
                 <span aria-hidden className="text-xs font-bold text-brand-primary-soft/60">·</span>
                 <span className="text-xs font-black uppercase tracking-widest text-brand-primary-soft/80 tabular-nums">
-                  {selectedPlayer
+                  {(selectedPlayer || selectedGame)
                     ? `${gridClips.length} ${gridClips.length === 1 ? 'clip' : 'clips'}`
                     : `${totalClips} ${totalClips === 1 ? 'clip' : 'clips'}`}
                 </span>
@@ -366,8 +442,15 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                 )}
               </div>
               {!creditFilter && (
-                <div className="shrink-0">
-                  <SortPill value={sortKey} onChange={(k) => { setSortKey(k); setGridLimit(GRID_PAGE); }} />
+                <div className="shrink-0 flex items-center gap-2 flex-wrap justify-end">
+                  {gameOptions.length > 0 && (
+                    <GameFilterSheet
+                      options={gameOptions}
+                      value={selectedGameId}
+                      onChange={handleSelectGame}
+                    />
+                  )}
+                  <SortPill value={sortKey} onChange={(k) => { setSortKey(k); setGridExpanded(false); }} />
                 </div>
               )}
             </div>
@@ -379,7 +462,7 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                 <p className="text-ink-primary font-bold">No clips match this view.</p>
                 <button
                   type="button"
-                  onClick={() => { setSelectedPlayerId('all'); setCreditFilter(false); }}
+                  onClick={() => { setSelectedPlayerId('all'); setSelectedGameId('all'); setCreditFilter(false); setGridExpanded(false); }}
                   className="mt-3 text-sm font-bold text-brand-primary-soft hover:text-ink-primary"
                 >
                   Show all clips
@@ -407,16 +490,14 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                     );
                   })}
                 </div>
-                {canLoadMore && (
-                  <div className="flex justify-center mt-6">
-                    <button
-                      type="button"
-                      onClick={() => setGridLimit(n => n + GRID_PAGE)}
-                      className="px-4 py-2 rounded-full bg-surface-elevated ring-1 ring-line-default/20 text-sm font-bold text-ink-primary hover:bg-line-default/10"
-                    >
-                      Load more
-                    </button>
-                  </div>
+                {canExpand && (
+                  <button
+                    type="button"
+                    onClick={() => setGridExpanded(true)}
+                    className="mt-4 w-full py-3 rounded-xl bg-surface-elevated ring-1 ring-line-default/20 text-sm font-black text-ink-primary hover:bg-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary/60 transition"
+                  >
+                    View all {gridClips.length} clips
+                  </button>
                 )}
               </>
             )}
@@ -491,7 +572,7 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                 active={creditFilter}
                 onTap={() => {
                   setCreditFilter(v => !v);
-                  setGridLimit(GRID_PAGE);
+                  setGridExpanded(false);
                 }}
               />
             </div>

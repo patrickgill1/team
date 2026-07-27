@@ -1392,29 +1392,34 @@ const Dashboard: React.FC = () => {
           unread chats, fresh photos). Replaces the standalone
           greeting + the Next Event card.
 
-          Wrapped in the same max-w-7xl container as the cards below
-          so on desktop the hero edges align with the cards instead
-          of stretching edge-to-edge while the cards float in a
-          narrower column (Patrick 2026-07-27). Mobile is unchanged
-          because the viewport is already narrower than max-w-7xl. */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5">
-      <NextEventPoster
-        greeting={greeting}
-        firstName={firstName}
-        nextEvent={nextEvent}
-        whenText={nextEvent ? friendlyEventWhen(nextEvent) : ''}
-        weather={nextEventWeather}
-        goingCount={rsvpCounts.going}
-        pendingCount={rsvpCounts.pending}
-        playerCount={players.length}
-        isCoach={isUserCoach}
-        currentStatus={posterCurrentStatus}
-        goingLabel={posterGoingLabel}
-        noLabel={posterNoLabel}
-        onRsvp={quickRsvp}
-        digestTotal={digestTotal}
-        onOpenDigest={() => setDigestSheetOpen(true)}
-      />
+          Wrapper is RESPONSIVE. On mobile/tablet (< lg) it applies
+          no layout classes, so the hero renders edge-to-edge —
+          Patrick 2026-07-27: "it made the header image smaller on
+          mobile, looks bad, change back." On lg+ desktop we apply
+          the same max-w-7xl mx-auto px-6 constraint the cards
+          container uses, so the hero visually aligns to the cards
+          instead of stretching ear-to-ear on a wide monitor.
+          CoachAccordionBar stays outside the wrapper — always
+          edge-to-edge like it was before 3.9.401. */}
+      <div className="lg:max-w-7xl lg:mx-auto lg:px-6 lg:pt-5">
+        <NextEventPoster
+          greeting={greeting}
+          firstName={firstName}
+          nextEvent={nextEvent}
+          whenText={nextEvent ? friendlyEventWhen(nextEvent) : ''}
+          weather={nextEventWeather}
+          goingCount={rsvpCounts.going}
+          pendingCount={rsvpCounts.pending}
+          playerCount={players.length}
+          isCoach={isUserCoach}
+          currentStatus={posterCurrentStatus}
+          goingLabel={posterGoingLabel}
+          noLabel={posterNoLabel}
+          onRsvp={quickRsvp}
+          digestTotal={digestTotal}
+          onOpenDigest={() => setDigestSheetOpen(true)}
+        />
+      </div>
       <DashboardDigestSheet
         open={digestSheetOpen}
         onClose={() => setDigestSheetOpen(false)}
@@ -1427,7 +1432,6 @@ const Dashboard: React.FC = () => {
           chrome competing with the photo above. Hidden entirely when
           there's nothing to show. Patrick 2026-06-21 dialogue. */}
       <CoachAccordionBar />
-      </div>
       <div className="relative">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">

@@ -18,8 +18,14 @@ android {
         applicationId "com.firefc.team"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 36
-        versionName "3.9.402"
+        // versionCode 36 was already used on a prior closed-testing track,
+        // so Play Console rejects it. Switching to a self-documenting
+        // scheme: versionCode = versionName with dots stripped, e.g.
+        // 3.9.403 → 39403. Guarantees monotonic bumps as long as
+        // versionName monotonically increases, which capgo:versioning
+        // already requires.
+        versionCode 39403
+        versionName "3.9.403"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

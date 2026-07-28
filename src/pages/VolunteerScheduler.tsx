@@ -45,7 +45,7 @@ interface VolunteerSlot {
 const VolunteerScheduler: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getDocuments, addDocument, updateDocument } = useFirestore();
+  const { getDocuments, addDocument, updateDocument, getEventsByTeam } = useFirestore();
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [opportunities, setOpportunities] = useState<VolunteerOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,14 +69,15 @@ const VolunteerScheduler: React.FC = () => {
     try {
       setLoading(true);
       
-      // Load events and volunteer opportunities in parallel
+      // Load events and volunteer opportunities in parallel.
+      // getEventsByTeam scopes to teamId + isActive!==false server-side
+      // instead of scanning every event in every club.
       const [eventsData, oppsData] = await Promise.all([
-        getDocuments('events', []),
+        getEventsByTeam(selectedTeamId),
         getDocuments('volunteer_opportunities', [])
       ]);
 
       const teamEvents = eventsData
-        .filter((e: any) => e.teamId === selectedTeamId && e.isActive !== false)
         .map((e: any) => ({
           ...e,
           date: e.date?.toDate ? e.date.toDate() : new Date(e.date || Date.now()),

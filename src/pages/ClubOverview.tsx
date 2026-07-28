@@ -38,7 +38,7 @@ const ClubOverview: React.FC = () => {
   const navigate = useNavigate();
   const { userData, currentUser } = useAuth();
   const { setSelectedTeamId } = useTeam();
-  const { getDocuments, getPlayersByTeam, getUsersByTeam } = useFirestore();
+  const { getDocuments, getPlayersByTeam, getUsersByTeam, getEventsByTeam } = useFirestore();
   const { clubId: scopedClubId } = useClubId();
   const { has: hasClubScope } = useClubScopes(scopedClubId);
 
@@ -304,16 +304,28 @@ const ClubOverview: React.FC = () => {
       }
       const teamIdSet = new Set<string>(teamDocs.map(t => t.id));
 
-      // Players + users are team-scoped now. Fan out across every
-      // team in the club, dedupe by id (shared players roster'd to
-      // two teams show once, coaches on multiple teams the same).
-      // Events LIST stays permissive.
+      // Players + users + events are team-scoped now. Fan out across
+      // every team in the club, dedupe by id (shared players roster'd
+      // to two teams show once, coaches on multiple teams the same,
+      // and an event that somehow lives on two teams shows once).
+      // Previous events LIST scanned the whole collection then dropped
+      // 99% client-side; per-team fan-out uses the same indexed
+      // teamId== path every other tab already relies on.
       const teamIdList = teamDocs.map(t => t.id).filter(Boolean);
-      const [playerSets, e, userSets] = await Promise.all([
+      const [playerSets, eventSets, userSets] = await Promise.all([
         Promise.all(teamIdList.map(id => getPlayersByTeam(id).catch(() => []))),
-        getDocuments('events', []).catch(() => []),
+        Promise.all(teamIdList.map(id => getEventsByTeam(id).catch(() => []))),
         Promise.all(teamIdList.map(id => getUsersByTeam(id).catch(() => []))),
       ]);
+      const seenE = new Set<string>();
+      const e: any[] = [];
+      for (const set of eventSets) {
+        for (const ev of set as any[]) {
+          if (!ev?.id || seenE.has(ev.id)) continue;
+          seenE.add(ev.id);
+          e.push(ev);
+        }
+      }
       const seenP = new Set<string>();
       const p: any[] = [];
       for (const set of playerSets) {

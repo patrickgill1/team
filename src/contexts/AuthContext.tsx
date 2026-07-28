@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import {
   User,
   signInWithEmailAndPassword,
@@ -70,6 +70,55 @@ interface AuthContextType {
   refreshUserData: () => Promise<void>;
 }
 
+// Helper: race a promise against a timeout so Firestore can't hang forever.
+// Hoisted to module scope so it's referentially stable and doesn't force
+// re-creation of the effect closures that reference it.
+const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T | null> =>
+  Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms))
+  ]);
+
+// Helper: build UserData from raw Firestore doc + Firebase user.
+// Hoisted to module scope — pure function of its args, doesn't close over
+// any component state, and staying stable avoids invalidating the memoized
+// context value on every render.
+const buildUserData = (data: any, user: User): UserData => ({
+  // Spread the raw Firestore data FIRST so dynamic fields the chat /
+  // notifications / settings store on the user doc — pinnedThreadIds,
+  // mutedThreadIds, mutedUserIds, wallLastSeen, etc. — pass through
+  // every snapshot. Without this, the live onSnapshot fires but
+  // buildUserData strips the new array, so pin/mute toggles never
+  // visibly stick. Explicit fields below still win for safety
+  // (defaults, type coercion).
+  ...(data || {}),
+  uid: data.uid || user.uid,
+  id: data.id || data.uid || user.uid,
+  email: data.email || user.email || '',
+  name: data.name || '',
+  role: data.role || 'parent',
+  teamId: data.teamId || '',
+  teamIds: data.teamIds || (data.teamId ? [data.teamId] : []),
+  isClubAdmin: data.isClubAdmin === true,
+  coachLevel: data.coachLevel || undefined,
+  createdAt: data.createdAt instanceof Date
+    ? data.createdAt
+    : data.createdAt?.toDate?.()
+      ? data.createdAt.toDate()
+      : new Date(data.createdAt || Date.now()),
+  phoneNumber: data.phoneNumber || undefined,
+  address: data.address || undefined,
+  emergencyContact: data.emergencyContact || undefined,
+  emergencyPhone: data.emergencyPhone || undefined,
+  privacy: data.privacy || { showPhone: true, showEmail: true, showAddress: false },
+  profilePhotoUrl: data.profilePhotoUrl || user.photoURL || null,
+  authProvider: data.authProvider || 'email',
+  // Prefer the user's manually-uploaded avatar over the OAuth one
+  // (data.photoURL is what Settings writes; user.photoURL comes from
+  // the Firebase Auth provider).
+  photoURL: data.photoURL || data.profilePhotoUrl || user.photoURL || undefined,
+});
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -88,7 +137,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
   const { getUserData, createUser, updateDocument } = useFirestore();
 
-  const signIn = async (email: string, password: string) => {
+  // Keep the latest instances of values that callbacks read but shouldn't
+  // depend on. This lets every callback below use useCallback([]) with
+  // truly stable identity while still reading fresh state / hook results.
+  // Without these refs, wrapping the callbacks in useCallback would either
+  // (a) close over stale values, or (b) require reactive deps that would
+  // re-create the callback and invalidate the memoized context value every
+  // time state changed — defeating the whole purpose of the memo.
+  const currentUserRef = React.useRef(currentUser);
+  currentUserRef.current = currentUser;
+  const getUserDataRef = React.useRef(getUserData);
+  getUserDataRef.current = getUserData;
+  const updateDocumentRef = React.useRef(updateDocument);
+  updateDocumentRef.current = updateDocument;
+
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
       setError(null);
       const result = await signInWithEmailAndPassword(auth, email, password);
@@ -98,9 +161,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Sign in error:', error);
       throw error;
     }
-  };
+  }, []);
 
-  const signUp = async (email: string, password: string, newUserData: Omit<UserData, 'uid'>) => {
+  const signUp = useCallback(async (email: string, password: string, newUserData: Omit<UserData, 'uid'>) => {
     try {
       setError(null);
       debug('Creating Firebase Auth user...');
@@ -195,9 +258,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Sign up error:', error);
       throw error;
     }
-  };
+  }, []);
 
-  const signInWithGoogle = async (inviteTeamId?: string, wantRole?: 'coach' | 'parent'): Promise<void> => {
+  const signInWithGoogle = useCallback(async (inviteTeamId?: string, wantRole?: 'coach' | 'parent'): Promise<void> => {
     try {
       debug('Starting Google sign-in...', inviteTeamId ? `with invite team: ${inviteTeamId}` : '');
       setLoading(true);
@@ -254,8 +317,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       debug('Google sign-in successful:', user.uid, user.email);
       
       // Check if user document exists in Firestore
-      let userData = await getUserData(user.uid);
-      
+      let userData = await getUserDataRef.current(user.uid);
+
       if (!userData) {
         // Extract name from Google profile
         const displayName = user.displayName || '';
@@ -289,7 +352,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!bootstrapRes.ok || !bootstrapData?.ok) {
             throw new Error(bootstrapData?.error || `bootstrap-${bootstrapRes.status}`);
           }
-          userData = await getUserData(user.uid);
+          userData = await getUserDataRef.current(user.uid);
         } catch (bootstrapErr) {
           console.error('[google] bootstrap failed', bootstrapErr);
           // Don't delete the Firebase Auth account here — Google's
@@ -307,7 +370,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (userData.teamId?.startsWith('temp_')) {
           debug('User has temp team ID, updating to correct team:', DEFAULT_TEAM_ID);
           try {
-            await updateDocument('users', user.uid, {
+            await updateDocumentRef.current('users', user.uid, {
               teamId: DEFAULT_TEAM_ID,
               teamIds: [DEFAULT_TEAM_ID],
               updatedAt: new Date()
@@ -334,16 +397,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         try {
-          await updateDocument('users', user.uid, updateData);
+          await updateDocumentRef.current('users', user.uid, updateData);
         } catch (updateError) {
           console.error('Error updating user data:', updateError);
           // Don't fail the sign-in if update fails
         }
       }
-      
+
       // Force re-fetch and set userData since onAuthStateChanged may have already fired
       try {
-        const freshData = await getUserData(user.uid) as any;
+        const freshData = await getUserDataRef.current(user.uid) as any;
         if (freshData) {
           const freshUserData: UserData = {
             uid: freshData.uid || user.uid,
@@ -397,14 +460,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       throw error;
     }
-  };
+  }, []);
 
   // Sign in with Apple — native only (Apple Store requires it whenever the
   // app offers third-party sign-in like Google). Uses the same Capacitor
   // Firebase Authentication plugin and follows the same downstream flow as
   // Google: onAuthStateChanged fires, a Firestore user doc gets created if
   // the uid is new.
-  const signInWithApple = async (inviteTeamId?: string, wantRole?: 'coach' | 'parent'): Promise<void> => {
+  const signInWithApple = useCallback(async (inviteTeamId?: string, wantRole?: 'coach' | 'parent'): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -435,7 +498,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const user = cred.user;
 
       // Create the Firestore user doc on first sign-in.
-      let userData = await getUserData(user.uid);
+      let userData = await getUserDataRef.current(user.uid);
       if (!userData) {
         // Same posture as Google + email: worker /users/bootstrap
         // owns the sensitive writes; auto-link runs server-side.
@@ -461,7 +524,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw bootstrapErr;
         }
         // Hydrate local state from the just-created doc.
-        const fresh = await getUserData(user.uid);
+        const fresh = await getUserDataRef.current(user.uid);
         if (fresh) setUserData(fresh as any);
       } else {
         setUserData(userData);
@@ -482,9 +545,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       throw error;
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       setError(null);
 
@@ -532,7 +595,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // in. Patrick caught this — got pushes for the account he had
       // logged out from while signed in as a different one.
       try {
-        const outgoingUid = currentUser?.uid;
+        const outgoingUid = currentUserRef.current?.uid;
         if (outgoingUid) {
           const { getCurrentPushToken } = await import('../utils/nativeShell');
           const token = await getCurrentPushToken();
@@ -589,9 +652,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Logout error:', error);
       throw error;
     }
-  };
+  }, []);
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = useCallback(async (email: string) => {
     try {
       setError(null);
       await sendPasswordResetEmail(auth, email);
@@ -599,7 +662,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Password reset error:', error);
       throw error;
     }
-  };
+  }, []);
 
   // Delete the user's account. Required by App Store guideline 5.1.1(v) —
   // any app that supports account creation must let users delete from inside
@@ -617,7 +680,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Firebase Auth requires a recent sign-in to delete an account. If the
   // credential is stale, Firebase throws auth/requires-recent-login; we
   // catch that and ask the user to sign back in.
-  const deleteAccount = async (): Promise<void> => {
+  const deleteAccount = useCallback(async (): Promise<void> => {
     const user = auth.currentUser;
     if (!user) throw new Error('Not signed in.');
     setError(null);
@@ -651,51 +714,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       throw error;
     }
-  };
-
-  // Helper: race a promise against a timeout so Firestore can't hang forever
-  const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T | null> =>
-    Promise.race([
-      promise,
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), ms))
-    ]);
-
-  // Helper: build UserData from raw Firestore doc + Firebase user
-  const buildUserData = (data: any, user: User): UserData => ({
-    // Spread the raw Firestore data FIRST so dynamic fields the chat /
-    // notifications / settings store on the user doc — pinnedThreadIds,
-    // mutedThreadIds, mutedUserIds, wallLastSeen, etc. — pass through
-    // every snapshot. Without this, the live onSnapshot fires but
-    // buildUserData strips the new array, so pin/mute toggles never
-    // visibly stick. Explicit fields below still win for safety
-    // (defaults, type coercion).
-    ...(data || {}),
-    uid: data.uid || user.uid,
-    id: data.id || data.uid || user.uid,
-    email: data.email || user.email || '',
-    name: data.name || '',
-    role: data.role || 'parent',
-    teamId: data.teamId || '',
-    teamIds: data.teamIds || (data.teamId ? [data.teamId] : []),
-    isClubAdmin: data.isClubAdmin === true,
-    coachLevel: data.coachLevel || undefined,
-    createdAt: data.createdAt instanceof Date
-      ? data.createdAt
-      : data.createdAt?.toDate?.()
-        ? data.createdAt.toDate()
-        : new Date(data.createdAt || Date.now()),
-    phoneNumber: data.phoneNumber || undefined,
-    address: data.address || undefined,
-    emergencyContact: data.emergencyContact || undefined,
-    emergencyPhone: data.emergencyPhone || undefined,
-    privacy: data.privacy || { showPhone: true, showEmail: true, showAddress: false },
-    profilePhotoUrl: data.profilePhotoUrl || user.photoURL || null,
-    authProvider: data.authProvider || 'email',
-    // Prefer the user's manually-uploaded avatar over the OAuth one
-    // (data.photoURL is what Settings writes; user.photoURL comes from
-    // the Firebase Auth provider).
-    photoURL: data.photoURL || data.profilePhotoUrl || user.photoURL || undefined,
-  });
+  }, []);
 
   // Background tasks that should NOT block the loading spinner
   const runBackgroundTasks = (userData: UserData, userId: string) => {
@@ -1215,17 +1234,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [getUserData]);
 
-  const refreshUserData = async () => {
-    if (!currentUser) return;
+  const refreshUserData = useCallback(async () => {
+    const user = currentUserRef.current;
+    if (!user) return;
     try {
-      const fresh = await getUserData(currentUser.uid) as any;
-      if (fresh) setUserData(buildUserData(fresh, currentUser));
+      const fresh = await getUserDataRef.current(user.uid) as any;
+      if (fresh) setUserData(buildUserData(fresh, user));
     } catch (err) {
       debugWarn('refreshUserData failed:', err);
     }
-  };
+  }, []);
 
-  const value: AuthContextType = {
+  // Memoize the context value so consumers only re-render when a field
+  // they actually read changes. Without this, every provider render
+  // (any state churn — plus every live user-doc onSnapshot that calls
+  // setUserData) handed every useAuth() consumer a NEW object reference,
+  // which React treats as "value changed" → force-rerender every one of
+  // the ~127 useAuth() consumers across the app. Callbacks above are
+  // useCallback-stable so they're safe to include in the dep list without
+  // busting the memo on every render.
+  const value = useMemo<AuthContextType>(() => ({
     currentUser,
     userData,
     loading,
@@ -1238,7 +1266,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetPassword,
     deleteAccount,
     refreshUserData,
-  };
+  }), [
+    currentUser,
+    userData,
+    loading,
+    error,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signInWithApple,
+    logout,
+    resetPassword,
+    deleteAccount,
+    refreshUserData,
+  ]);
 
   return (
     <AuthContext.Provider value={value}>

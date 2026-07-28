@@ -94,7 +94,7 @@ const Calendar: React.FC<CalendarProps> = ({
       } catch { /* ignore */ }
     })();
   }, [selectedTeamId]);
-  const { getDocuments, addDocument, updateDocument } = useFirestore();
+  const { getDocuments, addDocument, updateDocument, getEventsByTeam } = useFirestore();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   // eventId → total comment count on this team. Powers the
@@ -261,16 +261,13 @@ const Calendar: React.FC<CalendarProps> = ({
       
       try {
         debug('Loading events for team:', selectedTeamId);
-        // Use the correct collection name - should match what EventForm uses
-        const allEvents = await getDocuments('events', []);
+        // Server-side scope: getEventsByTeam narrows the read to
+        // teamId==selectedTeamId + isActive!==false so we don't scan
+        // every event in every club and drop 99% client-side.
+        const allEvents = await getEventsByTeam(selectedTeamId);
         debug('All events loaded:', allEvents);
-        
-        // Filter events for this team and convert dates. Soft-deleted
-        // events (isActive === false) are excluded here so tombstoned
-        // items drop off every calendar surface — see EventDetail
-        // handleDelete for the write path.
+
         const teamEvents = allEvents
-          .filter((event: any) => event.teamId === selectedTeamId && event.isActive !== false)
           .map((event: any) => ({
             ...event,
             date: event.date?.toDate ? event.date.toDate() : new Date(event.date),
@@ -287,7 +284,7 @@ const Calendar: React.FC<CalendarProps> = ({
     };
 
     loadEvents();
-  }, [selectedTeamId, getDocuments]);
+  }, [selectedTeamId, getEventsByTeam]);
 
   // When a focusEventId is set in the URL (e.g. coming from the home
   // hero), scroll the matching event card into view after the list
@@ -912,9 +909,8 @@ const Calendar: React.FC<CalendarProps> = ({
           // Reload events after the bulk import completes — uses the same
           // path as the on-mount load so a fresh subscription isn't needed.
           if (!selectedTeamId) return;
-          const all = await getDocuments('events', []);
+          const all = await getEventsByTeam(selectedTeamId);
           const list = (all || [])
-            .filter((ev: any) => ev.teamId === selectedTeamId && ev.isActive !== false)
             .map((ev: any) => ({
               ...ev,
               date: ev.date?.toDate ? ev.date.toDate() : new Date(ev.date),

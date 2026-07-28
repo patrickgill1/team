@@ -42,7 +42,7 @@ interface AttendanceRecord {
 const AttendanceTracker: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
-  const { getDocuments, addDocument, updateDocument, deleteDocument, getPlayersByTeam } = useFirestore();
+  const { getDocuments, addDocument, updateDocument, deleteDocument, getPlayersByTeam, getEventsByTeam } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
@@ -126,7 +126,7 @@ const AttendanceTracker: React.FC = () => {
       // canonical two-query scope.
       const [teamPlayers, eventsData, recordsData] = await Promise.all([
         getPlayersByTeam(selectedTeamId),
-        getDocuments('events', []),
+        getEventsByTeam(selectedTeamId),
         getDocuments('attendance_records', []),
       ]);
       setPlayers(teamPlayers.map((p: any) => ({
@@ -135,11 +135,7 @@ const AttendanceTracker: React.FC = () => {
       })));
 
       const teamEvents = eventsData
-        .filter((e: any) =>
-          e.teamId === selectedTeamId &&
-          !e.isCancelled &&
-          e.isActive !== false
-        )
+        .filter((e: any) => !e.isCancelled)
         .map((e: any) => ({
           ...e,
           date: e.date?.toDate ? e.date.toDate() : new Date(e.date || Date.now()),

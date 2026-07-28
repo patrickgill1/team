@@ -694,10 +694,24 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               isOwn ? 'bg-brand-primary-soft ring-1 ring-brand-primary-soft' : 'bg-surface-elevated ring-1 ring-line-default/20'
             }`}
           >
+            {/* Sizing: the old formula only counted explicit '\n' and
+                returned 2 rows for any long single-line message, so a
+                200-char message collapsed to a 2-row box and the coach
+                couldn't see what they were editing. New formula
+                approximates wrapped-line count (~35 chars per line at
+                bubble width) plus explicit newlines, floors at 3 so
+                short edits still feel roomy, caps at 12 so a big paste
+                doesn't push the composer off-screen. Coach 2026-07-28. */}
             <textarea
               value={editDraft}
               onChange={(e) => setEditDraft(e.target.value)}
-              rows={Math.min(6, Math.max(2, editDraft.split('\n').length))}
+              rows={Math.min(
+                12,
+                Math.max(
+                  3,
+                  Math.ceil(editDraft.length / 35) + (editDraft.match(/\n/g) || []).length
+                )
+              )}
               autoFocus
               className="w-full bg-transparent border-0 focus:outline-none text-[15px] text-ink-primary resize-none"
             />

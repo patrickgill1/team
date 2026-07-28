@@ -135,24 +135,29 @@ body.chat-locked {
    without the tabs riding up with it. Matches iMessage/Telegram/Slack —
    you're focused on the conversation; the back arrow gets you out. */
 body.chat-conversation nav.fixed.bottom-0 { display: none; }
-/* Force EVERY ancestor of the chat container to white while chat is
-   open. The iOS keyboard's slightly-rounded top corners are slightly
-   blur-translucent and pick up whatever color sits behind them. Any
-   tinted layer (html bg, App wrapper bg-crimson-50, etc.) shows through
-   as gray-blue quarter-circles next to the composer. Compared against
-   iMessage, where the page is pure white edge-to-edge, the only way
-   to match is to nuke every tint while .chat-locked is active. */
+/* Force EVERY ancestor of the chat container to the theme surface
+   color while chat is open. The iOS keyboard's slightly-rounded top
+   corners are slightly blur-translucent and pick up whatever color
+   sits behind them — a mismatched tint shows as gray-blue quarter-
+   circles next to the composer. Any color works as long as it's the
+   SAME as the chat container behind the keyboard.
+
+   Previously hardcoded #ffffff, which broke web dark mode (the whole
+   chat wrapper painted white regardless of theme — coach 2026-07-28
+   report: "web chat still has white background, can't see names").
+   Route through --surface-base so light mode stays white (iMessage-
+   like) and dark mode is a deep charcoal (Signal / iMessage dark). */
 html.chat-locked,
 html:has(body.chat-locked),
-html:has(body.chat-conversation) { background-color: #ffffff !important; }
+html:has(body.chat-conversation) { background-color: rgb(var(--surface-base)) !important; }
 body.chat-locked,
-body.chat-conversation { background-color: #ffffff !important; }
+body.chat-conversation { background-color: rgb(var(--surface-base)) !important; }
 body.chat-locked #root,
 body.chat-conversation #root,
 body.chat-locked .App,
 body.chat-conversation .App,
 body.chat-locked .min-h-screen,
-body.chat-conversation .min-h-screen { background-color: #ffffff !important; }
+body.chat-conversation .min-h-screen { background-color: rgb(var(--surface-base)) !important; }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;

@@ -406,6 +406,22 @@ const TeamChat: React.FC = () => {
   // Chat image lightbox — when set, the URL is shown full-screen.
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
+  // Group members sheet. Coaches / any member can tap the group-chat
+  // header title to see WHO is actually in this group — the pre-2026-
+  // 07-28 UI showed only the group name in the header, so a coach who
+  // built an 18-member tournament group had no way to verify he'd
+  // included everyone he meant to. Sheet opens on-demand; user docs
+  // for the participant UIDs load lazily so we don't pay the read cost
+  // for a group nobody opens the sheet on.
+  const [membersSheetOpen, setMembersSheetOpen] = useState(false);
+  const [membersSheetLoading, setMembersSheetLoading] = useState(false);
+  const [membersSheetData, setMembersSheetData] = useState<Array<{
+    uid: string;
+    name: string;
+    photoUrl?: string;
+    role?: string;
+  }>>([]);
+
   // PER-TEAM role gating. The old check keyed on user.role globally,
   // which corrupted identity the moment Patrick added himself as an
   // adult player on Crushers: on Fire FC he suddenly could not see
@@ -1773,6 +1789,64 @@ const TeamChat: React.FC = () => {
     return thread.participants || [];
   };
 
+  // Members-sheet loader — fires when the coach opens the group-info
+  // sheet. Chunks the participant UIDs to Firestore's 30-per-`in`
+  // limit and fetches user docs in parallel. Names + photos sourced
+  // from the user docs; role is best-effort from user.role (global
+  // identity, per coach-role-model memory) — we don't try to resolve
+  // per-team role here since the sheet is a quick roster check, not a
+  // membership manager.
+  useEffect(() => {
+    if (!membersSheetOpen || !selectedThread) return;
+    const uids = ((selectedThread.participants || []) as string[]).filter(Boolean);
+    if (uids.length === 0) { setMembersSheetData([]); return; }
+    let cancelled = false;
+    setMembersSheetLoading(true);
+    (async () => {
+      try {
+        const { collection: c, getDocs: gd, query: q, where: w, documentId } = await import('firebase/firestore');
+        const { db: d } = await import('../utils/firebase');
+        const chunks: string[][] = [];
+        for (let i = 0; i < uids.length; i += 30) chunks.push(uids.slice(i, i + 30));
+        const snaps = await Promise.all(chunks.map(chunk =>
+          gd(q(c(d, 'users'), w(documentId(), 'in', chunk)))
+        ));
+        if (cancelled) return;
+        const merged: Array<{ uid: string; name: string; photoUrl?: string; role?: string }> = [];
+        const seen = new Set<string>();
+        for (const snap of snaps) {
+          for (const docSnap of snap.docs) {
+            if (seen.has(docSnap.id)) continue;
+            seen.add(docSnap.id);
+            const data: any = docSnap.data();
+            merged.push({
+              uid: docSnap.id,
+              name: data?.name || data?.displayName || 'Member',
+              photoUrl: data?.profilePhotoUrl || data?.photoURL || undefined,
+              role: data?.role || undefined,
+            });
+          }
+        }
+        // Add placeholder rows for uids that returned no user doc
+        // (deleted accounts, orphan participants) so the coach still
+        // sees the count is right — hides no one behind the scenes.
+        for (const uid of uids) {
+          if (!seen.has(uid)) {
+            merged.push({ uid, name: 'Former member', role: undefined });
+          }
+        }
+        merged.sort((a, b) => a.name.localeCompare(b.name));
+        setMembersSheetData(merged);
+      } catch (err) {
+        console.error('[chat] members sheet load failed', err);
+        if (!cancelled) setMembersSheetData([]);
+      } finally {
+        if (!cancelled) setMembersSheetLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [membersSheetOpen, selectedThread]);
+
   // Visible messages = real timeline + any pending optimistic rows
   // for this thread, with the optional in-thread search filter on top.
   // Pendings always sort to the end because their timestamp is "now"
@@ -2461,6 +2535,100 @@ const TeamChat: React.FC = () => {
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  // Group members sheet — opens when the coach taps the group title
+  // in the chat header. View-only for v1: name + avatar + subtle role
+  // chip. No add/remove — those live in the existing "New chat" flow
+  // per the shipped scope (see 2026-07-28 pre-ship dialogue). Sheet
+  // uses --surface-base for the backdrop and --surface-elevated for
+  // the card so it flips theme cleanly.
+  const groupMembersSheet = membersSheetOpen && selectedThread ? (
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center"
+      style={{ zIndex: 110 }}
+      onClick={() => setMembersSheetOpen(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Group members"
+    >
+      <div
+        className="w-full sm:max-w-md bg-surface-elevated rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        style={{ maxHeight: '75vh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header: group name + count + close */}
+        <div className="px-4 pt-4 pb-3 border-b border-line-default/10 flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-bold text-ink-primary truncate">{getThreadDisplayTitle(selectedThread)}</h3>
+            <p className="text-[12px] text-ink-primary/60 mt-0.5">
+              {membersSheetLoading
+                ? 'Loading members…'
+                : `${((selectedThread as any).participants || []).length} member${((selectedThread as any).participants || []).length === 1 ? '' : 's'}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMembersSheetOpen(false)}
+            className="w-9 h-9 -mt-1 -mr-1 rounded-full text-ink-primary/55 hover:text-ink-primary hover:bg-line-default/10 flex items-center justify-center flex-shrink-0"
+            aria-label="Close"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body: member rows, or a subtle progress hint while loading */}
+        <div className="flex-1 overflow-y-auto">
+          {membersSheetLoading && membersSheetData.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="h-1 w-24 bg-line-default/[0.08] overflow-hidden rounded-full">
+                <div className="h-full w-1/3 bg-brand-primary/70 animate-progress-slide" />
+              </div>
+            </div>
+          ) : (
+            <ul className="py-1">
+              {membersSheetData.map((m) => (
+                <li key={m.uid} className="px-4 py-2 flex items-center gap-3">
+                  {m.photoUrl ? (
+                    <img
+                      src={m.photoUrl}
+                      alt=""
+                      aria-hidden
+                      className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-1 ring-line-default/10"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 bg-slate-500"
+                    >
+                      {(m.name || '?').charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <span className="flex-1 min-w-0 text-sm font-semibold text-ink-primary truncate">{m.name}</span>
+                  {m.role && m.role !== 'parent' && (
+                    <span className="text-[10px] font-black uppercase tracking-widest text-ink-primary/60 bg-line-default/10 px-2 py-0.5 rounded flex-shrink-0">
+                      {m.role === 'coach' ? 'Coach'
+                        : m.role === 'admin' || m.role === 'club_admin' ? 'Admin'
+                        : m.role === 'player' ? 'Player'
+                        : m.role === 'team_manager' ? 'Manager'
+                        : m.role}
+                    </span>
+                  )}
+                </li>
+              ))}
+              {!membersSheetLoading && membersSheetData.length === 0 && (
+                <li className="px-4 py-8 text-center text-sm text-ink-primary/55">
+                  No members found.
+                </li>
+              )}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   const dmPickerModal = isDMPickerOpen ? (
     <div
       className="fixed inset-0 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
@@ -3054,19 +3222,45 @@ const TeamChat: React.FC = () => {
                     </svg>
                   </button>
                   
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2">
-                      <h1 className="text-lg font-semibold text-ink-primary truncate">{getThreadDisplayTitle(selectedThread)}</h1>
-                      {isThreadPinned(selectedThread) && (
-                        <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      )}
-                      {selectedThread.isPrivate && (
-                        <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full flex-shrink-0">Coach Only</span>
-                      )}
-                    </div>
-                  </div>
+                  {(() => {
+                    const isGroupThread = (selectedThread as any).isGroup === true;
+                    const memberCount = ((selectedThread as any).participants || []).length;
+                    const titleInner = (
+                      <>
+                        <div className="flex items-center space-x-2">
+                          <h1 className="text-lg font-semibold text-ink-primary truncate">{getThreadDisplayTitle(selectedThread)}</h1>
+                          {isThreadPinned(selectedThread) && (
+                            <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          )}
+                          {selectedThread.isPrivate && (
+                            <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full flex-shrink-0">Coach Only</span>
+                          )}
+                        </div>
+                        {isGroupThread && memberCount > 0 && (
+                          <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-ink-primary/55">
+                            <span>{memberCount} member{memberCount === 1 ? '' : 's'}</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                              <path d="M9 6l6 6-6 6" />
+                            </svg>
+                          </p>
+                        )}
+                      </>
+                    );
+                    return isGroupThread ? (
+                      <button
+                        type="button"
+                        onClick={() => setMembersSheetOpen(true)}
+                        className="flex-1 min-w-0 text-left focus:outline-none"
+                        aria-label={`View ${memberCount} member${memberCount === 1 ? '' : 's'}`}
+                      >
+                        {titleInner}
+                      </button>
+                    ) : (
+                      <div className="flex-1 min-w-0">{titleInner}</div>
+                    );
+                  })()}
 
                   <button
                     onClick={() => toggleMuteThread(selectedThread)}
@@ -3551,6 +3745,7 @@ const TeamChat: React.FC = () => {
           </div>
         )}
         {dmPickerModal}
+        {groupMembersSheet}
       </div>
       {lightbox}
       {/* Mobile path was missing the new chatLightbox component
@@ -3710,22 +3905,48 @@ const TeamChat: React.FC = () => {
             {/* Desktop Chat Header */}
             <div className="bg-surface-elevated border-b border-line-default/10 p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <h1 className="text-xl font-semibold text-ink-primary">{getThreadDisplayTitle(selectedThread)}</h1>
-                    {isThreadPinned(selectedThread) && (
-                      <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    )}
-                    {selectedThread.isPrivate && (
-                      <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Coach Only</span>
-                    )}
-                  </div>
-                  {selectedThread.description && (
-                    <p className="text-sm text-ink-primary/65 mt-1">{selectedThread.description}</p>
-                  )}
-                </div>
+                {(() => {
+                  const isGroupThread = (selectedThread as any).isGroup === true;
+                  const memberCount = ((selectedThread as any).participants || []).length;
+                  const desktopTitleInner = (
+                    <>
+                      <div className="flex items-center space-x-2">
+                        <h1 className="text-xl font-semibold text-ink-primary">{getThreadDisplayTitle(selectedThread)}</h1>
+                        {isThreadPinned(selectedThread) && (
+                          <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        )}
+                        {selectedThread.isPrivate && (
+                          <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Coach Only</span>
+                        )}
+                        {isGroupThread && memberCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink-primary/60">
+                            <span>· {memberCount} member{memberCount === 1 ? '' : 's'}</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                              <path d="M9 6l6 6-6 6" />
+                            </svg>
+                          </span>
+                        )}
+                      </div>
+                      {selectedThread.description && (
+                        <p className="text-sm text-ink-primary/65 mt-1">{selectedThread.description}</p>
+                      )}
+                    </>
+                  );
+                  return isGroupThread ? (
+                    <button
+                      type="button"
+                      onClick={() => setMembersSheetOpen(true)}
+                      className="text-left focus:outline-none"
+                      aria-label={`View ${memberCount} member${memberCount === 1 ? '' : 's'}`}
+                    >
+                      {desktopTitleInner}
+                    </button>
+                  ) : (
+                    <div>{desktopTitleInner}</div>
+                  );
+                })()}
                 
                 <div className="flex items-center space-x-3">
                   {(() => {
@@ -3983,6 +4204,7 @@ const TeamChat: React.FC = () => {
         </div>
       )}
       {dmPickerModal}
+      {groupMembersSheet}
       {lightbox}
       {chatLightbox && (
         <ChatImageLightbox

@@ -6,7 +6,7 @@ import { Player, CalendarEvent } from '../types';
 import { formatDate, isCoachOfTeam } from '../utils/helpers';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import { isXpSourceEnabled } from '../utils/xpSource';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import Header from '../components/common/Header';
 import { Link } from 'react-router-dom';
@@ -55,7 +55,7 @@ interface Vote {
 const PlayerOfMatch: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
-  const { getDocuments, addDocument, updateDocument, deleteDocument, getPlayersByTeam } = useFirestore();
+  const { getDocuments, addDocument, updateDocument, deleteDocument, getPlayersByTeam, getEventsByTeam } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [votings, setVotings] = useState<MatchVoting[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -94,10 +94,17 @@ const PlayerOfMatch: React.FC = () => {
       setLoading(true);
       
       // Load players (team-scoped), events, and votings in parallel.
+      // Events + votings now scope by teamId server-side (getEventsByTeam
+      // for events; explicit where('teamId') for match_votings) so we
+      // don't scan every club's events and drop 99% client-side.
       const [teamPlayersRaw, eventsData, votingsData] = await Promise.all([
         getPlayersByTeam(selectedTeamId).catch(() => []),
-        getDocuments('events', []),
-        getDocuments('match_votings', []),
+        getEventsByTeam(selectedTeamId),
+        getDocuments('match_votings', [
+          where('teamId', '==', selectedTeamId),
+          orderBy('gameDate', 'desc'),
+          limit(50),
+        ]),
       ]);
       setPlayers(teamPlayersRaw.map((p: any) => ({
         ...p,
@@ -105,7 +112,7 @@ const PlayerOfMatch: React.FC = () => {
       })));
 
       const teamGameEvents = eventsData
-        .filter((e: any) => e.teamId === selectedTeamId && e.type === 'game' && e.isActive !== false)
+        .filter((e: any) => e.type === 'game')
         .map((e: any) => ({
           ...e,
           date: e.date?.toDate ? e.date.toDate() : new Date(e.date),

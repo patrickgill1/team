@@ -78,7 +78,7 @@ const PlayerMediaPage: React.FC = () => {
   const { isAdult: isAdultTeam } = useTeamAudience(selectedTeam);
   const navigate = useNavigate();
   const canManageMedia = canManageTeamMedia(userData, selectedTeam);
-  const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, getPlayersByTeam, getUsersByTeam, deleteDocument, updateDocument, updatePlayerStats, addGameStat } = useFirestore();
+  const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, getPlayersByTeam, getUsersByTeam, getEventsByTeam, deleteDocument, updateDocument, updatePlayerStats, addGameStat } = useFirestore();
   const { uploadFile } = useStorage();
 
   const [players, setPlayers] = useState<Player[]>([]);
@@ -260,7 +260,7 @@ const PlayerMediaPage: React.FC = () => {
       // Recent games for the optional "Link to game" dropdown (used to dedup
       // stat credits between coach live-tap and parent clip uploads).
       try {
-        const allEvents = await getDocuments('events', []);
+        const allEvents = await getEventsByTeam(selectedTeamId);
         const cutoffPast = Date.now() - 60 * 24 * 3600 * 1000;
         const cutoffFuture = Date.now() + 7 * 24 * 3600 * 1000;
         // Photos tab: give it every team-scoped GAME (+ non-recurring
@@ -272,7 +272,6 @@ const PlayerMediaPage: React.FC = () => {
         // list either.
         const photosWindowMs = 180 * 24 * 3600 * 1000;
         const teamEvents = (allEvents as any[])
-          .filter(e => e.teamId === selectedTeamId && e.isActive !== false)
           .filter(e => e.type === 'game' || e.type === 'event')
           .map(e => {
             const d: Date = e.date?.toDate ? e.date.toDate() : new Date(e.date);

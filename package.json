@@ -1,6 +1,6 @@
 {
   "name": "soccer-team-app",
-  "version": "3.9.403",
+  "version": "3.9.404",
   "private": true,
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
@@ -55,7 +55,7 @@
     "postinstall": "patch-package",
     "start": "react-scripts start",
     "prebuild": "node ./scripts/ensure-clean-tree.js",
-    "build": "REACT_APP_VERSION=$npm_package_version DISABLE_ESLINT_PLUGIN=true react-scripts build && node ./scripts/sentry-sourcemaps.js",
+    "build": "REACT_APP_VERSION=$npm_package_version DISABLE_ESLINT_PLUGIN=true react-scripts build && node ./scripts/sentry-sourcemaps.js && node ./scripts/strip-sourcemaps.js",
     "build:dirty": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",

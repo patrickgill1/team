@@ -441,13 +441,13 @@ const PlayerDevelopment: React.FC = () => {
       void bumpDrillAssignmentCounts(createdCount);
       resetCreateForm();
       setShowCreateModal(false);
-      loadData();
+      loadData({ silent: true });
     } else if (createdCount > 0 && failedCount > 0) {
       void bumpDrillAssignmentCounts(createdCount);
       alert(`Created ${createdCount} plan(s), but ${failedCount} failed. Refreshing…`);
       resetCreateForm();
       setShowCreateModal(false);
-      loadData();
+      loadData({ silent: true });
     } else {
       alert('Failed to create plan(s). Please try again.');
     }
@@ -488,7 +488,7 @@ const PlayerDevelopment: React.FC = () => {
 
     try {
       await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
-      loadData();
+      loadData({ silent: true });
     } catch (error) {
       console.error('Error updating goal:', error);
       alert("Couldn't save. Try again.");
@@ -535,7 +535,7 @@ const PlayerDevelopment: React.FC = () => {
           }
         } catch (e) { console.warn('dev plan wall post failed', e); }
       }
-      loadData();
+      loadData({ silent: true });
     } catch (error) {
       console.error('Error verifying goal:', error);
       alert("Couldn't verify. Try again.");
@@ -563,7 +563,7 @@ const PlayerDevelopment: React.FC = () => {
     );
     try {
       await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
-      loadData();
+      loadData({ silent: true });
     } catch (error) {
       console.error('Error toggling ready for review:', error);
       alert("Couldn't mark ready. Try again.");
@@ -587,7 +587,7 @@ const PlayerDevelopment: React.FC = () => {
     const next = [...(plan.comments || []), comment];
     try {
       await updateDevelopmentPlan(plan.id, { comments: next } as any);
-      loadData();
+      loadData({ silent: true });
       // Fire-and-forget push fan-out.
       try {
         const { sendPushToUsers, sendPushToPlayerParents } = await import('../utils/notify');
@@ -695,7 +695,7 @@ const PlayerDevelopment: React.FC = () => {
     );
     try {
       await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
-      loadData();
+      loadData({ silent: true });
     } catch (error) {
       console.error('Error adding practice log:', error);
     }
@@ -719,7 +719,7 @@ const PlayerDevelopment: React.FC = () => {
     );
     try {
       await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
-      loadData();
+      loadData({ silent: true });
     } catch (error) {
       console.error('Error adding video link:', error);
       alert('Failed to add link.');
@@ -732,7 +732,7 @@ const PlayerDevelopment: React.FC = () => {
     );
     try {
       await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
-      loadData();
+      loadData({ silent: true });
     } catch (error) {
       console.error('Error removing video link:', error);
       alert("Couldn't remove the video. Try again.");
@@ -759,7 +759,7 @@ const PlayerDevelopment: React.FC = () => {
       // handleVerifyGoal when every goal flips to coach-verified — that
       // path is correct and intact. Archive just parks the plan.
       await updateDevelopmentPlan(planId, { status: 'archived' });
-      loadData();
+      loadData({ silent: true });
     } catch (error) {
       console.error('Error archiving plan:', error);
       alert("Couldn't archive the plan. Try again.");
@@ -774,7 +774,7 @@ const PlayerDevelopment: React.FC = () => {
     if (!window.confirm('Delete this plan? It will disappear from the player\'s page. Use Archive instead if the kid actually worked on it. No wall post will be sent.')) return;
     try {
       await updateDevelopmentPlan(planId, { status: 'deleted' });
-      loadData();
+      loadData({ silent: true });
     } catch (error) {
       console.error('Error deleting plan:', error);
       alert("Couldn't delete. Try again.");
@@ -830,7 +830,7 @@ const PlayerDevelopment: React.FC = () => {
       resetCreateForm();
       setEditingPlanId(null);
       setShowCreateModal(false);
-      loadData();
+      loadData({ silent: true });
     } catch (error) {
       console.error('Error updating plan:', error);
       alert('Failed to update plan. Please try again.');
@@ -1019,7 +1019,12 @@ const PlayerDevelopment: React.FC = () => {
   // Convenience for hiding coach-side controls in Parent View.
   const showCoachControls = effectiveView === 'coach';
 
-  if (loading) return <DataGate when="loading" />;
+  // First-load-only gate. Every action handler now uses loadData({
+  // silent: true }) so tapping "I did it" / logging XP / editing a
+  // plan no longer blanks the whole page. But on the true first mount
+  // (or after a team switch that wipes plans) we still want the
+  // progress hint. Coach 2026-07-28: "page blanks on every action."
+  if (loading && plans.length === 0) return <DataGate when="loading" />;
 
   return (
     <div className="min-h-screen bg-surface-base">

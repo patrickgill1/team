@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef, useLayoutEffect } from 're
 import { Capacitor } from '@capacitor/core';
 import { useSearchParams } from 'react-router-dom';
 import { where, doc, updateDoc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuth, onIdTokenChanged } from 'firebase/auth';
 import { db } from '../utils/firebase';
 import { getShareOrigin } from '../utils/origin';
 import { useAuth } from '../hooks/useAuth';
@@ -126,16 +125,14 @@ const TeamChat: React.FC = () => {
   // check. Patrick hit this on cellular 2026-06-15 and lost trust in
   // the app's ability to keep his DMs intact.
   //
-  // onIdTokenChanged fires on initial mount AND on every token refresh,
-  // so this self-heals the transient: the moment a fresh token lands,
-  // the threads subscription re-runs with the working auth.
-  const [authChurn, setAuthChurn] = useState(0);
-  useEffect(() => {
-    const unsub = onIdTokenChanged(getAuth(), () => {
-      setAuthChurn((c) => c + 1);
-    });
-    return () => unsub();
-  }, []);
+  // Historical note: this hook previously bumped `authChurn` on every
+  // onIdTokenChanged event and included it in the subscription deps
+  // to force a resub on every ~hourly token rotation. The audit
+  // showed that pattern was net-negative — the Firestore listener
+  // already self-heals on token refresh via its onError path, and
+  // the forced resub triggered a full-page loading blank on the
+  // chat surface every hour. Removed 2026-07-28. Left the placeholder
+  // comment so future readers understand why the effect is gone.
 
   // Clear the app-icon badge whenever the user lands on the chat
   // page. If they got here from tapping the notification banner,
@@ -724,9 +721,33 @@ const TeamChat: React.FC = () => {
     return () => { cancelled = true; };
   }, [userData?.teamIds, userData?.teamId]);
 
+  // Stable teamIds key — AuthContext hands us a fresh teamIds Array
+  // reference on every user-doc snapshot (mark-thread-seen, pin,
+  // mute, XP grant, FCM token union, etc), so keying the subscription
+  // effect on `userData?.teamIds` directly re-fires it on every one
+  // of those mutations. Sort+join for stable string identity —
+  // Object.is on the joined string is cheap and correct.
+  const teamKey = React.useMemo(
+    () => (userData?.teamIds || []).slice().sort().join(','),
+    [userData?.teamIds]
+  );
+
   // Subscribe to threads across EVERY team the user belongs to. The
   // chat tab no longer hides chats / DMs based on the currently
   // "selected team" — a single inbox surfaces everything.
+  //
+  // Perf fixes (2026-07-28 audit):
+  // 1. Dep is now `teamKey` (stable string) instead of `userData?.teamIds`
+  //    (fresh Array). Kills the every-user-doc-write re-subscribe churn.
+  // 2. `authChurn` dropped from deps. The Firestore listener self-heals
+  //    on token refresh via its own onError path + the merge-don't-
+  //    replace pattern below, so forcing a resub on every scheduled
+  //    ~hourly token rotation was net-negative — it triggered the
+  //    setLoading(true) path and blanked the chat page.
+  // 3. setLoading(true) is now gated on `teamThreads.length === 0` so
+  //    the initial mount still shows the progress hint, but every
+  //    subsequent listener re-fire (from a legitimate resub cause)
+  //    keeps the current thread list visible during the refresh.
   useEffect(() => {
     const myTeamIds = Array.from(new Set([
       ...(userData?.teamIds || []),
@@ -734,7 +755,7 @@ const TeamChat: React.FC = () => {
       ...(selectedTeamId ? [selectedTeamId] : []),
     ].filter(Boolean)));
     if (myTeamIds.length === 0) return;
-    setLoading(true);
+    if (teamThreads.length === 0) setLoading(true);
     const unsubscribeThreads = subscribeToChatThreads(myTeamIds, (threadsData) => {
       const processed = threadsData.map(thread => ({
         ...thread,
@@ -759,7 +780,11 @@ const TeamChat: React.FC = () => {
       setLoading(false);
     });
     return () => { unsubscribeThreads(); };
-  }, [userData?.teamIds, userData?.teamId, selectedTeamId, subscribeToChatThreads, authChurn]);
+    // teamThreads intentionally NOT a dep — reading it inside for the
+    // first-load gate; adding it here would trigger the exact re-sub
+    // churn we're eliminating.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamKey, userData?.teamId, selectedTeamId, subscribeToChatThreads]);
 
   // Group chats live in their own subscription (participants-only).
   // Groups are stored with teamId='' post-privacy-fix, so the team
@@ -784,7 +809,7 @@ const TeamChat: React.FC = () => {
       });
     });
     return () => { unsub && unsub(); };
-  }, [userData?.uid, subscribeToChatGroups, authChurn]);
+  }, [userData?.uid, subscribeToChatGroups]);
 
   // Auto-create the team chat. Every team gets exactly ONE team-scoped
   // thread (named "<Team> Chat").
@@ -899,7 +924,7 @@ const TeamChat: React.FC = () => {
       setClubLoaded(true);
     });
     return () => { unsub && unsub(); };
-  }, [subscribeToClubChatThreads, authChurn, activeClubId]);
+  }, [subscribeToClubChatThreads, activeClubId]);
 
   // Merge + role-filter. Coaches see team + club + coaches scopes.
   // Parents see team + club. Admins see everything.

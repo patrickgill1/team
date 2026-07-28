@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { debug } from '../utils/debug';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -529,8 +529,19 @@ const Wall: React.FC = () => {
 
   // Subscribe to comment COUNTS for every loaded post (lightweight,
   // one onSnapshot per post). For posts the user has expanded, also
-  // store the full comment list. The count subscription only reads
-  // the latest 50 — enough for the badge and the open view.
+  // store the full comment list.
+  //
+  // Two perf fixes (2026-07-28 audit):
+  // 1. Effect depended on `[posts]` — a fresh array reference is
+  //    minted on every wall_posts snapshot (reaction, viewedBy write,
+  //    edit), which tore down and re-created all N per-post comment
+  //    listeners even when the SET of post ids was unchanged. Now
+  //    keys on a stable joined-id string so subscriptions only reset
+  //    when a post actually appears or leaves.
+  // 2. Query claimed "latest 50" in the comment but had no limit(),
+  //    so a viral post streamed EVERY comment for a badge count.
+  //    Added limit(50) — matches the comment's original intent.
+  const postIdsKey = React.useMemo(() => posts.map(p => p.id).join('|'), [posts]);
   useEffect(() => {
     const unsubs: Array<() => void> = [];
     for (const p of posts) {
@@ -538,6 +549,7 @@ const Wall: React.FC = () => {
         collection(db, 'wall_comments'),
         where('postId', '==', p.id),
         orderBy('timestamp', 'asc'),
+        limit(50),
       );
       const unsub = onSnapshot(q, (snap) => {
         const list: WallComment[] = snap.docs.map(d => {
@@ -559,7 +571,8 @@ const Wall: React.FC = () => {
       unsubs.push(unsub);
     }
     return () => { unsubs.forEach(u => u()); };
-  }, [posts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postIdsKey]);
 
   // ─── View tracking ──────────────────────────────────────────
   // When a wall post scrolls into view for ≥1s, write the current

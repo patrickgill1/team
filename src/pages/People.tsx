@@ -304,7 +304,25 @@ const People: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [userData, selectedTeamId, getDocuments]);
+    // Primitive selectors (2026-07-28 audit): the previous dep list
+    // included the whole `userData` object, so every AuthContext live
+    // snapshot (pin toggle, mute, FCM token union, XP grant, heal-
+    // membership write) minted a fresh object reference and re-ran
+    // the whole 2×N-team parallel players+users fetch. Only the
+    // primitive shape of userData matters here. Mirrors the pattern
+    // TeamContext.tsx:263-269 uses to insulate against the same noisy
+    // stream.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    userData?.uid,
+    (userData as any)?.isClubAdmin,
+    (userData as any)?.clubId,
+    ((userData as any)?.clubIds || []).slice().sort().join('|'),
+    (userData?.teamIds || []).slice().sort().join('|'),
+    userData?.teamId,
+    selectedTeamId,
+    getDocuments,
+  ]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

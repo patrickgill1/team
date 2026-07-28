@@ -44,6 +44,20 @@ interface Props {
    *  hero looks exactly like today. Tap fires onOpenDigest. */
   digestTotal?: number;
   onOpenDigest?: () => void;
+  /** Parent's linked players on this event's team. When length ≥ 2,
+   *  the poster renders a "Different for one kid?" split affordance
+   *  below the main RSVP row so mom can set Alice=going + Bob=no
+   *  independently instead of the one-tap all-or-nothing default.
+   *  Silent when 0-1 kids or when onPlayerRsvp isn't wired. */
+  linkedPlayers?: Array<{ id: string; name: string }>;
+  /** Per-kid RSVP status map, keyed by playerId. Only meaningful
+   *  when linkedPlayers is set. Drives the active-highlight state on
+   *  the per-kid mini pills so mom sees at a glance what she's set. */
+  playerStatuses?: Record<string, RsvpStatus | null>;
+  /** Per-kid RSVP write. Fires when a per-kid mini pill is tapped
+   *  inside the expanded split. Dashboard implements the single-
+   *  entry event.playerRsvps write path. */
+  onPlayerRsvp?: (playerId: string, playerName: string, status: RsvpStatus) => void | Promise<void>;
 }
 
 const MONTHS_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
@@ -77,8 +91,16 @@ const NextEventPoster: React.FC<Props> = ({
   hourOverride,
   digestTotal = 0,
   onOpenDigest,
+  linkedPlayers,
+  playerStatuses,
+  onPlayerRsvp,
 }) => {
   const [now, setNow] = useState(() => new Date());
+  // Split-by-kid disclosure. Only relevant when 2+ linked kids on
+  // this team + a per-kid write handler is wired. Collapsed by
+  // default so the one-tap "All going" path (the 95% case) stays
+  // instant; expanded when mom needs to say "Alice yes, Bob sick".
+  const [splitOpen, setSplitOpen] = useState(false);
   useEffect(() => {
     if (hourOverride !== undefined) return;
     const id = window.setInterval(() => setNow(new Date()), 60_000);
@@ -312,6 +334,65 @@ const NextEventPoster: React.FC<Props> = ({
               with linked kids. Hero stays focused on the kid RSVP
               path, which is what 95% of users actually tap. */}
 
+          {/* Split-by-kid affordance — silent unless the parent has
+              2+ kids on this team AND a per-kid write handler is
+              wired. Progressive disclosure: collapsed link until she
+              needs it, then a compact card with a mini-pill row per
+              kid. Keeps the one-tap common case fast while giving
+              the "Alice yes, Bob sick" edge case a real path that
+              doesn't require leaving the dashboard. */}
+          {linkedPlayers && linkedPlayers.length >= 2 && onPlayerRsvp && (
+            <div className="mt-3">
+              {!splitOpen ? (
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setSplitOpen(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold tracking-wide text-brand-primary-soft/85 hover:text-brand-primary-soft transition"
+                  >
+                    <span className="underline decoration-brand-primary-soft/40 underline-offset-2">Different for one kid?</span>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-black/45 ring-1 ring-white/10 px-3 pt-2 pb-2.5 backdrop-blur-sm">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/65">Set per kid</span>
+                    <button
+                      type="button"
+                      onClick={() => setSplitOpen(false)}
+                      className="inline-flex items-center gap-0.5 text-[10px] font-bold text-white/60 hover:text-white/85"
+                      aria-label="Collapse per-kid split"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <path d="M18 15l-6-6-6 6" />
+                      </svg>
+                      Close
+                    </button>
+                  </div>
+                  <div className="space-y-1.5">
+                    {linkedPlayers.map((p) => {
+                      const s = playerStatuses?.[p.id] ?? null;
+                      const first = (p.name || 'Player').trim().split(/\s+/)[0];
+                      return (
+                        <div key={p.id} className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white/90 flex-1 truncate min-w-0" title={p.name}>{first}</span>
+                          <div className="flex gap-1 shrink-0">
+                            <MiniRsvpPill tone="going" active={s === 'going'} label="Going" onClick={() => onPlayerRsvp(p.id, p.name, 'going')} />
+                            <MiniRsvpPill tone="maybe" active={s === 'maybe'} label="Maybe" onClick={() => onPlayerRsvp(p.id, p.name, 'maybe')} />
+                            <MiniRsvpPill tone="no"    active={s === 'no'}    label="No"    onClick={() => onPlayerRsvp(p.id, p.name, 'no')} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Going / pending tally line. Quiet, just-the-facts. */}
           <p className="mt-3 text-center text-[12px] text-white/70 drop-shadow">
             <span className="font-bold text-white">{goingCount}</span> going
@@ -388,6 +469,36 @@ function RsvpButton({ tone, active, label, onClick }: {
         </svg>
       )}
       <span className="truncate">{label}</span>
+    </button>
+  );
+}
+
+// Compact per-kid RSVP pill used inside the "Set per kid" split
+// panel. Same tone palette as the primary RsvpButton so the visual
+// language reads consistent across the poster, just tighter padding
+// + smaller type so three kid rows can stack without pushing the
+// tally line off-screen on a phone.
+function MiniRsvpPill({ tone, active, label, onClick }: {
+  tone: RsvpStatus;
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  const base = 'inline-flex items-center justify-center px-2 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider transition-colors duration-150 active:scale-[0.97]';
+  const activeStyles: Record<RsvpStatus, string> = {
+    going: 'bg-emerald-500 text-white ring-1 ring-emerald-300/60',
+    maybe: 'bg-amber-400 text-charcoal-950 ring-1 ring-amber-300/60',
+    no:    'bg-rose-500 text-white ring-1 ring-rose-300/60',
+  };
+  const inactiveStyles = 'bg-black/50 text-white/85 ring-1 ring-white/10 hover:bg-black/65';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`${base} ${active ? activeStyles[tone] : inactiveStyles}`}
+    >
+      {label}
     </button>
   );
 }

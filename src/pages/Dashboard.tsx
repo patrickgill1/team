@@ -1190,6 +1190,50 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Per-kid RSVP writer — powers the "Set per kid" split panel on
+  // the poster when the parent has 2+ linked kids on this team.
+  // Writes a single playerRsvps[playerId] entry instead of the bulk
+  // loop, so mom can set Alice=going + Bob=no independently. Same
+  // Firestore field as quickRsvp; same optimistic pattern.
+  const perKidQuickRsvp = async (playerId: string, playerName: string, status: 'going' | 'maybe' | 'no') => {
+    if (!nextEvent || !userData?.uid) return;
+    const nextMap: Record<string, any> = { ...(((nextEvent as any).playerRsvps) || {}) };
+    nextMap[playerId] = {
+      status,
+      playerName,
+      byUid: userData.uid,
+      byName: userData.name || undefined,
+      respondedAt: new Date(),
+    };
+    const prevPlayerRsvps = ((nextEvent as any).playerRsvps) || {};
+    setUpcomingEvents((prev) =>
+      prev.map((e) => (e.id === nextEvent.id ? ({ ...e, playerRsvps: nextMap } as any) : e))
+    );
+    try {
+      await updateDocument('events', nextEvent.id, { playerRsvps: nextMap });
+    } catch (err) {
+      console.error('[dashboard] perKidQuickRsvp failed', err);
+      setUpcomingEvents((prev) =>
+        prev.map((e) => (e.id === nextEvent.id ? ({ ...e, playerRsvps: prevPlayerRsvps } as any) : e))
+      );
+      alert("Couldn't save that kid's RSVP. Check your connection and try again.");
+    }
+  };
+
+  // Per-kid status map, keyed by playerId. Drives the highlight
+  // state on the mini pills inside the split panel. Recomputed
+  // when nextEvent changes so post-write updates render instantly.
+  const playerStatusesForPoster = React.useMemo(() => {
+    if (!nextEvent || myLinkedPlayers.length === 0) return undefined;
+    const src = ((nextEvent as any).playerRsvps || {}) as Record<string, { status?: 'going' | 'maybe' | 'no' }>;
+    const out: Record<string, 'going' | 'maybe' | 'no' | null> = {};
+    for (const p of myLinkedPlayers) {
+      const s = src[p.id]?.status;
+      out[p.id] = s === 'going' || s === 'maybe' || s === 'no' ? s : null;
+    }
+    return out;
+  }, [nextEvent, myLinkedPlayers]);
+
   // Coach attendance toggle moved off the dashboard hero per Patrick
   // 2026-06-21 ('i want to clean up the header'). The toggle now
   // lives on the EventDetail page (visible to coaches with linked
@@ -1418,6 +1462,9 @@ const Dashboard: React.FC = () => {
           onRsvp={quickRsvp}
           digestTotal={digestTotal}
           onOpenDigest={() => setDigestSheetOpen(true)}
+          linkedPlayers={myLinkedPlayers}
+          playerStatuses={playerStatusesForPoster}
+          onPlayerRsvp={perKidQuickRsvp}
         />
       </div>
       <DashboardDigestSheet

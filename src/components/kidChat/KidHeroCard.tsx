@@ -257,7 +257,7 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
   const stadiumBg: React.CSSProperties = {
     backgroundImage: [
       'linear-gradient(180deg, rgba(15,15,20,0.72) 0%, rgba(15,15,20,0.55) 45%, rgba(15,15,20,0.82) 100%)',
-      'url(/hero/kid_card_bg.jpg)',
+      'url(/hero/kid_card_bg.webp)',
       'radial-gradient(ellipse 55% 40% at 18% -5%, rgba(255,255,255,0.09), transparent 60%)',
       'radial-gradient(ellipse 55% 40% at 82% -5%, rgba(255,255,255,0.09), transparent 60%)',
       'radial-gradient(ellipse 80% 45% at 50% 110%, rgba(200,32,44,0.10), transparent 65%)',

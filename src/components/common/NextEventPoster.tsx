@@ -65,13 +65,13 @@ const DOWS_SHORT   = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
 
 type Scene = { phase: string; bgImage: string };
 function sceneFor(hour: number): Scene {
-  if (hour < 5.5) return { phase: 'night',   bgImage: '/images/hero/night.jpg' };
-  if (hour < 7)   return { phase: 'predawn', bgImage: '/images/hero/night.jpg' };
-  if (hour < 10)  return { phase: 'morning', bgImage: '/images/hero/morning.jpg' };
-  if (hour < 16)  return { phase: 'midday',  bgImage: '/images/hero/noon.jpg' };
-  if (hour < 19)  return { phase: 'sunset',  bgImage: '/images/hero/sunset.jpg' };
-  if (hour < 22)  return { phase: 'dusk',    bgImage: '/images/hero/night.jpg' };
-  return            { phase: 'night',   bgImage: '/images/hero/night.jpg' };
+  if (hour < 5.5) return { phase: 'night',   bgImage: '/images/hero/night.webp' };
+  if (hour < 7)   return { phase: 'predawn', bgImage: '/images/hero/night.webp' };
+  if (hour < 10)  return { phase: 'morning', bgImage: '/images/hero/morning.webp' };
+  if (hour < 16)  return { phase: 'midday',  bgImage: '/images/hero/noon.webp' };
+  if (hour < 19)  return { phase: 'sunset',  bgImage: '/images/hero/sunset.webp' };
+  if (hour < 22)  return { phase: 'dusk',    bgImage: '/images/hero/night.webp' };
+  return            { phase: 'night',   bgImage: '/images/hero/night.webp' };
 }
 
 const NextEventPoster: React.FC<Props> = ({

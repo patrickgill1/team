@@ -36,13 +36,13 @@ function sceneFor(hour: number): SceneSpec {
   // Night/dusk were /85, which smothered the stadium scene — dropped
   // to /55 with a darker stop at the bottom edge to keep the
   // greeting/event copy legible.
-  if (hour < 5.5) return { phase: 'night',      gradient: 'from-surface-base/55 via-surface-elevated/40 to-surface-base/65',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
-  if (hour < 7)   return { phase: 'predawn',    gradient: 'from-surface-elevated/55 via-indigo-950/40 to-surface-input/55',         stars: true,  moon: false, bgImage: '/images/hero/night.jpg' };
-  if (hour < 10)  return { phase: 'morning',    gradient: 'from-surface-elevated/55 via-surface-input/40 to-surface-raised/50',          stars: false, moon: false, bgImage: '/images/hero/morning.jpg' };
-  if (hour < 16)  return { phase: 'midday',     gradient: 'from-surface-elevated/45 via-surface-input/30 to-surface-raised/45',          stars: false, moon: false, bgImage: '/images/hero/noon.jpg' };
-  if (hour < 19)  return { phase: 'sunset',     gradient: 'from-surface-base/55 via-surface-elevated/40 to-brand-primary-dim/35',           stars: false, moon: false, bgImage: '/images/hero/sunset.jpg' };
-  if (hour < 22)  return { phase: 'dusk',       gradient: 'from-surface-base/55 via-surface-elevated/40 to-surface-input/55',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
-  return            { phase: 'night',      gradient: 'from-surface-base/55 via-surface-elevated/40 to-surface-base/65',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  if (hour < 5.5) return { phase: 'night',      gradient: 'from-surface-base/55 via-surface-elevated/40 to-surface-base/65',          stars: true,  moon: true,  bgImage: '/images/hero/night.webp' };
+  if (hour < 7)   return { phase: 'predawn',    gradient: 'from-surface-elevated/55 via-indigo-950/40 to-surface-input/55',         stars: true,  moon: false, bgImage: '/images/hero/night.webp' };
+  if (hour < 10)  return { phase: 'morning',    gradient: 'from-surface-elevated/55 via-surface-input/40 to-surface-raised/50',          stars: false, moon: false, bgImage: '/images/hero/morning.webp' };
+  if (hour < 16)  return { phase: 'midday',     gradient: 'from-surface-elevated/45 via-surface-input/30 to-surface-raised/45',          stars: false, moon: false, bgImage: '/images/hero/noon.webp' };
+  if (hour < 19)  return { phase: 'sunset',     gradient: 'from-surface-base/55 via-surface-elevated/40 to-brand-primary-dim/35',           stars: false, moon: false, bgImage: '/images/hero/sunset.webp' };
+  if (hour < 22)  return { phase: 'dusk',       gradient: 'from-surface-base/55 via-surface-elevated/40 to-surface-input/55',          stars: true,  moon: true,  bgImage: '/images/hero/night.webp' };
+  return            { phase: 'night',      gradient: 'from-surface-base/55 via-surface-elevated/40 to-surface-base/65',          stars: true,  moon: true,  bgImage: '/images/hero/night.webp' };
 }
 
 interface Props {

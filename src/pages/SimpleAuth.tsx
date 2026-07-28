@@ -330,7 +330,7 @@ const SimpleAuth: React.FC = () => {
         {/* SLIDE 1: HERO */}
         <section className="relative h-screen w-full snap-start snap-always overflow-hidden">
           <img
-            src="/hero/celebration.jpg"
+            src="/hero/celebration.webp"
             alt="Kids celebrating a goal at sunset"
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
@@ -400,28 +400,28 @@ const SimpleAuth: React.FC = () => {
             Copy sits low over a heavy bottom scrim. Nothing floats
             over the subject in the frame. */}
         <TeaserSlide
-          src="/hero/coach-huddle.jpg"
+          src="/hero/coach-huddle.webp"
           alt="Coach kneeling with team at sunset"
           kicker="For coaches"
           title="You're the person these kids remember."
           body="Live gameday tracker, POTM crowns, tagged clips, and a wall that turns each game into a story your team scrolls Monday morning."
         />
         <TeaserSlide
-          src="/hero/friends.jpg"
+          src="/hero/friends.webp"
           alt="Teammates laughing on the field at sunset"
           kicker="For parents"
           title="Your kid's season, from anywhere."
           body="Tagged clips ping your phone. See the recap the moment the whistle blows. When you can't be there, you're still there."
         />
         <TeaserSlide
-          src="/hero/training.jpg"
+          src="/hero/training.webp"
           alt="Kids working through a dribbling drill"
           kicker="For growth"
           title="Every day the kid gets a little better."
           body="Practice streaks, development plans, a drill library that plays inline. Not just a schedule. A path."
         />
         <TeaserSlide
-          src="/hero/adult.jpg"
+          src="/hero/adult.webp"
           alt="Adult team on the pitch"
           kicker="For adult teams too"
           title="Weekend pickups. Adult leagues. Weekly squads."

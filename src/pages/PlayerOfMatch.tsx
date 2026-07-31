@@ -598,99 +598,6 @@ const PlayerOfMatch: React.FC = () => {
           </div>
         )}
 
-        {/* Available Games for Voting (Coach only) */}
-        {isUserCoach && (
-          <div className="mb-6">
-            {availableGames.length > 0 ? (
-              // Neutral informational panel — red-tinted chrome (2026-07-31
-              // "red on red is harsh") replaced with the same surface/ring
-              // tokens the empty state below uses. Red stays reserved for
-              // the Start Voting CTA button, which is where a coach's eye
-              // should actually land.
-              <div className="bg-surface-elevated ring-1 ring-line-default/10 rounded-2xl p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-ink-primary/55 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-ink-primary mb-1">
-                      Games available for {potmTitle} voting
-                    </h3>
-                    <p className="text-[13px] text-ink-primary/60 mb-3">
-                      Create voting sessions for recent or upcoming games
-                    </p>
-                    <div className="space-y-2">
-                      {availableGames.map(game => (
-                        <div key={game.id} className="flex items-center justify-between bg-surface-input rounded-lg p-3 ring-1 ring-line-default/10">
-                          <div className="min-w-0 flex-1 pr-3">
-                            <p className="font-semibold text-ink-primary truncate">{game.title}</p>
-                            <p className="text-sm text-ink-primary/60 truncate">
-                              {formatDate(game.date)} at {game.location}
-                              {game.opponent && ` - vs ${game.opponent}`}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleCreateVotingFromCalendarEvent(game.id)}
-                            className="bg-brand-primary hover:brightness-110 text-white px-3 py-1.5 rounded text-sm font-semibold transition flex items-center gap-1 flex-shrink-0"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            <span>Start Voting</span>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : !activeVoting && calendarEvents.filter(e => e.type === 'game').length === 0 ? (
-              <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-5 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft flex items-center justify-center text-brand-primary">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <rect x="3" y="4" width="18" height="18" rx="2"/>
-                      <line x1="16" y1="2" x2="16" y2="6"/>
-                      <line x1="8" y1="2" x2="8" y2="6"/>
-                      <line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-ink-primary mb-1">No games scheduled yet</h3>
-                    <p className="text-sm text-ink-primary/65 mb-3">
-                      Add a game to your calendar to start a {potmTitle} vote, or hit <span className="font-semibold text-ink-primary/90">Create Voting</span> above to build a custom vote for any game.
-                    </p>
-                    <Link
-                      to="/calendar"
-                      className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary-dim"
-                    >
-                      Open calendar
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ) : !activeVoting && (
-              <div className="bg-line-default/[0.04] border border-line-default/10 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <svg className="w-5 h-5 text-ink-primary/50 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div>
-                    <h3 className="text-sm font-medium text-ink-primary/85 mb-1">All Recent Games Have Voting</h3>
-                    <p className="text-sm text-ink-primary/65">
-                      All your recent and upcoming games already have {potmTitle} voting sessions.
-                      You can create a custom voting session if needed.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-
-
         {/* Active Voting */}
         {activeVoting && (
           <div className="card-modern mb-6 overflow-hidden">
@@ -932,6 +839,99 @@ const PlayerOfMatch: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Available Games for Voting (Coach only) */}
+        {isUserCoach && (
+          <div className="mb-6">
+            {availableGames.length > 0 ? (
+              // Neutral informational panel — red-tinted chrome (2026-07-31
+              // "red on red is harsh") replaced with the same surface/ring
+              // tokens the empty state below uses. Red stays reserved for
+              // the Start Voting CTA button, which is where a coach's eye
+              // should actually land.
+              <div className="bg-surface-elevated ring-1 ring-line-default/10 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ink-primary/55 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-ink-primary mb-1">
+                      Games available for {potmTitle} voting
+                    </h3>
+                    <p className="text-[13px] text-ink-primary/60 mb-3">
+                      Create voting sessions for recent or upcoming games
+                    </p>
+                    <div className="space-y-2">
+                      {availableGames.map(game => (
+                        <div key={game.id} className="flex items-center justify-between bg-surface-input rounded-lg p-3 ring-1 ring-line-default/10">
+                          <div className="min-w-0 flex-1 pr-3">
+                            <p className="font-semibold text-ink-primary truncate">{game.title}</p>
+                            <p className="text-sm text-ink-primary/60 truncate">
+                              {formatDate(game.date)} at {game.location}
+                              {game.opponent && ` - vs ${game.opponent}`}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleCreateVotingFromCalendarEvent(game.id)}
+                            className="bg-brand-primary hover:brightness-110 text-white px-3 py-1.5 rounded text-sm font-semibold transition flex items-center gap-1 flex-shrink-0"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            <span>Start Voting</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : !activeVoting && calendarEvents.filter(e => e.type === 'game').length === 0 ? (
+              <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-5 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft flex items-center justify-center text-brand-primary">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <rect x="3" y="4" width="18" height="18" rx="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-ink-primary mb-1">No games scheduled yet</h3>
+                    <p className="text-sm text-ink-primary/65 mb-3">
+                      Add a game to your calendar to start a {potmTitle} vote, or hit <span className="font-semibold text-ink-primary/90">Create Voting</span> above to build a custom vote for any game.
+                    </p>
+                    <Link
+                      to="/calendar"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary-dim"
+                    >
+                      Open calendar
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ) : !activeVoting && (
+              <div className="bg-line-default/[0.04] border border-line-default/10 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <svg className="w-5 h-5 text-ink-primary/50 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h3 className="text-sm font-medium text-ink-primary/85 mb-1">All Recent Games Have Voting</h3>
+                    <p className="text-sm text-ink-primary/65">
+                      All your recent and upcoming games already have {potmTitle} voting sessions.
+                      You can create a custom voting session if needed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+
 
         {/* Current POTM banner — shows whoever has the gold ring right
             now, with a Clear button so a coach can retire the badge

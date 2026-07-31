@@ -183,16 +183,24 @@ export async function runPotmAutoCreate(env: Env): Promise<{
       const votingId = await createDocument(projectId, 'match_votings', votingPayload, sa);
 
       // Post the "Vote for Player of the Match" CTA to the team wall.
-      // Content markdown mirrors autoPostPotmVotingOpenToWall() so
-      // the wall renderer treats worker-generated + client-generated
-      // posts identically.
+      // Content mirrors autoPostPotmVotingOpenToWall() in
+      // src/utils/autoPostToWall.ts — the client-side wall renderer
+      // uses the structured potmVotingOpen payload to render the
+      // interactive PotmVotingCard (ballot inline). The markdown
+      // content is a fallback for email digests / text-only surfaces.
+      //
+      // Pre-2026-07-31 this worker wrote raw markdown with
+      // `[Cast your vote →](/vote/${votingId})` and NO potmVotingOpen
+      // field, so the wall renderer fell through to raw-text and
+      // parents saw the markdown syntax instead of a ballot. Coach
+      // reported it via a chat message ("I can't figure out how to
+      // get this voting to work"). Aligning worker output to the
+      // client shape.
       const content = [
         '## Vote for Player of the Match',
         `**${votingPayload.gameTitle}**`,
         '',
-        `[Cast your vote →](/vote/${votingId})`,
-        '',
-        '_Results reveal when voting closes. Vote for anyone but your own kid._',
+        '_Open the app to cast your vote. Results reveal when voting closes; vote for anyone but your own kid._',
       ].join('\n');
       await createDocument(projectId, 'wall_posts', {
         teamId: data.teamId,
@@ -205,6 +213,11 @@ export async function runPotmAutoCreate(env: Env): Promise<{
         reactions: [],
         wallPinnedTop: null,
         postedFrom: 'potm',
+        potmVotingOpen: {
+          votingId,
+          gameTitle: votingPayload.gameTitle,
+          eligibleCount: eligiblePlayerIds.length,
+        },
       }, sa).catch(err => {
         console.warn('[potm-auto] wall post failed', eid, err);
       });

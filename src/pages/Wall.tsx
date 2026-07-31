@@ -1925,26 +1925,67 @@ const Wall: React.FC = () => {
                     <div className="px-3 pb-3">
                       <PotmWinnerCard potm={(p as any).potmResult} timestamp={p.timestamp} isCoachView={isCoachOfTeam(userData, selectedTeam)} isAdultTeam={audienceOf(selectedTeam as any) === 'adult'} />
                     </div>
-                  ) : (p as any).potmVotingOpen ? (
-                    <div className="px-3 pb-3">
-                      <PotmVotingCard post={p as any} currentUserId={userData?.uid} timestamp={p.timestamp} isAdultTeam={audienceOf(selectedTeam as any) === 'adult'} />
-                    </div>
-                  ) : p.content ? (
-                    <article className="px-4 pb-3 text-ink-primary/90 break-words text-[15.5px] leading-relaxed">
-                      {(p as any).contentFormat === 'tiptap-html' ? (
-                        <div
-                          className="tiptap-rendered"
-                          // TipTap output is schema-constrained — only
-                          // the nodes/marks our extensions allow are
-                          // ever serialized. No <script>, no inline
-                          // JS, no iframes. Safe to render directly.
-                          dangerouslySetInnerHTML={{ __html: p.content }}
-                        />
-                      ) : (
-                        <RichContent text={p.content} />
-                      )}
-                    </article>
-                  ) : null}
+                  ) : (() => {
+                    // Structured POTM-voting-open payload — modern shape.
+                    if ((p as any).potmVotingOpen) {
+                      return (
+                        <div className="px-3 pb-3">
+                          <PotmVotingCard post={p as any} currentUserId={userData?.uid} timestamp={p.timestamp} isAdultTeam={audienceOf(selectedTeam as any) === 'adult'} />
+                        </div>
+                      );
+                    }
+                    // Legacy-POTM fallback (2026-07-31). The worker's
+                    // potmAutoCreate used to write a wall post with a
+                    // `[Cast your vote →](/vote/{id})` markdown link
+                    // and NO structured potmVotingOpen payload — so
+                    // that class of post fell through to raw content
+                    // and parents couldn't tap the ballot. Detect
+                    // the pattern (postedFrom='potm' + parseable
+                    // /vote/{id} in content) and synthesize the
+                    // structured payload so the same PotmVotingCard
+                    // renders. Worker is fixed going forward; this
+                    // fallback catches every legacy doc without a
+                    // Firestore backfill.
+                    if ((p as any).postedFrom === 'potm' && !((p as any).potmResult) && p.content) {
+                      const idMatch = String(p.content).match(/\/vote\/([A-Za-z0-9_-]+)/);
+                      const titleMatch = String(p.content).match(/\*\*([^*]+)\*\*/);
+                      if (idMatch) {
+                        const synthetic = {
+                          ...p,
+                          potmVotingOpen: {
+                            votingId: idMatch[1],
+                            gameTitle: titleMatch ? titleMatch[1] : 'Game',
+                          },
+                        } as any;
+                        return (
+                          <div className="px-3 pb-3">
+                            <PotmVotingCard post={synthetic} currentUserId={userData?.uid} timestamp={p.timestamp} isAdultTeam={audienceOf(selectedTeam as any) === 'adult'} />
+                          </div>
+                        );
+                      }
+                    }
+                    // No hero card matched — render markdown body.
+                    if (p.content) {
+                      return (
+                        <article className="px-4 pb-3 text-ink-primary/90 break-words text-[15.5px] leading-relaxed">
+                          {(p as any).contentFormat === 'tiptap-html' ? (
+                            <div
+                              className="tiptap-rendered"
+                              // TipTap output is schema-constrained —
+                              // only the nodes/marks our extensions
+                              // allow are ever serialized. No <script>,
+                              // no inline JS, no iframes. Safe to
+                              // render directly.
+                              dangerouslySetInnerHTML={{ __html: p.content }}
+                            />
+                          ) : (
+                            <RichContent text={p.content} />
+                          )}
+                        </article>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   {p.poll && (
                     <WallPollCard
@@ -2798,14 +2839,29 @@ function renderInline(text: string): React.ReactNode {
   let i = 0;
   let key = 0;
   while (i < text.length) {
-    // [label](url) link
-    const linkMatch = text.slice(i).match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/);
+    // [label](url) link. Accepts BOTH https:// URLs (external) and
+    // absolute paths starting with `/` (internal SPA routes like
+    // /vote/{id}, /calendar, /player/{id}). Was https-only, which
+    // silently dropped in-app links to plain text — coach reported
+    // 2026-07-31: the auto-generated POTM wall post rendered
+    // "[Cast your vote →](/vote/…)" as raw markdown because the
+    // link href was a relative path and the regex refused it.
+    const linkMatch = text.slice(i).match(/^\[([^\]]+)\]\(((?:https?:\/\/[^\s)]+)|\/[^\s)]*)\)/);
     if (linkMatch) {
-      out.push(
-        <a key={key++} href={linkMatch[2]} target="_blank" rel="noopener noreferrer" className="text-brand-primary underline">
+      const href = linkMatch[2];
+      const isInternal = href.startsWith('/');
+      out.push(isInternal ? (
+        // Internal routes go through React Router Link so they use
+        // SPA navigation instead of a full-page reload — matters
+        // for Capacitor (native shell) and for state continuity.
+        <Link key={key++} to={href} className="text-brand-primary underline">
+          {linkMatch[1]}
+        </Link>
+      ) : (
+        <a key={key++} href={href} target="_blank" rel="noopener noreferrer" className="text-brand-primary underline">
           {linkMatch[1]}
         </a>
-      );
+      ));
       i += linkMatch[0].length;
       continue;
     }

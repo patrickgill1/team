@@ -602,31 +602,36 @@ const PlayerOfMatch: React.FC = () => {
         {isUserCoach && (
           <div className="mb-6">
             {availableGames.length > 0 ? (
-              <div className="bg-brand-primary/15 border border-brand-primary-soft/20 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <svg className="w-5 h-5 text-brand-primary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              // Neutral informational panel — red-tinted chrome (2026-07-31
+              // "red on red is harsh") replaced with the same surface/ring
+              // tokens the empty state below uses. Red stays reserved for
+              // the Start Voting CTA button, which is where a coach's eye
+              // should actually land.
+              <div className="bg-surface-elevated ring-1 ring-line-default/10 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ink-primary/55 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-brand-primary-dim mb-2">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-ink-primary mb-1">
                       Games available for {potmTitle} voting
                     </h3>
-                    <p className="text-sm text-brand-primary-soft mb-3">
+                    <p className="text-[13px] text-ink-primary/60 mb-3">
                       Create voting sessions for recent or upcoming games
                     </p>
                     <div className="space-y-2">
                       {availableGames.map(game => (
-                        <div key={game.id} className="flex items-center justify-between bg-surface-elevated rounded-lg p-3 border border-brand-primary-soft/20">
-                          <div>
-                            <p className="font-medium text-ink-primary">{game.title}</p>
-                            <p className="text-sm text-ink-primary/65">
+                        <div key={game.id} className="flex items-center justify-between bg-surface-input rounded-lg p-3 ring-1 ring-line-default/10">
+                          <div className="min-w-0 flex-1 pr-3">
+                            <p className="font-semibold text-ink-primary truncate">{game.title}</p>
+                            <p className="text-sm text-ink-primary/60 truncate">
                               {formatDate(game.date)} at {game.location}
                               {game.opponent && ` - vs ${game.opponent}`}
                             </p>
                           </div>
                           <button
                             onClick={() => handleCreateVotingFromCalendarEvent(game.id)}
-                            className="bg-brand-primary hover:bg-brand-primary text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200 flex items-center space-x-1"
+                            className="bg-brand-primary hover:brightness-110 text-white px-3 py-1.5 rounded text-sm font-semibold transition flex items-center gap-1 flex-shrink-0"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />

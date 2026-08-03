@@ -1119,9 +1119,17 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.senderId == request.auth.uid;
+      // Delete allowed for: (1) the comment author, (2) any club
+      // admin, (3) any team coach for the team this comment belongs
+      // to (2026-08-03 coach ask — moderation on the team wall).
+      // Team lookup via the comment's teamId; check the caller's
+      // uid is in team.coachIds.
       allow update, delete: if request.auth != null
         && (resource.data.senderId == request.auth.uid
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);
+            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
+            || (resource.data.teamId is string
+                && resource.data.teamId != ''
+                && request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.coachIds));
     }
 
     // Per-event discussion comments.

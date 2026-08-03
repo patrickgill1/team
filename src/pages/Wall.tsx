@@ -691,7 +691,7 @@ const Wall: React.FC = () => {
     if (!text) return;
     setCommentDrafts(prev => ({ ...prev, [postId]: '' }));
     try {
-      await addDoc(collection(db, 'wall_comments'), {
+      const commentRef = await addDoc(collection(db, 'wall_comments'), {
         postId,
         teamId: selectedTeamId,
         content: text,
@@ -700,6 +700,22 @@ const Wall: React.FC = () => {
         senderPhotoUrl: userPhotoUrl,
         timestamp: new Date(),
       });
+      // Fire push notifications to the post author + prior distinct
+      // commenters via the worker (2026-08-03 coach ask). Client
+      // can't enumerate other team members via Firestore rules —
+      // worker owns the fanout. Fire-and-forget; comment already
+      // saved regardless of push outcome.
+      try {
+        const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
+        if (hasWorkerConfig()) {
+          void workerFetch('/wall/notify-comment', {
+            method: 'POST',
+            body: JSON.stringify({ commentId: commentRef.id }),
+          }).catch(err => console.warn('[wall] comment push failed', err));
+        }
+      } catch (err) {
+        console.warn('[wall] comment push notify import failed', err);
+      }
     } catch (err) {
       console.error('comment add failed', err);
       setCommentDrafts(prev => ({ ...prev, [postId]: text }));

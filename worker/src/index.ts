@@ -82,6 +82,7 @@ import {
   handleTripPublicInfo,
 } from './trips';
 import { handleWallParentPostNotify } from './wallPosts';
+import { handleWallCommentNotify } from './wallComments';
 import { routeGametape } from './gametape';
 
 export interface Env {
@@ -591,6 +592,21 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       let payload: any = {};
       try { payload = await req.json(); } catch {}
       const res = await handleWallParentPostNotify(req, env, payload);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // ── Wall comment notify (2026-08-03 coach ask) ───────────────
+    // Pushes to post author + prior distinct commenters when a new
+    // comment lands on a wall post. Client can't enumerate other
+    // team members via Firestore rules — same reason wall/notify-
+    // parent-post lives here. Own author-uid gate inside the
+    // handler prevents drive-by push spam.
+    if (url.pathname === '/wall/notify-comment' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleWallCommentNotify(req, env, payload);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

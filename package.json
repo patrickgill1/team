@@ -1,6 +1,6 @@
 {
   "name": "soccer-team-app",
-  "version": "3.9.410",
+  "version": "3.9.411",
   "private": true,
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
@@ -65,7 +65,9 @@
     "ios:run": "npm run ios:sync && cap run ios",
     "capgo:push": "npm run build && npx @capgo/cli bundle upload -c production",
     "capgo:canary": "npm run build && npx @capgo/cli bundle upload -c canary",
-    "capgo:status": "npx @capgo/cli app list && npx @capgo/cli bundle list"
+    "capgo:status": "npx @capgo/cli app list && npx @capgo/cli bundle list",
+    "deploy": "npm run build && wrangler deploy",
+    "preview": "npm run build && wrangler dev"
   },
   "eslintConfig": {
     "extends": [
@@ -91,6 +93,7 @@
     "firebase-admin": "^13.8.0",
     "patch-package": "^8.0.1",
     "tailwindcss": "^3.4.19",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "wrangler": "^4.118.0"
   }
 }

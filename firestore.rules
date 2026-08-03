@@ -886,6 +886,14 @@ service cloud.firestore {
       allow delete: if request.auth != null && (
         resource.data.senderId == request.auth.uid
         || isPlatformAdmin()
+        // Team coach moderation (2026-08-03 coach ask). Message
+        // carries teamId at write time (TeamChat.tsx:1580) — check
+        // caller is in that team's coachIds. Bails safely on missing
+        // teamId (is/!= '' checks) and on nonexistent team doc
+        // (Firestore rules coerce the failing OR branch to false).
+        || (resource.data.teamId is string
+            && resource.data.teamId != ''
+            && request.auth.uid in get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.coachIds)
       );
     }
 

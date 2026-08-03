@@ -13,8 +13,14 @@ interface MessageBubbleProps {
   replyTarget?: ChatMessage | null;
   onReply: (m: ChatMessage) => void;
   onToggleReaction: (m: ChatMessage, emoji: string) => void;
-  /** Delete handler — only shown for the user's own messages. */
+  /** Delete handler — shown for the user's own messages OR when
+   *  canModerate is true (team coach moderating team chat). */
   onDelete?: (m: ChatMessage) => void;
+  /** True when the current user is a coach on the thread's team.
+   *  Unlocks the delete affordance on OTHER users' messages so a
+   *  coach can moderate rogue chat activity. Not gated on isOwn.
+   *  Coach 2026-08-03 ask. */
+  canModerate?: boolean;
   /** Toggle pin on this message (coaches / admins only). */
   onTogglePin?: (m: ChatMessage) => void;
   /** Whether this message is currently pinned in its thread. */
@@ -331,6 +337,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onReply,
   onToggleReaction,
   onDelete,
+  canModerate = false,
   onTogglePin,
   isPinned = false,
   canPin = false,
@@ -508,9 +515,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       }
     }
     if (swipeStateRef.current.mode !== 'horizontal') return;
-    // Allow right (reply) for anyone; left (delete) only if this is
-    // the user's own message and onDelete is wired.
-    const allowLeft = isOwn && !!onDelete;
+    // Allow right (reply) for anyone; left (delete) for message owner
+    // OR a team coach on this thread's team (canModerate, 2026-08-03
+    // coach ask). Coaches use swipe-to-delete on rogue messages the
+    // same way they delete their own — confirm dialog still fires
+    // on the throw so accidental swipes don't vaporize context.
+    const allowLeft = (isOwn || canModerate) && !!onDelete;
     let constrained = dx;
     if (constrained < 0 && !allowLeft) constrained = 0;
     // Resistance past SWIPE_MAX so the bubble doesn't fly off-screen
@@ -534,7 +544,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     if (mode !== 'horizontal') return;
     if (dx > SWIPE_THRESHOLD) {
       onReply(message);
-    } else if (dx < -SWIPE_THRESHOLD && isOwn && onDelete) {
+    } else if (dx < -SWIPE_THRESHOLD && (isOwn || canModerate) && onDelete) {
       if (window.confirm('Delete this message?')) onDelete(message);
     }
   };
@@ -545,7 +555,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // left. Opacity scales linearly to threshold.
   const swipeProgress = Math.min(1, Math.abs(swipeDx) / SWIPE_THRESHOLD);
   const showReplyIcon = swipeDx > 8;
-  const showDeleteIcon = swipeDx < -8 && isOwn && !!onDelete;
+  const showDeleteIcon = swipeDx < -8 && (isOwn || canModerate) && !!onDelete;
 
   return (
     <div
@@ -1157,23 +1167,33 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 />
               )}
 
-              {isOwn && onDelete && (() => {
+              {(isOwn || canModerate) && onDelete && (() => {
                 // Recall window — within 60s of sending, show "Unsend"
                 // (no warning, no confirm, treat as a fat-finger fix).
-                // After that, fall back to "Delete" with the existing
-                // confirm dialog the parent handler enforces.
+                // Recall only applies to the sender's own message —
+                // a coach moderating someone else's message always
+                // sees the explicit Delete label + confirm.
                 const ageMs = Date.now() - new Date(message.timestamp).getTime();
-                const isRecall = ageMs < 60_000;
+                const isRecall = isOwn && ageMs < 60_000;
+                const isCoachModerating = !isOwn && canModerate;
+                const label = isRecall
+                  ? 'Unsend message'
+                  : isCoachModerating
+                    ? 'Delete (moderate)'
+                    : 'Delete message';
+                const description = isRecall
+                  ? 'Just sent it? Pull it back before anyone notices.'
+                  : isCoachModerating
+                    ? `Remove this message from the thread. Sender: ${message.senderName || 'this user'}.`
+                    : 'Removes this message for everyone in the thread.';
                 return (
                   <ActionRow
                     icon={isRecall
                       ? <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg>
                       : <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>}
                     tone="rose"
-                    label={isRecall ? 'Unsend message' : 'Delete message'}
-                    description={isRecall
-                      ? 'Just sent it? Pull it back before anyone notices.'
-                      : 'Removes this message for everyone in the thread.'}
+                    label={label}
+                    description={description}
                     onClick={() => { onDelete(message); setActionsOpen(false); }}
                   />
                 );

@@ -1741,12 +1741,18 @@ const TeamChat: React.FC = () => {
   };
 
   const deleteMessage = async (message: ChatMessage) => {
-    if (!userData || message.senderId !== userData.uid) return;
-    // Recall: within 60s of sending, skip the confirm dialog — treat
-    // as a fat-finger undo. After that, fall back to the explicit
-    // confirm so people don't accidentally vaporize old context.
+    if (!userData) return;
+    // Author OR team coach can invoke. Sender-owned path keeps the
+    // 60s-recall fast-undo; a coach moderating someone else's
+    // message always sees the explicit confirm. Firestore rules
+    // are the actual security boundary (coach path added
+    // 2026-08-03) — this client check keeps unauthorized taps
+    // from wasting a round trip.
+    const isOwnMsg = message.senderId === userData.uid;
+    const canModerate = isCoachOfTeam(userData, selectedTeam as any);
+    if (!isOwnMsg && !canModerate) return;
     const ageMs = Date.now() - new Date(message.timestamp).getTime();
-    const isRecall = ageMs < 60_000;
+    const isRecall = isOwnMsg && ageMs < 60_000;
     if (!isRecall && !window.confirm('Delete this message? This cannot be undone.')) return;
     void import('../utils/nativeShell').then(m => m.tapHaptic(isRecall ? 'light' : 'medium'));
     try {
@@ -3527,6 +3533,14 @@ const TeamChat: React.FC = () => {
                       onReply={setReplyingTo}
                       onToggleReaction={toggleReaction}
                       onDelete={deleteMessage}
+                      canModerate={
+                        // Team coach can moderate messages in TEAM
+                        // chats only — not DMs (private 1:1) and not
+                        // ad-hoc groups (not team-scoped).
+                        (selectedThread as any)?.isDM !== true
+                        && (selectedThread as any)?.isGroup !== true
+                        && isCoachOfTeam(userData, selectedTeam as any)
+                      }
                       onEdit={editMessage}
                       onTogglePin={togglePinMessage}
                       isPinned={((selectedThread as any)?.pinnedMessageIds || []).includes(message.id)}
@@ -4032,6 +4046,11 @@ const TeamChat: React.FC = () => {
                     onReply={setReplyingTo}
                     onToggleReaction={toggleReaction}
                     onDelete={deleteMessage}
+                    canModerate={
+                      (selectedThread as any)?.isDM !== true
+                      && (selectedThread as any)?.isGroup !== true
+                      && isCoachOfTeam(userData, selectedTeam as any)
+                    }
                     onEdit={editMessage}
                     onTogglePin={togglePinMessage}
                     isPinned={((selectedThread as any)?.pinnedMessageIds || []).includes(message.id)}

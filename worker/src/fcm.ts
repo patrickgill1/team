@@ -133,44 +133,51 @@ export async function sendPush(tokens: string[], msg: PushMessage, serviceAccoun
   const projectId = sa.project_id;
   const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
 
-  const invalidTokens: string[] = [];
-  const errors: any[] = [];
-  let sent = 0;
+  // Build APNs + Android configs once — same shape per token.
+  //
+  // APNs config (iOS). REQUIRED headers on iOS 13+ for banner
+  // display — `apns-push-type: alert` is the one iOS started
+  // silently dropping without (coach 2026-08-04: iOS pushes
+  // stopped yesterday even though FCM was accepting). Priority
+  // 10 = immediate delivery (5 = deferred / batched). The full
+  // aps.alert block is explicit so FCM doesn't have to guess.
+  // Badge is set only when the caller passes one; badge:0
+  // clears the icon dot.
+  const apnsPayload: any = {
+    aps: {
+      alert: { title: msg.title, body: msg.body },
+      sound: 'default',
+      'mutable-content': 1,
+    },
+  };
+  if (typeof msg.badge === 'number') {
+    apnsPayload.aps.badge = msg.badge;
+  }
+  const apns = {
+    headers: {
+      'apns-push-type': 'alert',
+      'apns-priority': '10',
+    },
+    payload: apnsPayload,
+  };
+  const android = {
+    priority: 'high' as const,
+    notification: typeof msg.badge === 'number'
+      ? { notification_count: msg.badge, channel_id: 'default' }
+      : { channel_id: 'default' },
+  };
 
-  // FCM v1 only sends to one token per call; loop sequentially (volumes are tiny).
-  for (const token of tokens) {
+  // FCM v1 only supports one token per messages:send call, so we
+  // still need N HTTP calls for N tokens. But we can PARALLELIZE
+  // them — previously this ran sequentially, so a 20-token fanout
+  // took ~4-6s wall-clock. Promise.all drops that to ~200-300ms
+  // regardless of team size (2026-08-04 perf pass).
+  const sendOne = async (token: string): Promise<{
+    ok: boolean;
+    invalidToken?: string;
+    error?: any;
+  }> => {
     try {
-      // APNs config (iOS). REQUIRED headers on iOS 13+ for banner
-      // display — `apns-push-type: alert` is the one iOS started
-      // silently dropping without (coach 2026-08-04: iOS pushes
-      // stopped yesterday even though FCM was accepting). Priority
-      // 10 = immediate delivery (5 = deferred / batched). The full
-      // aps.alert block is explicit so FCM doesn't have to guess.
-      // Badge is set only when the caller passes one; badge:0
-      // clears the icon dot.
-      const apnsPayload: any = {
-        aps: {
-          alert: { title: msg.title, body: msg.body },
-          sound: 'default',
-          'mutable-content': 1,
-        },
-      };
-      if (typeof msg.badge === 'number') {
-        apnsPayload.aps.badge = msg.badge;
-      }
-      const apns = {
-        headers: {
-          'apns-push-type': 'alert',
-          'apns-priority': '10',
-        },
-        payload: apnsPayload,
-      };
-      const android = {
-        priority: 'high' as const,
-        notification: typeof msg.badge === 'number'
-          ? { notification_count: msg.badge, channel_id: 'default' }
-          : { channel_id: 'default' },
-      };
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },
@@ -188,17 +195,58 @@ export async function sendPush(tokens: string[], msg: PushMessage, serviceAccoun
           },
         }),
       });
-      if (res.ok) { sent++; continue; }
+      if (res.ok) return { ok: true };
       const data: any = await res.json().catch(() => ({}));
       const errStatus = data?.error?.status;
       // UNREGISTERED / NOT_FOUND / INVALID_ARGUMENT (for token) → mark token as dead
       if (errStatus === 'UNREGISTERED' || errStatus === 'NOT_FOUND' || res.status === 404) {
-        invalidTokens.push(token);
-      } else {
-        errors.push({ token: token.slice(0, 12) + '…', status: errStatus, http: res.status });
+        return { ok: false, invalidToken: token };
       }
+      return { ok: false, error: { token: token.slice(0, 12) + '…', status: errStatus, http: res.status } };
     } catch (e: any) {
-      errors.push({ error: String(e?.message || e) });
+      return { ok: false, error: { error: String(e?.message || e) } };
+    }
+  };
+
+  const results = await Promise.all(tokens.map(sendOne));
+
+  const invalidTokens: string[] = [];
+  const errors: any[] = [];
+  let sent = 0;
+  for (const r of results) {
+    if (r.ok) sent++;
+    else if (r.invalidToken) invalidTokens.push(r.invalidToken);
+    else if (r.error) errors.push(r.error);
+  }
+
+  // Prune dead tokens from their owning user docs. FCM tells us
+  // which tokens Apple / Google has marked UNREGISTERED but we
+  // don't know the owning uid at this layer (sendPush takes a
+  // flat token list). Query users where fcmTokens array-contains
+  // {token}, then commit arrayRemove for each. Cost: one read +
+  // one write per invalid token, and only fires when tokens are
+  // actually dead — the list self-heals over the next week.
+  // (2026-08-04: coach's user doc had 10 tokens accumulated over
+  // reinstalls; only 1 was live per-device.)
+  if (invalidTokens.length > 0) {
+    try {
+      const { runQuery, commitDocumentTransforms } = await import('./firestore');
+      await Promise.all(invalidTokens.map(async (t) => {
+        try {
+          const owners = await runQuery(projectId, 'users', [
+            { field: 'fcmTokens', op: 'ARRAY_CONTAINS', value: t },
+          ], sa, 5);
+          for (const owner of owners) {
+            await commitDocumentTransforms(projectId, `users/${owner.id}`, [
+              { fieldPath: 'fcmTokens', kind: 'arrayRemove', value: t },
+            ], null, sa);
+          }
+        } catch (err) {
+          console.warn('[fcm] prune failed for token', t.slice(0, 8), err);
+        }
+      }));
+    } catch (err) {
+      console.warn('[fcm] token-prune module load failed', err);
     }
   }
 

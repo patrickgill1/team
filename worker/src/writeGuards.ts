@@ -5330,7 +5330,16 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
   //   its own separate ceiling shape.
   const MAX_RETRIES = 3;
 
-  const results = await Promise.all(playerIds.map(async (playerId): Promise<{ playerId: string; ok: boolean; error?: string; xp?: number }> => {
+  const results = await Promise.all(playerIds.map(async (playerId): Promise<{
+    playerId: string;
+    ok: boolean;
+    error?: string;
+    xp?: number;
+    // playerName + parentIds stashed on success so the post-grant
+    // parent-push fanout below doesn't need a second read per player.
+    playerName?: string;
+    parentIds?: string[];
+  }> => {
     try {
       let attempt = 0;
       let lastError: string = 'write_failed';
@@ -5373,7 +5382,13 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
               awardedByName, awardedByAvatarUrl,
             },
           });
-          return { playerId, ok: true, xp: amount };
+          return {
+            playerId,
+            ok: true,
+            xp: amount,
+            playerName: typeof player.name === 'string' ? player.name : '',
+            parentIds: Array.isArray(player.parentIds) ? player.parentIds : [],
+          };
         } catch (commitErr) {
           if (commitErr instanceof PreconditionFailedError) {
             lastError = 'precondition_retry';
@@ -5383,7 +5398,17 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
             // Deterministic sourceRef collision — a prior request in
             // this dispatch already landed. Treat as idempotent OK so
             // client retry over the whole dispatch doesn't error.
-            return { playerId, ok: true, xp: amount };
+            // Player name/parentIds carried through so the parent
+            // push still fires (idempotent path shouldn't drop the
+            // side-effect quietly — but push helper's dedup on
+            // recipient tokens is naturally idempotent per device).
+            return {
+              playerId,
+              ok: true,
+              xp: amount,
+              playerName: typeof player.name === 'string' ? player.name : '',
+              parentIds: Array.isArray(player.parentIds) ? player.parentIds : [],
+            };
           }
           console.error('[xp] grant-coach player commit failed', playerId, (commitErr as Error).message);
           lastError = 'write_failed';
@@ -5453,6 +5478,35 @@ async function handleXpGrantCoach(req: Request, env: Env, payload: any): Promise
         console.warn('[xp] preset save failed (non-fatal):', (err as Error).message);
       }
     }
+  }
+
+  // ── Parent push fanout (2026-08-04 coach ask) ────────────────
+  //
+  // For every successful grant, ping the player's parents with the
+  // coach's reason. Awaited so a burst of grants doesn't leak
+  // requests after the response returns (Cloudflare Workers kill
+  // background promises unless ctx.waitUntil is used, which isn't
+  // plumbed through this handler). Push helper is fire-safe: any
+  // per-parent failure logs and swallows without cascading.
+  try {
+    const { pushXpRecognitionToParents } = await import('./xpNotifyParents');
+    await Promise.all(
+      results
+        .filter(r => r.ok && r.parentIds && r.parentIds.length > 0)
+        .map(r => pushXpRecognitionToParents(pid, sa, env, {
+          playerId: r.playerId,
+          playerName: r.playerName || '',
+          parentIds: r.parentIds || [],
+          coachName: awardedByName,
+          reason,
+          // Exclude the caller — if the coach is also the player's
+          // parent (adult-player self-parent, or coach with own kid
+          // on the team), they don't ping themselves.
+          excludeUid: claims.uid,
+        })),
+    );
+  } catch (err) {
+    console.warn('[xp] parent push fanout module load failed', err);
   }
 
   return json({ ok: true, granted: grantedCount, results, picksEarned });

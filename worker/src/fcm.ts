@@ -140,17 +140,37 @@ export async function sendPush(tokens: string[], msg: PushMessage, serviceAccoun
   // FCM v1 only sends to one token per call; loop sequentially (volumes are tiny).
   for (const token of tokens) {
     try {
-      // Build per-platform payloads. Badge lives on APNS for iOS
-      // (aps.badge, absolute integer) and on Android's notification
-      // channel via notification_count. Web push doesn't have a
-      // native badge concept; the app's in-UI unread indicator
-      // covers that surface.
-      const apns = typeof msg.badge === 'number' ? {
-        payload: { aps: { badge: msg.badge } },
-      } : undefined;
-      const android = typeof msg.badge === 'number' ? {
-        notification: { notification_count: msg.badge },
-      } : undefined;
+      // APNs config (iOS). REQUIRED headers on iOS 13+ for banner
+      // display — `apns-push-type: alert` is the one iOS started
+      // silently dropping without (coach 2026-08-04: iOS pushes
+      // stopped yesterday even though FCM was accepting). Priority
+      // 10 = immediate delivery (5 = deferred / batched). The full
+      // aps.alert block is explicit so FCM doesn't have to guess.
+      // Badge is set only when the caller passes one; badge:0
+      // clears the icon dot.
+      const apnsPayload: any = {
+        aps: {
+          alert: { title: msg.title, body: msg.body },
+          sound: 'default',
+          'mutable-content': 1,
+        },
+      };
+      if (typeof msg.badge === 'number') {
+        apnsPayload.aps.badge = msg.badge;
+      }
+      const apns = {
+        headers: {
+          'apns-push-type': 'alert',
+          'apns-priority': '10',
+        },
+        payload: apnsPayload,
+      };
+      const android = {
+        priority: 'high' as const,
+        notification: typeof msg.badge === 'number'
+          ? { notification_count: msg.badge, channel_id: 'default' }
+          : { channel_id: 'default' },
+      };
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },

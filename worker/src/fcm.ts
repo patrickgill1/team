@@ -141,18 +141,25 @@ export async function sendPush(tokens: string[], msg: PushMessage, serviceAccoun
   // stopped yesterday even though FCM was accepting). Priority
   // 10 = immediate delivery (5 = deferred / batched). The full
   // aps.alert block is explicit so FCM doesn't have to guess.
-  // Badge is set only when the caller passes one; badge:0
-  // clears the icon dot.
+  //
+  // BADGE (2026-08-11 coach ask "just show nothing for now"):
+  // ALWAYS set badge to msg.badge if provided, else 0. Explicitly
+  // sending 0 tells iOS to clear the icon dot on every push
+  // arrival — critical while the badge-clear native plugin
+  // (@capawesome/capacitor-badge) isn't yet in the shipped iOS
+  // binary. Previously we omitted badge, which left iOS's
+  // last-known badge stuck at 1 forever after any legacy push
+  // that set it. Sending 0 forces the OS to reset. Same on
+  // Android via notification_count.
+  const badgeVal = typeof msg.badge === 'number' ? msg.badge : 0;
   const apnsPayload: any = {
     aps: {
       alert: { title: msg.title, body: msg.body },
       sound: 'default',
       'mutable-content': 1,
+      badge: badgeVal,
     },
   };
-  if (typeof msg.badge === 'number') {
-    apnsPayload.aps.badge = msg.badge;
-  }
   const apns = {
     headers: {
       'apns-push-type': 'alert',
@@ -162,9 +169,7 @@ export async function sendPush(tokens: string[], msg: PushMessage, serviceAccoun
   };
   const android = {
     priority: 'high' as const,
-    notification: typeof msg.badge === 'number'
-      ? { notification_count: msg.badge, channel_id: 'default' }
-      : { channel_id: 'default' },
+    notification: { notification_count: badgeVal, channel_id: 'default' },
   };
 
   // FCM v1 only supports one token per messages:send call, so we

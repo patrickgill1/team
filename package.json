@@ -1,6 +1,6 @@
 {
   "name": "soccer-team-app",
-  "version": "3.9.415",
+  "version": "3.9.416",
   "private": true,
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
@@ -14,7 +14,6 @@
     "@capacitor/haptics": "^7.0.5",
     "@capacitor/ios": "^7.6.2",
     "@capacitor/keyboard": "^7.0.6",
-    "@capacitor/push-notifications": "^7.0.6",
     "@capacitor/share": "^7.0.4",
     "@capacitor/splash-screen": "^7.0.5",
     "@capacitor/status-bar": "^7.0.6",

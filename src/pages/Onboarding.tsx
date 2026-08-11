@@ -9,7 +9,7 @@ import { APP_STORE_URL, androidHintText } from '../utils/appAvailability';
 import { openWebSignup } from '../utils/subscriptionApi';
 import BulkAddPlayersForm from '../components/people/BulkAddPlayersForm';
 import { Capacitor } from '@capacitor/core';
-import { PushNotifications } from '@capacitor/push-notifications';
+import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 
 // Multi-step first-run wizard for a freshly-signed-up coach.
 // Patrick's spec (2026-07-08):
@@ -547,10 +547,16 @@ const Onboarding: React.FC = () => {
     }
     setNotifBusy(true);
     try {
-      const perm = await PushNotifications.requestPermissions();
+      // Migrated 2026-08-11 from @capacitor/push-notifications to
+      // @capacitor-firebase/messaging as part of the dual-plugin
+      // cleanup that fixes the "two notifications per push" bug.
+      // FirebaseMessaging owns the token registration lifecycle;
+      // register() is not needed separately — getToken() below
+      // triggers APNs registration on iOS.
+      const perm = await FirebaseMessaging.requestPermissions();
       if (perm.receive === 'granted') {
         setNotifResult('granted');
-        try { await PushNotifications.register(); } catch { /* token registration is async elsewhere */ }
+        try { await FirebaseMessaging.getToken(); } catch { /* token save happens via registerPushNotifications elsewhere */ }
       } else {
         setNotifResult('denied');
       }

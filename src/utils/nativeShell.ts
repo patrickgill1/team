@@ -372,12 +372,16 @@ export async function clearAppBadge(): Promise<void> {
     try { await fbm.removeAllDeliveredNotifications?.(); } catch { /* ignore */ }
   } catch { /* messaging plugin not present */ }
 
-  // 3. Capacitor's own push-notifications plugin — clears the
-  //    notification tray on iOS which the WebView user has already
-  //    seen. Doesn't touch the badge on iOS but no harm calling.
+  // 3. Firebase Messaging — clears the delivered notifications
+  //    tray on iOS which the WebView user has already seen.
+  //    Migrated 2026-08-11 from @capacitor/push-notifications
+  //    (uninstalled) — that plugin was the source of the "two
+  //    notifications per push" bug because both it AND
+  //    @capacitor-firebase/messaging auto-registered natively
+  //    and iOS delivered the same push to both.
   try {
-    const { PushNotifications } = await import('@capacitor/push-notifications');
-    try { await PushNotifications.removeAllDeliveredNotifications(); } catch { /* ignore */ }
+    const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+    try { await FirebaseMessaging.removeAllDeliveredNotifications(); } catch { /* ignore */ }
   } catch { /* not present */ }
 }
 

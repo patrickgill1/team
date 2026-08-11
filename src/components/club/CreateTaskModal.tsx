@@ -105,43 +105,43 @@ const CreateTaskModal: React.FC<Props> = ({ clubId, actorUid, actorName, related
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="font-black text-charcoal-950">Create task</h2>
-            {relatedPlayer && <p className="text-[11px] text-slate-500">About {relatedPlayer.name}</p>}
+            {relatedPlayer && <p className="text-[11px] text-ink-primary/55">About {relatedPlayer.name}</p>}
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Title</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Title</span>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Call back about uniform sizing"
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             />
           </label>
 
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Description (optional)</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Description (optional)</span>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             />
           </label>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Assign to</span>
-              <select value={assigneeUid} onChange={(e) => setAssigneeUid(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm">
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Assign to</span>
+              <select value={assigneeUid} onChange={(e) => setAssigneeUid(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm">
                 <option value="">Unassigned</option>
                 {assignees.map(a => <option key={a.uid} value={a.uid}>{a.name}</option>)}
               </select>
             </label>
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Priority</span>
-              <select value={priority} onChange={(e) => setPriority(e.target.value as Task['priority'])} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm">
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Priority</span>
+              <select value={priority} onChange={(e) => setPriority(e.target.value as Task['priority'])} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm">
                 <option value="low">Low</option>
                 <option value="normal">Normal</option>
                 <option value="high">High</option>
@@ -150,8 +150,8 @@ const CreateTaskModal: React.FC<Props> = ({ clubId, actorUid, actorName, related
           </div>
 
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Due date (optional)</span>
-            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Due date (optional)</span>
+            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </label>
 
           {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}

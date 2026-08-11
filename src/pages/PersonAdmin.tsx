@@ -1631,7 +1631,7 @@ const NoteModal: React.FC<{ player: any; onClose: () => void; onSaved: () => voi
             onChange={(e) => setText(e.target.value)}
             rows={5}
             placeholder="Anything worth remembering about this player — visible to coaches + admins."
-            className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
           />
         </div>
         <div className="px-5 py-3 border-t border-line-default/5 flex items-center justify-end gap-2">
@@ -1719,7 +1719,7 @@ const SignFormModal: React.FC<{
               value={signedByName}
               onChange={(e) => setSignedByName(e.target.value)}
               placeholder="Full name of the parent/guardian who signed"
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             />
           </label>
           <label className="block">
@@ -1729,7 +1729,7 @@ const SignFormModal: React.FC<{
               onChange={(e) => setNote(e.target.value)}
               rows={3}
               placeholder="e.g. Paper copy in office binder, signed in person at tryouts"
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             />
           </label>
           {error && <div className="rounded-lg bg-rose-500/15 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-300">{error}</div>}

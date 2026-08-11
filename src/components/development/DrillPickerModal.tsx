@@ -183,7 +183,7 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
 
         <div className="flex-1 overflow-y-auto p-3">
           {loading ? (
-            <div className="text-center py-10 text-sm text-slate-500">Loading…</div>
+            <div className="text-center py-10 text-sm text-ink-primary/55">Loading…</div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-sm font-semibold text-slate-700">
@@ -239,7 +239,7 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
                       </div>
                       <div className="text-sm font-bold text-slate-900">{d.title}</div>
                       {d.focus && <div className="text-xs text-slate-600 line-clamp-1 mt-0.5">{d.focus}</div>}
-                      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-slate-500">
+                      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-ink-primary/55">
                         {d.durationMinutes != null && <span>{d.durationMinutes} min</span>}
                         {d.videoLinks && d.videoLinks.length > 0 && <span>· {d.videoLinks.length} video{d.videoLinks.length === 1 ? '' : 's'}</span>}
                         {d.assignmentCount != null && d.assignmentCount > 0 && <span>· assigned {d.assignmentCount}×</span>}

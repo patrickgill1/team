@@ -387,7 +387,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                   ) : (
                     <>
                       {visibleRowIdxs.length} event{visibleRowIdxs.length === 1 ? '' : 's'} in range
-                      <span className="ml-1 text-xs font-normal text-slate-500">
+                      <span className="ml-1 text-xs font-normal text-ink-primary/55">
                         ({filteredOutCount} hidden by filter)
                       </span>
                     </>

@@ -198,26 +198,26 @@ const Editor: React.FC<EditorProps> = ({ template, teams, forms, clubId, userDat
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="U10 Forward — Welcome Aboard" className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="U10 Forward — Welcome Aboard" className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm" />
           </label>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
               <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Scope to team (optional)</span>
-              <select value={teamId} onChange={(e) => setTeamId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm">
+              <select value={teamId} onChange={(e) => setTeamId(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm">
                 <option value="">Any team</option>
                 {teams.map(t => <option key={t.id} value={t.id}>{t.name}{t.ageGroup ? ` (${t.ageGroup})` : ''}</option>)}
               </select>
             </label>
             <label className="block">
               <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Scope to position (optional)</span>
-              <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Forward" className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm" />
+              <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Forward" className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm" />
             </label>
           </div>
 
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Message body</span>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={10} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm leading-relaxed" />
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={10} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm leading-relaxed" />
             <p className="text-[10px] text-ink-primary/50 mt-1">Plain text. The coach can still edit this after picking the template.</p>
           </label>
 

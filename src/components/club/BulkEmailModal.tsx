@@ -115,30 +115,30 @@ const BulkEmailModal: React.FC<Props> = ({ registrations, clubId, signature, onC
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="font-black text-charcoal-950">Email selected</h2>
-            <p className="text-[11px] text-slate-500">{recipients.length} famil{recipients.length === 1 ? 'y' : 'ies'} ({registrations.length} registration{registrations.length === 1 ? '' : 's'})</p>
+            <p className="text-[11px] text-ink-primary/55">{recipients.length} famil{recipients.length === 1 ? 'y' : 'ies'} ({registrations.length} registration{registrations.length === 1 ? '' : 's'})</p>
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Subject</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Subject</span>
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Quick update on this weekend's tryout"
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             />
           </label>
 
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Message</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Message</span>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={9}
               placeholder="Hey there — quick note..."
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm leading-relaxed"
+              className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm leading-relaxed"
             />
             <p className="text-[10px] text-slate-500 mt-1">Plain text. Line breaks preserved. Your signature is appended automatically.</p>
           </label>

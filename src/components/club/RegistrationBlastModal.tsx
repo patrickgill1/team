@@ -184,26 +184,26 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Season</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Season</span>
             <select
               value={seasonId}
               onChange={(e) => setSeasonId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             >
               {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </label>
 
           {loading ? (
-            <p className="text-sm text-slate-500">Loading families…</p>
+            <p className="text-sm text-ink-primary/55">Loading families…</p>
           ) : (
             <>
               <div>
-                <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">
+                <div className="text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">
                   Age groups <span className="text-slate-400 normal-case font-normal">(none = all)</span>
                 </div>
                 {allAgeGroups.length === 0 ? (
-                  <p className="text-[11px] text-slate-500">No teams have age groups set yet.</p>
+                  <p className="text-[11px] text-ink-primary/55">No teams have age groups set yet.</p>
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
                     {allAgeGroups.map(ag => {
@@ -228,7 +228,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
               </div>
 
               <label className="block">
-                <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">
+                <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">
                   Custom intro (optional)
                 </span>
                 <textarea
@@ -236,19 +236,19 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
                   onChange={(e) => setCustomIntro(e.target.value)}
                   rows={3}
                   placeholder="e.g. Hey families! Spring tryouts are May 14–15..."
-                  className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+                  className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm"
                 />
               </label>
 
               <label className="block">
-                <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">
+                <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">
                   Signoff (optional)
                 </span>
                 <input
                   value={customSignoff}
                   onChange={(e) => setCustomSignoff(e.target.value)}
                   placeholder="See you on the pitch — Coach Ollie"
-                  className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+                  className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm"
                 />
               </label>
 

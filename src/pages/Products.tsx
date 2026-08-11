@@ -358,30 +358,30 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           <FieldRow>
             <Field label="Name" required>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Spring 2026 Registration" className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Spring 2026 Registration" className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
             </Field>
             <Field label="Type">
-              <select value={type} onChange={(e) => setType(e.target.value as Product['type'])} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
+              <select value={type} onChange={(e) => setType(e.target.value as Product['type'])} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
                 {PRODUCT_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>
           </FieldRow>
 
           <Field label="Description (optional)">
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </Field>
 
           {type === 'registration' && (
             <>
               <FieldRow>
                 <Field label="Season">
-                  <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
+                  <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
                     <option value="">— None (applies to any season) —</option>
                     {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </Field>
                 <Field label="Stripe processing surcharge (basis points)">
-                  <input type="number" min={0} max={1000} value={surchargeBps} onChange={(e) => setSurchargeBps(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+                  <input type="number" min={0} max={1000} value={surchargeBps} onChange={(e) => setSurchargeBps(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
                   <p className="text-[10px] text-ink-primary/50 mt-1">100 = 1%. Stripe's flat take is ~290bps. Leave 0 to absorb fees.</p>
                 </Field>
               </FieldRow>

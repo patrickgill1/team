@@ -744,7 +744,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                   type="tel"
                   value={profileForm.phoneNumber}
                   onChange={(e) => setProfileForm({...profileForm, phoneNumber: e.target.value})}
-                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   placeholder="(555) 123-4567"
                 />
               </div>
@@ -757,7 +757,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                 <textarea
                   value={profileForm.address}
                   onChange={(e) => setProfileForm({...profileForm, address: e.target.value})}
-                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   rows={3}
                   placeholder="123 Main St, City, State 12345"
                 />
@@ -772,7 +772,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                   type="text"
                   value={profileForm.emergencyContact}
                   onChange={(e) => setProfileForm({...profileForm, emergencyContact: e.target.value})}
-                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   placeholder="John Doe"
                 />
               </div>
@@ -786,7 +786,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                   type="tel"
                   value={profileForm.emergencyPhone}
                   onChange={(e) => setProfileForm({...profileForm, emergencyPhone: e.target.value})}
-                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   placeholder="(555) 987-6543"
                 />
               </div>

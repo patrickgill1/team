@@ -142,7 +142,7 @@ const MedicalEditModal: React.FC<Props> = ({ player, actorUid, actorName, onClos
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="font-black text-charcoal-950">Medical profile</h2>
-            <p className="text-[11px] text-slate-500">{player.name}</p>
+            <p className="text-[11px] text-ink-primary/55">{player.name}</p>
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
         </div>
@@ -231,11 +231,11 @@ const MedicalEditModal: React.FC<Props> = ({ player, actorUid, actorName, onClos
             {concussions.map((c, i) => (
               <Row key={c.id} onRemove={() => rm(setConcussions, i)}>
                 <div className="grid grid-cols-3 gap-2">
-                  <label className="block text-[10px] font-bold uppercase text-slate-500">
+                  <label className="block text-[10px] font-bold uppercase text-ink-primary/55">
                     Date
                     <input type="date" value={toDateInput(c.date)} onChange={(e) => upd(setConcussions, i, { date: e.target.value })} className="input-sm w-full mt-0.5" />
                   </label>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500">
+                  <label className="block text-[10px] font-bold uppercase text-ink-primary/55">
                     Severity
                     <select value={c.severity || ''} onChange={(e) => upd(setConcussions, i, { severity: e.target.value })} className="input-sm w-full mt-0.5">
                       <option value="">—</option>
@@ -244,7 +244,7 @@ const MedicalEditModal: React.FC<Props> = ({ player, actorUid, actorName, onClos
                       <option value="severe">Severe</option>
                     </select>
                   </label>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500">
+                  <label className="block text-[10px] font-bold uppercase text-ink-primary/55">
                     Cleared to return
                     <input type="date" value={toDateInput(c.clearedToReturnAt)} onChange={(e) => upd(setConcussions, i, { clearedToReturnAt: e.target.value })} className="input-sm w-full mt-0.5" />
                   </label>
@@ -329,7 +329,7 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
   </label>
 );
 
-const Empty: React.FC<{ text: string }> = ({ text }) => <p className="text-[11px] text-slate-500">{text}</p>;
+const Empty: React.FC<{ text: string }> = ({ text }) => <p className="text-[11px] text-ink-primary/55">{text}</p>;
 
 function toDateInput(v: any): string {
   if (!v) return '';

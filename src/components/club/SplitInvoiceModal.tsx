@@ -148,7 +148,7 @@ const SplitInvoiceModal: React.FC<Props> = ({ registration, actorUid, actorName,
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="font-black text-charcoal-950">{existing.length ? 'Edit payment plan' : 'Split into installments'}</h2>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-ink-primary/55">
               {registration.player.firstName} {registration.player.lastName} · total ${(totalCents / 100).toFixed(2)}
             </p>
           </div>
@@ -163,7 +163,7 @@ const SplitInvoiceModal: React.FC<Props> = ({ registration, actorUid, actorName,
           )}
 
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Number of installments</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Number of installments</span>
             <input
               type="number"
               min={MIN_INSTALLMENTS}
@@ -173,7 +173,7 @@ const SplitInvoiceModal: React.FC<Props> = ({ registration, actorUid, actorName,
                 const n = Math.max(MIN_INSTALLMENTS, Math.min(MAX_INSTALLMENTS, Number(e.target.value) || MIN_INSTALLMENTS));
                 setCount(n);
               }}
-              className="w-24 px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+              className="w-24 px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             />
           </label>
 
@@ -184,10 +184,10 @@ const SplitInvoiceModal: React.FC<Props> = ({ registration, actorUid, actorName,
                   value={d.label}
                   onChange={(e) => updateDraft(i, { label: e.target.value })}
                   placeholder={`Installment ${i + 1}`}
-                  className="col-span-3 sm:col-span-1 px-2.5 py-1.5 rounded-md ring-1 ring-slate-200 text-sm font-bold"
+                  className="col-span-3 sm:col-span-1 px-2.5 py-1.5 rounded-md bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 text-sm font-bold"
                 />
                 <div className="flex items-center gap-1 sm:col-span-1">
-                  <span className="text-xs text-slate-500">$</span>
+                  <span className="text-xs text-ink-primary/55">$</span>
                   <input
                     type="number"
                     step="0.01"

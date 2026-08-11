@@ -277,30 +277,30 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Player Waiver" className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Player Waiver" className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </label>
 
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Short description (optional)</span>
-            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Standard liability waiver — required before first practice" className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Standard liability waiver — required before first practice" className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </label>
 
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Body text (terms / instructions, optional)</span>
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm leading-relaxed" />
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm leading-relaxed" />
           </label>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
               <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Scope to season (optional)</span>
-              <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
+              <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
                 <option value="">Every season</option>
                 {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </label>
             <label className="block">
               <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Display order</span>
-              <input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+              <input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
             </label>
           </div>
 
@@ -340,7 +340,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
               <select
                 value={allocateToEventId}
                 onChange={(e) => setAllocateToEventId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface-base text-ink-primary ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+                className="w-full px-3 py-2 rounded-lg bg-surface-base text-ink-primary bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
               >
                 <option value="">— None (just collect answers) —</option>
                 {upcomingEvents.map(ev => (

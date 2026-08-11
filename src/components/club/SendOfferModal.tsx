@@ -253,18 +253,18 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="font-black text-charcoal-950">Send offer</h2>
-            <p className="text-[11px] text-slate-500">{registration.player?.firstName} {registration.player?.lastName}</p>
+            <p className="text-[11px] text-ink-primary/55">{registration.player?.firstName} {registration.player?.lastName}</p>
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Team</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Team</span>
             <select
               value={teamId}
               onChange={(e) => setTeamId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             >
               {teams.map(t => <option key={t.id} value={t.id}>{t.name}{t.ageGroup ? ` (${t.ageGroup})` : ''}</option>)}
             </select>
@@ -272,18 +272,18 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Position (optional)</span>
-              <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Forward" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Position (optional)</span>
+              <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Forward" className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
             </label>
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Jersey # (optional)</span>
-              <input value={jersey} onChange={(e) => setJersey(e.target.value)} type="number" placeholder="10" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Jersey # (optional)</span>
+              <input value={jersey} onChange={(e) => setJersey(e.target.value)} type="number" placeholder="10" className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
             </label>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Fee owed at accept (USD, optional)</span>
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Fee owed at accept (USD, optional)</span>
               <input
                 value={feeCents === 0 ? '' : (feeCents / 100).toString()}
                 onChange={(e) => setFeeCents(Math.round(Number(e.target.value) * 100))}
@@ -291,29 +291,29 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
                 step="0.01"
                 min={0}
                 placeholder="0.00"
-                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+                className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm"
               />
             </label>
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Expires in (days)</span>
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Expires in (days)</span>
               <input
                 value={expiresDays}
                 onChange={(e) => setExpiresDays(Math.max(1, Number(e.target.value) || 1))}
                 type="number"
                 min={1}
                 max={60}
-                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+                className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm"
               />
             </label>
           </div>
 
           {matchingTemplates.length > 0 && (
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Template (optional)</span>
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Template (optional)</span>
               <select
                 value=""
                 onChange={(e) => { if (e.target.value) applyTemplate(e.target.value); }}
-                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+                className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm"
               >
                 <option value="">— Pick a template to load —</option>
                 {matchingTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -322,17 +322,17 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
           )}
 
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Message to the family</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Message to the family</span>
             <textarea
               value={message}
               onChange={(e) => { setMessage(e.target.value); setMessageTouched(true); }}
               rows={8}
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm leading-relaxed"
+              className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-sm leading-relaxed"
             />
           </label>
 
           <div>
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Welcome video (optional)</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Welcome video (optional)</span>
             {videoUid ? (
               <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-3 flex items-center justify-between">
                 <div className="min-w-0">

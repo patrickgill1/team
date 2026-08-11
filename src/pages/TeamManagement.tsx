@@ -916,7 +916,7 @@ const TeamManagement: React.FC = () => {
                       type="text"
                       value={teamName}
                       onChange={e => setTeamName(e.target.value)}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                       placeholder="e.g. U12 Lightning"
                     />
                   </div>
@@ -925,7 +925,7 @@ const TeamManagement: React.FC = () => {
                     <textarea
                       value={teamDescription}
                       onChange={e => setTeamDescription(e.target.value)}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                       rows={2}
                       placeholder="Brief description of this team"
                     />
@@ -937,7 +937,7 @@ const TeamManagement: React.FC = () => {
                         type="text"
                         value={teamAgeGroup}
                         onChange={e => setTeamAgeGroup(e.target.value)}
-                        className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                        className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                         placeholder="e.g. U12"
                       />
                     </div>
@@ -947,7 +947,7 @@ const TeamManagement: React.FC = () => {
                         type="text"
                         value={teamSeason}
                         onChange={e => setTeamSeason(e.target.value)}
-                        className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                        className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                         placeholder="e.g. Spring 2026"
                       />
                     </div>
@@ -959,7 +959,7 @@ const TeamManagement: React.FC = () => {
                         type="text"
                         value={teamLeague}
                         onChange={e => setTeamLeague(e.target.value)}
-                        className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                        className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                         placeholder="e.g. AYSO"
                       />
                     </div>
@@ -969,7 +969,7 @@ const TeamManagement: React.FC = () => {
                         type="text"
                         value={teamHomeField}
                         onChange={e => setTeamHomeField(e.target.value)}
-                        className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                        className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                         placeholder="e.g. River Park Field 3"
                       />
                     </div>
@@ -1523,7 +1523,7 @@ const TeamManagement: React.FC = () => {
                     <select
                       value={transferTargetId}
                       onChange={e => setTransferTargetId(e.target.value)}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                     >
                       <option value="">Choose a coach...</option>
                       {teamCoaches
@@ -1571,7 +1571,7 @@ const TeamManagement: React.FC = () => {
                     <select
                       value={selectedPlayerId}
                       onChange={e => setSelectedPlayerId(e.target.value)}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                     >
                       <option value="">Choose a player...</option>
                       {allPlayers.map(player => (
@@ -1586,7 +1586,7 @@ const TeamManagement: React.FC = () => {
                     <select
                       value={targetTeamId}
                       onChange={e => setTargetTeamId(e.target.value)}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                     >
                       <option value="">Choose target team...</option>
                       {teams
@@ -1637,7 +1637,7 @@ const TeamManagement: React.FC = () => {
                     <select
                       value={addCoachUserId}
                       onChange={e => setAddCoachUserId(e.target.value)}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                     >
                       <option value="">Choose a coach...</option>
                       {allCoaches.map((c: any) => (
@@ -1652,7 +1652,7 @@ const TeamManagement: React.FC = () => {
                     <select
                       value={addCoachTargetTeamId}
                       onChange={e => setAddCoachTargetTeamId(e.target.value)}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                     >
                       <option value="">Choose target team...</option>
                       {teams

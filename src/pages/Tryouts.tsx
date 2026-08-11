@@ -616,7 +616,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
             onChange={(e) => setNoteDraft(e.target.value)}
             rows={3}
             placeholder="Scouting notes — visible to all coaches"
-            className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
           />
           <div className="flex items-center justify-end gap-2 mt-1">
             <button

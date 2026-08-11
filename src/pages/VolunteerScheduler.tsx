@@ -555,7 +555,7 @@ const VolunteerScheduler: React.FC = () => {
                 <select
                   value={selectedEvent}
                   onChange={(e) => setSelectedEvent(e.target.value)}
-                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 >
                   <option value="">Select an event...</option>
                   {upcomingEvents.map(event => (
@@ -580,7 +580,7 @@ const VolunteerScheduler: React.FC = () => {
                       timeOffset: typeInfo.defaultOffset
                     });
                   }}
-                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 >
                   <option value="snacks">Snacks & Drinks</option>
                   <option value="setup">Setup Help</option>
@@ -599,7 +599,7 @@ const VolunteerScheduler: React.FC = () => {
                     min="1"
                     value={newOpportunity.slotsNeeded}
                     onChange={(e) => setNewOpportunity({...newOpportunity, slotsNeeded: parseInt(e.target.value) || 1})}
-                    className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   />
                 </div>
                 <div>
@@ -608,7 +608,7 @@ const VolunteerScheduler: React.FC = () => {
                     type="number"
                     value={newOpportunity.timeOffset}
                     onChange={(e) => setNewOpportunity({...newOpportunity, timeOffset: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     placeholder="0"
                   />
                   <p className="text-xs text-ink-primary/50 mt-1">
@@ -623,7 +623,7 @@ const VolunteerScheduler: React.FC = () => {
                   value={newOpportunity.description}
                   onChange={(e) => setNewOpportunity({...newOpportunity, description: e.target.value})}
                   rows={3}
-                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   placeholder={getTypeInfo(newOpportunity.type).defaultDescription}
                 />
               </div>

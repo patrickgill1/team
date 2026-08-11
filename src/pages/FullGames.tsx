@@ -584,7 +584,7 @@ const FullGames: React.FC = () => {
                     value={formTitle}
                     onChange={e => setFormTitle(e.target.value)}
                     placeholder="e.g. Spring Tournament Final"
-                    className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                    className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                     required
                   />
                 </div>
@@ -596,7 +596,7 @@ const FullGames: React.FC = () => {
                       type="date"
                       value={formDate}
                       onChange={e => setFormDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                       required
                     />
                   </div>
@@ -607,7 +607,7 @@ const FullGames: React.FC = () => {
                       value={formOpponent}
                       onChange={e => setFormOpponent(e.target.value)}
                       placeholder="e.g. Lightning FC"
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                     />
                   </div>
                 </div>
@@ -702,7 +702,7 @@ const FullGames: React.FC = () => {
                         value={formUrl}
                         onChange={e => setFormUrl(e.target.value)}
                         placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."
-                        className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                        className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                       />
                       {formUrl && !extractYouTubeId(formUrl) && (
                         <p className="text-xs text-rose-300 mt-1">Doesn't look like a valid YouTube link.</p>
@@ -718,7 +718,7 @@ const FullGames: React.FC = () => {
                     value={formResult}
                     onChange={e => setFormResult(e.target.value)}
                     placeholder="e.g. W 3-1, L 2-4, T 1-1"
-                    className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                    className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                   />
                 </div>
 
@@ -729,7 +729,7 @@ const FullGames: React.FC = () => {
                     onChange={e => setFormNotes(e.target.value)}
                     rows={3}
                     placeholder="Highlights, timestamps, etc."
-                    className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                    className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                   />
                 </div>
               </div>

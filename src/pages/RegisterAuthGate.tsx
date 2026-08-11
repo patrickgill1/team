@@ -155,7 +155,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Jane Carter"
-                    className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+                    className="w-full px-3 py-2.5 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                     style={{ fontSize: '16px' }}
                   />
                 </label>
@@ -167,7 +167,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="jane@example.com"
-                  className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+                  className="w-full px-3 py-2.5 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                   style={{ fontSize: '16px' }}
                 />
               </label>
@@ -178,7 +178,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={mode === 'email-signup' ? 'At least 6 characters' : 'Your password'}
-                  className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+                  className="w-full px-3 py-2.5 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                   style={{ fontSize: '16px' }}
                 />
               </label>

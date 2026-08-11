@@ -722,7 +722,7 @@ const PlayerOfMatch: React.FC = () => {
                       value={voteReason}
                       onChange={(e) => setVoteReason(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                       placeholder={potmReasonPlaceholder}
                     />
                   </div>

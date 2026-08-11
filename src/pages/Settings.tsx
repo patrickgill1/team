@@ -446,7 +446,7 @@ const Settings: React.FC = () => {
                       <input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full border border-line-default/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                        className="w-full bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-primary"
                         style={{ fontSize: '16px' }}
                       />
                     </div>
@@ -457,7 +457,7 @@ const Settings: React.FC = () => {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="(555) 555-5555"
-                        className="w-full border border-line-default/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                        className="w-full bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-primary"
                         style={{ fontSize: '16px' }}
                       />
                     </div>
@@ -766,7 +766,7 @@ const Settings: React.FC = () => {
               value={deleteText}
               onChange={(e) => setDeleteText(e.target.value)}
               placeholder="delete"
-              className="mt-3 w-full border border-line-default/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-rose-500"
+              className="mt-3 w-full bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-rose-500"
               style={{ fontSize: '16px' }}
               disabled={deletingAccount}
             />

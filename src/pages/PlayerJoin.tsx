@@ -350,7 +350,7 @@ const PlayerJoin: React.FC = () => {
                     value={name}
                     onChange={e => setName(e.target.value)}
                     placeholder="Your full name"
-                    className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
+                    className="w-full bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
                   />
                 )}
                 <input
@@ -358,14 +358,14 @@ const PlayerJoin: React.FC = () => {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="Email address"
-                  className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
+                  className="w-full bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
                 />
                 <input
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder={authMode === 'register' ? 'Create a password (min 6 chars)' : 'Password'}
-                  className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
+                  className="w-full bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
                 />
 
                 {authError && (

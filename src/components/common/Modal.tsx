@@ -62,7 +62,12 @@ const Modal: React.FC<Props> = ({ open, onClose, title, size = 'md', footer, bus
       <div
         onClick={(e) => e.stopPropagation()}
         className={[
-          'bg-white shadow-2xl flex flex-col w-full',
+          // Theme-token shell (was bg-white — invisible-text in dark
+          // mode for any child that inherited body's ink-primary
+          // color). bg-surface-elevated flips cleanly to near-white
+          // in light and near-black in dark; text-ink-primary sets a
+          // default color for children that don't override.
+          'bg-surface-elevated text-ink-primary shadow-2xl flex flex-col w-full',
           'rounded-t-2xl sm:rounded-2xl',
           // Mobile: takes full width, max 90vh; on tablet+ scaled down.
           'max-h-[92vh] sm:max-h-[85vh]',
@@ -72,15 +77,15 @@ const Modal: React.FC<Props> = ({ open, onClose, title, size = 'md', footer, bus
         {/* Header — always rendered when title is provided; an X is
             always available so users always have a way out. */}
         {(title || onClose) && (
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2 flex-shrink-0">
-            <div className="text-sm font-extrabold tracking-widest uppercase text-slate-700 min-w-0 truncate">
+          <div className="px-4 py-3 border-b border-line-default/10 flex items-center justify-between gap-2 flex-shrink-0">
+            <div className="text-sm font-extrabold tracking-widest uppercase text-ink-primary/85 min-w-0 truncate">
               {title || ''}
             </div>
             <button
               type="button"
               onClick={() => { if (!busy) onClose(); }}
               aria-label="Close"
-              className="w-9 h-9 -mr-2 flex items-center justify-center text-slate-400 hover:text-slate-700 disabled:opacity-50"
+              className="w-9 h-9 -mr-2 flex items-center justify-center text-ink-primary/55 hover:text-ink-primary disabled:opacity-50"
               disabled={busy}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -97,7 +102,7 @@ const Modal: React.FC<Props> = ({ open, onClose, title, size = 'md', footer, bus
 
         {/* Optional sticky footer — keeps Save/Cancel reachable. */}
         {footer && (
-          <div className="px-4 py-3 border-t border-slate-100 flex-shrink-0 bg-white">
+          <div className="px-4 py-3 border-t border-line-default/10 flex-shrink-0 bg-surface-elevated">
             {footer}
           </div>
         )}

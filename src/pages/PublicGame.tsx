@@ -93,8 +93,8 @@ const PublicGame: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base flex items-center justify-center p-4">
         <div className="text-center">
           <div className="text-5xl mb-4">⚽</div>
-          <h1 className="text-xl font-bold text-white mb-2">Game Not Found</h1>
-          <p className="text-white/60 text-sm mb-6">{error}</p>
+          <h1 className="text-xl font-bold text-ink-primary mb-2">Game Not Found</h1>
+          <p className="text-ink-primary/60 text-sm mb-6">{error}</p>
           <Link to="/" className="inline-block px-4 py-2 bg-brand-primary hover:bg-brand-primary text-white text-sm font-medium rounded-lg">
             Go to GoalKickr
           </Link>
@@ -108,7 +108,7 @@ const PublicGame: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-vignette-deep text-white">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-vignette-deep text-ink-primary">
       {/* Ambient glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-brand-primary/20 rounded-full blur-3xl" />
@@ -120,7 +120,7 @@ const PublicGame: React.FC = () => {
           <Link to="/" className="flex items-center space-x-2">
             <span className="font-bold tracking-tight">GoalKickr</span>
           </Link>
-          <Link to="/auth" className="text-xs text-white/60 hover:text-white">Team Login</Link>
+          <Link to="/auth" className="text-xs text-ink-primary/60 hover:text-ink-primary">Team Login</Link>
         </div>
       </header>
 
@@ -150,7 +150,7 @@ const PublicGame: React.FC = () => {
               className="w-full h-full"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-white/40">
+            <div className="w-full h-full flex items-center justify-center text-white/60">
               No video attached.
             </div>
           )}
@@ -165,19 +165,19 @@ const PublicGame: React.FC = () => {
               <span className={`text-xs font-bold px-2 py-0.5 rounded ${
                 game.result.startsWith('W') ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30'
                   : game.result.startsWith('L') ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/30'
-                  : 'bg-line-default/10 text-white/80 ring-1 ring-line-default/20'
+                  : 'bg-line-default/10 text-ink-primary/80 ring-1 ring-line-default/20'
               }`}>
                 {game.result}
               </span>
             )}
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{game.title}</h1>
-          <div className="text-sm text-white/70 mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <div className="text-sm text-ink-primary/70 mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
             {game.opponent && <span>vs {game.opponent}</span>}
             <span>{formattedDate}</span>
           </div>
           {game.notes && (
-            <p className="text-sm text-white/80 mt-4 leading-relaxed whitespace-pre-wrap">{game.notes}</p>
+            <p className="text-sm text-ink-primary/80 mt-4 leading-relaxed whitespace-pre-wrap">{game.notes}</p>
           )}
 
           <div className="flex flex-wrap items-center gap-3 mt-6">
@@ -203,7 +203,7 @@ const PublicGame: React.FC = () => {
               <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-line-default/10 hover:bg-line-default/15 disabled:bg-line-default/10 disabled:cursor-wait text-white text-sm font-medium rounded-lg ring-1 ring-line-default/15 transition-colors"
+                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-surface-elevated hover:bg-surface-raised disabled:opacity-50 disabled:cursor-wait text-ink-primary text-sm font-medium rounded-lg ring-1 ring-line-default/20 transition-colors"
               >
                 {downloading ? (
                   <>

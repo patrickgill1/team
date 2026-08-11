@@ -327,8 +327,8 @@ const Offer: React.FC = () => {
           <div className="inline-flex p-3 rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur mb-4">
             <Logo size="lg" variant="full" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white">{offer.teamName}</h1>
-          <p className="text-ink-secondary mt-1">offers <b className="text-white">{offer.playerName}</b> a roster spot</p>
+          <h1 className="text-3xl sm:text-4xl font-black text-ink-primary">{offer.teamName}</h1>
+          <p className="text-ink-secondary mt-1">offers <b className="text-ink-primary">{offer.playerName}</b> a roster spot</p>
         </div>
 
         <div className="bg-line-default/[0.04] backdrop-blur-2xl ring-1 ring-line-default/10 rounded-3xl p-6 sm:p-8 space-y-5">
@@ -436,7 +436,7 @@ const Offer: React.FC = () => {
                   type="button"
                   onClick={() => { setShowingWaivers(false); setWaiverAck({}); setSignedByName(''); }}
                   disabled={submitting}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-ink-secondary hover:text-white hover:ring-line-default/30 disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-ink-secondary hover:text-ink-primary hover:ring-line-default/30 disabled:opacity-50"
                 >
                   Back
                 </button>
@@ -460,7 +460,7 @@ const Offer: React.FC = () => {
                 type="button"
                 onClick={() => setShowingDecline(true)}
                 disabled={submitting}
-                className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-ink-secondary hover:text-white hover:ring-line-default/30 disabled:opacity-50"
+                className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-ink-secondary hover:text-ink-primary hover:ring-line-default/30 disabled:opacity-50"
               >
                 Decline
               </button>
@@ -480,7 +480,7 @@ const Offer: React.FC = () => {
                 onChange={(e) => setDeclineReason(e.target.value)}
                 rows={3}
                 placeholder="Optional — anything you'd like the coach to know."
-                className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-rose-400/60 text-sm"
+                className="w-full px-3 py-2.5 rounded-lg bg-surface-input text-ink-primary placeholder:text-ink-primary/45 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-rose-400/60 text-sm"
                 style={{ fontSize: '16px' }}
               />
               <div className="flex gap-3">
@@ -488,7 +488,7 @@ const Offer: React.FC = () => {
                   type="button"
                   onClick={() => setShowingDecline(false)}
                   disabled={submitting}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-ink-secondary hover:text-white hover:ring-line-default/30"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-ink-secondary hover:text-ink-primary hover:ring-line-default/30"
                 >
                   Back
                 </button>
@@ -512,7 +512,7 @@ const Offer: React.FC = () => {
 const Detail: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
     <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft/80">{label}</div>
-    <div className="text-white font-bold mt-0.5">{value}</div>
+    <div className="text-ink-primary font-bold mt-0.5">{value}</div>
   </div>
 );
 
@@ -533,7 +533,7 @@ const Frame: React.FC<{ tone?: 'success' | 'warning'; title: string; body?: stri
           <svg className="w-6 h-6 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         )}
       </div>
-      <h1 className="text-xl font-black text-white mb-2">{title}</h1>
+      <h1 className="text-xl font-black text-ink-primary mb-2">{title}</h1>
       {body && <p className="text-sm text-slate-400 leading-relaxed">{body}</p>}
       <Link to="/" className="block mt-4 text-brand-primary-soft hover:text-ink-primary text-xs font-bold">Home</Link>
     </div>

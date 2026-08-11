@@ -359,7 +359,7 @@ const NewTicketModal: React.FC<{
               value={subject}
               onChange={e => setSubject(e.target.value)}
               placeholder="Short summary"
-              className="w-full px-3 py-2 text-sm border border-line-default/10 rounded-lg"
+              className="w-full px-3 py-2 text-sm bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/10 rounded-lg"
               autoFocus
             />
           </div>
@@ -370,7 +370,7 @@ const NewTicketModal: React.FC<{
               onChange={e => setDescription(e.target.value)}
               placeholder="Steps to reproduce, what you expected, etc."
               rows={4}
-              className="w-full px-3 py-2 text-sm border border-line-default/10 rounded-lg resize-none"
+              className="w-full px-3 py-2 text-sm bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/10 rounded-lg resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-2">

@@ -55,7 +55,14 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
   const viewerIsInCircle = parentIds.includes(viewerUid);
   const viewerIsStaff = isTeamStaff(viewerRole);
   const circleEmpty = parentIds.length === 0;
-  const canInvite = viewerIsInCircle || (viewerIsStaff && circleEmpty);
+  // Coach 2026-08-11: coaches lost the ability to add to a non-empty
+  // circle. Prior gate was `viewerIsStaff && circleEmpty` which
+  // silently locked staff out the moment a first parent joined —
+  // wrong for the real case where a coach wants to add a grandparent
+  // or second parent AFTER the initial claim. Staff can now invite
+  // regardless of circle size; parents in the circle still get their
+  // own invite affordance too.
+  const canInvite = viewerIsInCircle || viewerIsStaff;
   // Subscribe to the player doc so kidMode.enabled updates live after
   // the worker write — otherwise the setup modal succeeds but the tile
   // stays on "Give X their own view" because the prop is a snapshot

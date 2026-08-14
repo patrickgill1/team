@@ -679,8 +679,28 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['rsvps', 'playerRsvps', 'attendance', 'viewedBy'])
         )
+        // Coach moderation escape hatch (2026-08-11): a coach whose
+        // subscription lapsed / whose coverageSource wasn't stamped
+        // as 'club' on invite consume still needs to be able to
+        // CANCEL or SOFT-DELETE the event — parents shouldn't show
+        // up to a cancelled game because the coach's Stripe status
+        // flipped. Any team coach can flip these specific field
+        // sets without the trial-wall canCoachWrite() gate.
+        || (
+          isTeamCoach(resource.data.teamId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['isActive', 'deletedAt', 'deletedBy', 'updatedAt'])
+        )
+        || (
+          isTeamCoach(resource.data.teamId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['isCancelled', 'cancelledAt', 'cancelledBy', 'cancelReason', 'updatedAt'])
+        )
       );
       allow create: if request.auth != null && canCoachWrite();
+      // Hard delete (rare — soft-delete is the coach path above).
+      // Gated on canCoachWrite because a hard delete wipes history
+      // and shouldn't be reachable from a lapsed-sub coach's UI.
       allow delete: if request.auth != null && canCoachWrite();
     }
 

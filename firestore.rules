@@ -299,8 +299,12 @@ service cloud.firestore {
       // filter — e.g. custom-claim-based teamIds on the JWT — or
       // (b) rewritten the rule to not need userDoc() at LIST time.
       allow list: if isAuthed();
-      allow create: if isAuthed() && canCoachWrite()
-        && onTeam(request.resource.data.teamId);
+      // 2026-08-14 gate split: was `canCoachWrite() && onTeam(...)`
+      // — but canCoachWrite short-circuits true for parents (they're
+      // not isCoachRole), so any parent on the team could seed players.
+      // Now isTeamCoach: real coach on THIS team, no trial wall.
+      // Roster-building is core team-management, not a paid feature.
+      allow create: if isAuthed() && isTeamCoach(request.resource.data.teamId);
       // Re-tightened 2026-07-06: the self-add-to-parentIds branch is
       // gone. Player-takeover fixed. parentIds mutations happen
       // exclusively via /claim/invite, /claim/player-link,
@@ -697,9 +701,14 @@ service cloud.firestore {
               .hasOnly(['rsvps', 'playerRsvps', 'attendance', 'viewedBy'])
         )
       );
-      // Create still trial-walled — a new event is new capacity on
-      // the paid surface and the primary thing a paying coach uses.
-      allow create: if request.auth != null && canCoachWrite();
+      // 2026-08-14 gate split: was `canCoachWrite()` alone — which
+      // (a) short-circuited true for parents (they're not isCoachRole),
+      // letting any team parent seed events, and (b) blocked lapsed-sub
+      // coaches from scheduling recurring practices even though event
+      // scheduling is core team-management, not a paid feature. Now
+      // isTeamCoach: real coach on THIS team, no trial wall.
+      allow create: if request.auth != null
+        && isTeamCoach(request.resource.data.teamId);
       // Hard delete gated on isTeamCoach — same rationale as
       // update. Soft-delete (isActive: false via update) is the
       // preferred coach path.
@@ -800,7 +809,12 @@ service cloud.firestore {
     // groups lives on the new collection instead.
     match /chat_threads/{threadId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null && canCoachWrite();
+      // 2026-08-14 gate split: dropped canCoachWrite. Threads are DM +
+      // team + club + coach containers; parents legitimately create DMs
+      // to coaches. The gate was only blocking lapsed-sub coaches from
+      // starting new team threads. Messages themselves have their own
+      // per-write rules; an empty thread doc is a low-risk container.
+      allow create: if request.auth != null;
       allow update: if request.auth != null;
       allow delete: if request.auth != null;
     }
@@ -831,8 +845,10 @@ service cloud.firestore {
       // the rule guard was redundant AND breaking things.
       allow read, list, get: if request.auth != null
         && request.auth.uid in resource.data.participants;
+      // 2026-08-14 gate split: dropped canCoachWrite. Group chats are a
+      // team-comms primitive; participants + createdBy checks are
+      // sufficient safety without the trial wall.
       allow create: if request.auth != null
-        && canCoachWrite()
         && request.auth.uid in request.resource.data.participants
         && request.resource.data.createdBy == request.auth.uid;
       allow update: if request.auth != null
@@ -1034,8 +1050,10 @@ service cloud.firestore {
           //    (isClubAdmin) are folded in so they can post on any
           //    team, matching the pre-parent-posts behavior.
           (
+            // 2026-08-14 gate split: dropped canCoachWrite. Posting to
+            // the team wall is team comms; a lapsed-sub coach should
+            // still be able to update their team.
             (isTeamCoach(request.resource.data.teamId) || isPlatformAdmin())
-            && canCoachWrite()
             && request.resource.data.get('authorRole', 'coach') == 'coach'
             && request.resource.data.get('status', 'live') == 'live'
           )
@@ -1329,7 +1347,9 @@ service cloud.firestore {
       // THIS SPECIFIC TEAM (team.coachIds membership), not just any
       // team member. Previously gated on onTeam() which let any
       // parent seed a fake gameday. Coach-role-model memory rule.
-      allow create: if isTeamCoach(request.resource.data.teamId) && canCoachWrite();
+      // 2026-08-14 gate split: dropped canCoachWrite. Starting a
+      // GameDay mid-game shouldn't fail because a sub lapsed.
+      allow create: if isTeamCoach(request.resource.data.teamId);
       allow update, delete: if isTeamCoach(resource.data.teamId);
     }
 
@@ -1337,7 +1357,9 @@ service cloud.firestore {
     match /practice_plans/{planId} {
       allow get:  if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow list: if isAuthed();
-      allow create: if isTeamCoach(request.resource.data.teamId) && canCoachWrite();
+      // 2026-08-14 gate split: dropped canCoachWrite. Practice
+      // planning is core coach work, not a paid feature.
+      allow create: if isTeamCoach(request.resource.data.teamId);
       allow update, delete: if isTeamCoach(resource.data.teamId);
     }
 
@@ -1369,7 +1391,9 @@ service cloud.firestore {
     match /development_plans/{planId} {
       allow get:  if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow list: if isAuthed();
-      allow create: if isTeamCoach(request.resource.data.teamId) && canCoachWrite();
+      // 2026-08-14 gate split: dropped canCoachWrite. Writing a dev
+      // plan for one of your own players is core coach work.
+      allow create: if isTeamCoach(request.resource.data.teamId);
       allow update: if isAuthed() && (
         isTeamCoach(resource.data.teamId)
         || (
@@ -1968,7 +1992,11 @@ service cloud.firestore {
 
     match /surveys/{surveyId} {
       allow read: if true;
-      allow create: if request.auth != null && canCoachWrite();
+      // 2026-08-14 gate split: dropped canCoachWrite. Creator must
+      // match request.auth.uid (already the update/delete owner
+      // predicate), which is the real safety here.
+      allow create: if request.auth != null
+        && request.resource.data.createdBy == request.auth.uid;
       allow update: if (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['responseCount']))
         || (request.auth != null && resource.data.createdBy == request.auth.uid);
       allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;

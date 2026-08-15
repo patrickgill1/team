@@ -17,8 +17,6 @@ import WallEditor from '../components/wall/WallEditor';
 import GameRecapCard from '../components/wall/GameRecapCard';
 import PotmWinnerCard from '../components/wall/PotmWinnerCard';
 import PotmVotingCard from '../components/wall/PotmVotingCard';
-import TrialGateModal from '../components/common/TrialGateModal';
-import { useTrialGate } from '../hooks/useTrialGate';
 import { marked } from 'marked';
 import type { WallPost, WallComment } from '../types';
 
@@ -215,8 +213,6 @@ const Wall: React.FC = () => {
   // to scroll past it every time. It now opens from a floating +
   // button, the way Instagram / Facebook do new-post creation.
   const [composerOpen, setComposerOpen] = useState(false);
-  const { gated: trialGated, reason: trialReason } = useTrialGate();
-  const [trialGateOpen, setTrialGateOpen] = useState(false);
 
   // Poll composer state — when on, the post is published with an
   // attached poll. Question + 2-6 options + single-choice vs multi.
@@ -1350,7 +1346,6 @@ const Wall: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                if (trialGated) { setTrialGateOpen(true); return; }
                 setComposerOpen(true);
               }}
               className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-primary hover:bg-brand-primary/150 active:scale-95 text-white text-[11px] font-extrabold uppercase tracking-widest transition shadow-sm"
@@ -2527,12 +2522,6 @@ const Wall: React.FC = () => {
           </div>
         );
       })()}
-      <TrialGateModal
-        open={trialGateOpen}
-        onClose={() => setTrialGateOpen(false)}
-        action="post to the team wall"
-        reason={trialReason}
-      />
     </div>
   );
 };

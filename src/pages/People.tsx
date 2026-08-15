@@ -7,10 +7,8 @@ import Header from '../components/common/Header';
 import InvitePersonModal from '../components/people/InvitePersonModal';
 import AddPlayerModal from '../components/people/AddPlayerModal';
 import ActiveInvitesPanel from '../components/people/ActiveInvitesPanel';
-import TrialGateModal from '../components/common/TrialGateModal';
 import DataGate from '../components/common/DataGate';
 import { EmptyState, Sheet, Button } from '../components/ui';
-import { useTrialGate } from '../hooks/useTrialGate';
 import { RELATIONSHIP_LABELS } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
@@ -120,8 +118,6 @@ const People: React.FC = () => {
   const [chooserOpen, setChooserOpen] = useState(false);
   // Active invites panel — view/revoke pending invites.
   const [invitesPanelOpen, setInvitesPanelOpen] = useState(false);
-  const { gated: trialGated, reason: trialReason } = useTrialGate();
-  const [trialGateOpen, setTrialGateOpen] = useState(false);
   // Lightweight cache of every player in the club for the invite
   // modal's player picker (parent invites are anchored to a player).
   const [allClubPlayers, setAllClubPlayers] = useState<any[]>([]);
@@ -710,7 +706,6 @@ const People: React.FC = () => {
             <button
               onClick={() => {
                 setChooserOpen(false);
-                if (trialGated) { setTrialGateOpen(true); return; }
                 setAddPlayerOpen(true);
               }}
               className="w-full text-left px-4 py-3 hover:bg-line-default/[0.05] border-b border-line-default/5 flex items-center gap-3"
@@ -805,12 +800,6 @@ const People: React.FC = () => {
         />
       )}
 
-      <TrialGateModal
-        open={trialGateOpen}
-        onClose={() => setTrialGateOpen(false)}
-        action="add players"
-        reason={trialReason}
-      />
     </div>
   );
 };

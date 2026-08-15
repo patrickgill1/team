@@ -1189,12 +1189,31 @@ service cloud.firestore {
 
     // Player media — was publicly readable (CRITICAL leak: kid photos
     // readable to anyone with the doc ID). Now team-scoped on read,
-    // team-scoped + coach-paid-gated on create.
+    // team-scoped on create with a split trial-wall:
+    //   - NATIVE uploads (mp4/mov/jpeg etc — the client stamps a
+    //     real contentType, non-zero fileSize) → trial-walled. This
+    //     is the paid feature (R2 storage + Cloudflare Stream
+    //     encoding cost).
+    //   - EXTERNAL LINKS (YouTube / Vimeo / Trace — source field
+    //     set to one of those, contentType='video/embed') → free.
+    //     The composer copy explicitly promises "YouTube and Vimeo
+    //     links are always free" (GametapeComposeModal.tsx:207),
+    //     and PlayerMediaPage's EmbedMediaModal path writes with
+    //     contentType='video/embed' + source='youtube'|'vimeo'|
+    //     'trace' (line 1728, 1736). A coach whose sub lapsed can
+    //     still curate + share third-party clips.
+    // Coach 2026-08-11: "coach still says he cant use a youtube
+    // link to post media."
     match /player_media/{mediaId} {
       allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow create: if isAuthed()
         && onTeam(request.resource.data.teamId)
-        && canCoachWrite();
+        && (
+          // External-link path: any signed-in coach-on-team, no trial wall.
+          request.resource.data.source in ['youtube', 'vimeo', 'trace']
+          // Native-upload path: keep trial wall for platform-paid features.
+          || canCoachWrite()
+        );
       allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
     }
 

@@ -400,9 +400,17 @@ service cloud.firestore {
           )
         )
       );
+      // 2026-08-11 permissions audit: swapped `onTeam() &&
+      // canCoachWrite()` for `isTeamCoach()`. The previous rule had
+      // TWO bugs: (1) a lapsed-sub coach couldn't clean up their
+      // roster; (2) worse, canCoachWrite() short-circuits true for
+      // parents via !isCoachRole(), so ANY parent on the team could
+      // delete ANY player doc — including a teammate's kid.
+      // isTeamCoach() requires the caller be in team.coachIds,
+      // which closes both holes.
       allow delete: if isAuthed() && (
         isPlatformAdmin()
-        || (onTeam(resource.data.teamId) && canCoachWrite())
+        || isTeamCoach(resource.data.teamId)
       );
 
       // ─────────────────────────────────────────────────────────
@@ -670,38 +678,33 @@ service cloud.firestore {
       // seed events on any team, skipping the coach-of-team check.
       // If a legit future flow needs setDoc-with-id it will hit the
       // CREATE rule and pass so long as it's coach-of-team.
+      // 2026-08-11 permissions audit: dropped canCoachWrite() from
+      // the coach-of-team update branch. Editing an EXISTING event
+      // (change location, fix time, cancel, soft-delete) is
+      // stewardship, not new-value creation — a coach whose sub
+      // lapsed should still be able to steward their team's events
+      // so parents don't show up to the wrong place. The two prior
+      // narrow escape hatches for isActive/deletedAt and
+      // isCancelled fields are now subsumed by the broader coach
+      // update branch and were removed.
       allow update: if request.auth != null && (
-        // Coach on this team can update anything.
-        (isTeamCoach(resource.data.teamId) && canCoachWrite())
+        // Coach on this team can update anything on the event.
+        isTeamCoach(resource.data.teamId)
         // Parent on this team can flip RSVP-style fields only.
         || (
           onTeam(resource.data.teamId)
           && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['rsvps', 'playerRsvps', 'attendance', 'viewedBy'])
         )
-        // Coach moderation escape hatch (2026-08-11): a coach whose
-        // subscription lapsed / whose coverageSource wasn't stamped
-        // as 'club' on invite consume still needs to be able to
-        // CANCEL or SOFT-DELETE the event — parents shouldn't show
-        // up to a cancelled game because the coach's Stripe status
-        // flipped. Any team coach can flip these specific field
-        // sets without the trial-wall canCoachWrite() gate.
-        || (
-          isTeamCoach(resource.data.teamId)
-          && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['isActive', 'deletedAt', 'deletedBy', 'updatedAt'])
-        )
-        || (
-          isTeamCoach(resource.data.teamId)
-          && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['isCancelled', 'cancelledAt', 'cancelledBy', 'cancelReason', 'updatedAt'])
-        )
       );
+      // Create still trial-walled — a new event is new capacity on
+      // the paid surface and the primary thing a paying coach uses.
       allow create: if request.auth != null && canCoachWrite();
-      // Hard delete (rare — soft-delete is the coach path above).
-      // Gated on canCoachWrite because a hard delete wipes history
-      // and shouldn't be reachable from a lapsed-sub coach's UI.
-      allow delete: if request.auth != null && canCoachWrite();
+      // Hard delete gated on isTeamCoach — same rationale as
+      // update. Soft-delete (isActive: false via update) is the
+      // preferred coach path.
+      allow delete: if request.auth != null
+        && (isPlatformAdmin() || isTeamCoach(resource.data.teamId));
     }
 
     // ── Team payment_requests (2026-07-18) ────────────────────

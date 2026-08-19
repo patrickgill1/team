@@ -44,13 +44,32 @@ const SeasonStatsCard: React.FC<Props> = ({ player, memberships, selectedTeamId,
   const teamMems = memberships.filter((m: any) => m.teamId === selectedTeamId);
   const activeSeasonMem = teamMems.find((m: any) => m.isActive !== false);
 
+  // 2026-08-18: player_memberships.stats is a design that never got wired —
+  // no writer in the client, worker, or finalize path touches it, so the
+  // per-membership stats fallback (activeSeasonMem?.stats /
+  // sumStats(teamMems)) always resolves to zeros for every player. That
+  // was rendering "0G 0A 0GP" on every player's Season Stats card even
+  // when player.stats had the real season aggregate.
+  //
+  // Fix: prefer memberships.stats when actually populated (leave the
+  // door open for a future season-split rollup), otherwise fall through
+  // to player.stats — which every real stat writer (finalize, clip
+  // credit, StatsTracker) does keep current.
+  const hasMembershipStats = (m: any) => m && m.stats && (
+    m.stats.goals || m.stats.assists || m.stats.gamesPlayed || m.stats.saves
+  );
+
   let scoped: any;
   if (scope === 'all_time') {
-    scoped = memberships.length ? sumStats(memberships) : (player.stats || EMPTY);
+    const filled = memberships.filter(hasMembershipStats);
+    scoped = filled.length ? sumStats(filled) : (player.stats || EMPTY);
   } else if (scope === 'team_career') {
-    scoped = teamMems.length ? sumStats(teamMems) : (player.stats || EMPTY);
+    const filled = teamMems.filter(hasMembershipStats);
+    scoped = filled.length ? sumStats(filled) : (player.stats || EMPTY);
   } else {
-    scoped = (activeSeasonMem?.stats) || (teamMems.length ? sumStats(teamMems) : (player.stats || EMPTY));
+    scoped = hasMembershipStats(activeSeasonMem)
+      ? activeSeasonMem.stats
+      : (player.stats || EMPTY);
   }
 
   const scopeLabel =

@@ -380,22 +380,26 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 sm:gap-6">
           {filteredPlayers.map((player) => {
-            // Overlay this team's membership stats so shared players
-            // (rostered on multiple teams) show clean numbers here
-            // instead of the all-team aggregate baked into player.stats.
+            // 2026-08-18: same fix as SeasonStatsCard. The per-team
+            // membership stats overlay was designed to keep shared
+            // players' per-team numbers clean vs. the lifetime
+            // player.stats aggregate — but no writer in the codebase
+            // populates player_memberships.stats, so every card was
+            // rendering zeros. Prefer the overlay when it actually
+            // carries numbers; fall back to player.stats otherwise.
+            // For the 99% of players on a single team, player.stats
+            // IS their per-team stats (nothing gets subtracted when
+            // they leave one team for another; the lifetime aggregate
+            // just happens to equal the single team's total).
             const teamStats = teamStatsByPlayerId[player.id];
-            // Team-scoped roster: ONLY show this team's stats. If no
-            // membership row exists for this team yet, force zeros —
-            // the global player.stats aggregate carries history from
-            // other teams the player has been on and shouldn't leak
-            // into a new team's view. Per-team history still lives on
-            // the player profile's "career" toggle.
-            const zeroStats = { goals: 0, assists: 0, saves: 0, gamesPlayed: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, cleanSheets: 0 };
+            const teamStatsHasNumbers = teamStats && (
+              teamStats.goals || teamStats.assists || teamStats.gamesPlayed || teamStats.saves
+            );
             const scoped = {
               ...(player as any),
-              stats: teamStats
+              stats: teamStatsHasNumbers
                 ? { ...teamStats, __isActive: undefined }
-                : zeroStats,
+                : ((player as any).stats || { goals: 0, assists: 0, saves: 0, gamesPlayed: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, cleanSheets: 0 }),
             };
             return (
               <PlayerCard

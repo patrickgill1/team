@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+#
+# Pre-commit: block hardcoded theme-hostile colors in NEW additions to src/
+#
+# WHY THIS EXISTS
+#   Patrick has spent multiple weekends chasing "white text on white bg" bugs
+#   in Light mode after a line added text-slate-700 or bg-white to a themed
+#   surface. This hook fires ONLY on lines you're about to commit and
+#   matches a small high-precision set — no legacy noise, no false
+#   positives on brand-primary buttons.
+#
+# BLOCKS (hard fail)
+#   bg-white / bg-black
+#   bg-slate-* / bg-gray-* / bg-neutral-* / bg-zinc-*
+#   text-slate-* / text-gray-* / text-charcoal-* / text-neutral-* / text-zinc-*
+#   Fix: bg-surface-* / text-ink-* / border-line-* tokens.
+#
+# WARNS (print, don't fail)
+#   text-white / text-black on new lines. Often legit on brand-primary
+#   buttons or dark overlays; sometimes a bug.
+#
+# BYPASS
+#   Add `theme-ok` anywhere on the same line (usually in a comment):
+#     className="text-white" // theme-ok: sits on bg-brand-primary
+#
+# INSTALL (one-time)
+#   git config core.hooksPath .githooks
+#
+set -euo pipefail
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null \
+  | grep -E '^src/.*\.(tsx|jsx)$' || true)
+if [ -z "$STAGED" ]; then exit 0; fi
+
+RED=$'\033[0;31m'; YEL=$'\033[0;33m'; DIM=$'\033[2m'; OFF=$'\033[0m'
+
+BLOCK_RE='(^|[^-a-zA-Z0-9])(bg-white|bg-black|bg-(slate|gray|neutral|zinc)-[0-9]+|text-(slate|gray|charcoal|neutral|zinc)-[0-9]+)([^-a-zA-Z0-9]|$)'
+WARN_RE='(^|[^-a-zA-Z0-9])(text-white|text-black)([^-a-zA-Z0-9]|$)'
+
+errors=0
+warnings=0
+
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+  ln=0
+  # Walk unified-0 diff. Track new-file line numbers via hunk headers.
+  while IFS= read -r rawline; do
+    case "$rawline" in
+      "+++ "*|"--- "*) continue ;;
+      "@@ "*)
+        # @@ -old,oldcount +new,newcount @@
+        # Grab the digits right after the first '+'.
+        rest="${rawline#*+}"
+        newstart="${rest%%[!0-9]*}"
+        ln="$newstart"
+        continue ;;
+      "+"*)
+        content="${rawline#+}"
+        # Bypass tag
+        if [[ "$content" == *theme-ok* ]]; then
+          ln=$((ln + 1)); continue
+        fi
+        # Skip pure-comment lines
+        stripped=$(printf '%s' "$content" | sed -E 's/^[[:space:]]*//')
+        case "$stripped" in
+          '//'*|'/*'*|'*'*)
+            ln=$((ln + 1)); continue ;;
+        esac
+        if [[ "$content" =~ $BLOCK_RE ]]; then
+          match=$(printf '%s' "$content" | grep -Eo "$BLOCK_RE" | head -1 \
+            | sed -E 's/^[^-a-zA-Z0-9]//; s/[^-a-zA-Z0-9]$//')
+          printf '%s%s:%s%s  %sBLOCK%s  %s\n' "$RED" "$file" "$ln" "$OFF" "$RED" "$OFF" "$match" >&2
+          printf '  %s%s%s\n' "$DIM" "$stripped" "$OFF" >&2
+          errors=$((errors + 1))
+        elif [[ "$content" =~ $WARN_RE ]]; then
+          match=$(printf '%s' "$content" | grep -Eo "$WARN_RE" | head -1 \
+            | sed -E 's/^[^-a-zA-Z0-9]//; s/[^-a-zA-Z0-9]$//')
+          printf '%s%s:%s%s  %sWARN%s   %s\n' "$YEL" "$file" "$ln" "$OFF" "$YEL" "$OFF" "$match" >&2
+          printf '  %s%s%s\n' "$DIM" "$stripped" "$OFF" >&2
+          warnings=$((warnings + 1))
+        fi
+        ln=$((ln + 1)) ;;
+      "-"*) continue ;;
+      " "*) ln=$((ln + 1)) ;;
+    esac
+  done < <(git diff --cached -U0 -- "$file")
+done <<< "$STAGED"
+
+if [ "$errors" -gt 0 ]; then
+  printf '\n%sBlocked %s theme-hostile addition(s).%s Use bg-surface-*/text-ink-*/border-line-* tokens, or add %stheme-ok%s to the line if intentional.\n' "$RED" "$errors" "$OFF" "$DIM" "$OFF" >&2
+  exit 1
+fi
+if [ "$warnings" -gt 0 ]; then
+  printf '\n%s%s text-white/text-black addition(s) - verify contrast in both themes.%s\n' "$YEL" "$warnings" "$OFF" >&2
+fi
+exit 0

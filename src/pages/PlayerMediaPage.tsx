@@ -674,41 +674,57 @@ const PlayerMediaPage: React.FC = () => {
 
           if (uploadGameId && newMediaId) {
             try {
-              const { attachClipCreditsToGame } = await import('../utils/clipGameLink');
-              const scorer = players.find(p => p.id === scorerId);
-              const assistsById: Record<string, { name?: string; jersey?: number }> = {};
-              for (const aid of assistIds) {
-                const ap = players.find(pp => pp.id === aid);
-                if (ap) assistsById[aid] = { name: ap.name, jersey: ap.jerseyNumber };
+              // Peek at the live_games doc first to decide the dedup strategy.
+              // Status determines whether we defer to finalize (live/halftime)
+              // or bump immediately (scheduled / never-started / final).
+              const { doc: fsDoc, getDoc: fsGetDoc } = await import('firebase/firestore');
+              const { db: fsDb } = await import('../utils/firebase');
+              const gameSnap = await fsGetDoc(fsDoc(fsDb, 'live_games', uploadGameId));
+              const gameData: any = gameSnap.exists() ? gameSnap.data() : null;
+              const gameStatus: string = gameData?.status || 'no-doc';
+
+              if (gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final') {
+                // Actively played, halftimed, or already finalized. Ride the
+                // timeline dedup path — attach or add a source='clip' entry,
+                // and let attach's return value decide bump behavior.
+                const { attachClipCreditsToGame } = await import('../utils/clipGameLink');
+                const scorer = players.find(p => p.id === scorerId);
+                const assistsById: Record<string, { name?: string; jersey?: number }> = {};
+                for (const aid of assistIds) {
+                  const ap = players.find(pp => pp.id === aid);
+                  if (ap) assistsById[aid] = { name: ap.name, jersey: ap.jerseyNumber };
+                }
+                const res = await attachClipCreditsToGame({
+                  gameId: uploadGameId,
+                  mediaId: newMediaId,
+                  clipUrl: url,
+                  scorerId,
+                  scorerName: scorer?.name,
+                  scorerJersey: scorer?.jerseyNumber,
+                  assistIds,
+                  assistsById,
+                  recordedBy: userData.uid,
+                  recordedByName: userData.name,
+                });
+                attachedScorer = res.attachedScorer;
+                attachedAssistIds = res.attachedAssistIds;
+                if (res.status === 'final') {
+                  // Finalize won't re-run; bump only the credits we ADDED.
+                  needsBumpScorer = res.addedScorer && res.countsToStats;
+                  needsBumpAssistIds = res.countsToStats ? res.addedAssistIds : [];
+                } else {
+                  // live / halftime — defer to the imminent finalize.
+                  needsBumpScorer = false;
+                  needsBumpAssistIds = [];
+                }
               }
-              const res = await attachClipCreditsToGame({
-                gameId: uploadGameId,
-                mediaId: newMediaId,
-                clipUrl: url,
-                scorerId,
-                scorerName: scorer?.name,
-                scorerJersey: scorer?.jerseyNumber,
-                assistIds,
-                assistsById,
-                recordedBy: userData.uid,
-                recordedByName: userData.name,
-              });
-              attachedScorer = res.attachedScorer;
-              attachedAssistIds = res.attachedAssistIds;
-              if (res.status === 'final') {
-                // Game already finalized — finalize won't re-run, so bump only the
-                // credits we *added* (attached ones were already counted live).
-                // But respect the game's countsToStats flag: scrimmages and demo
-                // games opt out of rollup, so a clip linked to one of those never
-                // bumps player.stats even after final.
-                needsBumpScorer = res.addedScorer && res.countsToStats;
-                needsBumpAssistIds = res.countsToStats ? res.addedAssistIds : [];
-              } else if (res.status !== 'no-doc') {
-                // Game is live/halftime/scheduled — finalize will pick everything
-                // up (and will itself honor countsToStats). Skip the immediate bump.
-                needsBumpScorer = false;
-                needsBumpAssistIds = [];
-              }
+              // else: status === 'scheduled' or 'no-doc'. Skip the timeline
+              // attach entirely — writing a source='clip' entry now would
+              // double-count if the coach later plays this game live and
+              // taps the goal themselves. Just bump immediately by leaving
+              // needsBumpScorer/needsBumpAssistIds at their initial true
+              // values. The clip's gameId stamp still lets "clips for this
+              // game" queries find it.
             } catch (err) {
               console.warn('clip-game dedup failed; falling back to direct stat bump', err);
             }
@@ -1780,7 +1796,7 @@ const PlayerMediaPage: React.FC = () => {
                     <select
                       value={uploadPlayerId}
                       onChange={e => setUploadPlayerId(e.target.value)}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary"
                     >
                       <option value="">Select player...</option>
                       {players.map(p => (
@@ -1812,7 +1828,7 @@ const PlayerMediaPage: React.FC = () => {
                       type="text"
                       value={uploadCaption}
                       onChange={e => setUploadCaption(e.target.value)}
-                      className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary"
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary placeholder:text-ink-primary/45 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary"
                       placeholder="Optional caption..."
                     />
                   </div>
@@ -1885,7 +1901,7 @@ const PlayerMediaPage: React.FC = () => {
                     </div>
                   </div>
                   {(uploadTags.includes('Goal') || uploadTags.includes('Own Goal')) && players.length > 0 && (
-                    <div className="rounded-lg border border-brand-primary-soft/30 bg-brand-primary/15/60 p-3 space-y-3">
+                    <div className="rounded-lg border border-brand-primary-soft/30 bg-brand-primary/10 p-3 space-y-3">
                       {uploadTags.includes('Own Goal') && (
                         <div className="text-xs text-rose-300 bg-rose-500/15 border border-rose-400/30 rounded px-2 py-1.5">
                           🥅 <strong>Own goal:</strong> team gets +1, no scorer credit. Award the assist below if applicable.
@@ -1975,7 +1991,7 @@ const PlayerMediaPage: React.FC = () => {
                       <select
                         value={uploadGameId}
                         onChange={e => setUploadGameId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-line-default/15 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-sm"
+                        className="w-full px-3 py-2 bg-surface-input text-ink-primary rounded-xl border border-line-default/15 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-sm"
                       >
                         <option value="">— Not linked —</option>
                         {recentGames.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}

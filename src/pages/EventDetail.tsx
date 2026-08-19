@@ -1831,18 +1831,18 @@ const EventDetail: React.FC = () => {
           icon: a black or white square shows parents at a glance which
           kit to pack. No decorative emoji needed. */}
       {event.type === 'game' && (event as any).homeAway && (
-        <section className={`px-4 sm:px-6 py-3 ${
-          (event as any).homeAway === 'home'
-            ? 'bg-surface-elevated ring-1 ring-line-default/15 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
-            : 'bg-surface-elevated ring-1 ring-line-default/10/80 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
-        }`}>
+        <section className="px-4 sm:px-6 py-3 bg-surface-elevated ring-1 ring-line-default/15 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm">
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              {/* Jersey swatch doubles as the icon. */}
+              {/* Jersey swatch — LITERAL jersey color, not a theme
+                  surface. Previous version used bg-surface-elevated
+                  which rendered the "black" and "white" jerseys as
+                  the same dark theme color, defeating the whole
+                  point of the swatch. theme-ok on the color classes. */}
               <span className={`inline-block w-9 h-9 rounded-md border-2 flex-shrink-0 ${
                 (event as any).homeAway === 'home'
-                  ? 'bg-surface-elevated border-slate-600'
-                  : 'bg-surface-elevated border-line-default/15'
+                  ? 'bg-slate-950 border-slate-600' /* theme-ok: literal black jersey */
+                  : 'bg-white border-line-default/40' /* theme-ok: literal white jersey */
               }`} aria-hidden />
               <div>
                 <div className={`text-xs font-extrabold tracking-widest uppercase ${
@@ -1850,9 +1850,7 @@ const EventDetail: React.FC = () => {
                 }`}>
                   {(event as any).homeAway === 'home' ? 'Home game' : 'Away game'}
                 </div>
-                <div className={`text-[11px] mt-0.5 ${
-                  (event as any).homeAway === 'home' ? 'text-ink-primary/50' : 'text-ink-primary/50'
-                }`}>
+                <div className="text-[11px] mt-0.5 text-ink-primary/50">
                   Wear your <span className="font-bold">{(event as any).homeAway === 'home' ? 'black' : 'white'}</span> jersey
                 </div>
               </div>
@@ -1860,7 +1858,7 @@ const EventDetail: React.FC = () => {
             <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border ${
               (event as any).homeAway === 'home'
                 ? 'bg-brand-primary/15 text-ink-primary border-brand-primary/30'
-                : 'bg-surface-base text-ink-primary/65 border-line-default/10'
+                : 'bg-surface-base text-ink-primary/65 border-line-default/25'
             }`}>
               {(event as any).homeAway === 'home' ? 'Home' : 'Away'}
             </span>

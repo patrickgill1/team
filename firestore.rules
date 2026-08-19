@@ -1822,7 +1822,16 @@ service cloud.firestore {
     match /parent_whispers/{whisperId} {
       allow get: if isAuthed() && callerCanReadWhisper();
       allow list: if isAuthed() && callerCanReadWhisper();
-      allow create: if isAuthed() && canCoachWrite();
+      // 2026-08-19 gate fix: was `isAuthed() && canCoachWrite()`,
+      // but canCoachWrite short-circuits true for non-coaches and
+      // there was no team-scope check — meaning any authed user
+      // (parent, random signup) could create whisper docs on any
+      // player. Now: caller must be a coach on THIS team, matching
+      // the wall_posts / dev_plans posture. Whispers are also a
+      // paid feature (coach-facing), so keep the sub gate too.
+      allow create: if isAuthed()
+        && isTeamCoach(request.resource.data.teamId)
+        && canCoachWrite();
       allow update, delete: if isAuthed() && callerCanReadWhisper();
     }
 

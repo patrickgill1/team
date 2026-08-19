@@ -87,7 +87,11 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
           playerId: player.id,
           playerName: player.name,
           clubId: (player as any).clubId || null,
-          teamId: (player as any).teamId || null,
+          // teamId must be a real string for the rule's
+          // isTeamCoach(teamId) check to pass. Fall back to the
+          // selected team when the player doc's teamId is missing
+          // (shared-player edge case).
+          teamId: (player as any).teamId || selectedTeam?.id || null,
           coachUid: userData.uid,
           coachName: userData.name || 'Coach',
           coachAvatarUrl: (userData as any).photoURL || (userData as any).profilePhotoUrl || null,

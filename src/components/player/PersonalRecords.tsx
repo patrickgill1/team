@@ -81,15 +81,16 @@ const PersonalRecords: React.FC<Props> = ({ playerId, player, seasonId, votingWi
     if (!gameStats) return [];
 
     // Season scope: reuse the parent card's seasonId. 'lifetime' or
-    // empty means no filter. For legacy rows without seasonId we
-    // include them as best-effort (task spec) so the card still shows
-    // records for a coach mid-migration.
+    // empty means no filter (show every stat row).
+    //
+    // 2026-08-19 tightened: was including un-stamped legacy rows in
+    // season-scoped views ("best-effort mid-migration"), which meant
+    // a coach on This Season saw records from LAST YEAR bleed in
+    // because those rows predate seasonId stamping. Strict filter
+    // now — un-stamped rows only surface under All-Time.
     const isScoped = !!seasonId && seasonId !== 'lifetime';
     const scoped = isScoped
-      ? gameStats.filter((r: any) => {
-          if (r?.seasonId) return r.seasonId === seasonId;
-          return true;
-        })
+      ? gameStats.filter((r: any) => r?.seasonId === seasonId)
       : gameStats;
 
     const contextFor = (row: any): string => {

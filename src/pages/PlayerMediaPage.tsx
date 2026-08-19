@@ -1326,40 +1326,53 @@ const PlayerMediaPage: React.FC = () => {
       let willBumpAssistIds: string[] = [];
       if (mediaCountsForStats && (newScorerId || newAssistIds.length > 0) && newGameId) {
         try {
-          const { attachClipCreditsToGame } = await import('../utils/clipGameLink');
-          const scorer = newScorerId ? players.find(p => p.id === newScorerId) : undefined;
-          const assistsById: Record<string, { name?: string; jersey?: number }> = {};
-          for (const aid of newAssistIds) {
-            const ap = players.find(pp => pp.id === aid);
-            if (ap) assistsById[aid] = { name: ap.name, jersey: ap.jerseyNumber };
-          }
-          const res = await attachClipCreditsToGame({
-            gameId: newGameId,
-            mediaId: docId,
-            clipUrl: selectedMedia.url,
-            scorerId: newScorerId,
-            scorerName: scorer?.name,
-            scorerJersey: scorer?.jerseyNumber,
-            assistIds: newAssistIds,
-            assistsById,
-            recordedBy: userData?.uid,
-            recordedByName: userData?.name,
-          });
-          if (res.status === 'final') {
-            // Only bump when the game's countsToStats flag allows it.
-            // Scrimmage/demo games opt out of rollup, so linking a clip
-            // to one shouldn't backdoor stats into the player card.
-            willBumpScorerId = (res.addedScorer && res.countsToStats) ? newScorerId : undefined;
-            willBumpAssistIds = res.countsToStats ? res.addedAssistIds : [];
-          } else if (res.status === 'no-doc') {
-            // Game has no live doc — fall back to direct bump
+          // 2026-08-19 mirror of upload-path fix (3.9.419). Peek at
+          // the game's live_games status FIRST — only attach to the
+          // timeline for live/halftime/final. For scheduled or
+          // never-started games, bump directly and skip the timeline
+          // write. Otherwise the finalize step never runs and the
+          // credit sits uncounted; if the coach later plays that
+          // scheduled game live, the timeline clip entry would
+          // double-count against their live tap.
+          const { doc: fsDoc, getDoc: fsGetDoc } = await import('firebase/firestore');
+          const { db: fsDb } = await import('../utils/firebase');
+          const gameSnap = await fsGetDoc(fsDoc(fsDb, 'live_games', newGameId));
+          const gameStatus: string = gameSnap.exists() ? String((gameSnap.data() as any).status || 'scheduled') : 'no-doc';
+
+          if (gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final') {
+            const { attachClipCreditsToGame } = await import('../utils/clipGameLink');
+            const scorer = newScorerId ? players.find(p => p.id === newScorerId) : undefined;
+            const assistsById: Record<string, { name?: string; jersey?: number }> = {};
+            for (const aid of newAssistIds) {
+              const ap = players.find(pp => pp.id === aid);
+              if (ap) assistsById[aid] = { name: ap.name, jersey: ap.jerseyNumber };
+            }
+            const res = await attachClipCreditsToGame({
+              gameId: newGameId,
+              mediaId: docId,
+              clipUrl: selectedMedia.url,
+              scorerId: newScorerId,
+              scorerName: scorer?.name,
+              scorerJersey: scorer?.jerseyNumber,
+              assistIds: newAssistIds,
+              assistsById,
+              recordedBy: userData?.uid,
+              recordedByName: userData?.name,
+            });
+            if (res.status === 'final') {
+              // Finalize won't re-run; bump only what we newly ADDED
+              // to the timeline (attached credits were already counted).
+              willBumpScorerId = (res.addedScorer && res.countsToStats) ? newScorerId : undefined;
+              willBumpAssistIds = res.countsToStats ? res.addedAssistIds : [];
+            }
+            // live / halftime → defer to imminent finalize.
+          } else {
+            // scheduled or no-doc → bump immediately, don't touch timeline.
             willBumpScorerId = newScorerId;
             willBumpAssistIds = newAssistIds;
-          } else {
-            // live/halftime/scheduled → finalize will count, no immediate bump
           }
         } catch (e) {
-          console.warn('attachClipCreditsToGame failed; falling back to direct bump', e);
+          console.warn('clip-edit game link failed; falling back to direct bump', e);
           willBumpScorerId = newScorerId;
           willBumpAssistIds = newAssistIds;
         }

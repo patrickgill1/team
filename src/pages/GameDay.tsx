@@ -810,6 +810,60 @@ const GameDay: React.FC = () => {
       update.ourScore = game.ourScore - 1;
     }
     await patch(update);
+
+    // If the game is already FINAL, finalize won't run again — the
+    // player.stats bump + per-game stats row we wrote at finalize
+    // are now inflated relative to the (updated) timeline. Reverse
+    // them here so a coach who deletes a mis-recorded goal doesn't
+    // leave the kid's season totals silently inflated forever.
+    //
+    // Skips when nothing was ever bumped: pre-final games, games
+    // with countsToStats=false, and demo teams.
+    const kindToStat: Record<string, string> = {
+      goal: 'goals',
+      assist: 'assists',
+      save: 'saves',
+      yellow: 'yellowCards',
+      red: 'redCards',
+    };
+    const statKey = kindToStat[String(target.kind)];
+    const isFinal = game.status === 'final';
+    const teamIsDemo = (selectedTeam as any)?.isDemo === true;
+    const countsToStats = game.countsToStats !== false;
+
+    if (isFinal && countsToStats && !teamIsDemo && target.playerId && statKey) {
+      try {
+        const { doc: fsDoc, getDoc: fsGetDoc, updateDoc: fsUpdate } = await import('firebase/firestore');
+        const pRef = fsDoc(db, 'players', target.playerId);
+        const pSnap = await fsGetDoc(pRef);
+        if (pSnap.exists()) {
+          const cur = (pSnap.data() as any).stats || {};
+          const nextVal = Math.max(0, ((cur as any)[statKey] || 0) - 1);
+          await fsUpdate(pRef, { [`stats.${statKey}`]: nextVal } as any);
+        }
+      } catch (err) {
+        console.warn('[gameday] reverse player.stats failed', err);
+      }
+      // Decrement the matching per-game stats row so the per-team
+      // aggregator (getTeamPlayerStatsMap) stays consistent.
+      try {
+        const { collection: fsColl, query: fsQuery, where: fsWhere, getDocs: fsGetDocs, updateDoc: fsUpdate2 } = await import('firebase/firestore');
+        const q = fsQuery(
+          fsColl(db, 'stats'),
+          fsWhere('gameId', '==', eventId!),
+          fsWhere('playerId', '==', target.playerId),
+        );
+        const snap = await fsGetDocs(q);
+        for (const d of snap.docs) {
+          const cur = (d.data() as any)[statKey] || 0;
+          if (cur > 0) {
+            await fsUpdate2(d.ref, { [statKey]: Math.max(0, cur - 1) } as any);
+          }
+        }
+      } catch (err) {
+        console.warn('[gameday] reverse per-game stats row failed', err);
+      }
+    }
   };
 
   // Post the recap to a dedicated team-scoped thread. Each team gets

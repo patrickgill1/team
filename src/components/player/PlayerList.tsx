@@ -42,39 +42,87 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
 
   const isUserCoach = isCoachOfTeam(userData, selectedTeam);
 
-  // Direct Firestore subscription — load all active players, filter by team client-side
-  // This avoids composite index issues with teamIds/teamId + isActive + orderBy
-  // Map playerId → team-scoped stats from player_memberships (most
-  // recent active membership for the selected team). Used to overlay
-  // the all-team player.stats aggregate with the right team's numbers
-  // so PlayerCard tiles read clean for shared players.
+  // Per-player per-team per-season stats overlay. Was subscribing to
+  // player_memberships.stats (never written by any writer in the app —
+  // see the 2026-08-18 audit), then falling back to player.stats. But
+  // player.stats is a LIFETIME aggregate, so a player who scored 7
+  // goals last season and 2 this season showed 9 on their card even
+  // when only 2 belonged to the current season (Logan, 2026-08-19).
+  //
+  // Fix: subscribe to the `stats/` collection scoped to this team,
+  // aggregate the rows client-side filtered by the team's active
+  // seasonId. Mirrors getTeamPlayerStatsMap so the map is real
+  // season-scoped numbers, not lifetime.
   const [teamStatsByPlayerId, setTeamStatsByPlayerId] = useState<Record<string, any>>({});
+  const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null);
 
-  // Subscribe to memberships scoped to the selected team. Updates the
-  // stats overlay live as game stats land.
+  // Resolve active season for the team. One-shot on team change;
+  // seasons don't flip while the page is open.
+  useEffect(() => {
+    if (!selectedTeamId) { setActiveSeasonId(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getActiveSeasonForTeam } = await import('../../utils/seasons');
+        const season = await getActiveSeasonForTeam(selectedTeamId);
+        if (!cancelled) setActiveSeasonId(season?.id || null);
+      } catch {
+        if (!cancelled) setActiveSeasonId(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedTeamId]);
+
+  // Subscribe to team stats rows and aggregate per playerId. Live
+  // updates as clip credits + game finalizes land.
   useEffect(() => {
     if (!selectedTeamId) { setTeamStatsByPlayerId({}); return; }
-    const mq = query(
-      collection(db, 'player_memberships'),
-      where('teamId', '==', selectedTeamId),
-    );
-    const unsub = onSnapshot(mq, snap => {
+    const sq = query(collection(db, 'stats'), where('teamId', '==', selectedTeamId));
+    const unsub = onSnapshot(sq, snap => {
       const map: Record<string, any> = {};
       for (const d of snap.docs) {
-        const data = d.data() as any;
-        if (!data.stats) continue;
-        // Prefer the most-recent active membership for this player.
-        const existing = map[data.playerId];
-        const candidateActive = data.isActive !== false;
-        const existingActive = existing && existing.__isActive !== false;
-        if (!existing || (candidateActive && !existingActive)) {
-          map[data.playerId] = { ...data.stats, __isActive: candidateActive };
+        const r = d.data() as any;
+        // Season filter — only rows tagged with the active season count
+        // toward the season overlay. Un-tagged legacy rows only show
+        // when the team has no active season set.
+        if (activeSeasonId) {
+          if ((r?.seasonId || null) !== activeSeasonId) continue;
         }
+        // Trip-tagged rows belong to Tournaments section, not season.
+        if (r?.tripId) continue;
+        const pid = r.playerId;
+        if (!pid) continue;
+        const cur = map[pid] || { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
+        const gid: string = typeof r.gameId === 'string' ? r.gameId : '';
+        // Synthetic clip rows carry goal/assist deltas only, no game
+        // participation. Adjust rows carry a signed gamesPlayed delta.
+        const isClipRecord = gid.startsWith('clip_');
+        const isAdjustRecord = gid.startsWith('adjust_');
+        if (isAdjustRecord) {
+          cur.gamesPlayed += r.gamesPlayed || 0;
+        } else if (!isClipRecord) {
+          cur.gamesPlayed += 1;
+        }
+        cur.goals += r.goals || 0;
+        cur.assists += r.assists || 0;
+        cur.saves += r.saves || 0;
+        cur.yellowCards += r.yellowCards || 0;
+        cur.redCards += r.redCards || 0;
+        cur.minutesPlayed += r.minutesPlayed || 0;
+        // Clamp to zero so a too-large negative correction can't
+        // produce negative totals on a card.
+        cur.gamesPlayed = Math.max(0, cur.gamesPlayed);
+        cur.goals = Math.max(0, cur.goals);
+        cur.assists = Math.max(0, cur.assists);
+        cur.saves = Math.max(0, cur.saves);
+        cur.yellowCards = Math.max(0, cur.yellowCards);
+        cur.redCards = Math.max(0, cur.redCards);
+        map[pid] = cur;
       }
       setTeamStatsByPlayerId(map);
     }, () => { /* non-fatal */ });
     return () => unsub();
-  }, [selectedTeamId]);
+  }, [selectedTeamId, activeSeasonId]);
 
   useEffect(() => {
     if (!selectedTeamId) {
@@ -380,26 +428,19 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 sm:gap-6">
           {filteredPlayers.map((player) => {
-            // 2026-08-18: same fix as SeasonStatsCard. The per-team
-            // membership stats overlay was designed to keep shared
-            // players' per-team numbers clean vs. the lifetime
-            // player.stats aggregate — but no writer in the codebase
-            // populates player_memberships.stats, so every card was
-            // rendering zeros. Prefer the overlay when it actually
-            // carries numbers; fall back to player.stats otherwise.
-            // For the 99% of players on a single team, player.stats
-            // IS their per-team stats (nothing gets subtracted when
-            // they leave one team for another; the lifetime aggregate
-            // just happens to equal the single team's total).
+            // 2026-08-19: teamStats is now populated from the stats/
+            // collection filtered by team+season (see the subscription
+            // above). Use it directly — no more player.stats fallback,
+            // which was leaking lifetime-across-seasons totals onto
+            // season-scoped cards (Logan showed 9 goals lifetime when
+            // he had 2 this season). A player who's on the roster but
+            // has no stat rows yet correctly shows 0/0/0 — that's the
+            // start of a new season, not a bug.
             const teamStats = teamStatsByPlayerId[player.id];
-            const teamStatsHasNumbers = teamStats && (
-              teamStats.goals || teamStats.assists || teamStats.gamesPlayed || teamStats.saves
-            );
+            const zeros = { goals: 0, assists: 0, saves: 0, gamesPlayed: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, cleanSheets: 0 };
             const scoped = {
               ...(player as any),
-              stats: teamStatsHasNumbers
-                ? { ...teamStats, __isActive: undefined }
-                : ((player as any).stats || { goals: 0, assists: 0, saves: 0, gamesPlayed: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, cleanSheets: 0 }),
+              stats: teamStats || zeros,
             };
             return (
               <PlayerCard

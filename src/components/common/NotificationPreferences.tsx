@@ -13,6 +13,7 @@ const CATEGORIES: Array<{ key: PushPrefKey; label: string; hint: string }> = [
   { key: 'events', label: 'Events', hint: 'Cancellations, comments, new events' },
   { key: 'helpdesk', label: 'Club support', hint: 'Tickets and replies' },
   { key: 'broadcast', label: 'Club announcements', hint: 'Coach/admin broadcasts' },
+  { key: 'kidChatOversight', label: 'Kid chat oversight', hint: 'Push when your player is mentioned in team chat by a teammate. Off by default.' },
 ];
 
 const NotificationPreferences: React.FC = () => {

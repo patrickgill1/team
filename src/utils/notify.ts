@@ -36,13 +36,26 @@ export const DEFAULT_EMAIL_PREFS: EmailPreferences = {
 
 // Push preferences are independent of email preferences. Parents who
 // mute the weekly digest email don't want their game-day push muted too.
-export type PushPrefKey = 'chat' | 'helpdesk' | 'events' | 'broadcast';
+//
+// 2026-08-19 added `kidChatOversight` — defaults OFF (opt-in). Kid
+// chats fanout to parents-of-mentioned-kids as parent-oversight, but
+// most parents don't want a push every time their kid's teammates
+// message them; the chat history is still visible in-app. Kept
+// separate from `chat` so muting oversight doesn't kill DMs/team
+// chats.
+export type PushPrefKey =
+  | 'chat'
+  | 'helpdesk'
+  | 'events'
+  | 'broadcast'
+  | 'kidChatOversight';
 
 export interface PushPreferences {
   chat: boolean;
   helpdesk: boolean;
   events: boolean;
   broadcast: boolean;
+  kidChatOversight: boolean;
 }
 
 export const DEFAULT_PUSH_PREFS: PushPreferences = {
@@ -50,6 +63,7 @@ export const DEFAULT_PUSH_PREFS: PushPreferences = {
   helpdesk: true,
   events: true,
   broadcast: true,
+  kidChatOversight: false,
 };
 
 export interface NotifyMessage {

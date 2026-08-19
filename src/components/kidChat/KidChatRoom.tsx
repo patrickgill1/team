@@ -299,8 +299,13 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
           // Fire-and-forget: same pattern as TeamChat. If the network
           // drops between addDoc and this call the message still
           // persists; the push just won't fire (acceptable for chat).
+          // Gated on the `kidChatOversight` push pref (default OFF).
+          // Parents can opt in from Settings if they want a push on
+          // every kid chat message; otherwise the chat history stays
+          // silently readable in-app. Kept separate from `chat` so
+          // muting oversight doesn't kill DMs and team chats.
           void sendPushToUsers(recipients, { title, body: preview, url }, {
-            pushPrefKey: 'chat',
+            pushPrefKey: 'kidChatOversight',
             fromUid: senderUid,
           }).catch(err => debugWarn('[kid-chat] push fanout failed', err));
         } else {

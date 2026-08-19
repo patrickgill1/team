@@ -136,7 +136,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
           <select
             value={selectedPlayer}
             onChange={(e) => setSelectedPlayer(e.target.value)}
-            className="px-3 py-2 border border-line-default/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            className="px-3 py-2 bg-surface-input text-ink-primary border border-line-default/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
           >
             <option value="">All Players Overview</option>
             {players.map(player => (

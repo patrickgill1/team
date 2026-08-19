@@ -40,6 +40,7 @@ import CoachTeamHealthCard from '../components/coach/CoachTeamHealthCard';
 import DashboardPotmVotingCard from '../components/dashboard/DashboardPotmVotingCard';
 import DashboardDigestSheet, { DigestItem } from '../components/dashboard/DashboardDigestSheet';
 import { useDashboardActivity } from '../hooks/useDashboardActivity';
+import { useTeamSeasonStats } from '../hooks/useTeamSeasonStats';
 import { useViewMode } from '../contexts/ViewModeContext';
 import AdminCockpit from '../components/admin/AdminCockpit';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
@@ -417,9 +418,15 @@ const Dashboard: React.FC = () => {
   }, [chatThreads, userData?.uid, newMessagesCount]);
 
 
-  const totalGoals = players.reduce((s, p) => s + (p.stats?.goals || 0), 0);
-  const totalAssists = players.reduce((s, p) => s + (p.stats?.assists || 0), 0);
-  const totalGames = Math.max(0, ...players.map(p => p.stats?.gamesPlayed || 0));
+  // Season-scoped stats via shared hook. player.stats is a lifetime
+  // aggregate; using it here leaked prior-season numbers into the
+  // Team pulse card. The hook reads from stats/ filtered by active
+  // seasonId — same source of truth as the Squad grid and the Stats
+  // page.
+  const { statsByPlayerId: seasonStatsMap } = useTeamSeasonStats(selectedTeamId);
+  const totalGoals = Object.values(seasonStatsMap).reduce((s, r: any) => s + (r?.goals || 0), 0);
+  const totalAssists = Object.values(seasonStatsMap).reduce((s, r: any) => s + (r?.assists || 0), 0);
+  const totalGames = Object.values(seasonStatsMap).reduce((m, r: any) => Math.max(m, r?.gamesPlayed || 0), 0);
   const totalClips = media.filter(m => m.type === 'video').length;
 
   // Hot clips: most-liked videos (fallback to most-viewed, then most recent)
@@ -445,19 +452,27 @@ const Dashboard: React.FC = () => {
       .slice(0, 8);
   }, [media]);
 
+  // Season-scoped leaderboards. Reads goals/assists from the
+  // seasonStatsMap so a striker who bagged 7 last season and 2 this
+  // season shows 2 here — not 9. Player identity/photo comes from
+  // the roster; the stat number comes from the season map.
   const topScorers = useMemo(() => {
     return [...players]
-      .filter(p => (p.stats?.goals || 0) > 0)
-      .sort((a, b) => (b.stats?.goals || 0) - (a.stats?.goals || 0))
-      .slice(0, 5);
-  }, [players]);
+      .map(p => ({ p, goals: seasonStatsMap[p.id]?.goals || 0 }))
+      .filter(x => x.goals > 0)
+      .sort((a, b) => b.goals - a.goals)
+      .slice(0, 5)
+      .map(x => ({ ...x.p, stats: { ...(x.p.stats || {}), goals: x.goals, assists: seasonStatsMap[x.p.id]?.assists || 0 } as any }));
+  }, [players, seasonStatsMap]);
 
   const topAssists = useMemo(() => {
     return [...players]
-      .filter(p => (p.stats?.assists || 0) > 0)
-      .sort((a, b) => (b.stats?.assists || 0) - (a.stats?.assists || 0))
-      .slice(0, 3);
-  }, [players]);
+      .map(p => ({ p, assists: seasonStatsMap[p.id]?.assists || 0 }))
+      .filter(x => x.assists > 0)
+      .sort((a, b) => b.assists - a.assists)
+      .slice(0, 3)
+      .map(x => ({ ...x.p, stats: { ...(x.p.stats || {}), goals: seasonStatsMap[x.p.id]?.goals || 0, assists: x.assists } as any }));
+  }, [players, seasonStatsMap]);
 
   // The parent's linked players on this team (their kids). Multi-kid
   // households (siblings on the same team) get all of theirs here;
@@ -2953,10 +2968,17 @@ const TeamPulseCard: React.FC<{
   totalGames: number;
   playerCount: number;
 }> = ({ topScorer, topAssister, totalGoals, totalAssists, totalGames, playerCount }) => {
+  // Redesigned 2026-08-19: killed the outer gradient wrapper + the
+  // amber/yellow and cyan avatar gradients (Patrick: "gradients look
+  // bad, hard to make sense of the whole thing"). Layout is now:
+  //   header
+  //   live-game-tracker CTA (kept — coach uses this to start ad-hoc games)
+  //   4 season totals in a tight grid (players / games / goals / assists)
+  //   top scorer + top assister as clean rows below
   const ts: any = topScorer;
   const ta: any = topAssister;
   return (
-    <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base rounded-2xl ring-1 ring-line-default/10 overflow-hidden shadow-lg">
+    <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden shadow-sm">
       <div className="px-5 py-3 border-b border-line-default/10 flex items-center justify-between">
         <h3 className="font-bold text-ink-primary flex items-center gap-2">
           <svg className="w-4 h-4 text-ink-primary/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -2969,13 +2991,12 @@ const TeamPulseCard: React.FC<{
         <Link to="/stats" className="text-ink-primary/60 text-sm font-semibold hover:text-ink-primary">Season stats</Link>
       </div>
 
-      {/* Live game tracker entry point — coach can start a session
-          without needing a scheduled game on the calendar. */}
+      {/* Live game tracker entry point. */}
       <Link
         to={`/game-day/quick_${Date.now()}`}
-        className="mx-4 mt-4 p-3 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-400/30 flex items-center gap-3 hover:bg-emerald-500/20 transition active:scale-[0.99]"
+        className="mx-4 mt-4 p-3 rounded-xl bg-brand-primary/10 ring-1 ring-brand-primary/25 flex items-center gap-3 hover:bg-brand-primary/15 transition active:scale-[0.99]"
       >
-        <div className="w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-sm flex-shrink-0">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" />
             <circle cx="12" cy="12" r="6" />
@@ -2984,19 +3005,28 @@ const TeamPulseCard: React.FC<{
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-ink-primary text-sm">Live game tracker</p>
-          <p className="text-xs text-ink-primary/60">Scores, goals &amp; subs · works on any game</p>
+          <p className="text-xs text-ink-primary/60">Scores, goals &amp; subs on any game</p>
         </div>
-        <svg className="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-brand-primary flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       </Link>
 
-      {/* Top scorer + assister — side by side */}
+      {/* Season totals. Was hidden entirely on the previous card — the
+          totalGoals/totalAssists/totalGames props were dead. */}
+      <div className="mx-4 mt-4 grid grid-cols-4 gap-2">
+        <PulseStat label="Players" value={playerCount} />
+        <PulseStat label="Games"   value={totalGames} />
+        <PulseStat label="Goals"   value={totalGoals} />
+        <PulseStat label="Assists" value={totalAssists} />
+      </div>
+
+      {/* Top scorer + assister — solid brand tints, no gradients. */}
       {(topScorer || topAssister) && (
-        <div className="p-4 grid grid-cols-2 gap-3">
+        <div className="p-4 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
           {topScorer && (
-            <Link to={`/player/${topScorer.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-line-default/[0.05] transition">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-amber-300 to-yellow-500 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
+            <Link to={`/player/${topScorer.id}`} className="flex items-center gap-2.5 p-2 rounded-xl bg-surface-base ring-1 ring-line-default/10 hover:bg-line-default/[0.05] transition">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-primary flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
                 {ts.profilePhotoUrl ? (
                   <img src={ts.profilePhotoUrl} alt={topScorer.name} className="w-full h-full object-cover" />
                 ) : (
@@ -3006,16 +3036,16 @@ const TeamPulseCard: React.FC<{
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/60">Top scorer</p>
                 <p className="font-bold text-ink-primary text-sm truncate">{topScorer.name}</p>
-                <p className="text-xs text-emerald-300 font-bold">
-                  <span className="font-black">{topScorer.stats?.goals || 0}</span>{' '}
+                <p className="text-xs text-ink-primary/70 font-bold">
+                  <span className="font-black text-brand-primary">{topScorer.stats?.goals || 0}</span>{' '}
                   <span className="text-ink-primary/45 font-medium uppercase tracking-wider text-[10px]">goals</span>
                 </p>
               </div>
             </Link>
           )}
           {topAssister && topAssister.id !== topScorer?.id && (
-            <Link to={`/player/${topAssister.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-line-default/[0.05] transition">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-brand-primary to-surface-raised flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
+            <Link to={`/player/${topAssister.id}`} className="flex items-center gap-2.5 p-2 rounded-xl bg-surface-base ring-1 ring-line-default/10 hover:bg-line-default/[0.05] transition">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-primary-soft flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
                 {ta.profilePhotoUrl ? (
                   <img src={ta.profilePhotoUrl} alt={topAssister.name} className="w-full h-full object-cover" />
                 ) : (
@@ -3025,8 +3055,8 @@ const TeamPulseCard: React.FC<{
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/60">Top assister</p>
                 <p className="font-bold text-ink-primary text-sm truncate">{topAssister.name}</p>
-                <p className="text-xs text-brand-primary-soft font-bold">
-                  <span className="font-black">{topAssister.stats?.assists || 0}</span>{' '}
+                <p className="text-xs text-ink-primary/70 font-bold">
+                  <span className="font-black text-brand-primary-soft">{topAssister.stats?.assists || 0}</span>{' '}
                   <span className="text-ink-primary/45 font-medium uppercase tracking-wider text-[10px]">assists</span>
                 </p>
               </div>
@@ -3040,6 +3070,13 @@ const TeamPulseCard: React.FC<{
     </div>
   );
 };
+
+const PulseStat: React.FC<{ label: string; value: number }> = ({ label, value }) => (
+  <div className="rounded-xl bg-surface-base ring-1 ring-line-default/10 p-2 text-center">
+    <div className="text-2xl font-black text-ink-primary tabular-nums leading-tight">{value}</div>
+    <div className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/55 mt-0.5">{label}</div>
+  </div>
+);
 
 const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
   const thumb = clipThumb(clip);

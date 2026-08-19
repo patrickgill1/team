@@ -556,7 +556,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
             <select
               value={selectedPlayerId}
               onChange={(e) => setSelectedPlayerId(e.target.value)}
-              className="px-3 py-2 border border-line-default/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              className="px-3 py-2 bg-surface-input text-ink-primary border border-line-default/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
               style={{ fontSize: '16px' }}
               title="Drill into one player's full breakdown"
             >

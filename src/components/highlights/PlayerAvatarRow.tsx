@@ -18,14 +18,12 @@ interface Props {
   onSelect: (playerId: string | 'all') => void;
 }
 
-// v6.2: back to the ORIGINAL 64px circle size per coach. The "avatars
-// getting clipped" complaint the last few iterations misread as face-
-// clipping was actually the count BADGE clipping — the badge uses
-// negative offsets (-top-1.5 -right-1.5) to poke out of the circle,
-// and the parent scroll container has overflow-y-hidden which chops
-// the top of each badge. Fix: add pt-4 to the row so badges have
-// vertical room, and pointerless -top-1 keeps the badge fully inside
-// the padded area. Faces render via object-contain so nothing crops.
+// v6.3 (2026-08-19): swapped photo fit back to `cover`. The prior
+// `contain` compromise letterboxed portrait-orientation photos with
+// visible dead space inside the circle, which reads as "avatars not
+// taking the full circle." `cover` centers + crops which matches
+// every other avatar in the app (Player card, People page, Circle).
+// Ring/padding/badge geometry from v6.2 unchanged.
 const AVATAR_W = 64;
 const AVATAR_H = 64;
 
@@ -127,7 +125,7 @@ const AvatarPill: React.FC<PillProps> = ({ label, photoUrl, selected, count, onC
             size={innerW}
             height={innerH}
             shape="circle"
-            fit="contain"
+            fit="cover"
           />
         )}
         {count > 0 && (

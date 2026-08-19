@@ -237,6 +237,13 @@ const TeamManagement: React.FC = () => {
       // Patch non-critical extras client-side (description, league,
       // homeField, kit colors) — the /teams/create endpoint only
       // knows the security-critical fields.
+      //
+      // 2026-08-19: was silently swallowing the extras-patch failure
+      // via `.catch(() => undefined)` — coach filled out description,
+      // league, and kit colors, saw a success toast, then discovered
+      // half their team settings were empty the next time they opened
+      // the team. Now surface a soft warning so the coach knows to
+      // re-enter (team itself still exists, only the extras dropped).
       const extras: Record<string, any> = { updatedAt: new Date() };
       if (teamDescription.trim()) extras.description = teamDescription.trim();
       if (teamLeague.trim()) extras.league = teamLeague.trim();
@@ -245,7 +252,16 @@ const TeamManagement: React.FC = () => {
       if (teamAwayKit.trim()) extras.awayKitColor = teamAwayKit.trim();
       if (teamAudience === 'adult') extras.audienceType = 'adult';
       if (Object.keys(extras).length > 1) {
-        await updateDocument('teams', newTeamId, extras).catch(() => undefined);
+        try {
+          await updateDocument('teams', newTeamId, extras);
+        } catch (err) {
+          console.warn('[team-create] extras patch failed', err);
+          const droppedFields = Object.keys(extras).filter(k => k !== 'updatedAt').join(', ');
+          alert(
+            `Team created, but these details didn't save: ${droppedFields}.\n\n` +
+            `Open the team from the list and edit to add them back.`
+          );
+        }
       }
 
       // Adult-team + "I am a player" checkbox: seed the coach as a

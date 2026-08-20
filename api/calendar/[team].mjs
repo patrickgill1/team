@@ -93,13 +93,30 @@ export default async function handler(req, res) {
     // feeds served by Google Calendar / Fantastical / etc.
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const db = getFirestore(adminApp());
-    const snap = await db.collection('events')
-      .where('teamId', '==', teamId)
-      .where('date', '>=', cutoff)
-      .limit(500)
-      .get();
 
-    const events = snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
+    // 2026-08-20: union the scalar-teamId path with a teamIds-array-
+    // contains path so events written with either shape land in the
+    // feed. Fire FC audit showed all events using the scalar today,
+    // but reports of "not all events syncing" suggest some team out
+    // there has array-only events (imported schedules, legacy shape).
+    // Cheap: two queries, dedupe by id.
+    const [scalarSnap, arraySnap] = await Promise.all([
+      db.collection('events')
+        .where('teamId', '==', teamId)
+        .where('date', '>=', cutoff)
+        .limit(500)
+        .get(),
+      db.collection('events')
+        .where('teamIds', 'array-contains', teamId)
+        .where('date', '>=', cutoff)
+        .limit(500)
+        .get()
+        .catch(() => ({ docs: [] })), // missing composite index shouldn't kill the feed
+    ]);
+    const byId = new Map();
+    for (const d of scalarSnap.docs) byId.set(d.id, { id: d.id, ...(d.data() || {}) });
+    for (const d of arraySnap.docs) if (!byId.has(d.id)) byId.set(d.id, { id: d.id, ...(d.data() || {}) });
+    const events = Array.from(byId.values());
 
     // Build the .ics
     const now = new Date();
@@ -123,14 +140,35 @@ export default async function handler(req, res) {
       if (ev.opponent) descParts.push(`Opponent: ${ev.opponent}`);
       if (ev.homeAway) descParts.push(`Home/Away: ${ev.homeAway}`);
       if (ev.description) descParts.push(ev.description);
+
+      // 2026-08-20: iOS Calendar keeps a local cache keyed by UID.
+      // Without SEQUENCE + LAST-MODIFIED, an edit (time change,
+      // location update, cancel) can't invalidate the cached copy
+      // — the parent sees the old event and thinks the feed is
+      // broken. SEQUENCE and LAST-MODIFIED both derived from the
+      // event's updatedAt so any coach edit bumps them.
+      const modified = toDate(ev.updatedAt) || start;
+      // SEQUENCE is a monotonic integer per UID. Bucket updatedAt
+      // into 10-minute increments since a fixed epoch — coarse
+      // enough to stay stable when nothing changes, fine enough to
+      // guarantee any real edit bumps to a higher value.
+      const sequence = Math.max(0, Math.floor(modified.getTime() / (10 * 60 * 1000)));
+      // Soft-deleted events stay in the feed as STATUS:CANCELLED
+      // so iOS Calendar draws them with a strikethrough instead of
+      // leaving the coach's cancel silently invisible to families
+      // who already subscribed.
+      const isCancelled = ev.isActive === false || ev.isCancelled === true;
       lines.push('BEGIN:VEVENT');
       lines.push(`UID:${ev.id}@app.goalkickr.com`);
       lines.push(`DTSTAMP:${fmt(now)}`);
       lines.push(`DTSTART:${fmt(start)}`);
       lines.push(`DTEND:${fmt(end)}`);
-      lines.push(`SUMMARY:${escapeIcs(title)}`);
+      lines.push(`SUMMARY:${escapeIcs(isCancelled ? `[Cancelled] ${title}` : title)}`);
       if (locationStr) lines.push(`LOCATION:${escapeIcs(locationStr)}`);
       if (descParts.length) lines.push(`DESCRIPTION:${escapeIcs(descParts.join('\n'))}`);
+      lines.push(`SEQUENCE:${sequence}`);
+      lines.push(`LAST-MODIFIED:${fmt(modified)}`);
+      if (isCancelled) lines.push('STATUS:CANCELLED');
       lines.push('END:VEVENT');
     }
     lines.push('END:VCALENDAR');

@@ -28,6 +28,8 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
   // Swipe / drag-to-dismiss state.
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -69,6 +71,61 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
   };
 
   const current = images[index];
+
+  // Save the current image. On iOS/Android Capacitor WebView + modern
+  // mobile browsers, navigator.share(files) opens the system share
+  // sheet — user picks "Save Image" to land it in Photos. On desktop
+  // where share-files isn't supported, fall back to a download link.
+  const saveCurrent = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!current || saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch(current.url, { credentials: 'omit' });
+      if (!res.ok) throw new Error(`fetch-${res.status}`);
+      const blob = await res.blob();
+      // Best-effort filename from the URL or a sensible default. Some
+      // Firebase Storage URLs end with a query string, so strip that.
+      const urlPath = current.url.split('?')[0];
+      const inferred = urlPath.split('/').pop() || '';
+      const filename = inferred && /\.(jpe?g|png|webp|heic|gif)$/i.test(inferred)
+        ? inferred
+        : `photo-${Date.now()}.${(blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')}`;
+      const file = typeof File !== 'undefined'
+        ? new File([blob], filename, { type: blob.type || 'image/jpeg' })
+        : null;
+      // Prefer the system share sheet — it's the only path that offers
+      // "Save Image" -> Photos on iOS without a native plugin.
+      const nav = navigator as any;
+      if (file && nav.share && nav.canShare?.({ files: [file] })) {
+        try {
+          await nav.share({ files: [file], title: current.caption || 'Photo' });
+        } catch (err: any) {
+          // User canceled the share sheet — not an error we surface.
+          if (err?.name === 'AbortError') return;
+          throw err;
+        }
+      } else {
+        // Desktop / older browsers: trigger a download.
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      }
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1600);
+    } catch (err) {
+      console.warn('[chat-lightbox] save failed', err);
+      alert('Could not save the photo. Try again or long-press the image and use your browser\'s save option.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!current) return null;
 
   // Drag-to-dismiss transform — gives the user visual feedback that
@@ -96,14 +153,44 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
     >
       <div className="flex items-center justify-between px-4 py-3 text-white">
         <div className="text-xs text-white/60">{images.length > 1 ? `${index + 1} / ${images.length}` : ''}</div>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onClose(); }}
-          aria-label="Close"
-          className="w-9 h-9 rounded-full bg-line-default/10 hover:bg-line-default/20 flex items-center justify-center"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={saveCurrent}
+            disabled={saving}
+            aria-label="Save photo"
+            className={`h-9 px-3 rounded-full flex items-center gap-1.5 text-sm font-semibold transition ${
+              savedFlash
+                ? 'bg-emerald-500/25 text-emerald-200'
+                : 'bg-line-default/10 hover:bg-line-default/20 disabled:opacity-50'
+            }`}
+          >
+            {savedFlash ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                <span>Saved</span>
+              </>
+            ) : saving ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" /><path fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" className="opacity-75" /></svg>
+                <span>Saving</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                <span>Save</span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            aria-label="Close"
+            className="w-9 h-9 rounded-full bg-line-default/10 hover:bg-line-default/20 flex items-center justify-center"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        </div>
       </div>
       <div className="flex-1 flex items-center justify-center px-4 overflow-hidden">
         <img

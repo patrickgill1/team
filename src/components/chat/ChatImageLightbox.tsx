@@ -146,6 +146,11 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
   return createPortal(
     <div
       className="fixed inset-0 z-[9999] bg-black/95 flex flex-col animate-fade-in"
+      // Respect the iOS safe area on both ends. Without top inset the
+      // status-bar clock / Dynamic Island overlaps the Save + Close
+      // buttons; without bottom inset the home indicator sits on top
+      // of the caption row.
+      style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={onClose}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

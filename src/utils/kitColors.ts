@@ -53,15 +53,43 @@ export function normalizeKit(raw?: string | null): string | undefined {
   return NAMED_KIT_COLORS[key];
 }
 
-/** Human-readable name for a hex value, if it matches one of our
- *  named colors. Falls back to the hex string. Used for accessible
- *  labels on kit swatches. */
+/** Human-readable name for a hex value. Finds the NEAREST named
+ *  color in the palette by euclidean RGB distance instead of an
+ *  exact hex match — a coach who picked `#ffff00` from the native
+ *  color picker should read "yellow," not "#FFFF00", even though
+ *  our `yellow` entry is `#facc15`. Only within a tight distance
+ *  do we snap to a name; further out we fall back to the hex so we
+ *  don't lie about maroon being "red."
+ *
+ *  Legacy free-text kit values ("Hoops Jersey", "Home stripes")
+ *  return the trimmed original — those aren't colors, they're
+ *  descriptions. */
 export function kitColorLabel(raw?: string | null): string {
   if (!raw) return '';
-  const hex = normalizeKit(raw);
-  if (!hex) return raw.trim();
-  const name = Object.entries(NAMED_KIT_COLORS).find(([, v]) => v === hex)?.[0];
-  return name ? name[0].toUpperCase() + name.slice(1) : hex.toUpperCase();
+  const trimmed = raw.trim();
+  const hex = normalizeKit(trimmed);
+  // Not a color — free-text description like "Hoops Jersey."
+  if (!hex) return trimmed;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  let bestName = '';
+  let bestDist = Infinity;
+  for (const [name, namedHex] of Object.entries(NAMED_KIT_COLORS)) {
+    const nr = parseInt(namedHex.slice(1, 3), 16);
+    const ng = parseInt(namedHex.slice(3, 5), 16);
+    const nb = parseInt(namedHex.slice(5, 7), 16);
+    const dist = (r - nr) ** 2 + (g - ng) ** 2 + (b - nb) ** 2;
+    if (dist < bestDist) { bestDist = dist; bestName = name; }
+  }
+  // Snap threshold ~85 in each channel (85^2 * 3 ≈ 21675). Any hex
+  // farther than that from every named color falls back to the raw
+  // hex — better an ugly label than a wrong one.
+  const SNAP_THRESHOLD_SQ = 21_675;
+  if (bestName && bestDist <= SNAP_THRESHOLD_SQ) {
+    return bestName[0].toUpperCase() + bestName.slice(1);
+  }
+  return hex.toUpperCase();
 }
 
 /** WCAG-friendly text color (black or white) that reads on top of

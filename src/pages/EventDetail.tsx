@@ -1827,44 +1827,65 @@ const EventDetail: React.FC = () => {
           now live in the "COACH CONTROLS ROW" at the bottom of the
           page. */}
 
-      {/* JERSEY BANNER — game days only. The jersey swatch IS the
-          icon: a black or white square shows parents at a glance which
-          kit to pack. No decorative emoji needed. */}
-      {event.type === 'game' && (event as any).homeAway && (
-        <section className="px-4 sm:px-6 py-3 bg-surface-elevated ring-1 ring-line-default/15 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm">
-          <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              {/* Jersey swatch — LITERAL jersey color, not a theme
-                  surface. Previous version used bg-surface-elevated
-                  which rendered the "black" and "white" jerseys as
-                  the same dark theme color, defeating the whole
-                  point of the swatch. theme-ok on the color classes. */}
-              <span className={`inline-block w-9 h-9 rounded-md border-2 flex-shrink-0 ${
-                (event as any).homeAway === 'home'
-                  ? 'bg-slate-950 border-slate-600' /* theme-ok: literal black jersey */
-                  : 'bg-white border-line-default/40' /* theme-ok: literal white jersey */
-              }`} aria-hidden />
-              <div>
-                <div className={`text-xs font-extrabold tracking-widest uppercase ${
-                  (event as any).homeAway === 'home' ? 'text-brand-primary' : 'text-ink-primary/75'
-                }`}>
-                  {(event as any).homeAway === 'home' ? 'Home game' : 'Away game'}
-                </div>
-                <div className="text-[11px] mt-0.5 text-ink-primary/50">
-                  Wear your <span className="font-bold">{(event as any).homeAway === 'home' ? 'black' : 'white'}</span> jersey
+      {/* JERSEY BANNER — game days only. The jersey swatch shows the
+          actual home/away kit color the coach configured on the team,
+          not a hardcoded black/white. */}
+      {event.type === 'game' && (event as any).homeAway && (() => {
+        const { normalizeKit, kitColorLabel } = require('../utils/kitColors');
+        const teamForKit = (teams || []).find((t: any) => t.id === event.teamId);
+        const isHome = (event as any).homeAway === 'home';
+        const rawKit = isHome ? teamForKit?.homeKitColor : teamForKit?.awayKitColor;
+        const kitHex = normalizeKit(rawKit);
+        // Legible border: swatch always gets a subtle outline so a
+        // white/cream kit doesn't disappear on a light theme and a
+        // black kit doesn't disappear on the dark card.
+        const swatchStyle = kitHex
+          ? { backgroundColor: kitHex }
+          : undefined;
+        // Fallback tokens when the coach hasn't set a kit color yet.
+        // Home defaults to solid brand-primary (their team color),
+        // away to a neutral surface.
+        const fallbackClass = kitHex
+          ? ''
+          : isHome
+            ? 'bg-brand-primary'
+            : 'bg-surface-base';
+        // Copy uses the human-readable label when we recognize it,
+        // else falls back to "your kit". Never lies about the color.
+        const label = kitColorLabel(rawKit);
+        return (
+          <section className="px-4 sm:px-6 py-3 bg-surface-elevated ring-1 ring-line-default/15 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm">
+            <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span
+                  className={`inline-block w-9 h-9 rounded-md border-2 border-line-default/40 flex-shrink-0 ${fallbackClass}`}
+                  style={swatchStyle}
+                  aria-hidden
+                />
+                <div>
+                  <div className={`text-xs font-extrabold tracking-widest uppercase ${
+                    isHome ? 'text-brand-primary' : 'text-ink-primary/75'
+                  }`}>
+                    {isHome ? 'Home game' : 'Away game'}
+                  </div>
+                  <div className="text-[11px] mt-0.5 text-ink-primary/50">
+                    {label
+                      ? <>Wear your <span className="font-bold">{label.toLowerCase()}</span> jersey</>
+                      : <>Wear your <span className="font-bold">{isHome ? 'home' : 'away'}</span> jersey</>}
+                  </div>
                 </div>
               </div>
+              <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border ${
+                isHome
+                  ? 'bg-brand-primary/15 text-ink-primary border-brand-primary/30'
+                  : 'bg-surface-base text-ink-primary/65 border-line-default/25'
+              }`}>
+                {isHome ? 'Home' : 'Away'}
+              </span>
             </div>
-            <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border ${
-              (event as any).homeAway === 'home'
-                ? 'bg-brand-primary/15 text-ink-primary border-brand-primary/30'
-                : 'bg-surface-base text-ink-primary/65 border-line-default/25'
-            }`}>
-              {(event as any).homeAway === 'home' ? 'Home' : 'Away'}
-            </span>
-          </div>
-        </section>
-      )}
+          </section>
+        );
+      })()}
 
       {/* WEATHER — condensed forecast card in the prep-info cluster.
           Hero already surfaces the temperature inline; this card adds

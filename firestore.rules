@@ -27,6 +27,45 @@ service cloud.firestore {
     //
     // Reads are NOT subscription-gated — a coach whose trial ended
     // can still see all their existing data.
+    //
+    // ─────────────────────────────────────────────────────────────
+    // CONVENTION: canCoachWrite() gates INFRASTRUCTURE COST, not
+    // PERMISSION. Do not use it as a proxy for "is this a coach?"
+    // ─────────────────────────────────────────────────────────────
+    //
+    // Every recurring bug that lets a whole team get blocked from a
+    // free feature has the same shape: someone typed
+    // `canCoachWrite()` on a CREATE rule that gates a free coach
+    // action (posting a YouTube embed, editing a team-scheduled
+    // event, adding a roster player), and coaches without an active
+    // sub or club coverage got locked out of stewardship that never
+    // should have been paid.
+    //
+    // Rule of thumb when adding a new CREATE rule for a coach-
+    // writable collection:
+    //
+    //   1. Does this write cost us real infrastructure per call
+    //      (Cloudflare Stream minutes, R2 storage, AI tokens, SMS)?
+    //      If YES → canCoachWrite() is appropriate for the paid path.
+    //
+    //   2. Can the SAME collection accept a free-embed variant
+    //      (source in ['youtube', 'vimeo', ...]) that costs us
+    //      nothing? If YES → split the rule by source: free path
+    //      bypasses canCoachWrite, paid path keeps it. See
+    //      player_media and full_games below for the pattern.
+    //
+    //   3. Is this really about "is this person a coach?" rather
+    //      than "did they pay?" — like renaming an event they
+    //      already scheduled, adding a player to their own roster,
+    //      posting to the team wall? Use `isTeamCoach(teamId)`
+    //      instead. canCoachWrite short-circuits true for non-
+    //      coaches (parents), so using it as a coach check is also
+    //      a hole — any parent on the team passes.
+    //
+    // Kept-paid sites (2026-08-23): parent_whispers CREATE (design —
+    // no embed variant), player_media native upload, full_games
+    // native upload. Everything else that was on canCoachWrite got
+    // moved to isTeamCoach in the 2026-08-14 gate split.
 
     function userDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;

@@ -345,13 +345,15 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
       newErrors.name = 'Player name must be at least 2 characters';
     }
 
-    // Jersey number validation (optional)
-    if (formData.jerseyNumber) {
-      const jerseyNum = parseInt(formData.jerseyNumber);
-      if (isNaN(jerseyNum)) {
+    // Jersey number validation (optional). 0 is a legit jersey (some
+    // teams have a #0), so range is 0-99, not 1-99. formData is a
+    // string — an empty string skips validation, "0" enters it.
+    if (formData.jerseyNumber !== '' && formData.jerseyNumber != null) {
+      const jerseyNum = parseInt(formData.jerseyNumber, 10);
+      if (!Number.isFinite(jerseyNum)) {
         newErrors.jerseyNumber = 'Jersey number must be a valid number';
-      } else if (jerseyNum < 1 || jerseyNum > 99) {
-        newErrors.jerseyNumber = 'Jersey number must be between 1 and 99';
+      } else if (jerseyNum < 0 || jerseyNum > 99) {
+        newErrors.jerseyNumber = 'Jersey number must be between 0 and 99';
       }
     }
 
@@ -938,14 +940,14 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               </label>
               <input
                 type="number"
-                min="1"
+                min="0"
                 max="99"
                 value={formData.jerseyNumber}
                 onChange={(e) => setFormData({ ...formData, jerseyNumber: e.target.value })}
                 className={`w-full px-3 py-2 bg-surface-base text-ink-primary placeholder-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 ${
                   errors.jerseyNumber ? 'border-rose-500' : 'border-line-default/10'
                 }`}
-                placeholder="1-99"
+                placeholder="0-99"
                 disabled={isSubmitting}
               />
               {errors.jerseyNumber && <p className="text-rose-300 text-sm mt-1">{errors.jerseyNumber}</p>}

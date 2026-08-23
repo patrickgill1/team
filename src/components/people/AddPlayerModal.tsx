@@ -116,7 +116,12 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
         body: JSON.stringify({
           teamId: primaryTeamId,
           name: trimmed,
-          jerseyNumber: jerseyNumber ? (parseInt(jerseyNumber, 10) || undefined) : undefined,
+          jerseyNumber: (() => {
+            const s = jerseyNumber.trim();
+            if (!s) return undefined;
+            const n = parseInt(s, 10);
+            return Number.isFinite(n) ? n : undefined;
+          })(),
           positions: position ? [position] : undefined,
           parentEmails: parentEmail.trim() ? [parentEmail.trim().toLowerCase()] : undefined,
           isAdultPlayer: !!isAdultPlayer,
@@ -150,7 +155,12 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
           teamId,
           seasonId: 'season_active',
           playerId: playerRef.id,
-          jerseyNumber: jerseyNumber ? parseInt(jerseyNumber, 10) || undefined : undefined,
+          jerseyNumber: (() => {
+            const s = jerseyNumber.trim();
+            if (!s) return undefined;
+            const n = parseInt(s, 10);
+            return Number.isFinite(n) ? n : undefined;
+          })(),
           position: position || undefined,
           isActive: true,
           joinedAt: serverTimestamp(),

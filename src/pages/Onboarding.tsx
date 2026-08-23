@@ -298,7 +298,14 @@ const Onboarding: React.FC = () => {
     setBusy(true);
     try {
       const { workerFetch } = await import('../utils/workerFetch');
-      const jerseyNumber = kidJerseyNumber.trim() ? (parseInt(kidJerseyNumber.trim(), 10) || undefined) : undefined;
+      // 2026-08-23: was `parseInt(x, 10) || undefined` which silently
+      // dropped jersey number 0 (a legit choice — some teams have a #0).
+      const jerseyNumber = (() => {
+        const s = kidJerseyNumber.trim();
+        if (!s) return undefined;
+        const n = parseInt(s, 10);
+        return Number.isFinite(n) ? n : undefined;
+      })();
 
       const createRes = await workerFetch('/players/create', {
         method: 'POST',

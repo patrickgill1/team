@@ -1247,12 +1247,24 @@ service cloud.firestore {
       allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
     }
 
-    // Full-game recordings — same pattern.
+    // Full-game recordings — split trial-wall, same pattern as
+    // player_media. YouTube / Vimeo links cost us nothing (embed only)
+    // so any coach on the team can post one regardless of sub status;
+    // native uploads still cost Cloudflare Stream and stay behind
+    // canCoachWrite. Patrick 2026-08-23: Pride coach couldn't submit
+    // a YouTube link to Full Games because the uniform canCoachWrite
+    // gate treated the free-embed path the same as the paid-upload
+    // path.
     match /full_games/{gameId} {
       allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow create: if isAuthed()
         && onTeam(request.resource.data.teamId)
-        && canCoachWrite();
+        && (
+          // Embed path — no infra cost, always free.
+          request.resource.data.source in ['youtube', 'vimeo']
+          // Native upload — keep the paid gate.
+          || canCoachWrite()
+        );
       allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
     }
 

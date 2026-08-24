@@ -250,21 +250,56 @@ export async function maybeGrantHatTrick(
   const existing = ctx.existingBadges || {};
   if (existing.hat_trick) return;
 
-  // If the caller didn't pass a count, compute it from the stats
-  // collection. Sums real-game rows only (skips clip_/adjust_ noise).
+  // If the caller didn't pass a count, compute it from BOTH sources
+  // and take the max (avoids double-count when both are populated):
+  //
+  //   - live_games/{gameId}.timeline — source of truth GameDay
+  //     finalize uses. Captures live taps AND source='clip' entries
+  //     added by attachClipCreditsToGame for live/halftime/final games.
+  //
+  //   - player_media where goalScorerId==playerId && gameId==this-game
+  //     — catches clip credits linked to a SCHEDULED game (my
+  //     3.9.419 fix skips the timeline attach for scheduled games to
+  //     avoid double-count if the coach later plays the game live).
+  //     The clip's own doc still stamps gameId though, so we count
+  //     them by grouping player_media directly.
+  //
+  // Stats collection can't be used: clip credits land with synthetic
+  // gameIds (`clip_${ts}_${pid}`) so 3 clip goals linked to the same
+  // real game don't group by gameId in stats.
   let goals = goalsInGame;
   if (goals == null) {
     try {
-      const { collection, query, where, getDocs } = await import('firebase/firestore');
+      const { doc, getDoc, collection, query, where, getDocs } = await import('firebase/firestore');
       const { db } = await import('./firebase');
-      const snap = await getDocs(query(
-        collection(db, 'stats'),
-        where('playerId', '==', playerId),
-        where('gameId', '==', gameId),
-      ));
-      let total = 0;
-      snap.forEach(d => { total += (d.data() as any)?.goals || 0; });
-      goals = total;
+      // Single-field query on gameId (existing index) — filter the
+      // scorerId client-side. Adding a composite index just for this
+      // one grant path isn't worth it; clip volume per game is small.
+      const [gameSnap, mediaSnap] = await Promise.all([
+        getDoc(doc(db, 'live_games', gameId)),
+        getDocs(query(
+          collection(db, 'player_media'),
+          where('gameId', '==', gameId),
+        )),
+      ]);
+      let timelineGoals = 0;
+      if (gameSnap.exists()) {
+        const timeline: any[] = Array.isArray((gameSnap.data() as any)?.timeline)
+          ? (gameSnap.data() as any).timeline
+          : [];
+        timelineGoals = timeline.filter(t => t?.kind === 'goal' && t?.playerId === playerId).length;
+      }
+      let mediaGoals = 0;
+      mediaSnap.forEach(d => {
+        const m: any = d.data();
+        // Filter scorer client-side (see note above).
+        if (m?.goalScorerId !== playerId) return;
+        // Skip clips explicitly opted out or soft-deleted.
+        if (m?.countsForStats === false) return;
+        if (m?.isActive === false) return;
+        mediaGoals += 1;
+      });
+      goals = Math.max(timelineGoals, mediaGoals);
     } catch (err) {
       console.warn('[badges] hat_trick goal-count query failed', playerId, gameId, err);
       return;

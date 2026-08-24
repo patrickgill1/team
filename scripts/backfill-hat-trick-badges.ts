@@ -38,47 +38,87 @@ interface HatTrickHit {
 }
 
 (async () => {
-  const snap = await db.collection('stats').get();
-  console.log(`Scanned ${snap.size} stats rows`);
+  // Source #1: stats collection, real gameIds only (skip clip_/adjust_).
+  // Catches manual entries + GameDay finalize rows.
+  const statsSnap = await db.collection('stats').get();
+  console.log(`Scanned ${statsSnap.size} stats rows`);
 
-  // Aggregate goals by (playerId, gameId), skipping synthetic ids.
-  type Bucket = { goals: number; teamId: string; playerName: string; opponent?: string; lastAt?: Date };
+  // Two goal-count sources per (player, game): the stats collection
+  // (finalize + manual entry) and the player_media collection (linked
+  // clip credits). A game where finalize ran AFTER clips were linked
+  // will show goals in BOTH sources for the same real game — summing
+  // would double-count. Take the MAX per (player, game) instead.
+  type Bucket = { statsGoals: number; mediaGoals: number; teamId: string; playerName: string; opponent?: string; lastAt?: Date };
   const bucket = new Map<string, Bucket>();
-  for (const d of snap.docs) {
+  const bump = (pid: string, gid: string, goals: number, teamId: string, playerName: string, opponent?: string, at?: Date | null, source: 'stats' | 'media' = 'stats') => {
+    const key = `${pid}::${gid}`;
+    const cur = bucket.get(key) || {
+      statsGoals: 0, mediaGoals: 0, teamId, playerName, opponent, lastAt: undefined,
+    };
+    if (source === 'stats') cur.statsGoals += goals;
+    else cur.mediaGoals += goals;
+    if (teamId) cur.teamId = teamId;
+    if (playerName && !cur.playerName) cur.playerName = playerName;
+    if (opponent && !cur.opponent) cur.opponent = opponent;
+    if (at && (!cur.lastAt || at.getTime() > cur.lastAt.getTime())) cur.lastAt = at;
+    bucket.set(key, cur);
+  };
+  for (const d of statsSnap.docs) {
     const r: any = d.data();
     const pid = String(r.playerId || '');
     const gid = String(r.gameId || '');
     if (!pid || !gid) continue;
     if (gid.startsWith('clip_') || gid.startsWith('adjust_')) continue;
     if ((r.goals || 0) <= 0) continue;
-    const key = `${pid}::${gid}`;
-    const cur = bucket.get(key) || {
-      goals: 0,
-      teamId: String(r.teamId || ''),
-      playerName: String(r.playerName || ''),
-      opponent: r.opponent,
-      lastAt: undefined,
-    };
-    cur.goals += r.goals || 0;
-    if (r.teamId) cur.teamId = String(r.teamId);
-    if (r.playerName && !cur.playerName) cur.playerName = String(r.playerName);
-    if (r.opponent && !cur.opponent) cur.opponent = String(r.opponent);
     const at = r.createdAt?.toDate?.() || (r.createdAt instanceof Date ? r.createdAt : null);
-    if (at && (!cur.lastAt || at.getTime() > cur.lastAt.getTime())) cur.lastAt = at;
-    bucket.set(key, cur);
+    bump(pid, gid, r.goals, String(r.teamId || ''), String(r.playerName || ''), r.opponent, at, 'stats');
   }
 
-  // Filter for hat tricks (3+ goals in one game).
+  // Source #2: player_media docs that stamped goalScorerId + a real
+  // gameId. Coach's clip credits go here — the stats collection rows
+  // for these clips have synthetic clip_${ts} ids so they don't group
+  // by real game. Group them here directly by (goalScorerId, gameId).
+  // Only counts credits that ACTUALLY bumped stats (statsCredited=true
+  // or countsForStats !== false) to avoid counting "display-only" clips.
+  const mediaSnap = await db.collection('player_media').get();
+  let mediaGoalRows = 0;
+  for (const d of mediaSnap.docs) {
+    const m: any = d.data();
+    if (!m.goalScorerId) continue;
+    if (!m.gameId) continue;
+    const gid = String(m.gameId);
+    if (gid.startsWith('clip_') || gid.startsWith('adjust_')) continue;
+    // Skip clips explicitly opted out of stats.
+    if (m.countsForStats === false) continue;
+    if (m.isActive === false) continue;
+    mediaGoalRows++;
+    const at = m.createdAt?.toDate?.() || (m.createdAt instanceof Date ? m.createdAt : null);
+    bump(
+      String(m.goalScorerId),
+      gid,
+      1,
+      String(m.teamId || ''),
+      String(m.playerName || ''),
+      undefined,
+      at,
+      'media',
+    );
+  }
+  console.log(`Scanned ${mediaSnap.size} player_media docs, ${mediaGoalRows} carry a linked real-game goal`);
+
+  // Filter for hat tricks (3+ goals in one game). Take MAX across
+  // sources to avoid double-count when both stats + media have data.
   const hits: HatTrickHit[] = [];
   for (const [key, b] of bucket.entries()) {
-    if (b.goals < 3) continue;
+    const totalGoals = Math.max(b.statsGoals, b.mediaGoals);
+    if (totalGoals < 3) continue;
     const [playerId, gameId] = key.split('::');
     hits.push({
       playerId,
       playerName: b.playerName,
       teamId: b.teamId,
       gameId,
-      goals: b.goals,
+      goals: totalGoals,
       opponent: b.opponent,
       earnedAtCandidate: b.lastAt,
     });

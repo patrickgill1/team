@@ -1262,7 +1262,15 @@ service cloud.firestore {
     // Coach 2026-08-11: "coach still says he cant use a youtube
     // link to post media."
     match /player_media/{mediaId} {
-      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      // 2026-08-24 REINSTATED anonymous get-by-ID (per Patrick).
+      // Shared /media/:id links MUST work for grandparents / friends
+      // who don't have the app — that's the point of the share
+      // button. Firestore auto-IDs are unguessable so this is
+      // link-in-hand access, not open enumeration. LIST stays
+      // authed + team-scoped so nobody can walk the collection.
+      // Supersedes the 2026-07-15 "no public share" note.
+      allow get: if true;
+      allow list: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow create: if isAuthed()
         && onTeam(request.resource.data.teamId)
         && (
@@ -1279,8 +1287,11 @@ service cloud.firestore {
     // (2026-07-10) is an open team surface — parents upload photos of
     // their kid, coaches upload from games. Same "on the team" gate
     // stays; the trial-wall gate is dropped for photo uploads only.
+    // 2026-08-24: same GET-by-ID public / LIST authed split as
+    // player_media above so /media/:id links work for grandparents.
     match /gallery/{photoId} {
-      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow get: if true;
+      allow list: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow create: if isAuthed()
         && onTeam(request.resource.data.teamId);
       allow update, delete: if isAuthed() && onTeam(resource.data.teamId);

@@ -428,15 +428,27 @@ const PlayerOfMatch: React.FC = () => {
           // Retroactive-safe: existing badges gate the grant, so a kid
           // with 3 pre-ship POTMs but no badge entry gets first_potm
           // on this POTM (the FIRST from this ship forward).
+          // 2026-08-24 diagnostic: was `void maybeGrantFirstPotm(...)`
+          // — fire-and-forget swallowed every failure to console.warn,
+          // and audit found ZERO first_potm events across 20 closed
+          // POTMs on XP-enabled teams. Await + log the actual result
+          // so the next Vercel deploy surfaces the real failure mode
+          // (worker rejection code, network error, or "grant skipped
+          // because ..."). Kept in a try/catch so a bad grant never
+          // blocks the isCurrentPotm flip.
           await Promise.all(winners.map(async w => {
             const player = players.find(p => p.id === w.playerId);
-            void maybeGrantFirstPotm(w.playerId, {
-              existingBadges: (player as any)?.badges,
-              gameTitle: activeVoting.gameTitle,
-              seasonId: (activeVoting as any).seasonId,
-              team: selectedTeam as any,
-              teamId: selectedTeamId,
-            });
+            try {
+              await maybeGrantFirstPotm(w.playerId, {
+                existingBadges: (player as any)?.badges,
+                gameTitle: activeVoting.gameTitle,
+                seasonId: (activeVoting as any).seasonId,
+                team: selectedTeam as any,
+                teamId: selectedTeamId,
+              });
+            } catch (err) {
+              console.error('[POTM] first_potm grant threw for', w.playerId, err);
+            }
             return fsUpdate(fsDoc(db, 'players', w.playerId), { isCurrentPotm: true, potmAt: new Date() });
           }));
         }

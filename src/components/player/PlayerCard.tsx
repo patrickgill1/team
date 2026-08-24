@@ -37,7 +37,7 @@ interface PlayerCardProps {
 // glow ring per rarity tier.
 const BadgeShield: React.FC<{ slug: string }> = ({ slug }) => {
   const size = 32;
-  const rare = slug === 'first_potm' || slug === 'streak_25' || slug === 'streak_50' || slug === 'perfect_attendance';
+  const rare = slug === 'first_potm' || slug === 'hat_trick' || slug === 'streak_25' || slug === 'streak_50' || slug === 'perfect_attendance';
   const legendary = slug === 'streak_50' || slug === 'perfect_attendance';
   const ring = legendary
     ? 'shadow-[0_0_0_1px_rgba(251,191,36,0.55),0_2px_10px_rgba(251,191,36,0.35)]'
@@ -97,6 +97,7 @@ const BADGE_PRIORITY: string[] = [
   'perfect_attendance',
   'streak_50',
   'first_potm',
+  'hat_trick',
   'streak_25',
   'first_goal',
   'first_assist',

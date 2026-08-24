@@ -38,6 +38,7 @@ const BADGE_SLOTS: string[] = [
   'first_save',
   'first_clean_sheet',
   'first_potm',
+  'hat_trick',
   'perfect_attendance',
   'streak_5',
   'streak_10',

@@ -227,7 +227,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
       // Attribution failure ALSO suppresses badges (see comment above).
       if (!skipGrants && !resolvedTripId && !attributionFailed) {
         try {
-          const { maybeGrantFirstStatBadges } = await import('../../utils/badgeGrants');
+          const { maybeGrantFirstStatBadges, maybeGrantHatTrick } = await import('../../utils/badgeGrants');
           void maybeGrantFirstStatBadges(
             selectedPlayer,
             currentStats,
@@ -238,6 +238,20 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
               team: selectedTeam as any,
             },
           );
+          // Hat trick — 3+ goals in this single manual-entry game.
+          // Uses the game's actual id (skips synthetic clip_/adjust_).
+          if (statData.goals >= 3) {
+            void maybeGrantHatTrick(
+              selectedPlayer,
+              gameStatData.gameId,
+              statData.goals,
+              {
+                existingBadges: (selectedPlayerData as any).badges,
+                team: selectedTeam as any,
+                gameTitle: opponent ? `vs ${opponent}` : 'Match',
+              },
+            );
+          }
         } catch { /* non-fatal */ }
       }
 

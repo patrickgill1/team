@@ -349,6 +349,11 @@ const PlayerMediaPage: React.FC = () => {
   const applyStatsDiff = async (
     oldCredits: { goalScorerId?: string; assistByIds?: string[] },
     newCredits: { goalScorerId?: string; assistByIds?: string[] },
+    // Optional — when the clip is linked to a real game, we pass its
+    // eventId so the hat-trick check (post-write) can query the game's
+    // per-player goal count. Left unset for unlinked clips (no game =
+    // no hat-trick attribution possible).
+    linkedGameId?: string,
   ) => {
     const delta = new Map<string, { goals: number; assists: number }>();
     const bump = (pid: string, key: 'goals' | 'assists', amount: number) => {
@@ -455,6 +460,31 @@ const PlayerMediaPage: React.FC = () => {
         },
       };
     }));
+
+    // Hat trick check — only when the credit was tied to a real
+    // linked game (unlinked clips can't hat-trick because there's no
+    // shared gameId to count against). Runs on the NEW scorer only;
+    // pulls the count from the stats collection itself so it stays
+    // consistent with what the aggregator sees, even across shared
+    // players and legacy rows. Skipped for trip-scoped credits (same
+    // rule as first-stat badges above).
+    if (
+      linkedGameId
+      && newCredits.goalScorerId
+      && !clipTripId
+      && !linkedGameId.startsWith('clip_')
+      && !linkedGameId.startsWith('adjust_')
+    ) {
+      try {
+        const scorer = players.find(p => p.id === newCredits.goalScorerId);
+        const { maybeGrantHatTrick } = await import('../utils/badgeGrants');
+        void maybeGrantHatTrick(newCredits.goalScorerId, linkedGameId, null, {
+          existingBadges: (scorer as any)?.badges,
+          team: selectedTeam as any,
+          gameTitle: 'Clip credit hat trick',
+        });
+      } catch { /* non-fatal */ }
+    }
   };
 
   // Entry point for the coach's + Upload button. Runs the trial
@@ -736,7 +766,7 @@ const PlayerMediaPage: React.FC = () => {
             await applyStatsDiff({}, {
               goalScorerId: willBumpScorer ? scorerId : undefined,
               assistByIds: willBumpAssistIds,
-            });
+            }, uploadGameId || undefined);
           }
 
           // Persist the credit-tracking fields on the media doc. statsCredited
@@ -1386,6 +1416,7 @@ const PlayerMediaPage: React.FC = () => {
         (willBumpScorerId || willBumpAssistIds.length > 0)
           ? { goalScorerId: willBumpScorerId, assistByIds: willBumpAssistIds }
           : {},
+        newGameId,
       );
 
       // Coach-only "Feature in From Your Coach" toggle. Coaches can

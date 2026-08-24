@@ -11,6 +11,7 @@ export type BadgeSlug =
   | 'first_save'
   | 'first_clean_sheet'
   | 'first_potm'
+  | 'hat_trick'
   | 'perfect_attendance'
   | 'streak_5'
   | 'streak_10'
@@ -40,6 +41,7 @@ export const BADGE_META: Record<BadgeSlug, BadgeMeta> = {
   first_save:         { label: 'First Save',         celebration: 'made their first save!',                xp: 100 },
   first_clean_sheet:  { label: 'First Clean Sheet',  celebration: 'kept a clean sheet!',                   xp: 100 },
   first_potm:         { label: 'First POTM',         celebration: 'won their first Player of the Match!',  xp: 150 },
+  hat_trick:          { label: 'Hat Trick',          celebration: 'bagged a hat trick!',                   xp: 150 },
   perfect_attendance: { label: 'Perfect Attendance', celebration: 'made every event this season!',         xp: 200 },
   streak_5:           { label: '5-Day Streak',       celebration: 'is on a 5-day training streak!',        xp: 50 },
   streak_10:          { label: '10-Day Streak',      celebration: 'hit a 10-day streak!',                  xp: 100 },
@@ -72,6 +74,7 @@ export const BADGE_POSITION_ELIGIBILITY: Record<string, string[] | null> = {
   first_save: ['Goalkeeper'],
   first_clean_sheet: ['Goalkeeper', 'Defender'],
   first_potm: null,
+  hat_trick: null,
   perfect_attendance: null,
   streak_5: null,
   streak_10: null,

@@ -209,3 +209,82 @@ export async function maybeGrantFirstPotm(
     console.warn('[badges] grant first_potm failed', playerId, err);
   });
 }
+
+/** Grant hat_trick when a player racks up 3+ goals in a single real
+ *  game. Once-ever semantic (matches every other badge). Called from
+ *  the three sites that write goal counts:
+ *    - GameDay finalize (live-tapped goals)
+ *    - PlayerMediaPage clip credit (retroactive goal via linked clip)
+ *    - StatsTracker (manual coach entry)
+ *
+ *  Callers pass the running goal count for THIS PLAYER in THIS GAME
+ *  (post-write). Helper checks the threshold and grants once. If the
+ *  callers can't cheaply compute the count, they can pass `null` and
+ *  we'll query the stats collection ourselves.
+ *
+ *  Skips when:
+ *    - Player has already earned hat_trick (once-ever)
+ *    - XP source `hatTrick` disabled on the team
+ *    - gameId is a synthetic clip_ / adjust_ id (not a real game)
+ *    - Fewer than 3 goals in the game
+ */
+export async function maybeGrantHatTrick(
+  playerId: string,
+  gameId: string,
+  goalsInGame: number | null,
+  ctx: {
+    team?: Team | null;
+    teamId?: string;
+    existingBadges?: Record<string, any>;
+    gameTitle?: string;
+  } = {},
+): Promise<void> {
+  if (!playerId || !gameId) return;
+  // Synthetic gameIds don't represent a real match.
+  if (gameId.startsWith('clip_') || gameId.startsWith('adjust_')) return;
+  const team = ctx.team ?? null;
+  if (!team) return;
+  const teamId = ctx.teamId || (team as any)?.id;
+  if (!teamId) return;
+  if (!isXpSourceEnabled(team, 'hatTrick')) return;
+  const existing = ctx.existingBadges || {};
+  if (existing.hat_trick) return;
+
+  // If the caller didn't pass a count, compute it from the stats
+  // collection. Sums real-game rows only (skips clip_/adjust_ noise).
+  let goals = goalsInGame;
+  if (goals == null) {
+    try {
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
+      const { db } = await import('./firebase');
+      const snap = await getDocs(query(
+        collection(db, 'stats'),
+        where('playerId', '==', playerId),
+        where('gameId', '==', gameId),
+      ));
+      let total = 0;
+      snap.forEach(d => { total += (d.data() as any)?.goals || 0; });
+      goals = total;
+    } catch (err) {
+      console.warn('[badges] hat_trick goal-count query failed', playerId, gameId, err);
+      return;
+    }
+  }
+  if ((goals || 0) < 3) return;
+
+  await awardMicroXp({
+    playerId,
+    teamId,
+    source: 'hat_trick',
+    xp: badgeXp('hat_trick'),
+    // Include the gameId so a hat trick in a DIFFERENT game doesn't
+    // collide on the once-ever sourceRef — but the client-side
+    // existing-badges check upstream still blocks any 2nd grant.
+    sourceRef: `hat_trick-${playerId}-${gameId}`,
+    alsoStampBadge: { slug: 'hat_trick', earnedAt: nowIso() },
+    note: ctx.gameTitle || 'Hat trick',
+    xpEnabled: true,
+  }).catch(err => {
+    console.warn('[badges] grant hat_trick failed', playerId, err);
+  });
+}

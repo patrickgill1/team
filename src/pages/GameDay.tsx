@@ -611,6 +611,17 @@ const GameDay: React.FC = () => {
           team: selectedTeam as any,
         },
       );
+      // Hat trick — 3+ goals in this single game. Uses the live
+      // counts map from the timeline scan; skipped for trip games
+      // (per the same rationale as first-stat badges above).
+      if (!resolvedTripId && !opts.attributionPending && (c.goals || 0) >= 3) {
+        const { maybeGrantHatTrick } = await import('../utils/badgeGrants');
+        void maybeGrantHatTrick(pid, eventId!, c.goals, {
+          existingBadges: freshBadges,
+          team: selectedTeam as any,
+          gameTitle: event.title || (event.opponent ? `vs ${event.opponent}` : 'Match'),
+        });
+      }
       // Write a per-game stat record for anyone who registered a
       // timeline event OR earned a clean sheet. GK-only entries land
       // with 0 across offensive stats + cleanSheets=1 so team-record

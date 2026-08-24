@@ -25,6 +25,7 @@ export type XpSourceKey =
   | 'firstSave'
   | 'firstCleanSheet'
   | 'firstPotm'
+  | 'hatTrick'
   | 'streaks'
   | 'perfectAttendance'
   | 'whisper'
@@ -46,6 +47,7 @@ const COARSE_FALLBACK: Record<XpSourceKey, 'participation' | 'badges' | null> = 
   firstSave: 'badges',
   firstCleanSheet: 'badges',
   firstPotm: 'badges',
+  hatTrick: 'badges',
   streaks: 'badges',
   perfectAttendance: 'badges',
   whisper: null,
@@ -84,6 +86,7 @@ export const XP_SOURCE_LABELS: Partial<Record<XpSourceKey, string>> = {
   firstSave: 'First save',
   firstCleanSheet: 'First clean sheet',
   firstPotm: 'First POTM',
+  hatTrick: 'Hat trick',
   streaks: 'Streak badges',
   perfectAttendance: 'Perfect attendance',
   whisper: 'Whisper XP',

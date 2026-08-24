@@ -150,6 +150,7 @@ const SOURCE_KEY_TO_SECTION: Record<UiXpKey, SectionKey> = {
   firstSave: 'milestones',
   firstCleanSheet: 'milestones',
   firstPotm: 'milestones',
+  hatTrick: 'milestones',
   streaks: 'streaksAttendance',
   perfectAttendance: 'streaksAttendance',
   whisper: 'coachActions',

@@ -675,12 +675,22 @@ const EventForm: React.FC<EventFormProps> = ({
           ? generateSeriesDates(eventDateTime, new Date(`${formData.recurrenceUntil}T${formData.time}`), formData.recurrence)
           : [eventDateTime];
 
+        // 2026-08-24: previously copied endDateTime onto every
+        // occurrence unchanged, so every event past week 1 had
+        // endDate = week 1's end, which broke iOS calendar sync
+        // (DTEND < DTSTART -> event dropped). Compute the intended
+        // duration ONCE from the form and re-apply per occurrence.
+        const durationMs = endDateTime && endDateTime.getTime() > eventDateTime.getTime()
+          ? endDateTime.getTime() - eventDateTime.getTime()
+          : null;
+
         let firstId = '';
         for (let i = 0; i < dates.length; i++) {
           const dt = dates[i];
           const docData: any = {
             ...eventData,
             date: dt,
+            endDate: durationMs != null ? new Date(dt.getTime() + durationMs) : null,
           };
           if (isSeries) {
             docData.seriesId = seriesId;

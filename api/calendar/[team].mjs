@@ -133,7 +133,32 @@ export default async function handler(req, res) {
       const start = toDate(ev.date);
       if (!start) continue;
       // Default duration 90 min if no endDate provided.
-      const end = toDate(ev.endDate) || new Date(start.getTime() + 90 * 60 * 1000);
+      let end = toDate(ev.endDate) || new Date(start.getTime() + 90 * 60 * 1000);
+      // 2026-08-24: series creation in EventForm copied the first
+      // occurrence's endDate onto every subsequent occurrence without
+      // shifting the week, so every event past #1 in a series had
+      // DTEND < DTSTART. iOS Calendar silently drops those, which
+      // showed up as "only the first Wednesday syncs." Heal here:
+      // pull the time-of-day off the stored endDate and apply it to
+      // the occurrence's date. Fall back to +90 min if that still
+      // produces an invalid range.
+      if (end.getTime() <= start.getTime()) {
+        const dayStartUtc = Date.UTC(
+          start.getUTCFullYear(),
+          start.getUTCMonth(),
+          start.getUTCDate(),
+        );
+        const endDayStartUtc = Date.UTC(
+          end.getUTCFullYear(),
+          end.getUTCMonth(),
+          end.getUTCDate(),
+        );
+        const timeOfDayMs = end.getTime() - endDayStartUtc;
+        const alignedEnd = new Date(dayStartUtc + timeOfDayMs);
+        end = alignedEnd.getTime() > start.getTime()
+          ? alignedEnd
+          : new Date(start.getTime() + 90 * 60 * 1000);
+      }
       const title = ev.title || (ev.type === 'practice' ? 'Practice' : ev.type === 'game' ? 'Game' : 'Event');
       const locationStr = ev.location || '';
       const descParts = [];

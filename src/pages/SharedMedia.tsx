@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams, useLocation } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
-import { downloadFile } from '../utils/downloadFile';
-import { getStreamDownloadUrl } from '../utils/streamUpload';
 import { useAuth } from '../hooks/useAuth';
 import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 
@@ -22,45 +20,6 @@ const SharedMedia: React.FC = () => {
   const [media, setMedia] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<LoadError | null>(null);
-  const [downloading, setDownloading] = useState(false);
-  const [downloadPercent, setDownloadPercent] = useState(0);
-
-  const handleDownload = async () => {
-    if (!media || downloading) return;
-    const isVid = media.type === 'video' || media.contentType?.startsWith('video/');
-    const filename = media.fileName || `${media.playerName || 'team'}-${isVid ? 'video.mp4' : 'photo.jpg'}`;
-    setDownloading(true);
-    setDownloadPercent(0);
-
-    // Stream videos: ask Cloudflare to render an MP4 download URL.
-    // First call typically returns "in progress" then "ready" within ~30s.
-    let url: string = media.url;
-    if (isVid && media.streamUid) {
-      try {
-        const dl = await getStreamDownloadUrl(media.streamUid);
-        if (dl.ready) {
-          url = dl.url;
-        } else {
-          alert('Video is still processing. Try again in 30–60 seconds.');
-          setDownloading(false);
-          return;
-        }
-      } catch (err) {
-        console.error('Stream download URL error', err);
-        // fall through and try the existing url (HLS) — downloadFile will
-        // fall back to opening in a new tab if the browser can't save HLS.
-      }
-    }
-
-    const result = await downloadFile(url, filename, {
-      onProgress: p => setDownloadPercent(p.percent),
-    });
-    setDownloading(false);
-    setDownloadPercent(0);
-    if (result.ok === false && result.reason === 'fetch-failed') {
-      alert("Your browser couldn't save this directly. The file opened in a new tab — long-press (mobile) or right-click (desktop) to save it.");
-    }
-  };
 
   useEffect(() => {
     if (!mediaId) {
@@ -187,27 +146,12 @@ const SharedMedia: React.FC = () => {
               )}
             </div>
           </div>
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="flex items-center space-x-1.5 bg-surface-tint hover:bg-surface-raised disabled:bg-surface-tint/70 disabled:cursor-wait text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
-          >
-            {downloading ? (
-              <>
-                <div className="w-4 h-4 rounded-full border-2 border-line-default/30 border-t-white animate-spin" />
-                <span className="tabular-nums">
-                  {downloadPercent > 0 ? `${downloadPercent}%` : 'Saving…'}
-                </span>
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                <span className="hidden sm:inline">Download</span>
-              </>
-            )}
-          </button>
+          {/* Download button removed 2026-08-24. Anonymous viewers
+              (grandparents, friends without the app) can't call
+              /api/stream-enable-download without an auth token, and
+              a "Not signed in" error on a share link is worse than
+              no button. Signed-in team members can still save via
+              the chat lightbox or the app's own media page. */}
         </div>
       </div>
 

@@ -143,6 +143,20 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.coachIds;
     }
 
+    // Team manager (non-coach staff) membership. Used when a feature is
+    // available to managers via the staff-permissions system — the
+    // client renders the CTA when hasStaffPermission(user, team, key)
+    // is true, this rule mirrors it at the security layer. Absent
+    // managerIds field returns false cleanly.
+    function isTeamManager(teamId) {
+      return isAuthed()
+        && teamId is string
+        && exists(/databases/$(database)/documents/teams/$(teamId))
+        && 'managerIds' in get(/databases/$(database)/documents/teams/$(teamId)).data
+        && get(/databases/$(database)/documents/teams/$(teamId)).data.managerIds is list
+        && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.managerIds;
+    }
+
     // Public voting on player-of-the-match. Reads stay public because
     // the /vote page is shared with extended family who aren't signed
     // in.
@@ -1453,11 +1467,17 @@ service cloud.firestore {
     match /development_plans/{planId} {
       allow get:  if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow list: if isAuthed();
-      // 2026-08-14 gate split: dropped canCoachWrite. Writing a dev
-      // plan for one of your own players is core coach work.
-      allow create: if isTeamCoach(request.resource.data.teamId);
+      // 2026-08-26: widened from isTeamCoach only to also allow team
+      // managers via isTeamManager. Assistants are already in
+      // coachIds so they pass isTeamCoach; managers were locked out
+      // until this change. Client renders the CTA when
+      // hasStaffPermission(user, team, 'assignDevPlans') is true;
+      // this rule is the security layer. Delete still coach-only.
+      allow create: if isTeamCoach(request.resource.data.teamId)
+        || isTeamManager(request.resource.data.teamId);
       allow update: if isAuthed() && (
         isTeamCoach(resource.data.teamId)
+        || isTeamManager(resource.data.teamId)
         || (
           resource.data.playerId is string
           && exists(/databases/$(database)/documents/players/$(resource.data.playerId))

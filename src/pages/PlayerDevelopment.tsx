@@ -11,6 +11,7 @@ import { getOrEnableStreamDownloadUrl, streamIframeUrl } from '../utils/streamUp
 import { coachVerifyLogEntry, buildPracticeDayKeys, computeStreakDaysFromKeys, didItToday } from '../utils/devPlanActions';
 import { resolveGoalVideo as resolveGoalVideoShared } from '../utils/resolveGoalVideo';
 import { isCoachOfTeam, formatDate } from '../utils/helpers';
+import { hasStaffPermission } from '../utils/staffPermissions';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import DataGate from '../components/common/DataGate';
@@ -84,6 +85,11 @@ const PlayerDevelopment: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  // Team managers + assistants get dev-plan assignment by default
+  // through the staff-permissions system; head coach can toggle off
+  // per person in Staff Management. Head coach is always true. Covers
+  // three roles: head coach, assistant coach, team manager.
+  const canAssignDevPlans = hasStaffPermission(userData, selectedTeam as any, 'assignDevPlans');
 
   // Optimistic verified-by cache for the CoachSawThisPill so the
   // pill flips state instantly on coach tap without waiting for a
@@ -1074,7 +1080,7 @@ const PlayerDevelopment: React.FC = () => {
               ))}
             </select>
           </div>
-          {showCoachControls && (
+          {canAssignDevPlans && (
             <button
               onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(true); }}
               className="bg-brand-primary hover:bg-brand-primary text-white px-4 py-2.5 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"

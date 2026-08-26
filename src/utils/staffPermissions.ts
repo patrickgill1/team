@@ -16,6 +16,7 @@
 export type StaffPermissionKey =
   | 'gameday'         // Run GameDay (subs, minutes, stats)
   | 'planPractice'    // Plan practice (assign drills to a session)
+  | 'assignDevPlans'  // Create / edit player development plans
   | 'manageRoster'    // Add / edit players (not delete)
   | 'uploadDrills'    // Upload drills to the library
   | 'postMedia'       // Post media / assign POTM
@@ -31,6 +32,7 @@ export type StaffPermissionMap = Partial<Record<StaffPermissionKey, boolean>>;
 export const ALL_STAFF_PERMISSIONS: StaffPermissionKey[] = [
   'gameday',
   'planPractice',
+  'assignDevPlans',
   'manageRoster',
   'uploadDrills',
   'postMedia',
@@ -44,6 +46,7 @@ export const ALL_STAFF_PERMISSIONS: StaffPermissionKey[] = [
 export const STAFF_PERMISSION_META: Record<StaffPermissionKey, { label: string; hint: string; group: 'coaching' | 'content' | 'logistics' | 'danger' }> = {
   gameday:         { label: 'Run GameDay',          hint: 'Subs, minutes, stats during live games.',                        group: 'coaching' },
   planPractice:    { label: 'Plan practice',        hint: 'Assign drills to a session.',                                    group: 'coaching' },
+  assignDevPlans:  { label: 'Assign dev plans',     hint: 'Create and edit player development plans.',                      group: 'coaching' },
   manageRoster:    { label: 'Manage roster',        hint: 'Add and edit players. Deleting is separate (danger).',           group: 'coaching' },
   uploadDrills:    { label: 'Upload drills',        hint: 'Add drills to the team library.',                                group: 'content' },
   postMedia:       { label: 'Post media / POTM',    hint: 'Upload photos, clips, and assign Player of the Match.',          group: 'content' },
@@ -60,6 +63,7 @@ export const STAFF_PERMISSION_META: Record<StaffPermissionKey, { label: string; 
 export const DEFAULT_PERMISSIONS_ASSISTANT: Required<StaffPermissionMap> = {
   gameday: true,
   planPractice: true,
+  assignDevPlans: true,
   manageRoster: true,
   uploadDrills: true,
   postMedia: true,
@@ -72,6 +76,7 @@ export const DEFAULT_PERMISSIONS_ASSISTANT: Required<StaffPermissionMap> = {
 export const DEFAULT_PERMISSIONS_MANAGER: Required<StaffPermissionMap> = {
   gameday: true,
   planPractice: false,
+  assignDevPlans: true,
   manageRoster: true,
   uploadDrills: true,
   postMedia: true,

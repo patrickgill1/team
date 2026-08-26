@@ -46,7 +46,7 @@ const TeamManagement: React.FC = () => {
   const [teamAgeGroup, setTeamAgeGroup] = useState('');
   const [teamLeague, setTeamLeague] = useState('');
   const [teamHomeField, setTeamHomeField] = useState('');
-  const [teamFormat, setTeamFormat] = useState<'7v7' | '9v9' | '11v11'>('7v7');
+  const [teamFormat, setTeamFormat] = useState<'4v4' | '7v7' | '9v9' | '11v11'>('7v7');
   const [teamHomeKit, setTeamHomeKit] = useState('');
   const [teamAwayKit, setTeamAwayKit] = useState('');
   // Adult vs youth switch — drives Player Circle / Whispers /
@@ -993,7 +993,7 @@ const TeamManagement: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-ink-primary/85 mb-1">Match Format</label>
                     <div className="inline-flex items-center bg-line-default/[0.08] ring-1 ring-line-default/10 rounded-full p-0.5">
-                      {(['7v7', '9v9', '11v11'] as const).map((f) => (
+                      {(['4v4', '7v7', '9v9', '11v11'] as const).map((f) => (
                         <button
                           type="button"
                           key={f}

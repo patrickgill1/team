@@ -32,6 +32,7 @@ import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 
 const TEAM_FORMATS = [
   { id: '4v4', label: '4v4' },
+  { id: '4v4', label: '4v4' },
   { id: '7v7', label: '7v7' },
   { id: '9v9', label: '9v9' },
   { id: '11v11', label: '11v11' },

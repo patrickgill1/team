@@ -2094,7 +2094,7 @@ export interface Photo {
   createdAt: Date;
 }
 
-export type GameFormat = '7v7' | '9v9' | '11v11';
+export type GameFormat = '4v4' | '7v7' | '9v9' | '11v11';
 
 // ── League MVP (2026-07-11) ──────────────────────────────────────
 // Represents a round-robin competition among 2-24 teams. Fixtures

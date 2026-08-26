@@ -19,6 +19,14 @@ interface Props {
 // Default formations: position % {x, y} per slot index, where index 0
 // is the goalkeeper (closest to "home" goal at bottom of field).
 const DEFAULTS: Record<GameFormat, { x: number; y: number }[]> = {
+  '4v4': [
+    { x: 50, y: 88 }, // GK
+    { x: 50, y: 65 }, // 1 back (center)
+    { x: 28, y: 45 }, { x: 72, y: 45 }, // 2 mids (wide)
+    // Note: standard youth 4v4 diamond is 1-2-1 including the keeper
+    // (GK + back + 2 mids). Coaches who play 4 outfielders without a
+    // keeper can drag the GK forward — long-press to reposition.
+  ],
   '7v7': [
     { x: 50, y: 88 }, // GK
     { x: 28, y: 70 }, { x: 72, y: 70 }, // 2 backs
@@ -40,6 +48,7 @@ const DEFAULTS: Record<GameFormat, { x: number; y: number }[]> = {
 };
 
 const FIELD_RATIO: Record<GameFormat, string> = {
+  '4v4': '4 / 5',   // nearly square — youth mini-pitch
   '7v7': '5 / 7',   // shorter, narrower
   '9v9': '5 / 7.5',
   '11v11': '2 / 3', // standard

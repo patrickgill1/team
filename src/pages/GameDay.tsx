@@ -49,7 +49,7 @@ interface LiveGameDoc {
   /** Match format: 7v7 / 9v9 / 11v11. Drives formation field sizing
    *  + default position templates. Defaults to the team's format,
    *  fallback '7v7'. */
-  format?: '7v7' | '9v9' | '11v11';
+  format?: '4v4' | '7v7' | '9v9' | '11v11';
   ourScore: number;
   oppScore: number;
   status: 'scheduled' | 'live' | 'halftime' | 'final';
@@ -330,11 +330,11 @@ const GameDay: React.FC = () => {
     // local `game` state) don't blow away any in-progress writes.
     // Pull the team's standard format if one is set on the team doc;
     // otherwise default to 7v7 (most common in youth soccer).
-    let format: '7v7' | '9v9' | '11v11' = '7v7';
+    let format: '4v4' | '7v7' | '9v9' | '11v11' = '7v7';
     try {
       const teamDoc = await getDoc(doc(db, 'teams', event.teamId));
       const f = (teamDoc.exists() && (teamDoc.data() as any).format) || '7v7';
-      if (f === '7v7' || f === '9v9' || f === '11v11') format = f;
+      if (f === '4v4' || f === '7v7' || f === '9v9' || f === '11v11') format = f;
     } catch {}
     const initial: LiveGameDoc = {
       eventId,
@@ -1674,7 +1674,7 @@ const GameDay: React.FC = () => {
               <h3 className="text-xs uppercase tracking-wider text-ink-primary/45">Formation</h3>
               {isUserCoach && (
                 <div className="inline-flex items-center bg-line-default/5 ring-1 ring-line-default/15 rounded-full p-0.5">
-                  {(['7v7', '9v9', '11v11'] as const).map((f) => {
+                  {(['4v4', '7v7', '9v9', '11v11'] as const).map((f) => {
                     const active = (game?.format || '7v7') === f;
                     return (
                       <button

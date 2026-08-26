@@ -1146,7 +1146,7 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
   const season = String(payload?.season || '').slice(0, 40);
   const requestedClubId = payload?.clubId ? String(payload.clubId) : '';
   const withDefaultClub = payload?.withDefaultClub === true;
-  const format = ['7v7', '9v9', '11v11'].includes(String(payload?.format)) ? String(payload.format) : '7v7';
+  const format = ['4v4', '7v7', '9v9', '11v11'].includes(String(payload?.format)) ? String(payload.format) : '7v7';
   const audienceType = payload?.audienceType === 'adult' ? 'adult' : undefined;
   // rosterMode is a sibling to audienceType, not a third value on it.
   // Only accept 'pickup' explicitly; anything else (undefined, 'roster',

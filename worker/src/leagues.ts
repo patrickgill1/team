@@ -180,7 +180,7 @@ export async function createLeague(
     name,
     season: payload?.season ? String(payload.season).slice(0, 50) : undefined,
     clubId: payload?.clubId ? String(payload.clubId) : undefined,
-    format: ['7v7', '9v9', '11v11'].includes(payload?.format) ? String(payload.format) : undefined,
+    format: ['4v4', '7v7', '9v9', '11v11'].includes(payload?.format) ? String(payload.format) : undefined,
     ownerUid,
     adminUids: [ownerUid],
     teamIds,

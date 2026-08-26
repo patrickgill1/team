@@ -147,36 +147,34 @@ const People: React.FC = () => {
     (async () => {
       setLoading(true);
       try {
-        // Pull the club ID from the current team OR the user's clubId
-        // (which the migration set on every player and that we mirror
-        // onto users in a follow-up). Fall back to a single-team scope
-        // if no club exists.
-        const clubId = (userData as any)?.clubId
-          || (selectedTeamId ? await getClubIdForTeam(selectedTeamId) : null);
-
-        // Teams LIST is open; users LIST now requires scoped queries.
-        // Fan users out per team below (same pattern as players).
+        // 2026-08-26 rescope: People used to union (user's clubId) with
+        // (every team in user.teamIds), which leaked members across
+        // unrelated teams — a coach on a Men's League team, a U16 in
+        // Club A, and a U11 in Club B saw ALL three rosters mixed
+        // together when opening People on any one of them. Now the
+        // page is scoped to the CURRENT selected team's club only:
+        //   - If the current team has a clubId, show every team in
+        //     that club (correct club-directory behavior).
+        //   - If no clubId (personal/solo team), show ONLY the current
+        //     team's roster.
+        // Assistants on Team X still only see Team X's people; they
+        // don't inherit any coach identity on the coach's other teams.
         const allTeams = await getDocuments('teams', []);
         if (cancelled) return;
+        const currentTeam = (allTeams as any[]).find((t) => t.id === selectedTeamId);
+        const clubId = currentTeam?.clubId
+          || (userData as any)?.clubId
+          || (selectedTeamId ? await getClubIdForTeam(selectedTeamId) : null);
 
-        // Determine team scope. Union of two sets:
-        //   1. Every team in the user's club (if they have a clubId)
-        //   2. Every team the user is personally on (via teamIds)
-        // The union surfaces personal teams an admin manages that
-        // aren't formally in a club (Patrick's Sat Skills pickup),
-        // without bleeding in OTHER clubs' teams. Archived teams
-        // (isActive === false) are filtered out everywhere — they
-        // were showing up in the assign-team dropdown after the
-        // ClubOverview archived-filter went in. Patrick 2026-06-25:
-        // 'the archived teams still show to assign. The Sat skills
-        // team should still be available as it is an active team
-        // in my club.'
-        const ownTeamIds = new Set<string>(
-          (userData?.teamIds || []).concat(userData?.teamId || []).filter(Boolean)
-        );
         const effectiveTeams = (allTeams as any[])
           .filter((t) => t.isActive !== false)
-          .filter((t) => (clubId && (t as any).clubId === clubId) || ownTeamIds.has(t.id));
+          .filter((t) => {
+            if (clubId && (t as any).clubId === clubId) return true;
+            // No club match — restrict to the current team only.
+            // Do NOT union in other teams the user happens to be on;
+            // that was the cross-team leak.
+            return selectedTeamId ? t.id === selectedTeamId : false;
+          });
         const teamIdSet = new Set(effectiveTeams.map(t => t.id));
         setTeams(effectiveTeams.map(t => ({ id: t.id, name: t.name, clubId: (t as any).clubId })));
 

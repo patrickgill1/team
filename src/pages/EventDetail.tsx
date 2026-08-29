@@ -1375,15 +1375,20 @@ const EventDetail: React.FC = () => {
               </div>
             )}
             {/* Arrive-by line. The form stores an offset (minutes before
-                start); render the concrete Denver-local time so a coach
-                doesn't have to do the math. Silent when unset. Kicker
-                label + bold time reads like the top meta row so it's
-                easy to spot without shouting. */}
+                start); render the concrete local time so a coach doesn't
+                have to do the math. Silent when unset. Kicker label +
+                bold time reads like the top meta row so it's easy to
+                spot without shouting.
+                2026-08-29: was hardcoded to America/Denver (Patrick's
+                timezone) which broke every parent outside Mountain —
+                start time above uses the device's default timezone,
+                so the meet-time did too but showed Mountain, producing
+                a nonsensical "10 min before start" for east-coast
+                parents. Drop the timeZone override → device local. */}
             {typeof (event as any).arriveOffsetMinutes === 'number' && (event as any).arriveOffsetMinutes > 0 && (() => {
               const offset = Number((event as any).arriveOffsetMinutes);
               const arrive = new Date(eventDate.getTime() - offset * 60_000);
               const arriveText = new Intl.DateTimeFormat('en-US', {
-                timeZone: 'America/Denver',
                 hour: 'numeric',
                 minute: '2-digit',
               }).format(arrive);
@@ -1827,38 +1832,36 @@ const EventDetail: React.FC = () => {
           now live in the "COACH CONTROLS ROW" at the bottom of the
           page. */}
 
-      {/* JERSEY BANNER — game days only. The jersey swatch shows the
-          actual home/away kit color the coach configured on the team,
-          not a hardcoded black/white. */}
+      {/* JERSEY BANNER — game days only. Renders the actual configured
+          kit color when set, a neutral empty-state swatch otherwise. */}
       {event.type === 'game' && (event as any).homeAway && (() => {
         const { normalizeKit, kitColorLabel } = require('../utils/kitColors');
         const teamForKit = (teams || []).find((t: any) => t.id === event.teamId);
         const isHome = (event as any).homeAway === 'home';
         const rawKit = isHome ? teamForKit?.homeKitColor : teamForKit?.awayKitColor;
         const kitHex = normalizeKit(rawKit);
-        // Legible border: swatch always gets a subtle outline so a
-        // white/cream kit doesn't disappear on a light theme and a
-        // black kit doesn't disappear on the dark card.
-        const swatchStyle = kitHex
-          ? { backgroundColor: kitHex }
-          : undefined;
-        // Fallback tokens when the coach hasn't set a kit color yet.
-        // Home defaults to solid brand-primary (their team color),
-        // away to a neutral surface.
-        const fallbackClass = kitHex
-          ? ''
-          : isHome
-            ? 'bg-brand-primary'
-            : 'bg-surface-base';
-        // Copy uses the human-readable label when we recognize it,
-        // else falls back to "your kit". Never lies about the color.
-        const label = kitColorLabel(rawKit);
+        // 2026-08-29: was falling back to bg-brand-primary (Fire FC's
+        // red) when kit color was unrecognized. Rendered the wrong
+        // color for every non-Fire team whose coach hadn't set a real
+        // hex value (e.g. Pride's home kit stored as "Hoops Jersey"
+        // showed a red square). Fallback is now a neutral dashed
+        // outline that visually signals "no kit color set" instead of
+        // fabricating one.
+        const swatchStyle = kitHex ? { backgroundColor: kitHex } : undefined;
+        const swatchClass = kitHex
+          ? 'border-line-default/40'
+          : 'border-line-default/40 border-dashed bg-surface-input';
+        // Copy uses a real color name ONLY when we resolved a hex —
+        // never repeats the raw text value (which produced "wear your
+        // hoops jersey jersey"). Unrecognized values fall back to
+        // "home"/"away" generic wording.
+        const label = kitHex ? kitColorLabel(rawKit) : '';
         return (
           <section className="px-4 sm:px-6 py-3 bg-surface-elevated ring-1 ring-line-default/15 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm">
             <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <span
-                  className={`inline-block w-9 h-9 rounded-md border-2 border-line-default/40 flex-shrink-0 ${fallbackClass}`}
+                  className={`inline-block w-9 h-9 rounded-md border-2 flex-shrink-0 ${swatchClass}`}
                   style={swatchStyle}
                   aria-hidden
                 />

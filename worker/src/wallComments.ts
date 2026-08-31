@@ -53,7 +53,14 @@ function projectAndSA(env: Env): { pid: string; sa: ServiceAccount } {
 
 function buildPostUrl(env: Env, postId: string): string {
   const origin = env.APP_ORIGIN || 'https://app.goalkickr.com';
-  return `${origin}/wall/p/${postId}`;
+  // 2026-08-31: was /wall/p/<id> (the PUBLIC share route). Push
+  // recipients are always signed-in team members (collectTokens
+  // reads user docs), but /wall/p requires isPublic=true so
+  // non-public posts rendered "This post is private" to the
+  // notified parent even though they have team access. Route to
+  // the authed /wall?post=<id> — Wall scrolls to + highlights the
+  // matching post on mount.
+  return `${origin}/wall?post=${encodeURIComponent(postId)}`;
 }
 
 function truncate(s: string, n: number): string {

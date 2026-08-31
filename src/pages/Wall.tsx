@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { addDoc, collection, deleteDoc, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { debug } from '../utils/debug';
 import { db } from '../utils/firebase';
@@ -594,6 +594,50 @@ const Wall: React.FC = () => {
       if (v[userData.uid]) seen.add(p.id);
     }
   }, [posts, userData?.uid]);
+
+  // Scroll to + briefly highlight a specific post when the URL carries
+  // ?post=<id>. Wall-comment / new-post notifications route here (see
+  // worker/src/wallComments.ts + wallPosts.ts buildPostUrl). Waits
+  // until posts have loaded and the target row is in the DOM before
+  // scrolling, so the deep-link works whether the render arrives
+  // before or after this effect fires.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const targetPostId = searchParams.get('post');
+    if (!targetPostId) return;
+    if (posts.length === 0) return; // wait for posts to render
+    let attempts = 0;
+    let cleared = false;
+    const tick = () => {
+      if (cleared) return;
+      const el = document.querySelector(`[data-post-id="${CSS.escape(targetPostId)}"]`) as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Brief ring pulse. Uses inline styles so it doesn't need a
+        // Tailwind class shipped for a single animation.
+        el.style.transition = 'box-shadow 400ms ease-out';
+        el.style.boxShadow = '0 0 0 3px rgb(var(--brand-primary))';
+        setTimeout(() => {
+          el.style.boxShadow = '';
+          setTimeout(() => { el.style.transition = ''; }, 500);
+        }, 1600);
+        // Clear the ?post= param so a subsequent navigation back to
+        // /wall doesn't re-trigger the scroll.
+        const next = new URLSearchParams(searchParams);
+        next.delete('post');
+        setSearchParams(next, { replace: true });
+        cleared = true;
+        return;
+      }
+      // Keep polling for up to ~2 seconds in case the specific post
+      // is below the initial-render window and needs its subscription
+      // to catch up.
+      attempts++;
+      if (attempts < 20) setTimeout(tick, 100);
+    };
+    tick();
+    return () => { cleared = true; };
+  }, [searchParams, posts.length, setSearchParams]);
 
   useEffect(() => {
     if (!userData?.uid || typeof IntersectionObserver === 'undefined') return;

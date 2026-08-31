@@ -145,7 +145,14 @@ const InviteJoin: React.FC = () => {
     }
     setDone(true);
     setTimeout(() => {
-      if (result.type === 'player' && result.playerId) navigate(`/player/${result.playerId}`);
+      // team_self_serve_adult also lands on a player doc (the worker
+      // just created one for this user); route to it same as the
+      // player-invite path so the new adult player lands on their own
+      // profile with the "welcome / rsvp for saturday" affordance.
+      const landOnPlayer =
+        (result.type === 'player' || result.type === 'team_self_serve_adult')
+        && result.playerId;
+      if (landOnPlayer) navigate(`/player/${result.playerId}`);
       else navigate('/dashboard');
     }, 1200);
   };
@@ -364,6 +371,14 @@ const InviteJoin: React.FC = () => {
       <p className="text-[10px] font-bold uppercase tracking-widest text-ink-primary/60 mb-2">Team manager invite</p>
       <h1 className="text-2xl font-black mb-2">Manage {teamName}</h1>
       <p className="text-ink-primary/80 text-sm">You're being added as <b>Team Manager</b>. Sign in or create an account to accept.</p>
+    </>
+  ) : invite?.type === 'team_self_serve_adult' ? (
+    <>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-ink-primary/60 mb-2">Team join link</p>
+      <h1 className="text-2xl font-black mb-2">Join {teamName || 'the team'}</h1>
+      <p className="text-ink-primary/80 text-sm">
+        Sign in below and you're on the roster. RSVPs, chat, and team updates land on your device.
+      </p>
     </>
   ) : (
     <p className="text-ink-primary/70 text-sm">Loading invite details…</p>

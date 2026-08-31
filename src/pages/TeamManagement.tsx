@@ -767,6 +767,67 @@ const TeamManagement: React.FC = () => {
                   <dd className="text-ink-primary font-semibold text-right">{team.coachIds?.length || 1}</dd>
                 </dl>
 
+                {/* Team join link — per-team, per-audience. Adult teams
+                    get a working "generate + copy" flow that creates a
+                    reusable team_self_serve_adult invite. Youth teams
+                    show a placeholder until the youth kid-details form
+                    ships (deferred). Copy adapts so the coach with
+                    both an adult and a youth team sees the difference
+                    at a glance and doesn't confuse the two. */}
+                {(team as any).isActive !== false && (
+                  <div className="mt-3 mb-2">
+                    {(team as any).audienceType === 'adult' ? (
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!userData) return;
+                          try {
+                            const { createTeamSelfServeAdultInvite } = await import('../utils/invites');
+                            const { getShareOrigin } = await import('../utils/origin');
+                            const inv = await createTeamSelfServeAdultInvite({
+                              teamId: team.id,
+                              createdBy: userData.uid,
+                              note: `Team join link for ${team.name}`,
+                            });
+                            const url = `${getShareOrigin()}/join/${inv.id}`;
+                            try {
+                              if ((navigator as any).share) {
+                                await (navigator as any).share({
+                                  title: `${team.name} — team join link`,
+                                  text: `Join ${team.name} on GoalKickr:`,
+                                  url,
+                                });
+                              } else {
+                                await navigator.clipboard.writeText(url);
+                                alert(`Copied — share this with anyone joining ${team.name}:\n\n${url}`);
+                              }
+                            } catch {
+                              await navigator.clipboard.writeText(url);
+                              alert(`Copied:\n\n${url}`);
+                            }
+                          } catch (err) {
+                            console.error('[self-serve invite] create failed', err);
+                            alert('Could not generate the join link. Try again.');
+                          }
+                        }}
+                        className="w-full inline-flex items-center justify-center gap-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 ring-1 ring-emerald-400/40 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
+                        title="Reusable link for anyone joining this adult team"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                        Get team join link
+                      </button>
+                    ) : (
+                      <div
+                        className="w-full inline-flex items-center justify-center gap-2 bg-line-default/[0.05] text-ink-primary/45 ring-1 ring-line-default/10 px-3 py-2 rounded-lg text-[11px] font-semibold text-center"
+                        title="Youth teams need a kid-details step on the recipient side. Coming soon."
+                      >
+                        Self-serve team link: youth coming soon
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Action buttons — stopPropagation so they don't also fire
                     the card's "select team" click handler. */}
                 <div className="mt-4 flex space-x-2">

@@ -129,6 +129,41 @@ describe('development_plans CREATE', () => {
   });
 });
 
+describe('invites (team self-serve adult)', () => {
+  test('signed-in coach CREATE team_self_serve_adult → allowed', async () => {
+    await seedWorld();
+    const db = await asUser(HEAD);
+    await assertSucceeds(setDoc(doc(db, 'invites', 'ssv-1'), {
+      type: 'team_self_serve_adult',
+      teamId: TEAM_A,
+      createdBy: HEAD,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+      maxUses: null,
+      usedCount: 0,
+      usedBy: [],
+    }));
+  });
+
+  test('anonymous GET team_self_serve_adult → allowed (join page pre-signin)', async () => {
+    await seedWorld();
+    await seed(async (db) => {
+      await setDoc(doc(db as any, 'invites', 'ssv-2'), {
+        type: 'team_self_serve_adult',
+        teamId: TEAM_A,
+        createdBy: HEAD,
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+        maxUses: null,
+        usedCount: 0,
+        usedBy: [],
+      });
+    });
+    const db = await asAnon();
+    await assertSucceeds(getDoc(doc(db, 'invites', 'ssv-2')));
+  });
+});
+
 describe('player_media (media share)', () => {
   test('anonymous GET single doc → allowed (public share)', async () => {
     await seedWorld();

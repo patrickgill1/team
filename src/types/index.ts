@@ -1714,7 +1714,14 @@ export interface Activity {
 
 export interface Invite {
   id: string; // also the URL slug — short, unguessable
-  type: 'player' | 'coach' | 'team_manager';
+  /** Invite kinds:
+   *   - player: anchored to a specific playerId; consumer joins Circle.
+   *   - coach / team_manager: grants named staff role on the team.
+   *   - team_self_serve_adult: reusable team-level link for ADULT
+   *     teams. Consumer signs in, worker CREATES a player doc for
+   *     them (name from user profile), stamps user.selfPlayerId,
+   *     adds to team.playerIds. No coach setup per person. */
+  type: 'player' | 'coach' | 'team_manager' | 'team_self_serve_adult';
   teamId: string;
   playerId?: string;        // type === 'player'
   role?: 'assistant_coach' | 'head_coach' | 'team_manager'; // type !== 'player'

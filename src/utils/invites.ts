@@ -111,6 +111,45 @@ export async function createStaffInvite(opts: CreateStaffInviteOpts): Promise<In
   return { ...inv, createdAt: new Date() } as Invite;
 }
 
+// 2026-08-31: team-level self-serve invite for ADULT teams. One link
+// the coach shares with a whole pickup group / league; each recipient
+// signs in with their own account and the worker creates their player
+// doc automatically (name from their user profile). No coach setup
+// per person, no pre-created players. Youth self-serve is a separate
+// path (needs a form for kid details, deferred).
+interface CreateTeamSelfServeAdultInviteOpts {
+  teamId: string;
+  createdBy: string;
+  ttlDays?: number;
+  /** null = unlimited. Reasonable for a season-long pickup link. */
+  maxUses?: number | null;
+  note?: string;
+}
+
+export async function createTeamSelfServeAdultInvite(
+  opts: CreateTeamSelfServeAdultInviteOpts,
+): Promise<Invite> {
+  const id = newSlug();
+  const ttl = opts.ttlDays ?? 90;
+  const expiresAt = new Date(Date.now() + ttl * 24 * 3600 * 1000);
+  const inv: any = {
+    id,
+    type: 'team_self_serve_adult',
+    teamId: opts.teamId,
+    createdBy: opts.createdBy,
+    createdAt: serverTimestamp(),
+    expiresAt,
+    // Default unlimited so a coach shares one link with a 60-person
+    // pickup and doesn't have to regenerate.
+    maxUses: opts.maxUses === undefined ? null : opts.maxUses,
+    usedCount: 0,
+    usedBy: [],
+  };
+  if (opts.note) inv.note = opts.note;
+  await setDoc(doc(db, COLL, id), inv);
+  return { ...inv, createdAt: new Date() } as Invite;
+}
+
 export interface FetchedInvite extends Invite {
   expired: boolean;
   exhausted: boolean;

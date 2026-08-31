@@ -675,7 +675,10 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
   const teamId = String(invite.teamId || '');
   if (!teamId) return json({ ok: false, error: 'invite_missing_team' }, 400);
   const inviteType = String(invite.type || '');
-  if (inviteType !== 'player' && inviteType !== 'coach' && inviteType !== 'team_manager') {
+  if (
+    inviteType !== 'player' && inviteType !== 'coach' && inviteType !== 'team_manager'
+    && inviteType !== 'team_self_serve_adult'
+  ) {
     return json({ ok: false, error: 'unknown_invite_type' }, 400);
   }
   // Player-type invite must carry playerId. Check here rather than
@@ -684,6 +687,18 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
   if (inviteType === 'player') {
     playerId = String(invite.playerId || '');
     if (!playerId) return json({ ok: false, error: 'invite_missing_player' }, 400);
+  }
+  // team_self_serve_adult: worker creates the player doc on consume.
+  // Guard that the target team is actually adult so we don't
+  // accidentally spawn adult-player rows on a youth team when a coach
+  // reuses/misuses the link. The check runs BEFORE the reservation
+  // so a misconfigured link doesn't burn a use.
+  if (inviteType === 'team_self_serve_adult') {
+    const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+    const audience = teamDoc?.data?.audienceType;
+    if (audience !== 'adult') {
+      return json({ ok: false, error: 'team_not_adult' }, 400);
+    }
   }
 
   const usedBy: string[] = Array.isArray(invite.usedBy) ? invite.usedBy : [];
@@ -790,7 +805,7 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
     // legacy invite must also land on team.coachIds so
     // requireCoachOfTeam works after the grant.
     op.attachToTeamCoachIds = teamId;
-  } else {
+  } else if (inviteType === 'team_manager') {
     op.role = 'team_manager';
     // Guard-drift closure: team_manager promotions must land on
     // team.managerIds so the Staff page (which reads managerIds, not
@@ -798,11 +813,38 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
     // applyMembership routes attachToTeamCoachIds through the
     // managerIds branch when role === 'team_manager'.
     op.attachToTeamCoachIds = teamId;
+  } else {
+    // team_self_serve_adult: mint a fresh player doc for this user,
+    // then treat the rest of the flow like an adult-player invite
+    // (playerLink + isAdultPlayer + selfPlayerId stamp).
+    const userDoc = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+    const nameFromUser = String(
+      (userDoc?.data as any)?.name
+      || (userDoc?.data as any)?.displayName
+      || claims.email?.split('@')?.[0]
+      || 'Player'
+    );
+    const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+    const clubId = teamDoc?.data?.clubId ? String(teamDoc.data.clubId) : '';
+    const newPlayerFields: Record<string, any> = {
+      name: nameFromUser,
+      teamId,
+      teamIds: [teamId],
+      parentIds: [claims.uid],
+      isAdultPlayer: true,
+      isActive: true,
+      createdAt: new Date(),
+      createdBy: claims.uid,
+    };
+    if (clubId) newPlayerFields.clubId = clubId;
+    playerId = await createDocument(pid, 'players', newPlayerFields, sa);
+    op.role = 'parent'; // adult players are their own "parent" account
+    op.playerLink = { playerId, isAdultPlayer: true };
   }
 
   await applyMembership(op, pid, sa);
 
-  return json({ ok: true, type: inviteType, teamId, playerId: invite.playerId || null });
+  return json({ ok: true, type: inviteType, teamId, playerId: playerId || invite.playerId || null });
 }
 
 // ────────────────────────────────────────────────────────────────

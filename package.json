@@ -62,6 +62,7 @@
     "ios:open": "cap open ios",
     "ios:run": "npm run ios:sync && cap run ios",
     "capgo:push": "npm run build && npx @capgo/cli bundle upload -c production && node ./scripts/verify-capgo-push.js",
+    "test:rules": "./scripts/run-rules-tests.sh",
     "capgo:canary": "npm run build && npx @capgo/cli bundle upload -c canary",
     "capgo:status": "npx @capgo/cli app list && npx @capgo/cli bundle list",
     "deploy": "npm run build && wrangler deploy",
@@ -89,9 +90,12 @@
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.6.2",
     "@capgo/cli": "^8.45.1",
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "cross-fetch": "^4.1.0",
     "firebase-admin": "^13.8.0",
     "patch-package": "^8.0.1",
     "tailwindcss": "^3.4.19",
+    "ts-jest": "^29.4.12",
     "tsx": "^4.21.0",
     "wrangler": "^4.118.0"
   }

@@ -1,6 +1,6 @@
 {
   "name": "soccer-team-app",
-  "version": "3.9.447",
+  "version": "3.9.448",
   "private": true,
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
@@ -61,7 +61,7 @@
     "ios:sync": "npm run build && cap sync ios",
     "ios:open": "cap open ios",
     "ios:run": "npm run ios:sync && cap run ios",
-    "capgo:push": "npm run build && npx @capgo/cli bundle upload -c production",
+    "capgo:push": "npm run build && npx @capgo/cli bundle upload -c production && node ./scripts/verify-capgo-push.js",
     "capgo:canary": "npm run build && npx @capgo/cli bundle upload -c canary",
     "capgo:status": "npx @capgo/cli app list && npx @capgo/cli bundle list",
     "deploy": "npm run build && wrangler deploy",

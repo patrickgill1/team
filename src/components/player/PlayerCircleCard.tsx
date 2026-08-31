@@ -142,16 +142,21 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
   return (
     <>
       <div className="relative overflow-visible rounded-2xl bg-surface-elevated ring-1 ring-line-default/15 p-4 sm:p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            <path d="M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a4 4 0 0 1 3-3.87m3-1.13a4 4 0 1 1 4-4 4 4 0 0 1-4 4zm6-4a3 3 0 1 1 0-6" />
-          </svg>
-          <span className="text-[11px] uppercase tracking-widest font-black text-ink-primary/55">Player Circle</span>
-          {parentIds.length > 0 && (
-            <span className="text-[10px] uppercase tracking-widest font-black text-ink-primary/45">
-              {parentIds.length}
-            </span>
-          )}
+        <div className="mb-3">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a4 4 0 0 1 3-3.87m3-1.13a4 4 0 1 1 4-4 4 4 0 0 1-4 4zm6-4a3 3 0 1 1 0-6" />
+            </svg>
+            <span className="text-[11px] uppercase tracking-widest font-black text-ink-primary/55">Player Circle</span>
+            {parentIds.length > 0 && (
+              <span className="text-[10px] uppercase tracking-widest font-black text-ink-primary/45">
+                {parentIds.length}
+              </span>
+            )}
+          </div>
+          <p className="text-[12px] text-ink-primary/55 leading-snug mt-1">
+            Everyone who cheers this player on.
+          </p>
         </div>
 
         {loading ? (
@@ -159,7 +164,7 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
         ) : members.length === 0 ? (
           <p className="text-sm text-ink-primary/70 leading-snug">
             {circleEmpty
-              ? 'No one is in the circle yet. Invite a parent or guardian to see this player’s updates, media, and messages.'
+              ? 'No one is here yet. Invite anyone who cheers for this player — grandparents, aunts, or family friends. They’ll see the wins, media, and messages.'
               : 'Circle members are loading. Refresh if this stays empty.'}
           </p>
         ) : (
@@ -200,7 +205,7 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
               {generatingInvite ? 'Generating…' : circleEmpty ? 'Start the circle' : 'Add to circle'}
             </button>
             <p className="text-[11px] text-ink-primary/45 mt-2 leading-snug">
-              Send a one-tap link to a co-parent, grandparent, or other guardian. They'll be linked to this player as soon as they open it.
+              Send a one-tap link to anyone in this player’s corner — co-parent, grandparent, coach, family friend. They’ll join as soon as they open it.
             </p>
           </div>
         )}

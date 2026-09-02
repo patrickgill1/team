@@ -165,6 +165,14 @@ const TeamChat: React.FC = () => {
   // its `?.id`.
   const [messagesLoaded, setMessagesLoaded] = useState(false);
   const [messagesShowProgress, setMessagesShowProgress] = useState(false);
+  // Message subscription failure — set when onSnapshot's error handler
+  // fires (rules denial, missing index, transient network). Without
+  // this, an errored subscription leaves the pane in "loading forever"
+  // limbo and reads to users as "chat won't open."
+  const [messagesLoadFailed, setMessagesLoadFailed] = useState<null | { code: string; message: string }>(null);
+  // Retry counter — bumping this re-runs the load-messages effect and
+  // gives the user a manual escape hatch from a failed subscription.
+  const [messagesRetryTick, setMessagesRetryTick] = useState(0);
   // In-thread search — client-side filter over already-loaded messages.
   // No server query yet; sufficient for the typical loaded window
   // (last ~200 msgs). Server-side full-text search is a later batch.
@@ -1212,6 +1220,7 @@ const TeamChat: React.FC = () => {
       // open the chat... i was sitting there trying to look for
       // the console, and all the chats loaded.'
       setMessagesLoaded(false);
+      setMessagesLoadFailed(null);
       // Reset pagination state for the new thread.
       setOlderMessages([]);
       setHasMoreOlder(true);
@@ -1248,13 +1257,23 @@ const TeamChat: React.FC = () => {
           );
           return !matchExists;
         }));
+      }, 50, (err) => {
+        // Escape the loading-forever limbo — flip both flags so the
+        // failure card renders instead of the invisible progress hint.
+        // 'permission-denied' typically means the user was removed from
+        // participants; 'unavailable'/'internal' are usually transient
+        // and worth a manual retry.
+        const code = String((err as any)?.code || 'unknown');
+        const message = String((err as any)?.message || err || 'Subscription failed');
+        setMessagesLoaded(true);
+        setMessagesLoadFailed({ code, message });
       });
 
       return () => {
         unsubscribeMessages();
       };
     }
-  }, [selectedThread, subscribeToChatMessages, subscribeToGroupMessages]);
+  }, [selectedThread, subscribeToChatMessages, subscribeToGroupMessages, messagesRetryTick]);
 
   // Single scroll-anchoring effect:
   //   - First time messages arrive for a given thread → INSTANT jump
@@ -3467,9 +3486,50 @@ const TeamChat: React.FC = () => {
                     </div>
                   </div>
                 )}
+                {/* Subscription failure — surfaced when the messages
+                    onSnapshot error handler fires (rules denial after
+                    a participant change, transient network, missing
+                    index). Before this card existed, an errored
+                    subscription silently hung the pane on the loading
+                    state and read to users as 'chat won't open'. */}
+                {!threadSearchQuery.trim() && messagesLoadFailed && (
+                  <div className="text-center py-12 animate-fade-in">
+                    <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft flex items-center justify-center text-brand-primary mb-3">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <path d="M12 9v4M12 17h.01" />
+                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-semibold text-ink-primary/85">
+                      Couldn’t load this chat
+                    </p>
+                    <p className="text-xs text-ink-primary/50 mt-1 max-w-[280px] mx-auto">
+                      {messagesLoadFailed.code === 'permission-denied'
+                        ? 'You may have been removed from this thread. Ask the group creator to add you back.'
+                        : 'Check your connection and try again.'}
+                    </p>
+                    {messagesLoadFailed.code !== 'permission-denied' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMessagesLoaded(false);
+                          setMessagesLoadFailed(null);
+                          setMessagesRetryTick(t => t + 1);
+                        }}
+                        className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft text-brand-primary text-xs font-bold hover:bg-brand-primary/25 transition"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <path d="M23 4v6h-6M1 20v-6h6" />
+                          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                        </svg>
+                        Try again
+                      </button>
+                    )}
+                  </div>
+                )}
                 {/* Genuine empty state — only render once we KNOW
                     the subscription returned zero messages. */}
-                {!threadSearchQuery.trim() && messagesLoaded && visibleMessages.length === 0 && (
+                {!threadSearchQuery.trim() && messagesLoaded && !messagesLoadFailed && visibleMessages.length === 0 && (
                   <div className="text-center py-12 animate-fade-in">
                     <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft flex items-center justify-center text-brand-primary mb-3">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>

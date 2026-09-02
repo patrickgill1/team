@@ -950,6 +950,7 @@ const getUserData = useCallback(async (uid: string) => {
     threadId: string,
     callback: (messages: ChatMessage[]) => void,
     pageSize: number = 50,
+    onError?: (err: Error) => void,
   ) => {
     const q = query(
       collection(db, 'chat_group_threads', threadId, 'messages'),
@@ -981,6 +982,10 @@ const getUserData = useCallback(async (uid: string) => {
       void import('../utils/firestoreLogger').then(({ logFirestoreError }) =>
         logFirestoreError('subscribe', `chat_group_threads/${threadId}/messages`, error, { source: 'subscribeToGroupMessages' })
       );
+      // Surface the failure so the caller can escape the "loading forever"
+      // limbo state. Without this handoff the UI hangs on a spinner and
+      // Patrick has to field "chat won't open" reports without any signal.
+      try { onError?.(error as Error); } catch { /* caller-safe */ }
     });
   }, []);
 
@@ -1145,7 +1150,7 @@ const getUserData = useCallback(async (uid: string) => {
     return addDocument('chat_threads', threadToAdd);
   }, [addDocument]);
 
-  const subscribeToChatMessages = useCallback((threadId: string, callback: (messages: ChatMessage[]) => void, pageSize: number = 50) => {
+  const subscribeToChatMessages = useCallback((threadId: string, callback: (messages: ChatMessage[]) => void, pageSize: number = 50, onError?: (err: Error) => void) => {
     // Pull the LATEST `pageSize` messages — descending order + reverse
     // client-side. Older messages load via getOlderChatMessages on
     // scroll-up. The subscription only tracks the live tail so new
@@ -1185,6 +1190,9 @@ const getUserData = useCallback(async (uid: string) => {
       void import('../utils/firestoreLogger').then(({ logFirestoreError }) =>
         logFirestoreError('subscribe', `chat_messages/${threadId}`, error, { source: 'subscribeToChatMessages' })
       );
+      // Surface the failure so the caller can escape the "loading forever"
+      // limbo state; see the mirror comment in subscribeToGroupMessages.
+      try { onError?.(error as Error); } catch { /* caller-safe */ }
     });
   }, []);
 

@@ -152,8 +152,14 @@ const InviteJoin: React.FC = () => {
       const landOnPlayer =
         (result.type === 'player' || result.type === 'team_self_serve_adult')
         && result.playerId;
-      if (landOnPlayer) navigate(`/player/${result.playerId}`);
-      else navigate('/dashboard');
+      if (landOnPlayer) {
+        // Self-serve joiners get a fresh empty player doc — pop the
+        // welcome wizard on landing so it doesn't read as broken.
+        // The player-invite path stays quiet (they're joining someone
+        // else's circle, not their own profile).
+        const q = result.type === 'team_self_serve_adult' ? '?welcome=self-serve' : '';
+        navigate(`/player/${result.playerId}${q}`);
+      } else navigate('/dashboard');
     }, 1200);
   };
 

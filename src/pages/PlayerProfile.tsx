@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
@@ -19,6 +19,7 @@ import BadgeCollection from '../components/player/BadgeCollection';
 import CoachGrantXpModal from '../components/coach/CoachGrantXpModal';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
 import PlayerCircleCard from '../components/player/PlayerCircleCard';
+import SelfServeWelcomeWizard from '../components/onboarding/SelfServeWelcomeWizard';
 import CoachRecognitionsArchive from '../components/player/CoachRecognitionsArchive';
 import PhotoTape from '../components/player/PhotoTape';
 import SeasonTimeline from '../components/player/SeasonTimeline';
@@ -52,8 +53,17 @@ interface MatchVoting {
 
 const PlayerProfile: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
+  // Welcome wizard for team_self_serve_adult joiners. The invite
+  // consume flow appends ?welcome=self-serve on landing so the
+  // wizard pops once. onClose strips the param via a replace-nav so
+  // a refresh doesn't re-open it. Kept independent of player-doc
+  // state so it doesn't need a rules widening to persist.
+  const isSelfServeWelcome = searchParams.get('welcome') === 'self-serve';
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   // Adult vs youth flavor of this profile — hides Player Circle
   // (parent guardians layer) + related family surfaces when the
   // team is adult.
@@ -1714,6 +1724,23 @@ const PlayerProfile: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Self-serve welcome wizard — fires once for team_self_serve_adult
+          joiners on landing (?welcome=self-serve). Gated on the URL
+          param + a dismissed flag so a re-render mid-flow doesn't
+          re-open it, and on player+uid so it never opens on someone
+          else's profile. */}
+      {isSelfServeWelcome && !welcomeDismissed && player && userData?.uid && selectedTeamId && (
+        <SelfServeWelcomeWizard
+          player={player}
+          teamId={selectedTeamId}
+          uid={userData.uid}
+          onClose={() => {
+            setWelcomeDismissed(true);
+            navigate(`/player/${player.id}`, { replace: true });
+          }}
+        />
       )}
     </div>
   );

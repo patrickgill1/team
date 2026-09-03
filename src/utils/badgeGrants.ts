@@ -177,6 +177,10 @@ export async function maybeGrantPerfectAttendance(
  *  atomicity contract into the caller. New shape hands the whole grant
  *  to the worker via awardMicroXp so the audit row + player.xp
  *  increment + badges.first_potm stamp land as one commit. */
+export type GrantResult =
+  | { ok: true; outcome: 'granted' | 'already_exists' | 'skipped'; reason?: string }
+  | { ok: false; reason: string };
+
 export async function maybeGrantFirstPotm(
   playerId: string,
   ctx: {
@@ -186,17 +190,28 @@ export async function maybeGrantFirstPotm(
     gameTitle?: string;
     seasonId?: string;
   } = {},
-): Promise<void> {
-  if (!playerId) return;
+): Promise<GrantResult> {
+  // 2026-09-02: return type flipped from void → GrantResult so
+  // PlayerOfMatch.handleCloseVoting can render an inline "why didn't
+  // the badge stamp?" notice instead of the failure disappearing
+  // into console.warn. Every skip branch below reports a distinct
+  // reason string so I can grep failure classes in Patrick's
+  // screenshots without instrumenting further.
+  if (!playerId) return { ok: false, reason: 'no-player' };
   const team = ctx.team ?? null;
-  if (!team) return;
+  if (!team) return { ok: false, reason: 'no-team' };
   const teamId = ctx.teamId || (team as any)?.id;
-  if (!teamId) return;
-  if (!isXpSourceEnabled(team, 'firstPotm')) return;
+  if (!teamId) return { ok: false, reason: 'no-team-id' };
+  if ((team as any)?.xpConfig?.enabled !== true) {
+    return { ok: false, reason: 'xp-disabled-on-team' };
+  }
+  if (!isXpSourceEnabled(team, 'firstPotm')) {
+    return { ok: false, reason: 'first-potm-source-disabled' };
+  }
   const existing = ctx.existingBadges || {};
-  if (existing.first_potm) return;
+  if (existing.first_potm) return { ok: true, outcome: 'skipped', reason: 'already-earned' };
 
-  await awardMicroXp({
+  const res = await awardMicroXp({
     playerId,
     teamId,
     source: 'first_potm',
@@ -207,7 +222,10 @@ export async function maybeGrantFirstPotm(
     xpEnabled: true,
   }).catch(err => {
     console.warn('[badges] grant first_potm failed', playerId, err);
+    return { ok: false as const, error: String((err as any)?.message || err) };
   });
+  if (!res.ok) return { ok: false, reason: (res as any).error || 'worker-rejected' };
+  return { ok: true, outcome: (res as any).outcome === 'already_exists' ? 'already_exists' : 'granted' };
 }
 
 /** Grant hat_trick when a player racks up 3+ goals in a single real

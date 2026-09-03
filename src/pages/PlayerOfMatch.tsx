@@ -67,6 +67,13 @@ const PlayerOfMatch: React.FC = () => {
   const [selectedCalendarEvent, setSelectedCalendarEvent] = useState('');
   const [newVotingId, setNewVotingId] = useState<string | null>(null);
   const [expandedVoters, setExpandedVoters] = useState<Set<string>>(new Set());
+  // Diagnostic surface for POTM badge grant failures. Shown inline on
+  // the page after a Close Voting so Patrick can see WHY a badge
+  // didn't stamp instead of the failure disappearing into console.warn.
+  const [badgeGrantNotice, setBadgeGrantNotice] = useState<
+    | null
+    | { kind: 'skipped' | 'granted' | 'failed'; playerName: string; reason?: string }[]
+  >(null);
 
   // Attendance tracking
   const [showAttendanceStep, setShowAttendanceStep] = useState(false);
@@ -436,21 +443,37 @@ const PlayerOfMatch: React.FC = () => {
           // (worker rejection code, network error, or "grant skipped
           // because ..."). Kept in a try/catch so a bad grant never
           // blocks the isCurrentPotm flip.
+          const notices: { kind: 'skipped' | 'granted' | 'failed'; playerName: string; reason?: string }[] = [];
           await Promise.all(winners.map(async w => {
             const player = players.find(p => p.id === w.playerId);
             try {
-              await maybeGrantFirstPotm(w.playerId, {
+              const result = await maybeGrantFirstPotm(w.playerId, {
                 existingBadges: (player as any)?.badges,
                 gameTitle: activeVoting.gameTitle,
                 seasonId: (activeVoting as any).seasonId,
                 team: selectedTeam as any,
                 teamId: selectedTeamId,
               });
+              if (result.ok) {
+                if (result.outcome === 'skipped' || result.outcome === 'already_exists') {
+                  notices.push({ kind: 'skipped', playerName: w.playerName, reason: result.reason || result.outcome });
+                } else {
+                  notices.push({ kind: 'granted', playerName: w.playerName });
+                }
+              } else {
+                console.error('[POTM] first_potm grant failed for', w.playerId, result.reason);
+                notices.push({ kind: 'failed', playerName: w.playerName, reason: result.reason });
+              }
             } catch (err) {
               console.error('[POTM] first_potm grant threw for', w.playerId, err);
+              notices.push({ kind: 'failed', playerName: w.playerName, reason: String((err as any)?.message || err) });
             }
             return fsUpdate(fsDoc(db, 'players', w.playerId), { isCurrentPotm: true, potmAt: new Date() });
           }));
+          // Only render the notice card when something failed or was
+          // skipped — a clean "granted for everyone" run stays quiet.
+          const hasSignal = notices.some(n => n.kind !== 'granted');
+          setBadgeGrantNotice(hasSignal ? notices : null);
         }
       } catch (e) { console.warn('POTM flag update failed', e); }
 
@@ -944,6 +967,60 @@ const PlayerOfMatch: React.FC = () => {
         )}
 
 
+
+        {/* Badge-grant diagnostic — surfaces the outcome of the
+            maybeGrantFirstPotm call from the most recent Close Voting.
+            Silent on happy path (fully granted); renders a card only
+            when a grant was skipped or failed, so Patrick can see the
+            reason (xp-disabled-on-team, first-potm-source-disabled,
+            worker-rejected) instead of the failure going to console. */}
+        {badgeGrantNotice && badgeGrantNotice.length > 0 && (
+          <div className="rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/15 mb-6 p-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex items-center justify-center w-8 h-8 rounded-full bg-brand-primary/15 text-brand-primary ring-1 ring-brand-primary-soft/40 shrink-0">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 8v4M12 16h.01" />
+                </svg>
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-ink-primary/55 mb-1">POTM badge stamp</div>
+                <ul className="space-y-1 text-sm text-ink-primary/85">
+                  {badgeGrantNotice.map((n, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <span className={
+                        n.kind === 'granted' ? 'text-emerald-400 font-bold'
+                        : n.kind === 'skipped' ? 'text-ink-primary/60'
+                        : 'text-brand-primary font-bold'
+                      }>
+                        {n.kind === 'granted' ? 'Stamped' : n.kind === 'skipped' ? 'Skipped' : 'Failed'}
+                      </span>
+                      <span className="truncate">{n.playerName}</span>
+                      {n.reason && (
+                        <span className="text-xs text-ink-primary/50 truncate">
+                          — {n.reason === 'xp-disabled-on-team'
+                              ? 'XP is off for this team (Coach settings → XP)'
+                              : n.reason === 'first-potm-source-disabled'
+                              ? 'First POTM source is off (Coach settings → XP → sources)'
+                              : n.reason === 'already-earned'
+                              ? 'already has the badge'
+                              : n.reason}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => setBadgeGrantNotice(null)}
+                  className="mt-2 text-[11px] font-bold uppercase tracking-widest text-ink-primary/45 hover:text-ink-primary"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Current POTM banner — shows whoever has the gold ring right
             now, with a Clear button so a coach can retire the badge

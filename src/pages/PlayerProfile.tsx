@@ -63,6 +63,7 @@ const PlayerProfile: React.FC = () => {
   // a refresh doesn't re-open it. Kept independent of player-doc
   // state so it doesn't need a rules widening to persist.
   const isSelfServeWelcome = searchParams.get('welcome') === 'self-serve';
+  const isWelcomePreview = searchParams.get('preview') === '1';
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   // Adult vs youth flavor of this profile — hides Player Circle
   // (parent guardians layer) + related family surfaces when the
@@ -1736,6 +1737,7 @@ const PlayerProfile: React.FC = () => {
           player={player}
           teamId={selectedTeamId}
           uid={userData.uid}
+          preview={isWelcomePreview}
           onClose={() => {
             setWelcomeDismissed(true);
             navigate(`/player/${player.id}`, { replace: true });

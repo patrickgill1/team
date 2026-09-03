@@ -23,6 +23,11 @@ interface Props {
   teamId: string;
   uid: string;
   onClose: () => void;
+  /** When true, every mutation (photo upload, player patch, RSVP)
+   *  short-circuits with a console log. Lets a coach poke every
+   *  step end-to-end without polluting real data. Triggered via
+   *  the ?preview=1 URL param alongside welcome=self-serve. */
+  preview?: boolean;
 }
 
 type Foot = 'right' | 'left' | 'both' | '';
@@ -35,7 +40,7 @@ interface NextEvent {
   type?: string;
 }
 
-export default function SelfServeWelcomeWizard({ player, teamId, uid, onClose }: Props) {
+export default function SelfServeWelcomeWizard({ player, teamId, uid, onClose, preview = false }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Step 1 state — kit
@@ -97,6 +102,14 @@ export default function SelfServeWelcomeWizard({ player, teamId, uid, onClose }:
 
   const handlePhotoPick = async (file: File) => {
     if (!file || !player.id) return;
+    if (preview) {
+      console.log('[welcome:preview] photo pick skipped', file.name);
+      // Local-only preview so the UI shows the new photo without uploading.
+      const reader = new FileReader();
+      reader.onload = () => setPhotoUrl(reader.result as string);
+      reader.readAsDataURL(file);
+      return;
+    }
     setPhotoUploading(true);
     try {
       const url = await uploadProfilePhoto(file, player.id, 'player');
@@ -111,6 +124,11 @@ export default function SelfServeWelcomeWizard({ player, teamId, uid, onClose }:
 
   const saveKit = async () => {
     if (!player.id) { setStep(2); return; }
+    if (preview) {
+      console.log('[welcome:preview] saveKit skipped', { photoUrl: !!photoUrl, jerseyNumber, preferredFoot, position });
+      setStep(2);
+      return;
+    }
     setSavingKit(true);
     try {
       const patch: Record<string, any> = {};
@@ -137,6 +155,11 @@ export default function SelfServeWelcomeWizard({ player, teamId, uid, onClose }:
 
   const setRsvp = async (status: RsvpStatus) => {
     if (!nextEvent || savingRsvp) return;
+    if (preview) {
+      console.log('[welcome:preview] rsvp skipped', { status, eventId: nextEvent.id });
+      setRsvpStatus(status);
+      return;
+    }
     setSavingRsvp(true);
     const prev = rsvpStatus;
     setRsvpStatus(status);
@@ -171,8 +194,13 @@ export default function SelfServeWelcomeWizard({ player, teamId, uid, onClose }:
         {/* Progress + step counter */}
         <div className="px-5 pt-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-ink-primary/55">
+            <span className="text-[10px] font-black uppercase tracking-widest text-ink-primary/55 inline-flex items-center gap-2">
               Welcome, {firstName}
+              {preview && (
+                <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/40">
+                  Preview
+                </span>
+              )}
             </span>
             <span className="text-[10px] font-bold tracking-wider text-ink-primary/45">
               {step} of 3

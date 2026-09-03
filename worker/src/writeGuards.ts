@@ -670,7 +670,15 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
   if (invite.revokedAt) return json({ ok: false, error: 'invite_revoked' }, 410);
   if (isInviteExpired(invite.expiresAt)) return json({ ok: false, error: 'invite_expired' }, 410);
   const usedCount = typeof invite.usedCount === 'number' ? invite.usedCount : 0;
-  const maxUses = typeof invite.maxUses === 'number' ? invite.maxUses : 1;
+  // 2026-09-03: null maxUses means UNLIMITED (used by
+  // team_self_serve_adult so one link serves a whole pickup group).
+  // Previous logic fell to 1 for null → the second consumer got
+  // invite_exhausted → recipients read the "exhausted" toast as
+  // "expired" and Patrick had to regenerate. See createTeamSelfServeAdultInvite
+  // in src/utils/invites.ts where the default is null.
+  const maxUses = invite.maxUses === null || invite.maxUses === undefined
+    ? Infinity
+    : (typeof invite.maxUses === 'number' ? invite.maxUses : 1);
   if (usedCount >= maxUses) return json({ ok: false, error: 'invite_exhausted' }, 410);
   const teamId = String(invite.teamId || '');
   if (!teamId) return json({ ok: false, error: 'invite_missing_team' }, 400);
@@ -814,30 +822,68 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
     // managerIds branch when role === 'team_manager'.
     op.attachToTeamCoachIds = teamId;
   } else {
-    // team_self_serve_adult: mint a fresh player doc for this user,
-    // then treat the rest of the flow like an adult-player invite
-    // (playerLink + isAdultPlayer + selfPlayerId stamp).
-    const userDoc = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
-    const nameFromUser = String(
-      (userDoc?.data as any)?.name
-      || (userDoc?.data as any)?.displayName
-      || claims.email?.split('@')?.[0]
-      || 'Player'
-    );
-    const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
-    const clubId = teamDoc?.data?.clubId ? String(teamDoc.data.clubId) : '';
-    const newPlayerFields: Record<string, any> = {
-      name: nameFromUser,
-      teamId,
-      teamIds: [teamId],
-      parentIds: [claims.uid],
-      isAdultPlayer: true,
-      isActive: true,
-      createdAt: new Date(),
-      createdBy: claims.uid,
-    };
-    if (clubId) newPlayerFields.clubId = clubId;
-    playerId = await createDocument(pid, 'players', newPlayerFields, sa);
+    // team_self_serve_adult: reuse-or-mint the player doc. Dedup is
+    // critical here — Patrick 2026-09-03: a recipient consumed a
+    // first invite (bug A above returned exhausted after use 1),
+    // Patrick regenerated the link, recipient consumed the new one
+    // → two player docs on the roster for the same person. The
+    // per-invite `usedBy` short-circuit doesn't help across
+    // regenerated links, so check the roster directly.
+    //
+    // Query: adult self-player docs where this uid is on parentIds.
+    // Composite index (isAdultPlayer + parentIds) already exists — see
+    // the cascade in setUserInactive. Filter client-side for teamId
+    // since Firestore rejects two array-contains filters in one query.
+    let existingPlayerId = '';
+    try {
+      const owned = await runQuery(
+        pid,
+        'players',
+        [
+          { field: 'isAdultPlayer', op: 'EQUAL', value: true },
+          { field: 'parentIds', op: 'ARRAY_CONTAINS', value: claims.uid },
+        ],
+        sa,
+        20,
+      );
+      for (const p of owned) {
+        const d: any = p.data || {};
+        if (d.isActive === false) continue;
+        const teams: string[] = Array.isArray(d.teamIds) ? d.teamIds : (d.teamId ? [d.teamId] : []);
+        if (teams.includes(teamId)) {
+          existingPlayerId = p.id;
+          break;
+        }
+      }
+    } catch (err) {
+      console.warn('[claim-invite] self-serve dedup lookup failed:', (err as Error).message);
+    }
+
+    if (existingPlayerId) {
+      playerId = existingPlayerId;
+    } else {
+      const userDoc = await getDocument(pid, `users/${claims.uid}`, sa).catch(() => null);
+      const nameFromUser = String(
+        (userDoc?.data as any)?.name
+        || (userDoc?.data as any)?.displayName
+        || claims.email?.split('@')?.[0]
+        || 'Player'
+      );
+      const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+      const clubId = teamDoc?.data?.clubId ? String(teamDoc.data.clubId) : '';
+      const newPlayerFields: Record<string, any> = {
+        name: nameFromUser,
+        teamId,
+        teamIds: [teamId],
+        parentIds: [claims.uid],
+        isAdultPlayer: true,
+        isActive: true,
+        createdAt: new Date(),
+        createdBy: claims.uid,
+      };
+      if (clubId) newPlayerFields.clubId = clubId;
+      playerId = await createDocument(pid, 'players', newPlayerFields, sa);
+    }
     op.role = 'parent'; // adult players are their own "parent" account
     op.playerLink = { playerId, isAdultPlayer: true };
   }

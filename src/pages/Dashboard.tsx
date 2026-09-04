@@ -1533,14 +1533,24 @@ const Dashboard: React.FC = () => {
           // MyPlayerCard.
           const isAdultTeam = (selectedTeam as any)?.audienceType === 'adult';
           if (isAdultTeam) {
+            // 2026-09-04: was gating on team.playerIds.includes(selfPid).
+            // team.playerIds is a display mirror populated by SOME
+            // worker paths (add-to-team, coach-added roster ops) but
+            // NOT others (self-serve invite mint, legacy adult teams
+            // that predate the mirror). Patrick's Liverpool player
+            // silently disappeared after a fresh reinstall because
+            // the mirror was empty on that team.
+            // Source-of-truth: player.teamIds on the player doc, same
+            // pattern as team.coachIds vs displayed staff arrays. If
+            // myPlayers has a self-player whose teamIds includes this
+            // team, they're on the roster.
             const selfPid: string | undefined = (userData as any)?.selfPlayerId;
-            const teamPlayerIds: string[] = Array.isArray((selectedTeam as any)?.playerIds)
-              ? (selectedTeam as any).playerIds
-              : [];
-            const isOnRoster = !!(selfPid && teamPlayerIds.includes(selfPid));
-            if (!isOnRoster) return null;
-            const me = myPlayers.find((pl: any) => pl.id === selfPid) || null;
-            if (!me) return null;
+            const me = selfPid ? (myPlayers.find((pl: any) => pl.id === selfPid) || null) : null;
+            const meTeams: string[] = Array.isArray((me as any)?.teamIds)
+              ? (me as any).teamIds
+              : ((me as any)?.teamId ? [(me as any).teamId] : []);
+            const isOnRoster = !!(me && selectedTeamId && meTeams.includes(selectedTeamId));
+            if (!isOnRoster || !me) return null;
             return (
               <AdultHeroCard
                 player={me}

@@ -1557,14 +1557,38 @@ const Dashboard: React.FC = () => {
             };
             const selfPid: string | undefined = (userData as any)?.selfPlayerId;
             let me: any = null;
+            let matchTier = 'none';
             if (selfPid) {
               const cand = myPlayers.find((pl: any) => pl.id === selfPid);
-              if (cand && teamIsMine(cand)) me = cand;
+              if (cand && teamIsMine(cand)) { me = cand; matchTier = 'selfPlayerId'; }
             }
             if (!me) {
-              me = myPlayers.find((pl: any) => (pl as any).isAdultPlayer === true && teamIsMine(pl)) || null;
+              const cand = myPlayers.find((pl: any) => (pl as any).isAdultPlayer === true && teamIsMine(pl));
+              if (cand) { me = cand; matchTier = 'isAdultPlayer+teamIds'; }
             }
-            if (!me) return null;
+            if (!me) {
+              // Tier 3: on an adult team, any myPlayer on this team is
+              // implicitly the viewer's self-doc — the team itself is
+              // the "adult" signal, so the per-player flag is optional.
+              // Covers legacy adult players whose docs pre-date the
+              // isAdultPlayer flag.
+              const cand = myPlayers.find((pl: any) => teamIsMine(pl));
+              if (cand) { me = cand; matchTier = 'anyMyPlayerOnTeam'; }
+            }
+            if (!me) {
+              // Diagnostic — logs what we saw so Patrick can screenshot
+              // when the hero silently doesn't render. Reads:
+              //   [AdultHero] no self-player found {selfPid, myPlayersCount, teamId, first: {...} }
+              // eslint-disable-next-line no-console
+              console.log('[AdultHero] no self-player found', {
+                selfPlayerId: selfPid || null,
+                myPlayersCount: myPlayers.length,
+                teamId: selectedTeamId,
+                myPlayersOnThisTeam: myPlayers.filter((p: any) => teamIsMine(p)).map((p: any) => ({ id: p.id, name: p.name, isAdultPlayer: !!p.isAdultPlayer })),
+                firstMyPlayer: myPlayers[0] ? { id: myPlayers[0].id, name: myPlayers[0].name, teamIds: myPlayers[0].teamIds, isAdultPlayer: !!(myPlayers[0] as any).isAdultPlayer } : null,
+              });
+              return null;
+            }
             return (
               <AdultHeroCard
                 player={me}

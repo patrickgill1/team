@@ -7,7 +7,30 @@
     <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#0d0d10" />
-    <meta name="description" content="GoalKickr — the all-in-one team app for youth soccer." />
+    <meta name="description" content="GoalKickr — team management for soccer. RSVPs, chat, stats, and media in one place." />
+
+    <!-- Open Graph + Twitter cards. Drive the preview that WhatsApp,
+         iMessage, Slack, and social feeds render when someone pastes
+         an app.goalkickr.com URL (invite links especially). Kept
+         audience-neutral so an adult pickup invite doesn't read as
+         "youth soccer" and a youth club invite doesn't read as
+         "adult league" — both cohorts see the same landing. Absolute
+         URLs on og:image because relative paths break in most
+         scrapers. Update the image if we ship a proper 1200x630 hero
+         graphic; logo512 is universally safe as a square fallback. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="GoalKickr" />
+    <meta property="og:title" content="GoalKickr" />
+    <meta property="og:description" content="Team management for soccer. RSVPs, chat, stats, and media in one place." />
+    <meta property="og:url" content="https://app.goalkickr.com" />
+    <meta property="og:image" content="https://app.goalkickr.com/logo512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="GoalKickr" />
+    <meta name="twitter:description" content="Team management for soccer. RSVPs, chat, stats, and media in one place." />
+    <meta name="twitter:image" content="https://app.goalkickr.com/logo512.png" />
+
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
     <!-- iOS Add-to-Home-Screen: render as a chrome-less standalone

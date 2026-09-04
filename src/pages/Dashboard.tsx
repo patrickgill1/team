@@ -1521,7 +1521,7 @@ const Dashboard: React.FC = () => {
             parent with a look at their kid before any chrome.
             Coach-mode leaves this null (their equivalent hero is
             CoachTonightCard further down). */}
-        {isParentMode && myPlayers.length > 0 && (() => {
+        {((isParentMode && myPlayers.length > 0) || ((selectedTeam as any)?.audienceType === 'adult' && myPlayers.length > 0)) && (() => {
           // Adult-team branch. Swap the youth MyPlayerCard hero for
           // the professional-footballer-flavored AdultHeroCard when
           // (a) the team is flagged audienceType='adult' and (b) the

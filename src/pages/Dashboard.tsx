@@ -1497,15 +1497,16 @@ const Dashboard: React.FC = () => {
       <div className="relative">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
-        {/* NEXT MATCH countdown — adult teams only. Sits at the top
-            of the parent-mode stack, above AdultHeroCard /
-            MyPlayerCard / SiblingCarousel, because on an adult team
-            "when is our next match?" is the emotional lead (youth
-            teams get TodaysDevelopmentCard in the equivalent slot,
-            so we skip this card there entirely). Silent when no
-            game/tournament is within 14 days — no empty state, no
-            placeholder card. */}
-        {isParentMode && nextMatchEvent && (
+        {/* NEXT MATCH countdown — was adult-teams-only. Patrick
+            2026-09-04: "isn't the card above the profile redundant?"
+            — on adult teams NextEventPoster (photo hero above) always
+            renders the same next-match event with RSVP pills + arrive
+            time + location, so this card just duplicates it. Kept
+            rendering ONLY when the countdown is for a DIFFERENT event
+            than the poster (e.g. next event is a Kickabout but the
+            next actual match is later that week). Same-event case is
+            silent. Youth teams already skipped this card entirely. */}
+        {isParentMode && nextMatchEvent && nextMatchEvent.id !== nextEvent?.id && (
           <NextMatchCountdownCard
             event={nextMatchEvent}
             teamPlayerCount={players.length}
@@ -1521,30 +1522,6 @@ const Dashboard: React.FC = () => {
             parent with a look at their kid before any chrome.
             Coach-mode leaves this null (their equivalent hero is
             CoachTonightCard further down). */}
-        {(selectedTeam as any)?.audienceType === 'adult' && (() => {
-          // Diagnostic-first: always log the raw shape on adult teams so
-          // Patrick 2026-09-04 can screenshot exactly why no card renders.
-          // Fires even when myPlayers is empty — the previous outer gate
-          // required myPlayers > 0 and silently swallowed the case where
-          // no player doc is linked to the viewer's uid via parentIds.
-          // eslint-disable-next-line no-console
-          console.log('[AdultHero:diag]', {
-            isParentMode,
-            viewMode,
-            myPlayersCount: myPlayers.length,
-            teamId: selectedTeamId,
-            userSelfPlayerId: (userData as any)?.selfPlayerId || null,
-            myPlayers: myPlayers.map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              teamIds: p.teamIds,
-              teamId: p.teamId,
-              isAdultPlayer: !!p.isAdultPlayer,
-              parentIdsIncludesMe: Array.isArray(p.parentIds) && !!(userData as any)?.uid && p.parentIds.includes((userData as any).uid),
-            })),
-          });
-          return null;
-        })()}
         {((isParentMode && myPlayers.length > 0)
           || ((selectedTeam as any)?.audienceType === 'adult'
               && (myPlayers.length > 0
@@ -1585,14 +1562,12 @@ const Dashboard: React.FC = () => {
             };
             const selfPid: string | undefined = (userData as any)?.selfPlayerId;
             let me: any = null;
-            let matchTier = 'none';
             if (selfPid) {
               const cand = myPlayers.find((pl: any) => pl.id === selfPid);
-              if (cand && teamIsMine(cand)) { me = cand; matchTier = 'selfPlayerId'; }
+              if (cand && teamIsMine(cand)) me = cand;
             }
             if (!me) {
-              const cand = myPlayers.find((pl: any) => (pl as any).isAdultPlayer === true && teamIsMine(pl));
-              if (cand) { me = cand; matchTier = 'isAdultPlayer+teamIds'; }
+              me = myPlayers.find((pl: any) => (pl as any).isAdultPlayer === true && teamIsMine(pl)) || null;
             }
             if (!me) {
               // Tier 3: on an adult team, any myPlayer on this team is
@@ -1600,8 +1575,7 @@ const Dashboard: React.FC = () => {
               // the "adult" signal, so the per-player flag is optional.
               // Covers legacy adult players whose docs pre-date the
               // isAdultPlayer flag.
-              const cand = myPlayers.find((pl: any) => teamIsMine(pl));
-              if (cand) { me = cand; matchTier = 'anyMyPlayerOnTeam'; }
+              me = myPlayers.find((pl: any) => teamIsMine(pl)) || null;
             }
             if (!me) {
               // Tier 4: name-match against the team roster. Covers the
@@ -1616,27 +1590,13 @@ const Dashboard: React.FC = () => {
               // Gills. Ignored if userData.name is empty.
               const userName = String((userData as any)?.name || '').trim().toLowerCase();
               if (userName) {
-                const cand = players.find((pl: any) =>
+                me = players.find((pl: any) =>
                   (pl as any).isAdultPlayer !== false
                   && String(pl.name || '').trim().toLowerCase() === userName
-                );
-                if (cand) { me = cand; matchTier = 'nameMatch'; }
+                ) || null;
               }
             }
-            if (!me) {
-              // Diagnostic — logs what we saw so Patrick can screenshot
-              // when the hero silently doesn't render. Reads:
-              //   [AdultHero] no self-player found {selfPid, myPlayersCount, teamId, first: {...} }
-              // eslint-disable-next-line no-console
-              console.log('[AdultHero] no self-player found', {
-                selfPlayerId: selfPid || null,
-                myPlayersCount: myPlayers.length,
-                teamId: selectedTeamId,
-                myPlayersOnThisTeam: myPlayers.filter((p: any) => teamIsMine(p)).map((p: any) => ({ id: p.id, name: p.name, isAdultPlayer: !!p.isAdultPlayer })),
-                firstMyPlayer: myPlayers[0] ? { id: myPlayers[0].id, name: myPlayers[0].name, teamIds: myPlayers[0].teamIds, isAdultPlayer: !!(myPlayers[0] as any).isAdultPlayer } : null,
-              });
-              return null;
-            }
+            if (!me) return null;
             return (
               <AdultHeroCard
                 player={me}

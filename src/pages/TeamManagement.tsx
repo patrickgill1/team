@@ -840,7 +840,7 @@ const TeamManagement: React.FC = () => {
                   {(team.coachIds?.length || 0) > 1 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleOpenTransfer(team); }}
-                      className="flex-1 bg-brand-primary/15 hover:bg-brand-primary/20 text-charcoal-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className="flex-1 bg-brand-primary/15 hover:bg-brand-primary/20 text-brand-primary px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                       Transfer Head Coach
                     </button>

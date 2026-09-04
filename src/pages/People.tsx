@@ -304,9 +304,6 @@ const People: React.FC = () => {
         //      self", same case tier-4 hero card resolution handles.
         // Youth teams keep the two-row model; parent+kid are distinct
         // humans that legitimately need separate rows.
-        const currentTeam = Array.isArray(contextTeams)
-          ? contextTeams.find((t: any) => t.id === selectedTeamId)
-          : null;
         const isAdultCollapse = (currentTeam as any)?.audienceType === 'adult';
         let finalOut = out;
         if (isAdultCollapse) {

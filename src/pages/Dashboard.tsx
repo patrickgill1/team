@@ -1533,24 +1533,38 @@ const Dashboard: React.FC = () => {
           // MyPlayerCard.
           const isAdultTeam = (selectedTeam as any)?.audienceType === 'adult';
           if (isAdultTeam) {
-            // 2026-09-04: was gating on team.playerIds.includes(selfPid).
-            // team.playerIds is a display mirror populated by SOME
-            // worker paths (add-to-team, coach-added roster ops) but
-            // NOT others (self-serve invite mint, legacy adult teams
-            // that predate the mirror). Patrick's Liverpool player
-            // silently disappeared after a fresh reinstall because
-            // the mirror was empty on that team.
-            // Source-of-truth: player.teamIds on the player doc, same
-            // pattern as team.coachIds vs displayed staff arrays. If
-            // myPlayers has a self-player whose teamIds includes this
-            // team, they're on the roster.
+            // Roster resolution ladder (2026-09-04 rewrite):
+            //   1. Prefer user.selfPlayerId when set — canonical
+            //      pointer to "the player doc that IS me". Stamped by
+            //      the worker whenever applyMembership runs with
+            //      isAdultPlayer=true (self-serve invite, adult
+            //      claim). May be undefined on legacy adult players
+            //      whose docs were created directly by a coach.
+            //   2. Fall back to: any myPlayer flagged
+            //      isAdultPlayer=true whose teamIds includes this
+            //      team. myPlayers = players where uid on parentIds,
+            //      so finding one here means "I own an adult self
+            //      doc on this team's roster" — same signal.
+            // The previous gate required team.playerIds.includes(selfPid)
+            // which is a display mirror populated by SOME worker paths
+            // and empty on legacy teams — that's why Patrick's
+            // Liverpool card silently vanished on cold reinstall.
+            const teamIsMine = (pl: any) => {
+              const teams: string[] = Array.isArray(pl?.teamIds)
+                ? pl.teamIds
+                : (pl?.teamId ? [pl.teamId] : []);
+              return !!(selectedTeamId && teams.includes(selectedTeamId));
+            };
             const selfPid: string | undefined = (userData as any)?.selfPlayerId;
-            const me = selfPid ? (myPlayers.find((pl: any) => pl.id === selfPid) || null) : null;
-            const meTeams: string[] = Array.isArray((me as any)?.teamIds)
-              ? (me as any).teamIds
-              : ((me as any)?.teamId ? [(me as any).teamId] : []);
-            const isOnRoster = !!(me && selectedTeamId && meTeams.includes(selectedTeamId));
-            if (!isOnRoster || !me) return null;
+            let me: any = null;
+            if (selfPid) {
+              const cand = myPlayers.find((pl: any) => pl.id === selfPid);
+              if (cand && teamIsMine(cand)) me = cand;
+            }
+            if (!me) {
+              me = myPlayers.find((pl: any) => (pl as any).isAdultPlayer === true && teamIsMine(pl)) || null;
+            }
+            if (!me) return null;
             return (
               <AdultHeroCard
                 player={me}

@@ -1545,7 +1545,11 @@ const Dashboard: React.FC = () => {
           });
           return null;
         })()}
-        {((isParentMode && myPlayers.length > 0) || ((selectedTeam as any)?.audienceType === 'adult' && myPlayers.length > 0)) && (() => {
+        {((isParentMode && myPlayers.length > 0)
+          || ((selectedTeam as any)?.audienceType === 'adult'
+              && (myPlayers.length > 0
+                  || players.some((p: any) => (p as any).isAdultPlayer !== false && (p?.name || '').trim().toLowerCase() === ((userData as any)?.name || '').trim().toLowerCase())))
+        ) && (() => {
           // Adult-team branch. Swap the youth MyPlayerCard hero for
           // the professional-footballer-flavored AdultHeroCard when
           // (a) the team is flagged audienceType='adult' and (b) the
@@ -1598,6 +1602,26 @@ const Dashboard: React.FC = () => {
               // isAdultPlayer flag.
               const cand = myPlayers.find((pl: any) => teamIsMine(pl));
               if (cand) { me = cand; matchTier = 'anyMyPlayerOnTeam'; }
+            }
+            if (!me) {
+              // Tier 4: name-match against the team roster. Covers the
+              // "coach who also plays" case where the player doc exists
+              // on this adult team's roster but has NEVER been linked to
+              // the viewer's uid via parentIds (created manually by a
+              // coach, pre-dates self-serve, or the coach added the
+              // player card themselves without claiming it as self).
+              // Case-insensitive full-name match on the user's display
+              // name against the team's adult players. Low-risk name
+              // collision — pickup teams don't typically have two Patrick
+              // Gills. Ignored if userData.name is empty.
+              const userName = String((userData as any)?.name || '').trim().toLowerCase();
+              if (userName) {
+                const cand = players.find((pl: any) =>
+                  (pl as any).isAdultPlayer !== false
+                  && String(pl.name || '').trim().toLowerCase() === userName
+                );
+                if (cand) { me = cand; matchTier = 'nameMatch'; }
+              }
             }
             if (!me) {
               // Diagnostic — logs what we saw so Patrick can screenshot

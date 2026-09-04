@@ -1521,6 +1521,30 @@ const Dashboard: React.FC = () => {
             parent with a look at their kid before any chrome.
             Coach-mode leaves this null (their equivalent hero is
             CoachTonightCard further down). */}
+        {(selectedTeam as any)?.audienceType === 'adult' && (() => {
+          // Diagnostic-first: always log the raw shape on adult teams so
+          // Patrick 2026-09-04 can screenshot exactly why no card renders.
+          // Fires even when myPlayers is empty — the previous outer gate
+          // required myPlayers > 0 and silently swallowed the case where
+          // no player doc is linked to the viewer's uid via parentIds.
+          // eslint-disable-next-line no-console
+          console.log('[AdultHero:diag]', {
+            isParentMode,
+            viewMode,
+            myPlayersCount: myPlayers.length,
+            teamId: selectedTeamId,
+            userSelfPlayerId: (userData as any)?.selfPlayerId || null,
+            myPlayers: myPlayers.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              teamIds: p.teamIds,
+              teamId: p.teamId,
+              isAdultPlayer: !!p.isAdultPlayer,
+              parentIdsIncludesMe: Array.isArray(p.parentIds) && !!(userData as any)?.uid && p.parentIds.includes((userData as any).uid),
+            })),
+          });
+          return null;
+        })()}
         {((isParentMode && myPlayers.length > 0) || ((selectedTeam as any)?.audienceType === 'adult' && myPlayers.length > 0)) && (() => {
           // Adult-team branch. Swap the youth MyPlayerCard hero for
           // the professional-footballer-flavored AdultHeroCard when

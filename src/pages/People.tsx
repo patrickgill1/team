@@ -39,6 +39,12 @@ interface Person {
    *  name. Missing/undefined falls back to 'Parent'. Coaches +
    *  managers leave this unset. */
   relationship?: 'parent' | 'grandparent' | 'aunt_uncle' | 'guardian' | 'sibling' | 'other';
+  /** Extra roles rendered as additional chips on the row. Populated
+   *  by the adult-team collapse pass — when a real human shows up as
+   *  BOTH a player (roster) and a user (account), we merge into one
+   *  Person and stash the secondary role here so the row can display
+   *  e.g. "David · COACH · PLAYER" instead of two separate rows. */
+  additionalRoles?: Role[];
 }
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -284,13 +290,68 @@ const People: React.FC = () => {
           }
         }
 
+        // Adult-team collapse pass. On adult teams the player row and
+        // the user row for the same real human refer to the same person
+        // (David the player IS David the coach; there's no separate
+        // "kid" and "parent" like youth teams). Merge into one row
+        // with the secondary role in additionalRoles so the card can
+        // render "David · COACH · PLAYER" instead of two separate rows.
+        //
+        // Matching signals, in order:
+        //   1. player.parentIds includes user.uid — canonical linkage
+        //   2. case-insensitive full-name equality — covers "coach
+        //      created their own player doc but never claimed it as
+        //      self", same case tier-4 hero card resolution handles.
+        // Youth teams keep the two-row model; parent+kid are distinct
+        // humans that legitimately need separate rows.
+        const currentTeam = Array.isArray(contextTeams)
+          ? contextTeams.find((t: any) => t.id === selectedTeamId)
+          : null;
+        const isAdultCollapse = (currentTeam as any)?.audienceType === 'adult';
+        let finalOut = out;
+        if (isAdultCollapse) {
+          // Build uid → user row map + name → user row map for fast lookup.
+          const usersByUid = new Map<string, Person>();
+          const usersByName = new Map<string, Person>();
+          for (const p of out) {
+            if (p.type !== 'user') continue;
+            if (p.uid) usersByUid.set(p.uid, p);
+            const nameKey = (p.name || '').trim().toLowerCase();
+            if (nameKey) usersByName.set(nameKey, p);
+          }
+          // For each player row, find the user row it belongs to (if any)
+          // and stash 'player' as an additional role. Drop the player row
+          // from the final list — the user row now carries both roles.
+          const playerRowsToDrop = new Set<string>();
+          for (const p of out) {
+            if (p.type !== 'player') continue;
+            let matchUser: Person | undefined;
+            const playerParentIds: string[] = Array.isArray((allPlayers.find(pl => pl.id === p.id) as any)?.parentIds)
+              ? (allPlayers.find(pl => pl.id === p.id) as any).parentIds
+              : [];
+            for (const uid of playerParentIds) {
+              const u = usersByUid.get(uid);
+              if (u) { matchUser = u; break; }
+            }
+            if (!matchUser) {
+              const nameKey = (p.name || '').trim().toLowerCase();
+              if (nameKey) matchUser = usersByName.get(nameKey);
+            }
+            if (matchUser) {
+              matchUser.additionalRoles = [...(matchUser.additionalRoles || []), 'player'];
+              playerRowsToDrop.add(p.id);
+            }
+          }
+          finalOut = out.filter(p => !(p.type === 'player' && playerRowsToDrop.has(p.id)));
+        }
+
         // Stable sort: active first, then alpha.
-        out.sort((a, b) => {
+        finalOut.sort((a, b) => {
           if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
           return a.name.localeCompare(b.name);
         });
 
-        setPeople(out);
+        setPeople(finalOut);
       } catch (err) {
         console.error('People load failed', err);
       } finally {
@@ -573,6 +634,11 @@ const People: React.FC = () => {
                       <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded border ${ROLE_CHIP[p.role]}`}>
                         {personRoleLabel(p)}
                       </span>
+                      {p.additionalRoles?.map((r) => (
+                        <span key={r} className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded border ${ROLE_CHIP[r]}`}>
+                          {ROLE_LABEL[r]}
+                        </span>
+                      ))}
                       {!p.isActive && (
                         <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-surface-base text-ink-primary/40 border-line-default/10">
                           Inactive

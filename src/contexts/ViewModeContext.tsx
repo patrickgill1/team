@@ -153,6 +153,43 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => { cancelled = true; };
   }, [(userData as any)?.uid]);
 
+  // Coach-detection query, same shape as the parent one above.
+  // 2026-09-05 rewrite: previously offered 'coach' in availableModes
+  // ONLY when userData.role === 'coach' (a global flag). Per the
+  // coach-role-model memory, user.role is global IDENTITY; whether
+  // someone coaches is per-team on team.coachIds. Patrick hit this
+  // on STG Liverpool Depends 40+ - his global role is 'parent' but
+  // he's on the team's coachIds, so the view-mode picker refused to
+  // offer Coach mode on Liverpool despite him being the head coach.
+  // Same bug bites any dual-role user (adult team coach who's a
+  // parent of a youth-team kid on another team, etc).
+  // Fix: query teams where coachIds/managerIds includes this uid.
+  // If ANY team shows up, offer coach mode in the picker. Per-team
+  // defaults still gate coach chrome to teams they actually coach
+  // via defaultModeForTeam(user, team, ...).
+  const [isCoachOnAnyTeam, setIsCoachOnAnyTeam] = useState<boolean | null>(null);
+  useEffect(() => {
+    const uid = (userData as any)?.uid;
+    if (!uid) { setIsCoachOnAnyTeam(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const q = query(
+          collection(db, 'teams'),
+          where('coachIds', 'array-contains', uid),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if (cancelled) return;
+        setIsCoachOnAnyTeam(snap.size > 0);
+      } catch (err) {
+        console.warn('[view-mode] coach-detection query failed', err);
+        if (!cancelled) setIsCoachOnAnyTeam(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [(userData as any)?.uid]);
+
   const availableModes = useMemo<ViewMode[]>(() => {
     const modes: ViewMode[] = [];
     // Trust the live query first; fall back to the static
@@ -160,13 +197,22 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const hasKids = hasKidsByQuery === true
       || (hasKidsByQuery === null && Array.isArray((userData as any)?.children) && (userData as any).children.length > 0);
     if (hasKids) modes.push('parent');
-    if (userData && isCoach((userData as any).role)) modes.push('coach');
+    // Coach mode: prefer the per-team-membership query (source of
+    // truth per coach-role-model memory). Fall back to the global
+    // role when the query is still resolving or errored so we don't
+    // regress single-role coaches during load. Both branches respect
+    // the same idea: the user is a coach somewhere, so offer the
+    // mode. Per-team defaults in defaultModeForTeam still decide
+    // whether coach chrome AUTO-applies on any given team.
+    const isCoachSomewhere = isCoachOnAnyTeam === true
+      || (isCoachOnAnyTeam === null && userData && isCoach((userData as any).role));
+    if (isCoachSomewhere) modes.push('coach');
     if (userData && isClubAdminFn(userData)) modes.push('admin');
     // Always at least one — anything with no signals falls back
     // to 'parent' as a safe default.
     if (modes.length === 0) modes.push('parent');
     return modes;
-  }, [userData, hasKidsByQuery]);
+  }, [userData, hasKidsByQuery, isCoachOnAnyTeam]);
 
   const [viewMode, setViewModeState] = useState<ViewMode>(() => {
     return defaultModeFor(availableModes);

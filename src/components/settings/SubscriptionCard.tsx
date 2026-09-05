@@ -99,7 +99,11 @@ const SubscriptionCard: React.FC = () => {
   const [resyncError, setResyncError] = useState<string | null>(null);
   const [resyncMessage, setResyncMessage] = useState<string | null>(null);
   const [unattachedVideoSubs, setUnattachedVideoSubs] = useState<Array<{
-    id: string; videoTier: string; status: string; currentPeriodEnd: number;
+    id: string; videoTier: string; status: string; currentPeriodEnd: number; productName?: string;
+  }>>([]);
+  const [syncSummary, setSyncSummary] = useState<Array<{
+    id: string; kind?: string; tier?: string; videoTier?: string; status?: string;
+    productName?: string; priceId?: string; teamId?: string; unattached?: boolean; synced?: boolean; error?: string;
   }>>([]);
   const [attachBusyId, setAttachBusyId] = useState<string | null>(null);
   const [attachPickerId, setAttachPickerId] = useState<string | null>(null);
@@ -123,6 +127,7 @@ const SubscriptionCard: React.FC = () => {
       const attached = (data.summary || []).filter((s: any) => s.synced).length;
       const unatt = data.unattachedVideoSubs || [];
       setUnattachedVideoSubs(unatt);
+      setSyncSummary(data.summary || []);
       const msgs: string[] = [];
       if (attached > 0) msgs.push(`Synced ${attached} ${attached === 1 ? 'subscription' : 'subscriptions'} from Stripe.`);
       if (unatt.length > 0) msgs.push(`${unatt.length} Media ${unatt.length === 1 ? 'plan' : 'plans'} still need a team assigned — see below.`);
@@ -385,6 +390,38 @@ const SubscriptionCard: React.FC = () => {
               <p className="mt-2 text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 leading-snug">
                 {resyncError}
               </p>
+            )}
+            {syncSummary.length > 0 && (
+              <details className="mt-2 text-[11px] text-ink-primary/60">
+                <summary className="cursor-pointer hover:text-ink-primary">Details ({syncSummary.length} sub{syncSummary.length === 1 ? '' : 's'} seen)</summary>
+                <ul className="mt-2 space-y-1.5">
+                  {syncSummary.map((s, i) => (
+                    <li key={s.id || i} className="rounded bg-line-default/[0.04] ring-1 ring-line-default/10 px-2 py-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-[10px] text-ink-primary/75 truncate">{s.id}</span>
+                        <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${
+                          s.error ? 'bg-rose-500/15 text-rose-300'
+                          : s.unattached ? 'bg-amber-500/15 text-amber-300'
+                          : 'bg-emerald-500/15 text-emerald-300'
+                        }`}>
+                          {s.error ? 'Error' : s.unattached ? 'Needs team' : `Synced${s.kind === 'video' ? ' · video' : ''}`}
+                        </span>
+                      </div>
+                      {(s.productName || s.priceId) && (
+                        <div className="mt-0.5 text-[10px] text-ink-primary/55 truncate">
+                          {s.productName || 'no product name'}
+                          {s.videoTier ? ` · videoTier=${s.videoTier}` : ''}
+                          {s.tier ? ` · tier=${s.tier}` : ''}
+                          {s.status ? ` · status=${s.status}` : ''}
+                        </div>
+                      )}
+                      {s.error && (
+                        <div className="mt-0.5 text-[10px] text-rose-300">{s.error}</div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
             {unattachedVideoSubs.length > 0 && (
               <div className="mt-3 space-y-2">

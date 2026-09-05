@@ -847,6 +847,30 @@ function videoTierForPriceId(priceId: string, env: StripeEnv): 'addon' | 'pro' |
   return null;
 }
 
+// Heuristic fallback: when a price ID isn't in the env whitelist,
+// inspect the price nickname / product name / product metadata for
+// video-plan signals. Covers the case where Stripe generated a new
+// price ID (product re-created, portal purchase, coach on a different
+// Stripe env). Returns 'pro' for pro-flavored names, 'addon' for
+// addon/highlight, null for anything else so it still falls through
+// to the user-level tier check.
+function videoTierFromNames(sub: any): 'addon' | 'pro' | null {
+  const price = sub?.items?.data?.[0]?.price;
+  const nickname = String(price?.nickname || '').toLowerCase();
+  const productName = String(price?.product?.name || '').toLowerCase();
+  const productMeta = price?.product?.metadata || {};
+  const metaKind = String(productMeta?.kind || '').toLowerCase();
+  const blob = `${nickname} ${productName} ${metaKind}`;
+  if (!blob.trim()) return null;
+  // Pro = full game film / video pro. Addon = highlight / video addon.
+  if (/\b(full[\s-]?game[\s-]?film|video[\s-]?pro|full[\s-]?game|pro[\s-]?video)\b/.test(blob)) return 'pro';
+  if (/\b(video[\s-]?addon|addon|highlight)\b/.test(blob)) return 'addon';
+  // Generic "video" or "media" catch-all → addon (conservative default
+  // — user can upgrade to pro if they need file upload).
+  if (/\b(video|media)\b/.test(blob)) return 'addon';
+  return null;
+}
+
 // Map a Stripe priceId to a canonical tier string, or null if the
 // price isn't one of our allowlisted plans.
 function tierForPriceId(priceId: string, env: StripeEnv): 'annual' | 'monthly' | 'founder' | 'club' | 'club-pro' | null {
@@ -2912,11 +2936,13 @@ export async function handleSubscriptionResync(req: Request, env: any, payload: 
 
   // Pull all this customer's subs (active + past). status=all returns
   // canceled ones too so we can detect a cancel that never made it
-  // to Firestore. Expand items.data.price to get the priceId.
+  // to Firestore. Expand items.data.price AND the price's product so
+  // we can fall back to product-name heuristic when the priceId isn't
+  // in the env whitelist (portal purchases, re-created products).
   let subs: any[] = [];
   try {
     const listRes = await fetch(
-      `https://api.stripe.com/v1/subscriptions?customer=${encodeURIComponent(customerId)}&status=all&expand[]=data.items.data.price&limit=20`,
+      `https://api.stripe.com/v1/subscriptions?customer=${encodeURIComponent(customerId)}&status=all&expand[]=data.items.data.price.product&limit=20`,
       { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
     );
     const list: any = await listRes.json();
@@ -2930,9 +2956,12 @@ export async function handleSubscriptionResync(req: Request, env: any, payload: 
   const summary: any[] = [];
 
   for (const sub of subs) {
-    const priceId = String(sub?.items?.data?.[0]?.price?.id || '');
-    const videoTier = videoTierForPriceId(priceId, env);
+    const price = sub?.items?.data?.[0]?.price;
+    const priceId = String(price?.id || '');
+    // Try env-whitelist first, then fall back to name/product heuristic.
+    const videoTier = videoTierForPriceId(priceId, env) || videoTierFromNames(sub);
     const userTier = tierForPriceId(priceId, env);
+    const productName = String(price?.product?.name || price?.nickname || '');
 
     // Fill missing metadata so the shared sync helpers behave the
     // same way they would on a proper app checkout webhook.
@@ -2956,24 +2985,25 @@ export async function handleSubscriptionResync(req: Request, env: any, payload: 
         if (teamId) {
           sub.metadata.teamId = teamId;
           await syncVideoSubscription(projectId, sa, sub, 'customer.subscription.updated');
-          summary.push({ id: sub.id, kind: 'video', teamId, videoTier, status: sub.status, synced: true });
+          summary.push({ id: sub.id, kind: 'video', teamId, videoTier, status: sub.status, productName, priceId, synced: true });
         } else {
           unattachedVideoSubs.push({
             id: sub.id,
             priceId,
+            productName,
             videoTier,
             status: sub.status,
             currentPeriodEnd: Number(sub.current_period_end || 0),
           });
-          summary.push({ id: sub.id, kind: 'video', unattached: true, videoTier, status: sub.status });
+          summary.push({ id: sub.id, kind: 'video', unattached: true, videoTier, status: sub.status, productName, priceId });
         }
       } else {
         await upsertSubscriptionDoc(projectId, sa, sub, env);
-        summary.push({ id: sub.id, kind: 'user', tier: userTier || sub.metadata.tier, status: sub.status, synced: true });
+        summary.push({ id: sub.id, kind: 'user', tier: userTier || sub.metadata.tier, status: sub.status, productName, priceId, synced: true });
       }
     } catch (err) {
       console.warn('[resync] sub sync failed', sub.id, err);
-      summary.push({ id: sub.id, error: String((err as any)?.message || err) });
+      summary.push({ id: sub.id, error: String((err as any)?.message || err), productName, priceId });
     }
   }
 
@@ -3033,7 +3063,7 @@ export async function handleVideoSubscriptionAttachTeam(req: Request, env: any, 
   let sub: any;
   try {
     const getRes = await fetch(
-      `https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscriptionId)}?expand[]=items.data.price`,
+      `https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscriptionId)}?expand[]=items.data.price.product`,
       { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
     );
     sub = await getRes.json();
@@ -3045,7 +3075,7 @@ export async function handleVideoSubscriptionAttachTeam(req: Request, env: any, 
     return json({ ok: false, error: 'sub-not-yours' }, 403);
   }
   const priceId = String(sub?.items?.data?.[0]?.price?.id || '');
-  const videoTier = videoTierForPriceId(priceId, env);
+  const videoTier = videoTierForPriceId(priceId, env) || videoTierFromNames(sub);
   if (!videoTier) return json({ ok: false, error: 'not-a-video-sub', hint: 'This subscription is not a Video plan.' }, 400);
 
   // Stamp Stripe metadata so a later webhook (e.g. cancel) can find

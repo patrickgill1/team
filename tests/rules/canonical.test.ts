@@ -190,3 +190,181 @@ describe('player_media (media share)', () => {
     }));
   });
 });
+
+// ────────────────────────────────────────────────────────────────
+// chat_messages — high-blast-radius: any client can impersonate
+// another user by writing senderId=other-uid unless the rule
+// enforces senderId==auth.uid. The reactions/readBy/poll field-
+// scoped updates are the escape hatches for participants who
+// didn't send the message — they must NOT open a hole to
+// arbitrary content edits.
+describe('chat_messages', () => {
+  test('CREATE with senderId=self → allowed', async () => {
+    await seedWorld();
+    const db = await asUser(PARENT);
+    await assertSucceeds(setDoc(doc(db, 'chat_messages', 'cm1'), {
+      threadId: 'thread-1', teamId: TEAM_A,
+      senderId: PARENT, content: 'hi', timestamp: new Date(),
+    }));
+  });
+
+  test('CREATE with senderId=other-uid → denied (impersonation guard)', async () => {
+    await seedWorld();
+    const db = await asUser(PARENT);
+    await assertFails(setDoc(doc(db, 'chat_messages', 'cm2'), {
+      threadId: 'thread-1', teamId: TEAM_A,
+      senderId: HEAD, content: 'impersonating head coach', timestamp: new Date(),
+    }));
+  });
+
+  test('UPDATE reactions-only by non-sender → allowed (field-scoped escape)', async () => {
+    await seedWorld();
+    await seed(async (db) => {
+      await setDoc(doc(db as any, 'chat_messages', 'cm3'), {
+        threadId: 'thread-1', teamId: TEAM_A,
+        senderId: HEAD, content: 'orig', timestamp: new Date(),
+      });
+    });
+    const db = await asUser(PARENT);
+    await assertSucceeds(updateDoc(doc(db, 'chat_messages', 'cm3'), {
+      reactions: { '👍': [PARENT] },
+    }));
+  });
+
+  test('UPDATE content by non-sender → denied', async () => {
+    await seedWorld();
+    await seed(async (db) => {
+      await setDoc(doc(db as any, 'chat_messages', 'cm4'), {
+        threadId: 'thread-1', teamId: TEAM_A,
+        senderId: HEAD, content: 'orig', timestamp: new Date(),
+      });
+    });
+    const db = await asUser(PARENT);
+    await assertFails(updateDoc(doc(db, 'chat_messages', 'cm4'), {
+      content: 'hijacked',
+    }));
+  });
+
+  test('DELETE by team coach → allowed (moderation)', async () => {
+    await seedWorld();
+    await seed(async (db) => {
+      await setDoc(doc(db as any, 'chat_messages', 'cm5'), {
+        threadId: 'thread-1', teamId: TEAM_A,
+        senderId: PARENT, content: 'noise', timestamp: new Date(),
+      });
+    });
+    const { deleteDoc } = await import('firebase/firestore');
+    const db = await asUser(HEAD);
+    await assertSucceeds(deleteDoc(doc(db, 'chat_messages', 'cm5')));
+  });
+
+  test('DELETE by another parent (non-coach, non-sender) → denied', async () => {
+    await seedWorld();
+    await seed(async (db) => {
+      await setDoc(doc(db as any, 'chat_messages', 'cm6'), {
+        threadId: 'thread-1', teamId: TEAM_A,
+        senderId: HEAD, content: 'coach msg', timestamp: new Date(),
+      });
+    });
+    const { deleteDoc } = await import('firebase/firestore');
+    const db = await asUser(PARENT);
+    await assertFails(deleteDoc(doc(db, 'chat_messages', 'cm6')));
+  });
+});
+
+// ────────────────────────────────────────────────────────────────
+// wall_posts — coach composer path vs auto-post path vs parent
+// composer (wallConfig-gated). Parent-post default is DENY so a
+// team that never opts in cannot suddenly get parent-authored
+// wall content.
+describe('wall_posts CREATE', () => {
+  test('coach composer post → allowed', async () => {
+    await seedWorld();
+    const db = await asUser(HEAD);
+    await assertSucceeds(setDoc(doc(db, 'wall_posts', 'wp1'), {
+      teamId: TEAM_A, senderId: HEAD, authorRole: 'coach',
+      status: 'live', postedFrom: 'wall', content: 'Great win team',
+      timestamp: new Date(),
+    }));
+  });
+
+  test('parent auto-post from video upload → allowed (whitelist)', async () => {
+    await seedWorld();
+    const db = await asUser(PARENT);
+    await assertSucceeds(setDoc(doc(db, 'wall_posts', 'wp2'), {
+      teamId: TEAM_A, senderId: PARENT,
+      status: 'live', postedFrom: 'video', content: 'Uploaded a clip',
+      timestamp: new Date(),
+    }));
+  });
+
+  test('parent composer post without wallConfig.allowParentPosts → denied', async () => {
+    await seedWorld();
+    const db = await asUser(PARENT);
+    await assertFails(setDoc(doc(db, 'wall_posts', 'wp3'), {
+      teamId: TEAM_A, senderId: PARENT, authorRole: 'parent',
+      authorUid: PARENT, status: 'live', postedFrom: 'wall',
+      content: 'Should not post', timestamp: new Date(),
+    }));
+  });
+});
+
+// ────────────────────────────────────────────────────────────────
+// players — membership fields (parentIds, teamIds, coachIds,
+// clubId, isActive) are worker-only. Coach can update
+// non-membership fields on their team's players. Regression here
+// = a client can escalate themselves onto a player as a "parent"
+// bypassing the invite dedup + audit trail.
+describe('players UPDATE', () => {
+  test('coach on team updates non-membership field → allowed', async () => {
+    await seedWorld();
+    await seed(async (db) => {
+      await setDoc(doc(db as any, 'players', 'p1'), {
+        name: 'Test Kid', teamId: TEAM_A, teamIds: [TEAM_A],
+        parentIds: [PARENT], isActive: true, createdAt: new Date(),
+      });
+    });
+    const db = await asUser(HEAD);
+    await assertSucceeds(updateDoc(doc(db, 'players', 'p1'), {
+      jerseyNumber: 7, position: 'Midfielder',
+    }));
+  });
+
+  test('coach on team attempts to write parentIds → denied (worker-only)', async () => {
+    await seedWorld();
+    await seed(async (db) => {
+      await setDoc(doc(db as any, 'players', 'p2'), {
+        name: 'Test Kid', teamId: TEAM_A, teamIds: [TEAM_A],
+        parentIds: [PARENT], isActive: true, createdAt: new Date(),
+      });
+    });
+    const { arrayUnion } = await import('firebase/firestore');
+    const db = await asUser(HEAD);
+    await assertFails(updateDoc(doc(db, 'players', 'p2'), {
+      parentIds: arrayUnion(OUTSIDER),
+    }));
+  });
+});
+
+// ────────────────────────────────────────────────────────────────
+// users — self-update allowed for editable fields; role and
+// teamIds mutations client-side would let anyone self-elevate to
+// a coach on any team. Both stay worker-only.
+describe('users UPDATE self', () => {
+  test('self updates name → allowed', async () => {
+    await seedWorld();
+    const db = await asUser(PARENT);
+    await assertSucceeds(updateDoc(doc(db, 'users', PARENT), {
+      name: 'New Display Name',
+    }));
+  });
+
+  test('self attempts to add TEAM_B to teamIds → denied (self-elevation)', async () => {
+    await seedWorld();
+    const { arrayUnion } = await import('firebase/firestore');
+    const db = await asUser(PARENT);
+    await assertFails(updateDoc(doc(db, 'users', PARENT), {
+      teamIds: arrayUnion(TEAM_B),
+    }));
+  });
+});

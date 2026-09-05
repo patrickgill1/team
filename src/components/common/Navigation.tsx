@@ -218,16 +218,22 @@ const Navigation: React.FC = () => {
   // All app items for the sidebar and "More" sheet. `icon` is an
   // AppIcon name — kept consistent (single stroke weight, outline)
   // across nav and Settings to match the cleaner Ollie-style look.
-  const allNavItems: Array<{ name: string; path: string; icon: any; group: 'main' | 'apps' | 'account' }> = [
-    { name: VOCAB.teamHq, path: '/dashboard', icon: 'home', group: 'main' },
-    { name: VOCAB.squad, path: '/players', icon: 'players', group: 'main' },
+  //
+  // `description` is a one-liner shown under the name in the mobile
+  // More sheet so users can discover what a feature does without
+  // tapping in and hunting. Keep short (~50 chars) and audience-
+  // neutral (universal: same copy works for youth families and
+  // adult self-players unless the feature itself is role-specific).
+  const allNavItems: Array<{ name: string; path: string; icon: any; group: 'main' | 'apps' | 'account'; description?: string }> = [
+    { name: VOCAB.teamHq, path: '/dashboard', icon: 'home', group: 'main', description: 'Home for this team' },
+    { name: VOCAB.squad, path: '/players', icon: 'players', group: 'main', description: 'Roster with profiles, stats, and photos' },
     // People directory is staff-only — parents don't see it surfaced
     // in the nav (and the page itself enforces the same guard).
     ...(isUserCoach || isUserClubAdmin
-      ? [{ name: 'People', path: '/people', icon: 'phone' as const, group: 'main' as const }]
+      ? [{ name: 'People', path: '/people', icon: 'phone' as const, group: 'main' as const, description: 'Roster + accounts in one directory' }]
       : []),
-    { name: 'Media', path: '/player-media', icon: 'media', group: 'main' },
-    { name: 'Vote', path: '/player-of-match', icon: 'trophy', group: 'main' },
+    { name: 'Media', path: '/player-media', icon: 'media', group: 'main', description: 'Clips, photos, and full games' },
+    { name: 'Vote', path: '/player-of-match', icon: 'trophy', group: 'main', description: 'Player of the Match voting after games' },
     // Multi-kid: each linked player gets their own shortcut. Use full
     // name (not split) so two kids with the same first name still
     // disambiguate (rare but happens — siblings nicknames overlap).
@@ -240,48 +246,48 @@ const Navigation: React.FC = () => {
       icon: 'soccer' as const,
       group: 'main' as const,
     })),
-    { name: 'Chat', path: '/chat', icon: 'chat', group: 'apps' },
-    { name: 'Mentions', path: '/mentions', icon: 'highlight', group: 'apps' },
-    { name: 'Team Wall', path: '/wall', icon: 'news', group: 'apps' },
+    { name: 'Chat', path: '/chat', icon: 'chat', group: 'apps', description: 'Team threads and direct messages' },
+    { name: 'Mentions', path: '/mentions', icon: 'highlight', group: 'apps', description: 'Messages where someone tagged you' },
+    { name: 'Team Wall', path: '/wall', icon: 'news', group: 'apps', description: 'Goals, clips, and shoutouts' },
     // Team Store only shows when the active club has a storeUrl set.
     // Empty-state-as-nav-entry felt like clutter on clubs that don't
     // run a store. Patrick 2026-06-25.
-    ...(hasStore ? [{ name: 'Team Store', path: '/store', icon: 'soccer' as const, group: 'apps' as const }] : []),
-    { name: 'Events', path: '/calendar', icon: 'calendar', group: 'apps' },
-    { name: 'Stats', path: '/stats', icon: 'stats', group: 'apps' },
-    { name: 'Full Games', path: '/full-games', icon: 'film', group: 'apps' },
+    ...(hasStore ? [{ name: 'Team Store', path: '/store', icon: 'soccer' as const, group: 'apps' as const, description: 'Jerseys, warmups, team gear' }] : []),
+    { name: 'Events', path: '/calendar', icon: 'calendar', group: 'apps', description: 'Games, practices, and RSVPs' },
+    { name: 'Stats', path: '/stats', icon: 'stats', group: 'apps', description: 'Season and career numbers' },
+    { name: 'Full Games', path: '/full-games', icon: 'film', group: 'apps', description: 'Watch or upload a whole match' },
     // Highlights (ReelKickr fullscreen reel) intentionally NOT in the
     // nav — reel is only accessible via the ReelKickr button on the
     // Media page, per Patrick 2026-07-26.
-    { name: 'Attendance', path: '/attendance', icon: 'check', group: 'apps' },
-    { name: 'Volunteers', path: '/volunteers', icon: 'handshake', group: 'apps' },
-    { name: 'Directory', path: '/directory', icon: 'phone', group: 'apps' },
-    ...(isAdultTeam ? [] : [{ name: 'Development', path: '/development', icon: 'chart' as const, group: 'apps' as const }]),
-    ...(isUserCoach ? [{ name: 'Game Day', path: `/game-day/quick_${Date.now()}`, icon: 'whistle' as const, group: 'apps' as const }] : []),
-    ...(isUserCoach ? [{ name: 'Practice Plan', path: '/practice-plan', icon: 'clipboard' as const, group: 'apps' as const }] : []),
-    ...(isUserCoach ? [{ name: 'Surveys', path: '/surveys', icon: 'survey' as const, group: 'apps' as const }] : []),
-    ...(isUserCoach ? [{ name: 'Equipment', path: '/equipment', icon: 'check' as const, group: 'apps' as const }] : []),
-    ...(isUserCoach ? [{ name: 'Drills', path: '/drills', icon: 'clipboard' as const, group: 'apps' as const }] : []),
+    { name: 'Attendance', path: '/attendance', icon: 'check', group: 'apps', description: 'Who was at each session' },
+    { name: 'Volunteers', path: '/volunteers', icon: 'handshake', group: 'apps', description: 'Snack schedule, field setup, sign-ups' },
+    { name: 'Directory', path: '/directory', icon: 'phone', group: 'apps', description: 'Contact info for teammates and families' },
+    ...(isAdultTeam ? [] : [{ name: 'Development', path: '/development', icon: 'chart' as const, group: 'apps' as const, description: 'Training goals, streaks, and plans' }]),
+    ...(isUserCoach ? [{ name: 'Game Day', path: `/game-day/quick_${Date.now()}`, icon: 'whistle' as const, group: 'apps' as const, description: 'Live-tap subs, minutes, goals during a match' }] : []),
+    ...(isUserCoach ? [{ name: 'Practice Plan', path: '/practice-plan', icon: 'clipboard' as const, group: 'apps' as const, description: 'Build and share the session plan' }] : []),
+    ...(isUserCoach ? [{ name: 'Surveys', path: '/surveys', icon: 'survey' as const, group: 'apps' as const, description: 'Ask the team a question, see answers' }] : []),
+    ...(isUserCoach ? [{ name: 'Equipment', path: '/equipment', icon: 'check' as const, group: 'apps' as const, description: 'Track balls, bibs, and gear' }] : []),
+    ...(isUserCoach ? [{ name: 'Drills', path: '/drills', icon: 'clipboard' as const, group: 'apps' as const, description: 'Library of practice drills' }] : []),
     // Regular coaches (not club admins) keep "Teams" as their direct
     // entry point to edit/create their own teams. Club admins reach the
     // same page from inside /club, so we hide this entry for them to
     // avoid two ways into the same flow.
-    ...(isUserCoach && !isUserClubAdmin ? [{ name: 'Teams', path: '/teams', icon: 'wrench' as const, group: 'apps' as const }] : []),
+    ...(isUserCoach && !isUserClubAdmin ? [{ name: 'Teams', path: '/teams', icon: 'wrench' as const, group: 'apps' as const, description: 'Create, edit, or archive teams' }] : []),
     // Coach cockpit — scaffold landing for coaches, mirror of /club
     // for admins. Patrick 2026-06-21: 'as a coach, I would love
     // options to manage my team from one page.' Visible to anyone
     // with the coach role (including coach+admin multi-role users).
-    ...(isUserCoach ? [{ name: 'Coach', path: '/coach', icon: 'wrench' as const, group: 'apps' as const }] : []),
+    ...(isUserCoach ? [{ name: 'Coach', path: '/coach', icon: 'wrench' as const, group: 'apps' as const, description: 'One page for team management' }] : []),
     // Player XP settings — coach controls which XP sources fire for
     // their squad (master toggle + per-source Participation/Badges).
-    ...(isUserCoach ? [{ name: 'Player XP', path: '/coach/xp', icon: 'trophy' as const, group: 'apps' as const }] : []),
+    ...(isUserCoach ? [{ name: 'Player XP', path: '/coach/xp', icon: 'trophy' as const, group: 'apps' as const, description: 'Turn XP and badges on or off per source' }] : []),
     // Club admin's single entry point for everything cross-team.
-    ...(isUserClubAdmin ? [{ name: 'Club', path: '/club', icon: 'club' as const, group: 'apps' as const }] : []),
+    ...(isUserClubAdmin ? [{ name: 'Club', path: '/club', icon: 'club' as const, group: 'apps' as const, description: 'Registrations, payments, teams' }] : []),
     // Consolidated 2026-07-08: single Support entry point routes
     // to /tickets. /helpdesk still mounted for direct URLs and
     // legacy tickets, but no nav or Settings link points at it.
-    { name: 'Support', path: '/tickets', icon: 'help', group: 'account' },
-    { name: 'Settings', path: '/settings', icon: 'gear', group: 'account' },
+    { name: 'Support', path: '/tickets', icon: 'help', group: 'account', description: 'Get help or report a bug' },
+    { name: 'Settings', path: '/settings', icon: 'gear', group: 'account', description: 'Notifications, privacy, and account' },
   ];
 
   const mainItems = allNavItems.filter(i => i.group === 'main');
@@ -945,7 +951,14 @@ const Navigation: React.FC = () => {
                             <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-brand-primary/25 text-ink-primary' : 'bg-brand-primary/10 text-brand-primary-soft'}`}>
                               <AppIcon name={item.icon as any} className="w-5 h-5" />
                             </span>
-                            <span className={`text-[15px] font-semibold truncate ${active ? 'text-brand-primary-soft' : 'text-ink-primary'}`}>{item.name}</span>
+                            <span className="min-w-0">
+                              <span className={`block text-[15px] font-semibold truncate ${active ? 'text-brand-primary-soft' : 'text-ink-primary'}`}>{item.name}</span>
+                              {(item as any).description && (
+                                <span className="block text-[11.5px] text-ink-primary/55 truncate leading-snug">
+                                  {(item as any).description}
+                                </span>
+                              )}
+                            </span>
                           </span>
                           <AppIcon name="arrow-right" className="w-4 h-4 text-ink-primary/30 shrink-0" />
                         </Link>

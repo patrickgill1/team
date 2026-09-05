@@ -695,20 +695,31 @@ const Settings: React.FC = () => {
               label="Privacy Policy"
               onClick={() => navigate('/privacy')}
             />
+            {/* Version row - primary label carries the version so users
+                scanning "what version am I on" can answer at a glance.
+                Hint carries the status: "up to date" when the OTA bundle
+                matches the native binary version, "new update ready" when
+                Capgo has a newer bundle staged (applies on next cold start
+                per feedback_capgo_apply_model). Web / desktop shows the
+                bare version since there's no OTA concept there. */}
             <SettingsRow
               icon="info"
-              label="About GoalKickr"
+              label={`GoalKickr v${APP_VERSION}`}
               hint={
                 bundleVersion && bundleVersion !== APP_VERSION
-                  ? `v${APP_VERSION} · build ${APP_BUILD} · live ${bundleVersion}`
-                  : `v${APP_VERSION} · build ${APP_BUILD}`
+                  ? `New update ready · restart the app to apply`
+                  : bundleVersion
+                    ? `You're up to date`
+                    : `Build ${APP_BUILD}`
               }
               onClick={() =>
                 alert(
                   `GoalKickr v${APP_VERSION} (build ${APP_BUILD})` +
                   (bundleVersion && bundleVersion !== APP_VERSION
-                    ? `\nLive update: ${bundleVersion}`
-                    : '') +
+                    ? `\n\nNew live update ready: v${bundleVersion}\nClose and reopen the app to apply.`
+                    : bundleVersion
+                      ? `\n\nYou're on the latest live update.`
+                      : '') +
                   `\n\nBuilt by Patrick Gill for the GoalKickr community.`
                 )
               }

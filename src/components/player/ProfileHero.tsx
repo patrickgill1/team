@@ -29,6 +29,15 @@ interface Props {
    *  2026-07-15 this lived in the deleted action row. */
   showWhisper?: boolean;
   onWhisper?: () => void;
+  /** "This is me" claim — pinned to the top action row when the
+   *  viewer is a coach on this adult team but their uid isn't on
+   *  player.parentIds. One tap links them as the self-player,
+   *  unblocks the Dashboard adult hero card and Sideline Shouts
+   *  self-Kudos, etc. Replaces the tier-4 name-match heuristic that
+   *  lives in Dashboard AdultHero resolution. */
+  showClaimSelf?: boolean;
+  claimSelfBusy?: boolean;
+  onClaimSelf?: () => void;
 }
 
 const ProfileHero: React.FC<Props> = ({
@@ -42,6 +51,9 @@ const ProfileHero: React.FC<Props> = ({
   onKudos,
   showWhisper,
   onWhisper,
+  showClaimSelf,
+  claimSelfBusy,
+  onClaimSelf,
 }) => {
   const dob = coerceDob(player.dateOfBirth);
   const age = computeDobAge(player.dateOfBirth);
@@ -72,6 +84,19 @@ const ProfileHero: React.FC<Props> = ({
               action" per project_sideline_shouts framing. 2026-07-18:
               was icon-only chat-bubble which read as "team chat" and
               coaches missed it. */}
+          {showClaimSelf && onClaimSelf && (
+            <button
+              type="button"
+              onClick={onClaimSelf}
+              disabled={claimSelfBusy}
+              className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full bg-brand-primary/15 hover:bg-brand-primary/25 ring-1 ring-brand-primary-soft/40 text-brand-primary text-[11px] font-black uppercase tracking-[0.14em] transition whitespace-nowrap disabled:opacity-50"
+              aria-label="Claim this profile as your player"
+              title="Claim this profile as you — links your account so RSVPs, chat, and stats belong to you."
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 22c0-4.4 3.6-8 8-8s8 3.6 8 8" /><path d="M17 3l2 2 4-4" /></svg>
+              {claimSelfBusy ? 'Linking…' : "This is me"}
+            </button>
+          )}
           {showWhisper && onWhisper && (
             <button
               type="button"

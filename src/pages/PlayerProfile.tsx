@@ -65,6 +65,13 @@ const PlayerProfile: React.FC = () => {
   const isSelfServeWelcome = searchParams.get('welcome') === 'self-serve';
   const isWelcomePreview = searchParams.get('preview') === '1';
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+  // "This is me" claim flow — writes viewer.uid to player.parentIds
+  // via worker /players/toggle-self-parent. Surfaced on adult-team
+  // profiles when the viewer coaches the team but isn't linked to
+  // the player doc yet. Fixes the "coach who plays" tier-4 name-
+  // match fallback path in Dashboard adult hero resolution.
+  const [claimSelfBusy, setClaimSelfBusy] = useState(false);
+  const [claimSelfError, setClaimSelfError] = useState<string | null>(null);
   // Adult vs youth flavor of this profile — hides Player Circle
   // (parent guardians layer) + related family surfaces when the
   // team is adult.
@@ -915,7 +922,48 @@ const PlayerProfile: React.FC = () => {
         onKudos={() => setShowKudos(true)}
         showWhisper={!!userData && isCoachOfTeam(userData, selectedTeam) && !isAdultTeam}
         onWhisper={() => setShowWhisper(true)}
+        showClaimSelf={
+          isAdultTeam
+          && !!userData?.uid
+          && isCoachOfTeam(userData, selectedTeam)
+          && !(player.parentIds || []).includes(userData.uid)
+        }
+        claimSelfBusy={claimSelfBusy}
+        onClaimSelf={async () => {
+          if (!userData?.uid || claimSelfBusy) return;
+          setClaimSelfBusy(true);
+          setClaimSelfError(null);
+          try {
+            const { workerFetch } = await import('../utils/workerFetch');
+            const res = await workerFetch('/players/toggle-self-parent', {
+              method: 'POST',
+              body: JSON.stringify({ playerId: player.id, on: true }),
+            });
+            const data: any = await res.json().catch(() => ({}));
+            if (!res.ok || !data?.ok) {
+              setClaimSelfError(String(data?.error || `http-${res.status}`));
+              return;
+            }
+            // Optimistic local update so the "This is me" pill
+            // disappears immediately and Kudos/Circle affordances
+            // light up without waiting for a full refetch. The next
+            // player subscription tick reconciles.
+            setPlayer((prev) => prev ? ({
+              ...prev,
+              parentIds: [...(prev.parentIds || []), userData.uid],
+            }) : prev);
+          } catch (err) {
+            setClaimSelfError(String((err as any)?.message || err));
+          } finally {
+            setClaimSelfBusy(false);
+          }
+        }}
       />
+      {claimSelfError && (
+        <div className="mx-4 sm:mx-6 mt-2 px-3 py-2 rounded-lg bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 text-xs text-ink-primary/85">
+          Couldn’t link this profile: {claimSelfError}. Try again in a moment.
+        </div>
+      )}
 
       {/* 2026-07-14 scoping rule ([[stats-scoping-model]]): hero cells
           show THIS team + THIS season. Career surfaces (Awards tab,

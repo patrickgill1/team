@@ -2526,10 +2526,13 @@ const PlayerMediaPage: React.FC = () => {
           let uids: string[] = [];
           let title = '';
           let empty = '';
-          if (showLikersFor) { uids = item.likes || []; title = `❤️ Liked by ${uids.length}`; empty = 'No likes yet.'; }
-          else if (showViewersFor) { uids = item.views || []; title = `👁 Viewed by ${uids.length}`; empty = 'No views yet.'; }
-          else if (showDownloadersFor) { uids = item.downloads || []; title = `⬇️ Downloaded by ${uids.length} (${item.downloadCount || 0} total)`; empty = 'No downloads yet.'; }
-          else if (showSharersFor) { uids = item.shares || []; title = `🔗 Shared by ${uids.length} (${item.shareCount || 0} total)`; empty = 'No shares yet.'; }
+          // 2026-09-05: dropped emoji prefixes from these titles per
+          // feedback_no_emojis (no emojis in UI code). The dialog
+          // header carries the label alone; the numbers speak.
+          if (showLikersFor) { uids = item.likes || []; title = `Liked by ${uids.length}`; empty = 'No likes on this clip yet.'; }
+          else if (showViewersFor) { uids = item.views || []; title = `Viewed by ${uids.length}`; empty = 'Nobody has opened this one yet.'; }
+          else if (showDownloadersFor) { uids = item.downloads || []; title = `Downloaded by ${uids.length} (${item.downloadCount || 0} total)`; empty = 'No downloads yet.'; }
+          else if (showSharersFor) { uids = item.shares || []; title = `Shared by ${uids.length} (${item.shareCount || 0} total)`; empty = 'No shares yet — send it to family with the share button.'; }
           const close = () => { setShowLikersFor(null); setShowViewersFor(null); setShowDownloadersFor(null); setShowSharersFor(null); };
           return (
             <div

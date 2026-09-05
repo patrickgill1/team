@@ -1820,20 +1820,20 @@ const Wall: React.FC = () => {
             <EmptyState
               icon={<AppIcon name="news" className="w-5 h-5" />}
               title={
-                activeCategory === 'feed' ? 'Nothing on Team Wall yet'
-                : activeCategory === 'media' ? 'No media posts yet'
-                : activeCategory === 'recaps' ? 'No game recaps yet'
-                : activeCategory === 'awards' ? 'No awards to celebrate yet'
-                : 'No news posted yet'
+                activeCategory === 'feed' ? 'Team Wall is quiet'
+                : activeCategory === 'media' ? 'No clips or photos yet'
+                : activeCategory === 'recaps' ? 'No recaps yet'
+                : activeCategory === 'awards' ? 'No awards yet'
+                : 'No coach news yet'
               }
               description={
                 activeCategory === 'feed'
                   ? (canPost
-                    ? 'This is your team\'s story. Game recaps, POTM crowns, tagged clips, and coach news land here automatically. Start one with the + button.'
-                    : 'Recaps, awards, and coach news will show up here as the season plays out.')
-                  : activeCategory === 'recaps' ? 'Finish a game in GameDay and the recap posts here automatically.'
-                  : activeCategory === 'awards' ? 'Player of the Match wins, personal bests, and milestones show up here.'
-                  : activeCategory === 'media' ? 'Photos and video clips coaches post will collect here.'
+                    ? 'This is your team’s story. Recaps, POTM crowns, tagged clips, and coach news land here automatically. Post a note with the + button to kick things off.'
+                    : 'Recaps, awards, and coach news will roll in as the season plays out.')
+                  : activeCategory === 'recaps' ? 'Wrap a game in GameDay and the recap auto-posts here.'
+                  : activeCategory === 'awards' ? 'POTM crowns, hat tricks, and personal bests all land here as the team earns them.'
+                  : activeCategory === 'media' ? 'Photos and clips from coaches or teammates show up here as they get uploaded.'
                   : 'Coach announcements land here. Games and awards get their own tabs.'
               }
             />

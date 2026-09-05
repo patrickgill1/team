@@ -3231,8 +3231,8 @@ const TeamChat: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
                     </svg>
                   </div>
-                  <p className="text-ink-primary/85 font-semibold mb-1">No conversations yet</p>
-                  <p className="text-ink-primary/50 text-sm mb-4">Start a chat with a teammate or create a new team thread.</p>
+                  <p className="text-ink-primary/85 font-semibold mb-1">Chat’s quiet</p>
+                  <p className="text-ink-primary/50 text-sm mb-4">Kick off a group thread or send a teammate a quick DM.</p>
                   <div className="flex justify-center gap-2">
                     <button
                       onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
@@ -3535,9 +3535,11 @@ const TeamChat: React.FC = () => {
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                     </div>
                     <p className="text-sm font-semibold text-ink-primary/85">
-                      {(selectedThread as any)?.isDM ? `Say hi to ${getThreadDisplayTitle(selectedThread).split(' ')[0]}` : 'No messages yet'}
+                      {(selectedThread as any)?.isDM ? `Say hi to ${getThreadDisplayTitle(selectedThread).split(' ')[0]}` : 'Thread’s quiet'}
                     </p>
-                    <p className="text-xs text-ink-primary/50 mt-1">Type a message below to start the conversation.</p>
+                    <p className="text-xs text-ink-primary/50 mt-1">
+                      {(selectedThread as any)?.isDM ? 'Drop a line to kick it off.' : 'Post the first message and everyone on the team will see it.'}
+                    </p>
                   </div>
                 )}
                 {threadSearchQuery.trim() && visibleMessages.length > 0 && (

@@ -563,7 +563,8 @@ const Surveys: React.FC = () => {
           <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary-soft/30 border-t-cyan-500" /></div>
         ) : responses.length === 0 ? (
           <div className="card-modern p-8 text-center">
-            <p className="text-brand-primary-soft text-lg">No responses yet</p>
+            <p className="text-brand-primary-soft text-lg">Waiting on the first response</p>
+            <p className="text-xs text-ink-primary/55 mt-2 max-w-xs mx-auto">Share the link with the team and answers will land here as they come in.</p>
             <button onClick={() => copyShareLink(selectedSurvey.id)} className="btn-primary mt-4 px-4 py-2 rounded-xl text-sm">
               Copy Share Link
             </button>

@@ -166,9 +166,9 @@ const MentionsInbox: React.FC = () => {
             <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary-soft ring-1 ring-brand-primary-soft flex items-center justify-center text-brand-primary mb-3">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" /></svg>
             </div>
-            <p className="text-sm font-semibold text-slate-700">No mentions yet</p>
-            <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-              When someone @-mentions you in any chat, the message will appear here. Old messages without a structured mention won't show — only new ones from now on.
+            <p className="text-sm font-semibold text-ink-primary">Nothing to catch up on</p>
+            <p className="text-xs text-ink-primary/60 mt-1 max-w-xs mx-auto">
+              When a teammate @-mentions you in any chat, it lands here so nothing important slips by.
             </p>
           </div>
         ) : (

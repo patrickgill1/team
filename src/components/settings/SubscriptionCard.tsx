@@ -355,6 +355,97 @@ const SubscriptionCard: React.FC = () => {
           >
             Subscribe at goalkickr.com
           </button>
+          {/* Portal-purchase resync — same button that lives on the
+              active-sub branch. Anyone landing on this "free" state
+              might actually have a live Stripe sub the app hasn't
+              picked up (portal purchase, email mismatch, wiped doc
+              after webhook rebuild). One tap syncs from Stripe. */}
+          <div className="pt-2 border-t border-line-default/10">
+            <p className="text-[11px] text-ink-primary/55 leading-snug">
+              Already subscribed on goalkickr.com or in Stripe? Sync it here.
+            </p>
+            <button
+              type="button"
+              onClick={handleResync}
+              disabled={resyncBusy}
+              className="mt-2 w-full text-xs font-bold py-2 text-ink-primary/70 hover:text-ink-primary hover:bg-line-default/[0.05] rounded-lg transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M23 4v6h-6M1 20v-6h6" />
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+              </svg>
+              {resyncBusy ? 'Refreshing…' : 'Refresh from Stripe'}
+            </button>
+            {resyncMessage && (
+              <p className="mt-2 text-[11px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2 leading-snug">
+                {resyncMessage}
+              </p>
+            )}
+            {resyncError && (
+              <p className="mt-2 text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 leading-snug">
+                {resyncError}
+              </p>
+            )}
+            {unattachedVideoSubs.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-ink-primary/55">
+                  Media plans to attach
+                </p>
+                {unattachedVideoSubs.map((sub) => (
+                  <div key={sub.id} className="rounded-lg bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-ink-primary">
+                          Media plan · {sub.videoTier === 'pro' ? 'Full Game Film' : 'Highlight Add-on'}
+                        </p>
+                        <p className="text-[11px] text-ink-primary/55">Status: {sub.status}</p>
+                      </div>
+                      {attachPickerId !== sub.id && (
+                        <button
+                          type="button"
+                          onClick={() => { setAttachPickerId(sub.id); setAttachTeamId(''); }}
+                          className="px-3 py-1.5 rounded-full bg-brand-primary/15 hover:bg-brand-primary/25 text-brand-primary text-[11px] font-black uppercase tracking-widest transition"
+                        >
+                          Attach to team
+                        </button>
+                      )}
+                    </div>
+                    {attachPickerId === sub.id && (
+                      <div className="mt-3 space-y-2">
+                        <select
+                          value={attachTeamId}
+                          onChange={(e) => setAttachTeamId(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg bg-surface-elevated ring-1 ring-line-default/15 text-ink-primary text-sm outline-none focus:ring-brand-primary-soft"
+                        >
+                          <option value="">Choose a team…</option>
+                          {coachTeams.map((t: any) => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => { setAttachPickerId(null); setAttachTeamId(''); }}
+                            className="px-3 py-1.5 text-xs font-bold text-ink-primary/60 hover:text-ink-primary"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAttachTeam(sub.id, attachTeamId)}
+                            disabled={!attachTeamId || attachBusyId === sub.id}
+                            className="px-3 py-1.5 rounded-full bg-brand-primary text-white text-[11px] font-black uppercase tracking-widest hover:bg-brand-primary/90 disabled:opacity-40 transition" /* theme-ok: brand CTA */
+                          >
+                            {attachBusyId === sub.id ? 'Attaching…' : 'Attach'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {emailModal}
         <TierPickerSheet

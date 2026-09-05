@@ -18,7 +18,10 @@ import OnboardingGate from './components/gates/OnboardingGate';
 // Onboarding wizard — post-signup guided setup (team, kid, schedule,
 // invites, notifications, trial). Un-retired 2026-07-08 when Patrick
 // asked for the step-by-step flow he'd originally spec'd.
-import Onboarding from './pages/Onboarding';
+// Onboarding: post-signup wizard. Fires ONCE per user then never
+// again - eager import wastes bytes for every existing-user cold-boot.
+// Lazy since 2026-09-05.
+const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 import { getRandomWelcomeBackItem, KIND_LABEL } from './utils/welcomeBackContent';
 import Navigation from './components/common/Navigation';
 import { SidebarProvider, useSidebar } from './contexts/SidebarContext';
@@ -30,14 +33,21 @@ import ApplyClubBrand from './components/common/ApplyClubBrand';
 import { hideSplash, notifyCapgoReady } from './utils/nativeShell';
 
 // Eagerly load auth pages (needed immediately)
+// SimpleAuth stays eager - it's the first screen an unauthed user
+// sees on cold-boot, and a chunk-load flash on the auth screen reads
+// as broken.
 import SimpleAuth from './pages/SimpleAuth';
-import PublicVote from './pages/PublicVote';
-import PublicSurvey from './pages/PublicSurvey';
-import PublicGame from './pages/PublicGame';
-import PublicWallPost from './pages/PublicWallPost';
-import PlayerJoin from './pages/PlayerJoin';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import PayLink from './pages/PayLink';
+// Public share pages + PayLink + PlayerJoin + PrivacyPolicy: all
+// external-link destinations. Never hit by a signed-in app user in
+// normal flow - lazy since 2026-09-05 to keep them out of the
+// initial bundle for the 99% of loads that go straight to Dashboard.
+const PublicVote = React.lazy(() => import('./pages/PublicVote'));
+const PublicSurvey = React.lazy(() => import('./pages/PublicSurvey'));
+const PublicGame = React.lazy(() => import('./pages/PublicGame'));
+const PublicWallPost = React.lazy(() => import('./pages/PublicWallPost'));
+const PlayerJoin = React.lazy(() => import('./pages/PlayerJoin'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const PayLink = React.lazy(() => import('./pages/PayLink'));
 
 // Lazy load all other pages
 const InviteJoin = React.lazy(() => import('./pages/InviteJoin'));

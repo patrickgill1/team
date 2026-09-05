@@ -4,7 +4,8 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useViewMode } from '../../contexts/ViewModeContext';
-import { isClubAdmin as isClubAdminFn } from '../../utils/helpers';
+import { useTeam } from '../../contexts/TeamContext';
+import { isClubAdmin as isClubAdminFn, isCoachOfTeam } from '../../utils/helpers';
 
 /**
  * Profile + view-mode sheet — opens from the top-right avatar in the
@@ -40,7 +41,33 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
   // correct name and let TS check it.
   const { userData, logout } = useAuth();
   const { viewMode, setViewMode, availableModes, isMultiRole } = useViewMode();
+  const { selectedTeam } = useTeam();
   const navigate = useNavigate();
+  // 2026-09-05 rework: on adult teams the "Family" label is a lie
+  // (an adult self-player IS the player, not a family member). Rename
+  // to "Player" + adjust blurb copy. Also stamp the picker header with
+  // the currently-selected team name so multi-team users know which
+  // team the mode setting will apply to on this pick - the ViewMode
+  // context persists per-team behind the scenes so switching teams
+  // reloads the last-picked mode for THAT team.
+  const isAdultTeam = (selectedTeam as any)?.audienceType === 'adult';
+  const teamName = (selectedTeam as any)?.name;
+  const parentLabel = isAdultTeam ? 'Player' : 'Family';
+  const parentBlurb = isAdultTeam
+    ? 'Roster, RSVPs, and team wall from your side'
+    : 'Player + family content';
+  // Applicability indicator - a mode is applicable to the CURRENT team
+  // when the underlying data matches (parent has kid on team OR is
+  // adult player; coach is on team.coachIds). Non-applicable modes
+  // stay pickable (user can set them globally) but get a subtle
+  // "not on this team" tag so the mental model is honest.
+  const isCoachHere = !!userData && isCoachOfTeam(userData, selectedTeam);
+  const isPickCurrentTeam = (mode: 'parent' | 'coach' | 'admin') => {
+    if (!selectedTeam) return true; // no team scope, treat as active
+    if (mode === 'coach') return isCoachHere;
+    if (mode === 'parent') return true; // parent chrome renders on any team
+    return true; // admin is a global surface, always "applicable"
+  };
 
   if (!open || typeof document === 'undefined') return null;
 
@@ -98,16 +125,21 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
         {/* View-as rows — only when multi-role */}
         {isMultiRole && (
           <div className="px-3 py-2">
-            <p className="px-2 py-1.5 text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/45">View as</p>
+            <p className="px-2 py-1.5 text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/45">
+              {teamName ? `View ${teamName} as` : 'View as'}
+            </p>
             <ul>
               {availableModes.map((mode) => {
                 const selected = mode === viewMode;
-                const label = mode === 'parent' ? 'Family' : mode === 'coach' ? 'Coach' : 'Club admin';
+                const label = mode === 'parent'
+                  ? parentLabel
+                  : mode === 'coach' ? 'Coach' : 'Club admin';
                 const blurb = mode === 'parent'
-                  ? 'Player + family content'
+                  ? parentBlurb
                   : mode === 'coach'
                     ? 'Team management + coach cards'
                     : 'Pending registrations, payments, team activation';
+                const activeOnThisTeam = isPickCurrentTeam(mode);
                 return (
                   <li key={mode}>
                     <button
@@ -118,10 +150,17 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
                       <span className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center ring-2 transition ${
                         selected ? 'bg-brand-primary ring-brand-primary' : 'bg-surface-base ring-line-default/15'
                       }`}>
-                        {selected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        {selected && <span className="w-1.5 h-1.5 rounded-full bg-white" /> /* theme-ok: pip on brand-primary CTA */}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[14px] font-bold text-ink-primary">{label}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-[14px] font-bold text-ink-primary">{label}</span>
+                          {!activeOnThisTeam && (
+                            <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-line-default/[0.08] text-ink-primary/50">
+                              Not on this team
+                            </span>
+                          )}
+                        </span>
                         <span className="block text-[11.5px] text-ink-primary/55 leading-snug">{blurb}</span>
                       </span>
                     </button>

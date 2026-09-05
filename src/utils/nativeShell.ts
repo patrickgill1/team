@@ -355,10 +355,23 @@ export async function clearAppBadge(): Promise<void> {
     } catch { /* native side not registered yet */ }
   } catch { /* module not installed in bundle */ }
 
-  // 2. Firebase messaging plugin — kept as belt-and-suspenders in
-  //    case the badge plugin registration hasn't landed on this
-  //    binary yet. v5.4 has no badge API; v6 exposes setBadgeCount.
-  //    Optional-chain silently on both so a plugin bump auto-works.
+  // 2. Firebase messaging plugin — badge + tray clear.
+  //    v5.4 has no badge API; v6 exposes setBadgeCount. Optional-
+  //    chain both so a plugin bump auto-works.
+  //
+  //    Gate the tray clear on Capacitor.isPluginAvailable so we
+  //    don't fire the call when the native side isn't registered.
+  //    2026-09-05 cleanup: the previous code (a) called
+  //    removeDeliveredNotifications({ ids: [] }), which is the
+  //    wrong shape - the plugin expects { notifications: [...] } -
+  //    so every invocation threw "notifications must be provided"
+  //    into the console; and (b) called removeAllDeliveredNotifications
+  //    twice (here + step 3 below) without checking plugin
+  //    availability, so on iOS pre-3.9.416 (@capacitor/push-notifications
+  //    still in the binary) the native bridge logged an "event
+  //    capacitorDidRegisterForRemoteNotifications not called" error
+  //    on every attempt. Both errors were pure noise, but they were
+  //    firing hundreds of times per session.
   try {
     const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
     const fbm: any = FirebaseMessaging;
@@ -368,21 +381,10 @@ export async function clearAppBadge(): Promise<void> {
     ]) {
       try { const r = attempt(); if (r) await r; } catch { /* try next */ }
     }
-    try { await fbm.removeDeliveredNotifications?.({ ids: [] }); } catch { /* ignore */ }
-    try { await fbm.removeAllDeliveredNotifications?.(); } catch { /* ignore */ }
+    if (Capacitor.isPluginAvailable('FirebaseMessaging')) {
+      try { await FirebaseMessaging.removeAllDeliveredNotifications(); } catch { /* ignore */ }
+    }
   } catch { /* messaging plugin not present */ }
-
-  // 3. Firebase Messaging — clears the delivered notifications
-  //    tray on iOS which the WebView user has already seen.
-  //    Migrated 2026-08-11 from @capacitor/push-notifications
-  //    (uninstalled) — that plugin was the source of the "two
-  //    notifications per push" bug because both it AND
-  //    @capacitor-firebase/messaging auto-registered natively
-  //    and iOS delivered the same push to both.
-  try {
-    const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
-    try { await FirebaseMessaging.removeAllDeliveredNotifications(); } catch { /* ignore */ }
-  } catch { /* not present */ }
 }
 
 // Light haptic feedback on tap. Wrapped so callers don't have to

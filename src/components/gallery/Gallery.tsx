@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { useStorage } from '../../hooks/useStorage';
+import { useConfirm } from '../common/ConfirmDialog';
 import { deleteR2Object } from '../../utils/r2Upload';
 import { formatDateTime, canManageTeamMedia } from '../../utils/helpers';
 import PhotoUpload from './PhotoUpload';
@@ -24,6 +25,7 @@ const Gallery: React.FC<GalleryProps> = ({
   const canManageMedia = canManageTeamMedia(userData, selectedTeam);
   const { getPhotosByTeam, updateDocument } = useFirestore();
   const { deleteFile } = useStorage();
+  const confirm = useConfirm();
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [filteredPhotos, setFilteredPhotos] = useState<GalleryPhoto[]>([]);
@@ -86,9 +88,11 @@ const Gallery: React.FC<GalleryProps> = ({
   };
 
   const handleDeletePhoto = async (photo: GalleryPhoto) => {
-    if (!window.confirm('Are you sure you want to delete this photo? This action cannot be undone.')) {
-      return;
-    }
+    if (!(await confirm({
+      body: 'Delete this photo? It won’t appear in the gallery anymore.',
+      destructive: true,
+      confirmText: 'Delete',
+    }))) return;
 
     setDeletingIds(prev => new Set(prev).add(photo.id));
     try {

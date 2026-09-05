@@ -8,6 +8,7 @@ import { User, Player, FamilyRelationship, RELATIONSHIP_LABELS } from '../types'
 import { isCoachOfTeam, isHeadCoach, isOwner } from '../utils/helpers';
 import { computeDobAge } from '../utils/dobDate';
 import { enablePushForUser, getNotifPermission } from '../utils/push';
+import { useConfirm } from '../components/common/ConfirmDialog';
 
 interface ParentDirectoryProps {}
 
@@ -43,6 +44,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
   const { getDocuments, updateDocument, getDocument, getPlayersByTeam, getUsersByTeam } = useFirestore();
+  const confirm = useConfirm();
   const [directory, setDirectory] = useState<DirectoryEntry[]>([]);
   const [pendingMembers, setPendingMembers] = useState<any[]>([]);
   const [allTeamPlayers, setAllTeamPlayers] = useState<any[]>([]);
@@ -274,7 +276,11 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
   };
 
   const handleRejectMember = async (uid: string) => {
-    if (!window.confirm('Reject this member? They will be removed from the team.')) return;
+    if (!(await confirm({
+      body: 'Reject this member? They’ll be removed from the team roster.',
+      destructive: true,
+      confirmText: 'Reject',
+    }))) return;
     if (!selectedTeamId) return;
     try {
       const { workerFetch } = await import('../utils/workerFetch');
@@ -292,7 +298,11 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
   };
 
   const handleRemoveMember = async (uid: string, name: string) => {
-    if (!window.confirm(`Remove ${name} from the team? They will no longer have access.`)) return;
+    if (!(await confirm({
+      body: `Remove ${name} from the team? They lose access immediately.`,
+      destructive: true,
+      confirmText: 'Remove',
+    }))) return;
     if (!selectedTeamId) return;
     try {
       const { workerFetch } = await import('../utils/workerFetch');

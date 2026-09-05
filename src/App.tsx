@@ -13,6 +13,7 @@ import { bootstrapWidgetToken } from './utils/widgetBridge';
 import { updateDoc } from 'firebase/firestore';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import { ConfirmProvider } from './components/common/ConfirmDialog';
 import SilentErrorBoundary from './components/common/SilentErrorBoundary';
 import OnboardingGate from './components/gates/OnboardingGate';
 // Onboarding wizard — post-signup guided setup (team, kid, schedule,
@@ -543,6 +544,7 @@ function App() {
     <AuthProvider>
       <TeamProvider>
         <ViewModeProvider>
+        <ConfirmProvider>
         <Router>
           <Suspense fallback={<PageSpinner />}>
           <div className="App">
@@ -1182,6 +1184,7 @@ function App() {
         </div>
           </Suspense>
       </Router>
+        </ConfirmProvider>
         </ViewModeProvider>
       </TeamProvider>
       {splashPlaying && (

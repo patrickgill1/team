@@ -6,6 +6,7 @@ import { useSubscription } from '../../hooks/useSubscription';
 import { openCustomerPortal, openWebSignup, isAppleDevice, cancelSubscription, reactivateSubscription } from '../../utils/subscriptionApi';
 import TierPickerSheet from '../common/TierPickerSheet';
 import { Button, Pill } from '../ui';
+import { useConfirm } from '../common/ConfirmDialog';
 
 // Settings-page tile for the coach's GoalKickr subscription. Reads
 // from subscriptions/{uid} in real-time (worker stamps the doc from
@@ -75,6 +76,7 @@ const SubscriptionCard: React.FC = () => {
   // so we can route the chosen tier through the right downstream
   // step (email prompt OR direct openWebSignup).
   const [pickerIntent, setPickerIntent] = useState<null | 'subscribe' | 'upgrade'>(null);
+  const confirm = useConfirm();
   const [cancelBusy, setCancelBusy] = useState(false);
   const [reactivateBusy, setReactivateBusy] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -93,8 +95,14 @@ const SubscriptionCard: React.FC = () => {
 
   const handleCancel = async () => {
     if (!subscription?.subscriptionId) return;
-    const label = renewsAt ? ` You'll keep access until ${renewsAt}.` : '';
-    if (!window.confirm(`Cancel your subscription?${label} You can reactivate any time before then.`)) return;
+    const label = renewsAt ? `You'll keep access until ${renewsAt}. ` : '';
+    if (!(await confirm({
+      title: 'Cancel your subscription?',
+      body: `${label}You can reactivate any time before then.`,
+      destructive: true,
+      confirmText: 'Cancel subscription',
+      cancelText: 'Keep it',
+    }))) return;
     setCancelBusy(true);
     setCancelError(null); setCancelMessage(null);
     const err = await cancelSubscription({ subscriptionId: subscription.subscriptionId, atPeriodEnd: true });

@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { sendPushToUsers } from '../../utils/notify';
+import { useConfirm } from '../common/ConfirmDialog';
 
 // Per-event discussion thread. Lives on the event page, NOT in the
 // Chat tab — keeps the chat inbox uncluttered while still giving
@@ -60,6 +61,7 @@ function formatRelative(d: Date): string {
 }
 
 const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, userPhotoURL, notifyUids, eventTitle, onCountChange }) => {
+  const confirm = useConfirm();
   const [comments, setComments] = useState<Comment[]>([]);
   const [draft, setDraft] = useState('');
   const [posting, setPosting] = useState(false);
@@ -129,7 +131,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
 
   const deleteComment = async (c: Comment) => {
     if (c.authorId !== userUid) return;
-    if (!window.confirm('Delete this comment?')) return;
+    if (!(await confirm({ body: 'Delete this comment?', destructive: true, confirmText: 'Delete' }))) return;
     try {
       await deleteDoc(doc(db, 'eventComments', c.id));
     } catch (err) {

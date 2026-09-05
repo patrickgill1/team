@@ -4,6 +4,7 @@ import { collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where }
 import { db } from '../../utils/firebase';
 import { useTeam } from '../../contexts/TeamContext';
 import { clearWatchGameSession } from '../../utils/watchGameBridge';
+import { useConfirm } from '../common/ConfirmDialog';
 
 /**
  * Persistent "there's a live game running" banner. Sticks to the top
@@ -53,6 +54,7 @@ const LiveGameBanner: React.FC = () => {
   const location = useLocation();
   const [live, setLive] = useState<LiveRow | null>(null);
   const [now, setNow] = useState(Date.now());
+  const confirm = useConfirm();
   const [dismissing, setDismissing] = useState(false);
 
   useEffect(() => {
@@ -138,7 +140,11 @@ const LiveGameBanner: React.FC = () => {
   const forceEnd = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (dismissing) return;
-    if (!window.confirm('Force-end this game? It stays in your history but the banner clears.')) return;
+    if (!(await confirm({
+      body: 'Force-end this game? It stays in your history — the banner just clears.',
+      destructive: true,
+      confirmText: 'End game',
+    }))) return;
     setDismissing(true);
     try {
       await updateDoc(doc(db, 'live_games', live.eventId), {

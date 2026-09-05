@@ -18,6 +18,7 @@ import {
 } from '../utils/clubScopes';
 import { Button, EmptyState, Sheet } from '../components/ui';
 import Header from '../components/common/Header';
+import { useConfirm } from '../components/common/ConfirmDialog';
 import type { Club, ClubAdminScope } from '../types';
 
 /**
@@ -46,6 +47,7 @@ const ClubAdmins: React.FC = () => {
   const { club, isOwner, has } = useClubScopes(clubId);
   const canManage = isOwner || has('admins');
 
+  const confirm = useConfirm();
   const [rows, setRows] = useState<AdminRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUid, setEditingUid] = useState<string | null>(null);
@@ -136,7 +138,11 @@ const ClubAdmins: React.FC = () => {
   const handleRemove = async (uid: string) => {
     if (!club || !canManage) return;
     if (uid === club.ownerUid) return;
-    if (!window.confirm('Remove this admin? They will lose access to club admin features.')) return;
+    if (!(await confirm({
+      body: 'Remove this admin? They lose access to club admin features immediately.',
+      destructive: true,
+      confirmText: 'Remove admin',
+    }))) return;
     try {
       const { workerFetch } = await import('../utils/workerFetch');
       const res = await workerFetch('/club/remove-admin', {

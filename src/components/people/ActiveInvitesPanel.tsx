@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { collection, getDocs, query as fsQuery, orderBy } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { revokeInvite, inviteUrl } from '../../utils/invites';
+import { useConfirm } from '../common/ConfirmDialog';
 
 interface Props {
   isAdmin: boolean;
@@ -44,6 +45,7 @@ const TONE_CLASS: Record<string, string> = {
 };
 
 const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, teamNameById, playerNameById, onClose }) => {
+  const confirm = useConfirm();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'active' | 'all'>('active');
@@ -101,7 +103,11 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
   }), [rows]);
 
   const handleRevoke = async (id: string) => {
-    if (!window.confirm('Revoke this invite? Anyone holding the link will no longer be able to use it.')) return;
+    if (!(await confirm({
+      body: 'Revoke this invite? Anyone still holding the link won’t be able to use it.',
+      destructive: true,
+      confirmText: 'Revoke',
+    }))) return;
     setBusyId(id);
     try {
       await revokeInvite(id);

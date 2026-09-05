@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
+import { useConfirm } from '../common/ConfirmDialog';
 
 interface RosterPlayer { id: string; name: string }
 
@@ -21,6 +22,7 @@ interface Props {
 }
 
 const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment, roster, onChange }) => {
+  const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
   const [pickerId, setPickerId] = useState<string>(assignment?.playerId || '');
   const [notes, setNotes] = useState<string>(assignment?.notes || '');
@@ -80,7 +82,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
   };
 
   const clear = async () => {
-    if (!window.confirm('Remove snack assignment?')) return;
+    if (!(await confirm({ body: 'Remove the snack assignment for this event?', destructive: true, confirmText: 'Remove' }))) return;
     setSaving(true);
     try {
       await onChange(null);

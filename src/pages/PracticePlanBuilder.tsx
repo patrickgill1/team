@@ -8,6 +8,7 @@ import {
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
+import { useConfirm } from '../components/common/ConfirmDialog';
 import { isCoachOfTeam, isOwner } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
@@ -110,6 +111,7 @@ const PracticePlanBuilder: React.FC = () => {
   // app (Dashboard, AttendanceTracker, QuickGameLauncher, etc.).
   const isUserCoach = isCoachOfTeam(userData, selectedTeam) || isOwner(userData);
 
+  const confirm = useConfirm();
   const [plans, setPlans] = useState<PracticePlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -244,7 +246,7 @@ const PracticePlanBuilder: React.FC = () => {
   };
 
   const removePlan = async (planId: string) => {
-    if (!window.confirm('Delete this practice plan?')) return;
+    if (!(await confirm({ body: 'Delete this practice plan? The drills stay in your Drills library.', destructive: true, confirmText: 'Delete plan' }))) return;
     try {
       await deleteDoc(doc(db, 'practice_plans', planId));
       setPlans(prev => prev.filter(p => p.id !== planId));

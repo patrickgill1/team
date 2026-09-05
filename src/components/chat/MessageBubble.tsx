@@ -5,6 +5,7 @@ import EmojiPicker from './EmojiPicker';
 import ReadBySheet from './ReadBySheet';
 import ReactionDetailsSheet from './ReactionDetailsSheet';
 import UserProfileModal from '../common/UserProfileModal';
+import { useConfirm } from '../common/ConfirmDialog';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -360,6 +361,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onEdit,
   threadIsDm,
 }) => {
+  const confirm = useConfirm();
   const [actionsOpen, setActionsOpen] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [readByOpen, setReadByOpen] = useState(false);
@@ -545,7 +547,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     if (dx > SWIPE_THRESHOLD) {
       onReply(message);
     } else if (dx < -SWIPE_THRESHOLD && (isOwn || canModerate) && onDelete) {
-      if (window.confirm('Delete this message?')) onDelete(message);
+      confirm({ body: 'Delete this message?', destructive: true, confirmText: 'Delete' })
+        .then(ok => { if (ok) onDelete(message); });
     }
   };
 

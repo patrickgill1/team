@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { sendEmailBatch, sendPushToUsers } from '../../utils/notify';
 import { useAuth } from '../../hooks/useAuth';
 import { Sheet, Button, FormField, fieldInputClass } from '../ui';
+import { useConfirm } from '../common/ConfirmDialog';
 
 interface TeamOption { id: string; name: string }
 interface MemberOption { uid: string; name: string; email?: string; role?: string; teamIds: string[] }
@@ -25,6 +26,7 @@ interface Props {
  */
 const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) => {
   const { userData } = useAuth();
+  const confirm = useConfirm();
   const [scope, setScope] = useState<'all' | 'parents' | 'coaches' | 'teams'>('all');
   const [pickedTeamIds, setPickedTeamIds] = useState<Set<string>>(new Set());
   const [subject, setSubject] = useState('');
@@ -58,7 +60,12 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
   const handleSend = async () => {
     if (!subject.trim() || !body.trim()) return;
     if (recipients.length === 0) return;
-    if (!window.confirm(`Send this announcement to ${recipients.length} ${recipients.length === 1 ? 'person' : 'people'}? This can't be undone.`)) return;
+    if (!(await confirm({
+      title: `Send to ${recipients.length} ${recipients.length === 1 ? 'person' : 'people'}?`,
+      body: 'Once you send this announcement it goes out immediately and can’t be recalled.',
+      destructive: true,
+      confirmText: 'Send announcement',
+    }))) return;
 
     setSending(true);
     setResult(null);

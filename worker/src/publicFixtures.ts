@@ -282,20 +282,24 @@ export async function handleInvitePreview(req: Request, env: Env): Promise<Respo
   // recreational; youth teams read as family-oriented; staff
   // invites frame as "join the coaching staff."
   const inviteType = String(inv.type || '');
+  // Descriptions kept under ~70 chars so WhatsApp / iMessage don't
+  // truncate mid-sentence in the preview card. Titles under ~40.
+  // Patrick 2026-09-05: "some of the message was cut off" on the
+  // WhatsApp preview - the old adult copy was 92 chars.
   let title = `Join ${teamName}`;
-  let description = 'Team management for soccer. RSVPs, chat, stats, and media in one place.';
+  let description = 'RSVPs, team chat, and match updates in one place.';
   if (inviteType === 'team_self_serve_adult' || audience === 'adult') {
-    description = `Tap in on ${teamName}. RSVPs, team chat, and match updates on your device.`;
+    description = 'RSVPs, team chat, and match updates on your phone.';
   } else if (inviteType === 'player') {
     const playerName = String(inv.playerName || '').trim();
     title = playerName ? `Follow ${playerName} on ${teamName}` : `Join ${teamName}`;
-    description = 'See match updates, clips, and shoutouts as they happen.';
+    description = 'Match updates, clips, and shoutouts as they happen.';
   } else if (inviteType === 'coach') {
     title = `Coach ${teamName}`;
-    description = 'Join the coaching staff. RSVPs, roster, stats, and team comms.';
+    description = 'Join the coaching staff. Roster, RSVPs, stats.';
   } else if (inviteType === 'team_manager') {
     title = `Manage ${teamName}`;
-    description = 'Team manager access to roster, RSVPs, and comms.';
+    description = 'Team manager access. Roster, RSVPs, comms.';
   }
 
   return jsonResponse({ ok: true, title, description, image, teamName });

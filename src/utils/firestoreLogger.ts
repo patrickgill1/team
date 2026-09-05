@@ -51,9 +51,20 @@ export function logFirestoreError(
   return { code, message, isPermissionDenied, isUnauthenticated };
 }
 
-/** Catch unhandled Firestore promise rejections globally so a missed
- *  try/catch somewhere doesn't fail silently. Logs the same way
- *  manual catches do. */
+/** Catch unhandled promise rejections globally so a missed try/catch
+ *  somewhere doesn't fail silently. Logs Firestore errors through
+ *  logFirestoreError so they get the same structured shape as manual
+ *  catches; logs everything else through a single [unhandled] tag so
+ *  the whole class of "app looks broken but nothing in the console"
+ *  bugs becomes searchable.
+ *
+ *  2026-09-05 rewrite: was FirebaseError-only, which meant a
+ *  swallowed fetch reject, a Cloudflare Stream upload throw, or a
+ *  Worker fetch rejection produced ZERO console output. Every
+ *  reliability bug I've chased in the last two days (chat "loads
+ *  forever", POTM badge no-op, invite dedup silent double-mint) was
+ *  invisible for exactly this reason. Now every rejection has at
+ *  least one console line I can grep. */
 export function installFirestoreErrorHandler(): void {
   if (typeof window === 'undefined') return;
   window.addEventListener('unhandledrejection', (event) => {
@@ -61,7 +72,30 @@ export function installFirestoreErrorHandler(): void {
     if (reason instanceof FirebaseError) {
       logFirestoreError('unhandled', reason.customData ? String((reason.customData as any).path || '?') : '?', reason);
       // Don't preventDefault — let other handlers see it too.
+      return;
     }
+    // Non-Firebase rejection. Emit one structured line so the failure
+    // is visible without every caller wiring its own .catch. Fetch
+    // rejections, Cloudflare Stream throws, worker network errors,
+    // stray async blowups from third-party SDKs all land here.
+    // Suppress two known-noisy classes:
+    //   - Auth errors during sign-out / token rotation (transient)
+    //   - Stale-chunk import rejections (staleChunk.ts already handles
+    //     these with a full-page reload)
+    const message = String(reason?.message || reason || 'unknown');
+    if (
+      message.includes('quota-exceeded')
+      || message.includes('Loading chunk')
+      || message.includes('Failed to fetch dynamically imported module')
+    ) {
+      return;
+    }
+    console.warn('[unhandled]', {
+      message,
+      name: reason?.name || 'unknown',
+      code: reason?.code || undefined,
+      stack: reason?.stack ? String(reason.stack).split('\n').slice(0, 3).join(' | ') : undefined,
+    });
   });
 }
 

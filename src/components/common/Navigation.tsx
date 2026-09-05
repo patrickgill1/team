@@ -46,6 +46,34 @@ const Navigation: React.FC = () => {
   const [isProfileSheetOpen, setIsProfileSheetOpen] = useState(false);
   const [teamSwitcherOpen, setTeamSwitcherOpen] = useState(false);
   const [archivedExpanded, setArchivedExpanded] = useState(false);
+
+  // Recent-teams history for the switcher sheet. Universal QoL - any
+  // user with 3+ teams (Patrick with 5+ youth + 1 adult; parents with
+  // sibs on different teams; club admins with many) switches faster
+  // when the last 3 land as one-tap chips at the top of the sheet
+  // instead of scrolling through the alphabetized list. Persisted per
+  // user in localStorage; capped at 3.
+  const [recentTeamIds, setRecentTeamIds] = useState<string[]>([]);
+  const RECENT_TEAMS_KEY = `gk.recentTeams.${(userData as any)?.uid || 'anon'}`;
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(RECENT_TEAMS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setRecentTeamIds(parsed.filter((x: any) => typeof x === 'string').slice(0, 3));
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(userData as any)?.uid]);
+  useEffect(() => {
+    if (!selectedTeamId) return;
+    setRecentTeamIds((prev) => {
+      const next = [selectedTeamId, ...prev.filter((id) => id !== selectedTeamId)].slice(0, 3);
+      try { localStorage.setItem(RECENT_TEAMS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTeamId]);
   const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useSidebar();
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -591,13 +619,13 @@ const Navigation: React.FC = () => {
                   className="min-w-0 inline-flex items-center gap-1 text-ink-primary/85 hover:text-ink-primary transition"
                   aria-label="Switch team"
                 >
-                  <span className="font-semibold text-sm truncate max-w-[140px]">{selectedTeam.name}</span>
+                  <span className="font-semibold text-sm truncate max-w-[180px] sm:max-w-[260px]">{selectedTeam.name}</span>
                   <svg className="w-3 h-3 text-charcoal-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <polyline points="6 9 12 15 18 9" />
                   </svg>
                 </button>
               ) : (
-                <span className="min-w-0 font-semibold text-sm text-ink-primary/85 truncate max-w-[140px]">{selectedTeam.name}</span>
+                <span className="min-w-0 font-semibold text-sm text-ink-primary/85 truncate max-w-[180px] sm:max-w-[260px]">{selectedTeam.name}</span>
               )}
             </>
           )}
@@ -685,8 +713,41 @@ const Navigation: React.FC = () => {
                   </li>
                 );
               };
+              // Recent chips row — top of the sheet, one-tap switch
+              // for the last 3 teams the user opened. Only surfaces
+              // when the user has more than 3 total teams (below that,
+              // the full list is already fast); excludes the current
+              // team (no self-swap tap); falls back gracefully if a
+              // stored recent id no longer resolves to an active team.
+              const recentChipTeams = activeTeams.length > 3
+                ? recentTeamIds
+                    .filter((id) => id !== selectedTeamId)
+                    .map((id) => activeTeams.find((t) => t.id === id))
+                    .filter(Boolean)
+                    .slice(0, 3) as typeof teams
+                : [];
               return (
                 <div className="max-h-[60vh] overflow-y-auto">
+                  {recentChipTeams.length > 0 && (
+                    <div className="px-4 pt-3 pb-2 border-b border-line-default/5">
+                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/45 mb-2">Recent</div>
+                      <div className="flex flex-wrap gap-2">
+                        {recentChipTeams.map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedTeamId(t.id);
+                              setTeamSwitcherOpen(false);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-primary/15 hover:bg-brand-primary/25 ring-1 ring-brand-primary-soft/40 text-ink-primary text-[12px] font-bold max-w-[220px] transition"
+                          >
+                            <span className="truncate">{t.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <ul className="divide-y divide-line-default/5">
                     {activeTeams.map(t => renderRow(t, false))}
                   </ul>

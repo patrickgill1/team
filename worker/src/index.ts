@@ -48,6 +48,8 @@ import {
   handleSubscriptionCheckout,
   handleSubscriptionCancel,
   handleSubscriptionReactivate,
+  handleSubscriptionResync,
+  handleVideoSubscriptionAttachTeam,
   handleVideoCheckout,
   handleFounderCount,
   handleCustomerPortal,
@@ -799,6 +801,28 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     if (url.pathname === '/stripe/subscription-reactivate') {
       await requireSelf(req, env, String(payload?.uid || ''));
       const res = await handleSubscriptionReactivate(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // Force-sync a caller's Stripe subscriptions into Firestore.
+    // Fixes the "subscribed via Customer Portal, in-app state stale"
+    // case where the webhook fired without app-controlled metadata.
+    if (url.pathname === '/subscriptions/resync') {
+      const claims = await requireUser(req, env);
+      const res = await handleSubscriptionResync(req, env, { ...payload, _claims: claims });
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // Attach an existing Stripe video subscription to a team.
+    // Coach-only. Stamps metadata + patches team.videoTier so the
+    // upload gate opens.
+    if (url.pathname === '/video-subscriptions/attach-team') {
+      const claims = await requireUser(req, env);
+      const res = await handleVideoSubscriptionAttachTeam(req, env, { ...payload, _claims: claims });
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

@@ -2856,3 +2856,223 @@ function welcomeEmailText(opts: { tierLabel: string; trialEndDate: Date | null }
     : `Your subscription is now active. Manage it anytime under Settings.\n\n`;
   return `Welcome to GoalKickr — you're in on the ${opts.tierLabel} plan.\n\n${trial}Open the GoalKickr app to start adding players, scheduling events, and sending messages.\n\nQuestions, billing, or to cancel: reply to this email or visit goalkickr.com.\n`;
 }
+
+// ── Endpoint: POST /subscriptions/resync ─────────────────────────
+//
+// Force-syncs a caller's Stripe subscriptions into Firestore. Used
+// when a coach subscribes/cancels via the Stripe Customer Portal
+// directly (bypassing our app checkout) — those events fire webhook
+// notifications, but without the app-controlled metadata (uid,
+// tier, kind, teamId) that upsertSubscriptionDoc + syncVideoSubscription
+// rely on. Result: subscriptions/{uid} + user.subscriptionTier stay
+// stale, and video subs never flip team.videoTier.
+//
+// Resync rebuilds the missing metadata from priceId + caller-uid and
+// re-runs the sync handlers. Video subs that can't be attributed to
+// a team (no metadata.teamId, no matching pointer doc) are returned
+// as `unattachedVideoSubs` so the client can offer an "Attach to
+// team" step.
+export async function handleSubscriptionResync(req: Request, env: any, payload: any): Promise<Response> {
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'server-not-configured' }, 500);
+  if (!env.STRIPE_SECRET_KEY) return json({ ok: false, error: 'stripe-not-configured' }, 500);
+
+  const claims = payload?._claims;
+  const uid = String(claims?.uid || '');
+  if (!uid) return json({ ok: false, error: 'not-signed-in' }, 401);
+
+  // Find caller's Stripe customerId. Preference order:
+  //   1. Existing subscriptions/{uid}.customerId (fastest)
+  //   2. users/{uid}.stripeCustomerId (if we've ever stamped it)
+  //   3. Look up by email via Stripe /customers?email=
+  let customerId = '';
+  const subDoc = await getDocument(projectId, `subscriptions/${uid}`, sa).catch(() => null);
+  if (subDoc?.data?.customerId) customerId = String(subDoc.data.customerId);
+  if (!customerId) {
+    const userDoc = await getDocument(projectId, `users/${uid}`, sa).catch(() => null);
+    if (userDoc?.data?.stripeCustomerId) customerId = String(userDoc.data.stripeCustomerId);
+    const email = String(userDoc?.data?.email || claims.email || '').trim().toLowerCase();
+    if (!customerId && email) {
+      try {
+        const custRes = await fetch(
+          `https://api.stripe.com/v1/customers?email=${encodeURIComponent(email)}&limit=1`,
+          { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
+        );
+        const cust: any = await custRes.json();
+        if (cust?.data?.[0]?.id) customerId = String(cust.data[0].id);
+      } catch (err) {
+        console.warn('[resync] customer lookup failed', err);
+      }
+    }
+  }
+  if (!customerId) {
+    return json({ ok: false, error: 'no-stripe-customer', hint: 'No Stripe customer found for this account. If you subscribed with a different email, contact support.' }, 404);
+  }
+
+  // Pull all this customer's subs (active + past). status=all returns
+  // canceled ones too so we can detect a cancel that never made it
+  // to Firestore. Expand items.data.price to get the priceId.
+  let subs: any[] = [];
+  try {
+    const listRes = await fetch(
+      `https://api.stripe.com/v1/subscriptions?customer=${encodeURIComponent(customerId)}&status=all&expand[]=data.items.data.price&limit=20`,
+      { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
+    );
+    const list: any = await listRes.json();
+    if (!listRes.ok) return json({ ok: false, error: list?.error?.message || `stripe ${listRes.status}` }, 502);
+    subs = Array.isArray(list?.data) ? list.data : [];
+  } catch (err) {
+    return json({ ok: false, error: String((err as any)?.message || err) }, 502);
+  }
+
+  const unattachedVideoSubs: any[] = [];
+  const summary: any[] = [];
+
+  for (const sub of subs) {
+    const priceId = String(sub?.items?.data?.[0]?.price?.id || '');
+    const videoTier = videoTierForPriceId(priceId, env);
+    const userTier = tierForPriceId(priceId, env);
+
+    // Fill missing metadata so the shared sync helpers behave the
+    // same way they would on a proper app checkout webhook.
+    sub.metadata = sub.metadata || {};
+    if (videoTier && !sub.metadata.kind) sub.metadata.kind = 'video';
+    if (videoTier && !sub.metadata.videoTier) sub.metadata.videoTier = videoTier;
+    if (userTier && !sub.metadata.tier) sub.metadata.tier = userTier;
+    if (!sub.metadata.uid) sub.metadata.uid = uid;
+    if (!sub.metadata.priceId) sub.metadata.priceId = priceId;
+
+    try {
+      if (sub.metadata.kind === 'video') {
+        // Video subs need teamId. If missing (Stripe portal purchase),
+        // check the pointer doc; if still missing, surface for the
+        // client's attach flow.
+        let teamId = String(sub.metadata.teamId || '').trim();
+        if (!teamId) {
+          const pointer = await getDocument(projectId, `video_subscriptions/${sub.id}`, sa).catch(() => null);
+          teamId = String(pointer?.data?.teamId || '').trim();
+        }
+        if (teamId) {
+          sub.metadata.teamId = teamId;
+          await syncVideoSubscription(projectId, sa, sub, 'customer.subscription.updated');
+          summary.push({ id: sub.id, kind: 'video', teamId, videoTier, status: sub.status, synced: true });
+        } else {
+          unattachedVideoSubs.push({
+            id: sub.id,
+            priceId,
+            videoTier,
+            status: sub.status,
+            currentPeriodEnd: Number(sub.current_period_end || 0),
+          });
+          summary.push({ id: sub.id, kind: 'video', unattached: true, videoTier, status: sub.status });
+        }
+      } else {
+        await upsertSubscriptionDoc(projectId, sa, sub, env);
+        summary.push({ id: sub.id, kind: 'user', tier: userTier || sub.metadata.tier, status: sub.status, synced: true });
+      }
+    } catch (err) {
+      console.warn('[resync] sub sync failed', sub.id, err);
+      summary.push({ id: sub.id, error: String((err as any)?.message || err) });
+    }
+  }
+
+  // Stamp the customerId onto the user doc if we discovered it via
+  // email lookup — saves the roundtrip next time.
+  try {
+    await patchDocument(projectId, `users/${uid}`, { stripeCustomerId: customerId }, sa);
+  } catch { /* non-fatal */ }
+
+  return json({ ok: true, customerId, summary, unattachedVideoSubs });
+}
+
+// ── Endpoint: POST /video-subscriptions/attach-team ──────────────
+//
+// Attaches a Stripe video subscription to a specific team. Used when
+// the sub was purchased via the Stripe Customer Portal (which doesn't
+// collect teamId metadata), so the coach picks the team AFTER the
+// fact and this endpoint stamps the metadata + patches team.videoTier.
+//
+// Auth: caller must be signed in AND own the Stripe subscription
+// (customerId match) AND be on team.coachIds. Body:
+//   { subscriptionId, teamId }
+export async function handleVideoSubscriptionAttachTeam(req: Request, env: any, payload: any): Promise<Response> {
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'server-not-configured' }, 500);
+  if (!env.STRIPE_SECRET_KEY) return json({ ok: false, error: 'stripe-not-configured' }, 500);
+
+  const claims = payload?._claims;
+  const uid = String(claims?.uid || '');
+  if (!uid) return json({ ok: false, error: 'not-signed-in' }, 401);
+
+  const subscriptionId = String(payload?.subscriptionId || '').trim();
+  const teamId = String(payload?.teamId || '').trim();
+  if (!subscriptionId || !teamId) return json({ ok: false, error: 'missing-args' }, 400);
+
+  // Coach-of-team check via team.coachIds.
+  const teamDoc = await getDocument(projectId, `teams/${teamId}`, sa).catch(() => null);
+  if (!teamDoc?.data) return json({ ok: false, error: 'team-not-found' }, 404);
+  const coachIds: string[] = Array.isArray(teamDoc.data.coachIds) ? teamDoc.data.coachIds : [];
+  if (!coachIds.includes(uid)) return json({ ok: false, error: 'not-coach-of-team' }, 403);
+
+  // Customer-owns-sub check. Resolve caller's customerId first (same
+  // sources as resync). Cheap because subscriptions/{uid} is usually
+  // present once they've resynced.
+  let customerId = '';
+  const subDoc = await getDocument(projectId, `subscriptions/${uid}`, sa).catch(() => null);
+  if (subDoc?.data?.customerId) customerId = String(subDoc.data.customerId);
+  if (!customerId) {
+    const userDoc = await getDocument(projectId, `users/${uid}`, sa).catch(() => null);
+    if (userDoc?.data?.stripeCustomerId) customerId = String(userDoc.data.stripeCustomerId);
+  }
+  if (!customerId) return json({ ok: false, error: 'no-stripe-customer', hint: 'Run Refresh subscription first.' }, 404);
+
+  // Fetch the sub from Stripe and verify (a) it belongs to the
+  // caller's customer, (b) it's a video priceId.
+  let sub: any;
+  try {
+    const getRes = await fetch(
+      `https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscriptionId)}?expand[]=items.data.price`,
+      { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
+    );
+    sub = await getRes.json();
+    if (!getRes.ok) return json({ ok: false, error: sub?.error?.message || `stripe ${getRes.status}` }, 502);
+  } catch (err) {
+    return json({ ok: false, error: String((err as any)?.message || err) }, 502);
+  }
+  if (String(sub?.customer || '') !== customerId) {
+    return json({ ok: false, error: 'sub-not-yours' }, 403);
+  }
+  const priceId = String(sub?.items?.data?.[0]?.price?.id || '');
+  const videoTier = videoTierForPriceId(priceId, env);
+  if (!videoTier) return json({ ok: false, error: 'not-a-video-sub', hint: 'This subscription is not a Video plan.' }, 400);
+
+  // Stamp Stripe metadata so a later webhook (e.g. cancel) can find
+  // the team without re-going-through this endpoint. Also carry the
+  // kind='video' so upsertSubscriptionDoc doesn't try to sync it as
+  // a user-level sub on a future event.
+  try {
+    await stripeRequest(env, `/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+      'metadata[kind]': 'video',
+      'metadata[teamId]': teamId,
+      'metadata[videoTier]': videoTier,
+      'metadata[uid]': uid,
+    });
+    sub.metadata = { ...(sub.metadata || {}), kind: 'video', teamId, videoTier, uid };
+  } catch (err) {
+    return json({ ok: false, error: `stripe-metadata-write: ${String((err as any)?.message || err)}` }, 502);
+  }
+
+  // Run through the normal sync so team.videoTier + pointer doc land
+  // exactly the same way they would on a proper app checkout webhook.
+  await syncVideoSubscription(projectId, sa, sub, 'customer.subscription.updated');
+
+  return json({
+    ok: true,
+    teamId,
+    videoTier,
+    subscriptionId,
+    status: sub.status,
+  });
+}

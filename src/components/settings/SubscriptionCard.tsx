@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestore } from '../../hooks/useFirestore';
 import { useSubscription } from '../../hooks/useSubscription';
+import { useTeam } from '../../contexts/TeamContext';
 import { openCustomerPortal, openWebSignup, isAppleDevice, cancelSubscription, reactivateSubscription } from '../../utils/subscriptionApi';
 import TierPickerSheet from '../common/TierPickerSheet';
 import { Button, Pill } from '../ui';
@@ -58,6 +59,17 @@ function fmtDate(d: Date | null): string {
 
 const SubscriptionCard: React.FC = () => {
   const { currentUser, userData } = useAuth();
+  const { teams } = useTeam();
+  // Only offer teams the caller actually coaches for the attach-video
+  // picker. The attach-team worker endpoint enforces the same rule,
+  // but hiding non-eligible teams in the UI keeps the picker honest.
+  const uid = (currentUser as any)?.uid;
+  const coachTeams = React.useMemo(
+    () => (Array.isArray(teams) ? teams : []).filter((t: any) =>
+      Array.isArray(t.coachIds) && uid && t.coachIds.includes(uid) && t.isActive !== false
+    ),
+    [teams, uid],
+  );
   const { updateDocument } = useFirestore();
   const { loading, subscription, isActive, isTrialing, isPastDue, willCancelAtPeriodEnd, tier, currentPeriodEndDate } = useSubscription();
   const [opening, setOpening] = useState(false);
@@ -81,6 +93,72 @@ const SubscriptionCard: React.FC = () => {
   const [reactivateBusy, setReactivateBusy] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
+  // Resync state — fixes "subscribed via Stripe portal, app shows
+  // stale plan / video upload blocked" per 2026-09-05 Patrick report.
+  const [resyncBusy, setResyncBusy] = useState(false);
+  const [resyncError, setResyncError] = useState<string | null>(null);
+  const [resyncMessage, setResyncMessage] = useState<string | null>(null);
+  const [unattachedVideoSubs, setUnattachedVideoSubs] = useState<Array<{
+    id: string; videoTier: string; status: string; currentPeriodEnd: number;
+  }>>([]);
+  const [attachBusyId, setAttachBusyId] = useState<string | null>(null);
+  const [attachPickerId, setAttachPickerId] = useState<string | null>(null);
+  const [attachTeamId, setAttachTeamId] = useState<string>('');
+
+  const handleResync = async () => {
+    setResyncBusy(true);
+    setResyncError(null);
+    setResyncMessage(null);
+    try {
+      const { workerFetch } = await import('../../utils/workerFetch');
+      const res = await workerFetch('/subscriptions/resync', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        setResyncError(String(data?.hint || data?.error || `Request failed (${res.status})`));
+        return;
+      }
+      const attached = (data.summary || []).filter((s: any) => s.synced).length;
+      const unatt = data.unattachedVideoSubs || [];
+      setUnattachedVideoSubs(unatt);
+      const msgs: string[] = [];
+      if (attached > 0) msgs.push(`Synced ${attached} ${attached === 1 ? 'subscription' : 'subscriptions'} from Stripe.`);
+      if (unatt.length > 0) msgs.push(`${unatt.length} Media ${unatt.length === 1 ? 'plan' : 'plans'} still need a team assigned — see below.`);
+      if (msgs.length === 0) msgs.push('Nothing to sync — you already look up to date.');
+      setResyncMessage(msgs.join(' '));
+    } catch (err) {
+      setResyncError(String((err as any)?.message || err));
+    } finally {
+      setResyncBusy(false);
+    }
+  };
+
+  const handleAttachTeam = async (subscriptionId: string, teamId: string) => {
+    if (!subscriptionId || !teamId) return;
+    setAttachBusyId(subscriptionId);
+    try {
+      const { workerFetch } = await import('../../utils/workerFetch');
+      const res = await workerFetch('/video-subscriptions/attach-team', {
+        method: 'POST',
+        body: JSON.stringify({ subscriptionId, teamId }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        setResyncError(String(data?.hint || data?.error || 'Attach failed'));
+        return;
+      }
+      setUnattachedVideoSubs(prev => prev.filter(s => s.id !== subscriptionId));
+      setAttachPickerId(null);
+      setAttachTeamId('');
+      setResyncMessage('Media plan attached. Force-close and reopen the app to see uploads unlock on that team.');
+    } catch (err) {
+      setResyncError(String((err as any)?.message || err));
+    } finally {
+      setAttachBusyId(null);
+    }
+  };
 
   const knownEmail = (currentUser?.email || userData?.email || '').trim();
 
@@ -427,6 +505,93 @@ const SubscriptionCard: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Refresh from Stripe — force-syncs subscription state when
+          a portal purchase or cancel didn't propagate to Firestore.
+          Also surfaces Media plans that need a team assigned. */}
+      <div className="pt-2 border-t border-line-default/10">
+        <button
+          type="button"
+          onClick={handleResync}
+          disabled={resyncBusy}
+          className="w-full text-xs font-bold py-2 text-ink-primary/65 hover:text-ink-primary hover:bg-line-default/[0.05] rounded-lg transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <path d="M23 4v6h-6M1 20v-6h6" />
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+          </svg>
+          {resyncBusy ? 'Refreshing…' : 'Refresh from Stripe'}
+        </button>
+        {resyncMessage && (
+          <p className="mt-2 text-[11px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2 leading-snug">
+            {resyncMessage}
+          </p>
+        )}
+        {resyncError && (
+          <p className="mt-2 text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 leading-snug">
+            {resyncError}
+          </p>
+        )}
+        {unattachedVideoSubs.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-ink-primary/55">
+              Media plans to attach
+            </p>
+            {unattachedVideoSubs.map((sub) => (
+              <div key={sub.id} className="rounded-lg bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-ink-primary">
+                      Media plan · {sub.videoTier === 'pro' ? 'Full Game Film' : 'Highlight Add-on'}
+                    </p>
+                    <p className="text-[11px] text-ink-primary/55">Status: {sub.status}</p>
+                  </div>
+                  {attachPickerId !== sub.id && (
+                    <button
+                      type="button"
+                      onClick={() => { setAttachPickerId(sub.id); setAttachTeamId(''); }}
+                      className="px-3 py-1.5 rounded-full bg-brand-primary/15 hover:bg-brand-primary/25 text-brand-primary text-[11px] font-black uppercase tracking-widest transition"
+                    >
+                      Attach to team
+                    </button>
+                  )}
+                </div>
+                {attachPickerId === sub.id && (
+                  <div className="mt-3 space-y-2">
+                    <select
+                      value={attachTeamId}
+                      onChange={(e) => setAttachTeamId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-surface-elevated ring-1 ring-line-default/15 text-ink-primary text-sm outline-none focus:ring-brand-primary-soft"
+                    >
+                      <option value="">Choose a team…</option>
+                      {coachTeams.map((t: any) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setAttachPickerId(null); setAttachTeamId(''); }}
+                        className="px-3 py-1.5 text-xs font-bold text-ink-primary/60 hover:text-ink-primary"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAttachTeam(sub.id, attachTeamId)}
+                        disabled={!attachTeamId || attachBusyId === sub.id}
+                        className="px-3 py-1.5 rounded-full bg-brand-primary text-white text-[11px] font-black uppercase tracking-widest hover:bg-brand-primary/90 disabled:opacity-40 transition" /* theme-ok: brand CTA */
+                      >
+                        {attachBusyId === sub.id ? 'Attaching…' : 'Attach'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <p className="text-charcoal-500 text-[11px] leading-snug pt-1">
         Cancel any time in the app. Plan changes and payment method updates open goalkickr.com in your system browser.

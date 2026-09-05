@@ -288,6 +288,18 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       return new Response(res.body, { status: res.status, headers });
     }
 
+    // GET /public/invite-preview/:inviteId — team-specific title +
+    //   image for the /join Open Graph meta tags. Called by the
+    //   Vercel edge route so WhatsApp / iMessage / Slack render
+    //   "Join {team}" previews instead of generic app copy.
+    if (url.pathname.startsWith('/public/invite-preview/') && req.method === 'GET') {
+      const { handleInvitePreview } = await import('./publicFixtures');
+      const res = await handleInvitePreview(req, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
     // GET /o/:campaignId/:token.gif — campaign open-tracking pixel.
     //   Always returns a 1x1 transparent gif; bumps openCount when
     //   the token is valid. No CORS or auth.

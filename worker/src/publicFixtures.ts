@@ -230,3 +230,73 @@ export async function handlePublicVotingRoster(req: Request, env: Env): Promise<
 
   return jsonResponse({ ok: true, teamId, players: roster });
 }
+
+// ────────────────────────────────────────────────────────────────
+// /public/invite-preview/:inviteId
+//
+// Returns { ok, title, description, image } for a self-serve /join
+// link. Called server-side by the Vercel edge route that injects
+// dynamic Open Graph tags into the invite page HTML so WhatsApp /
+// iMessage / Slack / Facebook show team-specific link previews
+// ("Join STG Liverpool Depends 40+") instead of the generic app
+// description.
+//
+// No auth. Invite IDs are 12-char URL-safe slugs generated with
+// crypto.getRandomValues (see src/utils/invites.ts newSlug), so an
+// attacker cannot enumerate. Even if they could, the response only
+// exposes team name + team cover photo + audience — all of which
+// leak to the joiner on the /join page itself.
+//
+// Edge-cached briefly (60s) since the same invite may get scraped
+// once by every messaging app that saw the link.
+// ────────────────────────────────────────────────────────────────
+export async function handleInvitePreview(req: Request, env: Env): Promise<Response> {
+  const url = new URL(req.url);
+  const parts = url.pathname.split('/').filter(Boolean); // ['public','invite-preview','INVITEID']
+  const inviteId = parts[2] || '';
+  if (!inviteId) return jsonResponse({ ok: false, error: 'invite-id-required' }, 400);
+
+  const cfg = projectAndSA(env);
+  if (!cfg) return jsonResponse({ ok: false, error: 'server-not-configured' }, 503);
+  const { pid, sa } = cfg;
+
+  const inviteDoc = await getDocument(pid, `invites/${inviteId}`, sa).catch(() => null);
+  if (!inviteDoc) return jsonResponse({ ok: false, error: 'invite-not-found' }, 404);
+  const inv: any = (inviteDoc as any).data || {};
+  const teamId = String(inv.teamId || '');
+  if (!teamId) return jsonResponse({ ok: false, error: 'invite-missing-team' }, 500);
+
+  const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  const t: any = (teamDoc as any)?.data || {};
+  const teamName = String(t.name || 'the team');
+  const audience = String(t.audienceType || '');
+
+  // Prefer a team-specific hero image. Coaches can upload a cover
+  // photo (t.coverPhotoUrl) that shows on the public /f/{teamId}
+  // page; reuse it as the OG image so the link preview matches the
+  // brand the joiner will see. Fall back to the app logo so we
+  // never ship a broken preview.
+  const image = String(t.coverPhotoUrl || 'https://app.goalkickr.com/logo512.png');
+
+  // Copy shape per invite type. Adult teams read as pickup /
+  // recreational; youth teams read as family-oriented; staff
+  // invites frame as "join the coaching staff."
+  const inviteType = String(inv.type || '');
+  let title = `Join ${teamName}`;
+  let description = 'Team management for soccer. RSVPs, chat, stats, and media in one place.';
+  if (inviteType === 'team_self_serve_adult' || audience === 'adult') {
+    description = `Tap in on ${teamName}. RSVPs, team chat, and match updates on your device.`;
+  } else if (inviteType === 'player') {
+    const playerName = String(inv.playerName || '').trim();
+    title = playerName ? `Follow ${playerName} on ${teamName}` : `Join ${teamName}`;
+    description = 'See match updates, clips, and shoutouts as they happen.';
+  } else if (inviteType === 'coach') {
+    title = `Coach ${teamName}`;
+    description = 'Join the coaching staff. RSVPs, roster, stats, and team comms.';
+  } else if (inviteType === 'team_manager') {
+    title = `Manage ${teamName}`;
+    description = 'Team manager access to roster, RSVPs, and comms.';
+  }
+
+  return jsonResponse({ ok: true, title, description, image, teamName });
+}

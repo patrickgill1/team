@@ -21,7 +21,10 @@ import NextMatchCountdownCard from '../components/dashboard/NextMatchCountdownCa
 import AdultHeroCard from '../components/dashboard/AdultHeroCard';
 import GametapeSection from '../components/gametape/GametapeSection';
 import FamilyFeed from '../components/dashboard/FamilyFeed';
-import WeeklySpotlightCard, { type SpotlightPotm, type SpotlightPick } from '../components/dashboard/WeeklySpotlightCard';
+// WeeklySpotlightCard trimmed 2026-09-05 per Dashboard content audit
+// — POTM crown surfaces on AdultHero + MyPlayerCard hero rings
+// already, and coach's-pick recognition lives on the honoree's own
+// profile. Card was surfacing the same info as chrome noise.
 import InThePoolHero from '../components/dashboard/InThePoolHero';
 import NotificationsBanner from '../components/common/NotificationsBanner';
 import SubscribeBanner from '../components/dashboard/SubscribeBanner';
@@ -866,27 +869,28 @@ const Dashboard: React.FC = () => {
   // avoids a hollow-card week after a bye), while the gold-hero
   // toggle keeps its stricter 7-day window.
   const [isPotmThisWeek, setIsPotmThisWeek] = useState(false);
-  const [spotlightPotm, setSpotlightPotm] = useState<SpotlightPotm | null>(null);
   useEffect(() => {
-    if (!selectedTeamId) { setIsPotmThisWeek(false); setSpotlightPotm(null); return; }
+    if (!selectedTeamId) { setIsPotmThisWeek(false); return; }
     let cancelled = false;
     (async () => {
       try {
         const { collection: fsColl, query, where, getDocs, orderBy, limit } = await import('firebase/firestore');
         const { db } = await import('../utils/firebase');
+        // 2026-09-05 trim: was pulling limit(3) to feed BOTH the
+        // gold-hero toggle AND the WeeklySpotlightCard. Card removed
+        // (see Dashboard trim note); this query now only computes
+        // isPotmThisWeek so limit(1) suffices.
         const snap = await getDocs(query(
           fsColl(db, 'match_votings'),
           where('teamId', '==', selectedTeamId),
           orderBy('closedAt', 'desc'),
-          limit(3),
+          limit(1),
         ));
         if (cancelled) return;
-        const now = Date.now();
-        const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
-        const twoWeeksAgo = now - 14 * 24 * 60 * 60 * 1000;
+        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-        // Gold-hero toggle: still 7-day window, still keyed on my
-        // player (coach viewer never gets the gold treatment).
+        // Gold-hero toggle: 7-day window, keyed on my player (coach
+        // viewer never gets the gold treatment).
         const won = myPlayer ? snap.docs.some(d => {
           const v = d.data() as any;
           const closed = v.closedAt?.toDate ? v.closedAt.toDate().getTime() : 0;
@@ -896,73 +900,15 @@ const Dashboard: React.FC = () => {
           return winners.some(w => w.playerId === myPlayer.id) || winner?.playerId === myPlayer.id;
         }) : false;
         setIsPotmThisWeek(won);
-
-        // Spotlight: newest closed voting within 14 days. Prefer
-        // winners[0] over the legacy singular winner; render null if
-        // neither is set.
-        let spotlight: SpotlightPotm | null = null;
-        for (const d of snap.docs) {
-          const v = d.data() as any;
-          const closed = v.closedAt?.toDate ? v.closedAt.toDate().getTime() : 0;
-          if (!closed || closed < twoWeeksAgo) continue;
-          const winners: any[] = Array.isArray(v.winners) ? v.winners : [];
-          const w = winners[0] || v.winner;
-          if (!w?.playerId) continue;
-          // Prefer the fresh player doc's photo if we have it (roster
-          // is already loaded), fall back to the winner payload's
-          // stamped photoUrl if present.
-          const p = players.find(pl => pl.id === w.playerId);
-          spotlight = {
-            playerId: w.playerId,
-            playerName: w.playerName || p?.name || 'Player',
-            playerPhotoUrl: (p as any)?.profilePhotoUrl || w.playerPhotoUrl || null,
-            gameTitle: v.gameTitle || undefined,
-            isCoWin: winners.length > 1,
-            closedAt: new Date(closed),
-          };
-          break;
-        }
-        setSpotlightPotm(spotlight);
       } catch (err) {
         console.warn('potm check failed', err);
       }
     })();
     return () => { cancelled = true; };
-    // players is intentionally included so the photo binds correctly
-    // once the roster resolves — the query itself doesn't depend on
-    // it, but the render payload does.
-  }, [selectedTeamId, myPlayer?.id, players]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedTeamId, myPlayer?.id]);
 
-  // Spotlight: most recent coach's-pick across the roster within
-  // 14 days. Pure in-memory scan against the already-loaded
-  // `players` state — no extra Firestore reads. The raw coach note
-  // is intentionally NOT surfaced here (Phase-1 recognitions are
-  // private whispers; the note stays on the honoree family's
-  // Whispers tab). The card renders a generic "Coach recognized X's
-  // effort" celebration line instead.
-  const [spotlightPick, setSpotlightPick] = useState<SpotlightPick | null>(null);
-  useEffect(() => {
-    if (!Array.isArray(players) || players.length === 0) { setSpotlightPick(null); return; }
-    const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
-    let best: SpotlightPick | null = null;
-    let bestMs = 0;
-    for (const p of players) {
-      const cp: any = (p as any).badges?.coach_pick;
-      if (!cp?.earnedAt) continue;
-      const ms = cp.earnedAt?.toDate ? cp.earnedAt.toDate().getTime()
-        : (cp.earnedAt instanceof Date ? cp.earnedAt.getTime() : new Date(cp.earnedAt).getTime());
-      if (!Number.isFinite(ms) || ms < twoWeeksAgo) continue;
-      if (ms <= bestMs) continue;
-      bestMs = ms;
-      best = {
-        playerId: p.id,
-        playerName: p.name || 'Player',
-        playerPhotoUrl: (p as any).profilePhotoUrl || null,
-        earnedAt: new Date(ms),
-      };
-    }
-    setSpotlightPick(best);
-  }, [players]);
+  // spotlightPick effect removed 2026-09-05 with WeeklySpotlightCard —
+  // it was the only consumer.
 
   // Most recent clip featuring my player (parents) or just the latest clip (coaches).
   const featuredClip = useMemo(() => {
@@ -1074,7 +1020,8 @@ const Dashboard: React.FC = () => {
     }
     return isCold ? `${nextEventWeather.precipChance}% rain — pack layers` : `${nextEventWeather.precipChance}% chance of rain`;
   }, [nextEvent, nextEventWeather]);
-  const recentChats = chatThreads.slice(0, 3);
+  // recentChats slice removed 2026-09-05 with LatestChatsCard —
+  // it was the only consumer.
   // The current user's RSVP on the next event, if they've responded.
   const myRsvp = nextEvent && userData?.uid ? (nextEvent.rsvps || {})[userData.uid] : null;
 
@@ -1935,14 +1882,11 @@ const Dashboard: React.FC = () => {
             users so single-team dashboards are unaffected. */}
         <FamilyFeed />
 
-        {/* Weekly Spotlight — two-row amber Awards card surfacing the
-            team's most-recent POTM (row 1) + most-recent coach's-pick
-            (row 2). Silent empty: returns null when neither slot is
-            set inside the 14-day window, so byes and quiet weeks
-            don't pin a hollow card to the dashboard. Sits ABOVE the
-            "New for you" strip so it acts as the headline and "New
-            for you" is the follow-through list. */}
-        <WeeklySpotlightCard potm={spotlightPotm} pick={spotlightPick} />
+        {/* WeeklySpotlightCard trimmed 2026-09-05 per Dashboard
+            content audit — POTM crown already surfaces as the gold
+            hero ring on AdultHero + MyPlayerCard, and coach's-pick
+            recognitions live on the honoree's profile. Card was
+            surfacing the same info as below-fold chrome noise. */}
 
         {/* 6-tile quick-action launcher removed in v3.2.50 — three
             of the six (Events, Media, Chat) duplicate the bottom tab
@@ -2019,21 +1963,10 @@ const Dashboard: React.FC = () => {
             wall of juggling-post previews. New signal lives at the
             top of the chrome. */}
 
-        {/* Latest chats. Compact 3-row list, silent when nothing
-            has activity in the last 14 days. Unread rows lead the
-            sort + get emphasis so a new DM pops without needing to
-            scroll into /chat. Restores the "latest messages" glance
-            surface Patrick asked for after 3.9.149. */}
-        {userData?.uid && (
-          <LatestChatsCard chats={chatThreads} userUid={userData.uid} userPhotoMap={userPhotoMap} />
-        )}
-
-        {/* RecentChatsCard removed in v3.2.50 — Patrick: "I don't use
-            recent chats as I thought I would." Chat tab is one tap
-            away on the bottom bar with its own unread badge. Team
-            Pulse stays for coaches / non-parent viewers since it
-            surfaces team-wide leaderboard context that isn't visible
-            anywhere else. */}
+        {/* LatestChatsCard trimmed 2026-09-05 per Dashboard content
+            audit — Chat tab is one tap away on the bottom nav with
+            its own unread badge; the glance surface didn't earn its
+            second render slot. Team Pulse below stays. */}
         {(isUserCoach || !myPlayer) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TeamPulseCard
@@ -2047,10 +1980,12 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* ── FEATURED HIGHLIGHT (one big tile) ─────────────────── */}
-        {featuredClip && (
-          <FeaturedHighlight clip={featuredClip} />
-        )}
+        {/* FeaturedHighlight trimmed 2026-09-05 per Dashboard content
+            audit — Media tab surfaces recent clips + full grid; Wall
+            auto-posts new clips into the primary feed. A lone
+            below-the-fold video tile was a straight duplicate.
+            featuredClip useMemo kept because MyPlayerCard/AdultHero
+            still use latestThumb for their card badge. */}
 
         {/* Footer stats grid removed in v3.2.50 — Patrick's half-
             empty critique flagged it as below-the-fold noise that
@@ -2275,118 +2210,8 @@ const UnreadMessagesCard: React.FC<{ count: number; thread: any | null }> = ({ c
   );
 };
 
-// Compact "Recent chats" card that replaces the announcements slot
-// removed in 3.9.149. Density rules:
-//   - Silent when there are zero recent threads. No "no messages"
-//     empty state.
-//   - Cap at 3 rows. Anything beyond lives on /chat.
-//   - Only threads with lastActivity in the last 14 days show up —
-//     stale channels don't clutter the dashboard.
-//   - Unread rows lead with a red dot + brand-tinted background so
-//     they pop against the read rows behind them.
-//   - Tap deep-links to the exact thread, not the /chat index.
-//
-// Data source: dashboard's chatThreads state, which now includes
-// team threads AND DMs (fixed 3.9.153 with the two-subscription
-// merge above). Sort priority: unread first, then most recent.
-const LatestChatsCard: React.FC<{ chats: any[]; userUid: string; userPhotoMap?: Record<string, string> }> = ({ chats, userUid, userPhotoMap }) => {
-  const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
-  const now = Date.now();
-  const scored = chats
-    // Defense-in-depth for the 2026-07-21 group-chat privacy fix.
-    // The rule + query-shape gates upstream already ensure a group
-    // (or DM) never lands here unless the viewer is a participant,
-    // but a stale in-memory snapshot from before the fix deployed
-    // could still be around. Re-check participants for anything
-    // isGroup/isDM so a race can't render a preview to a
-    // non-member.
-    .filter((t: any) => {
-      const isGroup = t?.isGroup === true;
-      const isDM = t?.isDM === true;
-      if (!isGroup && !isDM) return true;
-      const parts: string[] = Array.isArray(t?.participants) ? t.participants : [];
-      return parts.includes(userUid);
-    })
-    .filter((t: any) => t?.lastActivity && (now - new Date(t.lastActivity).getTime()) < FOURTEEN_DAYS)
-    .map((t: any) => {
-      const unread = typeof t?.unreadCount?.[userUid] === 'number' ? t.unreadCount[userUid] : 0;
-      return { t, unread, at: new Date(t.lastActivity).getTime() };
-    })
-    .sort((a, b) => {
-      // Unread first, then by most recent activity within each bucket.
-      if ((a.unread > 0) !== (b.unread > 0)) return a.unread > 0 ? -1 : 1;
-      return b.at - a.at;
-    })
-    .slice(0, 3);
-  if (scored.length === 0) return null;
-  return (
-    <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 overflow-hidden shadow-lg">
-      <div className="px-4 py-2.5 border-b border-line-default/10 flex items-center justify-between">
-        <h3 className="text-[11px] font-black tracking-widest uppercase text-ink-primary/60">
-          Recent chats
-        </h3>
-        <Link to="/chat" className="text-[11px] font-bold text-ink-primary/55 hover:text-ink-primary transition">
-          View all →
-        </Link>
-      </div>
-      <ul className="divide-y divide-line-default/5">
-        {scored.map(({ t, unread }) => {
-          const isDM = t.isDM === true;
-          const otherUid = isDM ? (t.participants || []).find((u: string) => u !== userUid) : null;
-          const displayTitle = isDM
-            ? (t.dmParticipantNames?.[otherUid] || String(t.title || '').replace(/^DM:\s*/, '') || 'Direct message')
-            : (t.title || 'Team chat');
-          const dmPhotoUrl = isDM && otherUid ? userPhotoMap?.[otherUid] : undefined;
-          const initial = (displayTitle || '?').charAt(0).toUpperCase();
-          const last = t.lastMessage;
-          const snippet = last?.content
-            ? String(last.content).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
-            : last?.senderName
-              ? '(new message)'
-              : '';
-          return (
-            <li key={t.id}>
-              <Link
-                to={`/chat?thread=${t.id}`}
-                className={`flex items-center gap-3 px-4 py-2.5 hover:bg-line-default/[0.04] transition-colors ${unread > 0 ? 'bg-brand-primary/[0.04]' : ''}`}
-              >
-                {/* Avatar / initial. DMs prefer the other participant
-                    photo when we have it; group threads use the
-                    initial on a slate tile. */}
-                {dmPhotoUrl ? (
-                  <img src={dmPhotoUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-1 ring-line-default/10" />
-                ) : (
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0 ${isDM ? 'bg-brand-primary' : 'bg-slate-600'}`}>
-                    {initial}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-1.5">
-                    {unread > 0 && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0" aria-hidden />
-                    )}
-                    <p className={`truncate text-sm ${unread > 0 ? 'font-black text-ink-primary' : 'font-semibold text-ink-primary/85'}`}>
-                      {displayTitle}
-                    </p>
-                    <span className="ml-auto text-[10px] text-ink-primary/45 flex-shrink-0">
-                      {relativeTime(new Date(t.lastActivity))}
-                    </span>
-                  </div>
-                  {snippet && (
-                    <p className={`truncate text-xs mt-0.5 ${unread > 0 ? 'text-ink-primary/80' : 'text-ink-primary/50'}`}>
-                      {last?.senderName ? <span className="font-semibold">{last.senderName}: </span> : null}
-                      {snippet}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-};
+// LatestChatsCard component definition removed 2026-09-05 with the
+// render trim above. Chat tab surfaces the same info + unread badge.
 
 const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhotoMap?: Record<string, string> }> = ({ chats, userUid, userPhotoMap }) => {
   return (
@@ -3168,74 +2993,8 @@ const PulseStat: React.FC<{ label: string; value: number }> = ({ label, value })
   </div>
 );
 
-const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
-  const thumb = clipThumb(clip);
-  const duration = clip.durationSeconds || clip.duration;
-  const formatDuration = (s: number) => {
-    if (!s || isNaN(s)) return null;
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, '0')}`;
-  };
-  const durText = typeof duration === 'number' ? formatDuration(duration) : null;
-  // Opponent context for games: "vs <opponent>" or fall back to player name.
-  const ctxLine = clip.opponent ? `vs ${clip.opponent}` : (clip.playerName && clip.caption ? clip.playerName : null);
-  const headline = clip.caption || clip.playerName || 'Team highlight';
-  return (
-    <Link
-      to={`/player-media?clip=${clip.id}`}
-      className="block relative overflow-hidden rounded-2xl ring-1 ring-line-default bg-surface-elevated group shadow-sm"
-    >
-      <div className="aspect-[16/9] sm:aspect-[16/8]">
-        {thumb ? (
-          <img src={thumb} alt={headline} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition" loading="lazy" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-6xl">🎬</div>
-        )}
-      </div>
-      {/* Dim overlay so text stays readable on bright thumbnails */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/30 to-black/40" />
-
-      {/* Top-left: label + headline */}
-      <div className="absolute top-4 sm:top-5 left-4 sm:left-5 right-32 text-white">
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-primary-soft mb-1">Latest highlight</p>
-        <p className="text-2xl sm:text-3xl font-black leading-tight drop-shadow">{headline}</p>
-        {ctxLine && (
-          <p className="text-sm text-white/85 mt-0.5 drop-shadow">{ctxLine}</p>
-        )}
-      </div>
-
-      {/* Center play button */}
-      {clip.type === 'video' && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-brand-primary/95 ring-2 ring-line-default/80 shadow-2xl flex items-center justify-center">
-            <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom-left: Watch clip link */}
-      <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5">
-        <span className="inline-flex items-center gap-1.5 text-brand-primary-soft font-bold text-sm drop-shadow">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
-            <path d="M10 8l6 4-6 4V8z" />
-          </svg>
-          Watch clip
-        </span>
-      </div>
-
-      {/* Bottom-right: duration */}
-      {durText && (
-        <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5">
-          <span className="text-white font-mono font-bold text-sm bg-black/40 px-2 py-0.5 rounded">{durText}</span>
-        </div>
-      )}
-    </Link>
-  );
-};
+// FeaturedHighlight component definition removed 2026-09-05 with the
+// render trim above. Media tab surfaces recent clips + full library.
 
 // Compact dark-navy quick-action tile for the dashboard's 6-up grid.
 // Icon stacked over label, with an optional notification badge in

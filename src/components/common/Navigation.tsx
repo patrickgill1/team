@@ -23,6 +23,7 @@ import { useAuth } from '../../hooks/useAuth';
 // WallHeaderButton retired 2026-07-08 — Wall is a primary bottom tab.
 import ProfileMenuSheet from './ProfileMenuSheet';
 import NotificationsHeaderBar from './NotificationsHeaderBar';
+import GlobalSearchSheet from './GlobalSearchSheet';
 import { useTeam } from '../../contexts/TeamContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useClubStore } from '../../hooks/useClubStore';
@@ -44,6 +45,7 @@ const Navigation: React.FC = () => {
   // isInviteOpen state removed with the legacy modal.
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isProfileSheetOpen, setIsProfileSheetOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [teamSwitcherOpen, setTeamSwitcherOpen] = useState(false);
   const [archivedExpanded, setArchivedExpanded] = useState(false);
 
@@ -631,6 +633,23 @@ const Navigation: React.FC = () => {
           )}
 
           <div className="ml-auto shrink-0 flex items-center gap-2">
+            {/* Global search — cross-surface find (players, events,
+                wall) scoped to the currently-selected team. Chat
+                search stays inside the Chat tab where results can
+                deep-link to a specific message. */}
+            {selectedTeamId && (
+              <button
+                type="button"
+                onClick={() => setIsSearchOpen(true)}
+                aria-label="Search this team"
+                className="h-8 w-8 rounded-full flex items-center justify-center text-ink-primary/70 hover:text-ink-primary hover:bg-line-default/10 transition"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="7" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </button>
+            )}
             {/* Unified header notification bar (2026-07-09). Was two
                 separate icons (chat + wall) with their own red dots;
                 Patrick called that redundant with the surface tabs
@@ -1173,6 +1192,12 @@ const Navigation: React.FC = () => {
           right avatar. Renders via portal so it overlays the entire
           app, not just the nav. */}
       <ProfileMenuSheet open={isProfileSheetOpen} onClose={() => setIsProfileSheetOpen(false)} />
+      <GlobalSearchSheet
+        open={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        teamId={selectedTeamId}
+        teamName={selectedTeam?.name}
+      />
     </>
   );
 };

@@ -2936,13 +2936,13 @@ export async function handleSubscriptionResync(req: Request, env: any, payload: 
 
   // Pull all this customer's subs (active + past). status=all returns
   // canceled ones too so we can detect a cancel that never made it
-  // to Firestore. Expand items.data.price AND the price's product so
-  // we can fall back to product-name heuristic when the priceId isn't
-  // in the env whitelist (portal purchases, re-created products).
+  // to Firestore. Expand items.data.price (4 levels - Stripe's cap).
+  // Product info comes via a per-sub follow-up fetch below when the
+  // priceId+nickname heuristic can't classify the sub.
   let subs: any[] = [];
   try {
     const listRes = await fetch(
-      `https://api.stripe.com/v1/subscriptions?customer=${encodeURIComponent(customerId)}&status=all&expand[]=data.items.data.price.product&limit=20`,
+      `https://api.stripe.com/v1/subscriptions?customer=${encodeURIComponent(customerId)}&status=all&expand[]=data.items.data.price&limit=20`,
       { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
     );
     const list: any = await listRes.json();
@@ -2952,16 +2952,63 @@ export async function handleSubscriptionResync(req: Request, env: any, payload: 
     return json({ ok: false, error: String((err as any)?.message || err) }, 502);
   }
 
+  // Product cache — some subs share the same product, so cache the
+  // fetch to avoid repeated calls when we fall back to the name
+  // heuristic.
+  const productCache = new Map<string, any>();
+  const fetchProduct = async (productId: string): Promise<any | null> => {
+    if (!productId) return null;
+    if (productCache.has(productId)) return productCache.get(productId);
+    try {
+      const r = await fetch(`https://api.stripe.com/v1/products/${encodeURIComponent(productId)}`, {
+        headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` },
+      });
+      const p: any = await r.json();
+      if (!r.ok) { productCache.set(productId, null); return null; }
+      productCache.set(productId, p);
+      return p;
+    } catch {
+      productCache.set(productId, null);
+      return null;
+    }
+  };
+
   const unattachedVideoSubs: any[] = [];
   const summary: any[] = [];
 
   for (const sub of subs) {
     const price = sub?.items?.data?.[0]?.price;
     const priceId = String(price?.id || '');
-    // Try env-whitelist first, then fall back to name/product heuristic.
-    const videoTier = videoTierForPriceId(priceId, env) || videoTierFromNames(sub);
+    // Try env-whitelist first, then nickname heuristic.
+    let videoTier = videoTierForPriceId(priceId, env) || videoTierFromNames(sub);
     const userTier = tierForPriceId(priceId, env);
-    const productName = String(price?.product?.name || price?.nickname || '');
+
+    // Always fetch the product when it's an unexpanded string id, so
+    // the summary shows product name AND the heuristic gets its best
+    // chance. Bounded (productCache dedupes) so cheap for typical
+    // 1-3 sub customers.
+    let productName = String(price?.nickname || '');
+    if (price?.product && typeof price.product === 'string') {
+      const product = await fetchProduct(price.product);
+      if (product) {
+        (sub.items.data[0].price as any).product = product;
+        videoTier = videoTier || videoTierFromNames(sub);
+        productName = String(product?.name || price?.nickname || '');
+      }
+    } else if (price?.product && typeof price.product === 'object') {
+      productName = String(price.product.name || price?.nickname || '');
+    }
+
+    // Escape hatch: any sub that is NOT identifiable as a user-tier
+    // plan (Coach / Club / Founder) is a video-plan candidate. This
+    // covers the case where our heuristic missed the product name
+    // (branded plan, custom nickname, product renamed post-launch).
+    // Coach confirms intent by tapping Attach; the attach handler
+    // defaults videoTier='pro' when the sub is unrecognized so
+    // uploads unlock immediately.
+    if (!videoTier && !userTier && (sub.status === 'active' || sub.status === 'trialing')) {
+      videoTier = 'pro';
+    }
 
     // Fill missing metadata so the shared sync helpers behave the
     // same way they would on a proper app checkout webhook.
@@ -3075,8 +3122,17 @@ export async function handleVideoSubscriptionAttachTeam(req: Request, env: any, 
     return json({ ok: false, error: 'sub-not-yours' }, 403);
   }
   const priceId = String(sub?.items?.data?.[0]?.price?.id || '');
-  const videoTier = videoTierForPriceId(priceId, env) || videoTierFromNames(sub);
-  if (!videoTier) return json({ ok: false, error: 'not-a-video-sub', hint: 'This subscription is not a Video plan.' }, 400);
+  // Reject only if this sub IS an identified user-tier plan (Coach
+  // / Club / Founder) — those never attach to a team. For anything
+  // else, trust the coach's intent and default videoTier='pro' when
+  // heuristic can't classify (branded product name, renamed plan).
+  const userTier = tierForPriceId(priceId, env);
+  if (userTier) {
+    return json({ ok: false, error: 'user-tier-sub', hint: `This is a ${userTier} plan, not a video plan.` }, 400);
+  }
+  const videoTier: 'addon' | 'pro' = videoTierForPriceId(priceId, env)
+    || videoTierFromNames(sub)
+    || 'pro';
 
   // Stamp Stripe metadata so a later webhook (e.g. cancel) can find
   // the team without re-going-through this endpoint. Also carry the

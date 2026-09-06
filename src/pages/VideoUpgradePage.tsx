@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isTeamStaff } from '../utils/helpers';
+import { isCoachOfTeam } from '../utils/helpers';
 import { startVideoCheckout, openCustomerPortal } from '../utils/subscriptionApi';
 import { getShareOrigin } from '../utils/origin';
 
@@ -20,9 +20,74 @@ const VideoUpgradePage: React.FC = () => {
 
   const team = teams.find(t => t.id === selectedTeamId);
   const tier = (team?.videoTier || 'free') as 'free' | 'addon' | 'pro';
-  const allowed = !!userData && isTeamStaff(userData.role);
+  // 2026-09-06: was isTeamStaff(userData.role) — a global-role check.
+  // Per coach-role-model memory, whether someone coaches is per-team
+  // on team.coachIds, not on the global user.role. Same bug pattern
+  // that killed the Coach mode picker on adult teams. Use the
+  // per-team check so a coach whose global role is 'parent' still
+  // hits the upgrade flow when they're actually a coach on this team.
+  const allowed = !!userData && isCoachOfTeam(userData, team);
   const proSkuConfigured = !!process.env.REACT_APP_STRIPE_PRICE_VIDEO_PRO;
   const addonSkuConfigured = !!process.env.REACT_APP_STRIPE_PRICE_VIDEO_ADDON;
+
+  // Existing-sub attach: if the coach already has a Video plan on
+  // their Stripe account but it isn't attached to any team yet
+  // (portal purchase, cancelled + resubscribed), let them attach it
+  // to THIS team instead of buying another. Prevents duplicate
+  // charges + solves the "I bought Video Pro and still can't
+  // upload" case Patrick 2026-09-06 hit.
+  const [unattachedSubs, setUnattachedSubs] = useState<Array<{
+    id: string; videoTier?: string; status?: string; productName?: string;
+  }>>([]);
+  const [attachBusy, setAttachBusy] = useState<string | null>(null);
+  const [attachError, setAttachError] = useState<string | null>(null);
+  const [attachMessage, setAttachMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!allowed || !team?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { workerFetch } = await import('../utils/workerFetch');
+        const res = await workerFetch('/subscriptions/resync', {
+          method: 'POST',
+          body: JSON.stringify({}),
+        });
+        const data: any = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && data?.ok) {
+          setUnattachedSubs(data.unattachedVideoSubs || []);
+        }
+      } catch { /* silent — page still works without this */ }
+    })();
+    return () => { cancelled = true; };
+    // Only fire once per team switch; not per re-render.
+  }, [allowed, team?.id]);
+
+  const handleAttach = async (subscriptionId: string) => {
+    if (!team?.id || attachBusy) return;
+    setAttachBusy(subscriptionId);
+    setAttachError(null);
+    setAttachMessage(null);
+    try {
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/video-subscriptions/attach-team', {
+        method: 'POST',
+        body: JSON.stringify({ subscriptionId, teamId: team.id }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        setAttachError(String(data?.hint || data?.error || 'Attach failed'));
+        return;
+      }
+      setUnattachedSubs(prev => prev.filter(s => s.id !== subscriptionId));
+      setAttachMessage('Attached. Force-close and reopen the app to unlock uploads on this team.');
+    } catch (err) {
+      setAttachError(String((err as any)?.message || err));
+    } finally {
+      setAttachBusy(null);
+    }
+  };
 
   if (!allowed) {
     return (
@@ -92,6 +157,53 @@ const VideoUpgradePage: React.FC = () => {
           Free teams get 20 highlight clips of up to 60 seconds each — perfect for game moments. Upgrade {team?.name ? <span className="text-ink-primary font-bold">{team.name}</span> : 'your team'} when you want to host full games, run a film room, and skip the YouTube grind.
         </p>
       </div>
+
+      {/* Existing-video-sub attach — surfaces when the coach already
+          has a Stripe video plan that isn't tied to this team yet.
+          Prevents duplicate charges: attach the existing sub instead
+          of buying another. */}
+      {unattachedSubs.length > 0 && (
+        <div className="bg-emerald-500/10 rounded-2xl border border-emerald-500/30 p-5 mb-6">
+          <p className="text-[11px] font-extrabold tracking-widest uppercase text-emerald-300 mb-2">
+            You already have a Video plan
+          </p>
+          <p className="text-sm text-ink-primary/85 leading-snug mb-4">
+            Looks like {unattachedSubs.length === 1 ? 'a Video subscription is' : `${unattachedSubs.length} Video subscriptions are`} on your account but not attached to a team yet. Attach {unattachedSubs.length === 1 ? 'it' : 'one'} to {team?.name || 'this team'} to unlock uploads without buying another plan.
+          </p>
+          <div className="space-y-2">
+            {unattachedSubs.map((sub) => (
+              <div key={sub.id} className="rounded-lg bg-surface-elevated ring-1 ring-line-default/15 p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-ink-primary truncate">
+                    {sub.productName || (sub.videoTier === 'pro' ? 'Full Game Film' : 'Video plan')}
+                  </p>
+                  {sub.status && (
+                    <p className="text-[11px] text-ink-primary/55">Status: {sub.status}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleAttach(sub.id)}
+                  disabled={attachBusy === sub.id || !!attachBusy}
+                  className="px-3 py-1.5 rounded-full bg-brand-primary text-white text-[11px] font-black uppercase tracking-widest hover:bg-brand-primary/90 disabled:opacity-40 transition" /* theme-ok: brand CTA */
+                >
+                  {attachBusy === sub.id ? 'Attaching…' : 'Attach to this team'}
+                </button>
+              </div>
+            ))}
+          </div>
+          {attachMessage && (
+            <p className="mt-3 text-[11px] text-emerald-300 bg-emerald-500/15 border border-emerald-500/40 rounded-lg px-3 py-2 leading-snug">
+              {attachMessage}
+            </p>
+          )}
+          {attachError && (
+            <p className="mt-3 text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 leading-snug">
+              {attachError}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="space-y-3 mb-6">
         <TierCard

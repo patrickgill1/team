@@ -2906,50 +2906,65 @@ export async function handleSubscriptionResync(req: Request, env: any, payload: 
   const uid = String(claims?.uid || '');
   if (!uid) return json({ ok: false, error: 'not-signed-in' }, 401);
 
-  // Find caller's Stripe customerId. Preference order:
-  //   1. Existing subscriptions/{uid}.customerId (fastest)
-  //   2. users/{uid}.stripeCustomerId (if we've ever stamped it)
-  //   3. Look up by email via Stripe /customers?email=
-  let customerId = '';
+  // Find every Stripe customer that belongs to this uid. A single
+  // email often maps to MULTIPLE Stripe customers when the coach
+  // purchased separate plans in different sessions (Coach in app,
+  // Video Pro on marketing site, Club in Customer Portal). Sync
+  // subs across ALL of them so a Video Pro under customer B doesn't
+  // hide behind a Coach doc pointing at customer A.
+  const customerIds = new Set<string>();
   const subDoc = await getDocument(projectId, `subscriptions/${uid}`, sa).catch(() => null);
-  if (subDoc?.data?.customerId) customerId = String(subDoc.data.customerId);
-  if (!customerId) {
-    const userDoc = await getDocument(projectId, `users/${uid}`, sa).catch(() => null);
-    if (userDoc?.data?.stripeCustomerId) customerId = String(userDoc.data.stripeCustomerId);
-    const email = String(userDoc?.data?.email || claims.email || '').trim().toLowerCase();
-    if (!customerId && email) {
-      try {
-        const custRes = await fetch(
-          `https://api.stripe.com/v1/customers?email=${encodeURIComponent(email)}&limit=1`,
-          { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
-        );
-        const cust: any = await custRes.json();
-        if (cust?.data?.[0]?.id) customerId = String(cust.data[0].id);
-      } catch (err) {
-        console.warn('[resync] customer lookup failed', err);
+  if (subDoc?.data?.customerId) customerIds.add(String(subDoc.data.customerId));
+  const userDoc = await getDocument(projectId, `users/${uid}`, sa).catch(() => null);
+  if (userDoc?.data?.stripeCustomerId) customerIds.add(String(userDoc.data.stripeCustomerId));
+  const email = String(userDoc?.data?.email || claims.email || '').trim().toLowerCase();
+  if (email) {
+    try {
+      // Stripe caps list responses at 100 — plenty for the "same
+      // email registered as customer multiple times" case, which is
+      // usually 1-3.
+      const custRes = await fetch(
+        `https://api.stripe.com/v1/customers?email=${encodeURIComponent(email)}&limit=100`,
+        { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
+      );
+      const cust: any = await custRes.json();
+      if (Array.isArray(cust?.data)) {
+        for (const c of cust.data) {
+          if (c?.id) customerIds.add(String(c.id));
+        }
       }
+    } catch (err) {
+      console.warn('[resync] email lookup failed', err);
     }
   }
-  if (!customerId) {
-    return json({ ok: false, error: 'no-stripe-customer', hint: 'No Stripe customer found for this account. If you subscribed with a different email, contact support.' }, 404);
+  if (customerIds.size === 0) {
+    return json({ ok: false, error: 'no-stripe-customer', hint: 'No Stripe customer found for this account.' }, 404);
   }
+  // Primary customerId stamped back on the user doc is the first one
+  // we discovered (most likely the "canonical" one). Any others are
+  // still queried for subs so nothing gets missed.
+  const primaryCustomerId = [...customerIds][0];
 
-  // Pull all this customer's subs (active + past). status=all returns
-  // canceled ones too so we can detect a cancel that never made it
-  // to Firestore. Expand items.data.price (4 levels - Stripe's cap).
-  // Product info comes via a per-sub follow-up fetch below when the
-  // priceId+nickname heuristic can't classify the sub.
-  let subs: any[] = [];
-  try {
-    const listRes = await fetch(
-      `https://api.stripe.com/v1/subscriptions?customer=${encodeURIComponent(customerId)}&status=all&expand[]=data.items.data.price&limit=20`,
-      { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
-    );
-    const list: any = await listRes.json();
-    if (!listRes.ok) return json({ ok: false, error: list?.error?.message || `stripe ${listRes.status}` }, 502);
-    subs = Array.isArray(list?.data) ? list.data : [];
-  } catch (err) {
-    return json({ ok: false, error: String((err as any)?.message || err) }, 502);
+  // Pull all subs across every customer id we discovered. status=all
+  // returns canceled ones too so we can detect a cancel that never
+  // made it to Firestore. Expand items.data.price (4 levels - Stripe's
+  // cap). Product info comes via a per-sub follow-up fetch below.
+  const subs: any[] = [];
+  for (const cid of customerIds) {
+    try {
+      const listRes = await fetch(
+        `https://api.stripe.com/v1/subscriptions?customer=${encodeURIComponent(cid)}&status=all&expand[]=data.items.data.price&limit=20`,
+        { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
+      );
+      const list: any = await listRes.json();
+      if (!listRes.ok) {
+        console.warn('[resync] sub list failed for customer', cid, list?.error?.message);
+        continue;
+      }
+      if (Array.isArray(list?.data)) subs.push(...list.data);
+    } catch (err) {
+      console.warn('[resync] sub list threw for customer', cid, err);
+    }
   }
 
   // Product cache — some subs share the same product, so cache the
@@ -3054,13 +3069,19 @@ export async function handleSubscriptionResync(req: Request, env: any, payload: 
     }
   }
 
-  // Stamp the customerId onto the user doc if we discovered it via
-  // email lookup — saves the roundtrip next time.
+  // Stamp the primary customerId onto the user doc if we discovered
+  // it via email lookup — saves the roundtrip next time.
   try {
-    await patchDocument(projectId, `users/${uid}`, { stripeCustomerId: customerId }, sa);
+    await patchDocument(projectId, `users/${uid}`, { stripeCustomerId: primaryCustomerId }, sa);
   } catch { /* non-fatal */ }
 
-  return json({ ok: true, customerId, summary, unattachedVideoSubs });
+  return json({
+    ok: true,
+    customerId: primaryCustomerId,
+    customerIds: [...customerIds],
+    summary,
+    unattachedVideoSubs,
+  });
 }
 
 // ── Endpoint: POST /video-subscriptions/attach-team ──────────────
@@ -3093,17 +3114,31 @@ export async function handleVideoSubscriptionAttachTeam(req: Request, env: any, 
   const coachIds: string[] = Array.isArray(teamDoc.data.coachIds) ? teamDoc.data.coachIds : [];
   if (!coachIds.includes(uid)) return json({ ok: false, error: 'not-coach-of-team' }, 403);
 
-  // Customer-owns-sub check. Resolve caller's customerId first (same
-  // sources as resync). Cheap because subscriptions/{uid} is usually
-  // present once they've resynced.
-  let customerId = '';
+  // Customer-owns-sub check. Same multi-customer resolution as
+  // resync — a coach's email can map to several Stripe customers
+  // when subs were purchased in separate sessions, and any of
+  // those customers count as "the caller."
+  const customerIds = new Set<string>();
   const subDoc = await getDocument(projectId, `subscriptions/${uid}`, sa).catch(() => null);
-  if (subDoc?.data?.customerId) customerId = String(subDoc.data.customerId);
-  if (!customerId) {
-    const userDoc = await getDocument(projectId, `users/${uid}`, sa).catch(() => null);
-    if (userDoc?.data?.stripeCustomerId) customerId = String(userDoc.data.stripeCustomerId);
+  if (subDoc?.data?.customerId) customerIds.add(String(subDoc.data.customerId));
+  const userDoc = await getDocument(projectId, `users/${uid}`, sa).catch(() => null);
+  if (userDoc?.data?.stripeCustomerId) customerIds.add(String(userDoc.data.stripeCustomerId));
+  const email = String(userDoc?.data?.email || claims.email || '').trim().toLowerCase();
+  if (email) {
+    try {
+      const custRes = await fetch(
+        `https://api.stripe.com/v1/customers?email=${encodeURIComponent(email)}&limit=100`,
+        { headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
+      );
+      const cust: any = await custRes.json();
+      if (Array.isArray(cust?.data)) {
+        for (const c of cust.data) {
+          if (c?.id) customerIds.add(String(c.id));
+        }
+      }
+    } catch { /* fall through with what we have */ }
   }
-  if (!customerId) return json({ ok: false, error: 'no-stripe-customer', hint: 'Run Refresh subscription first.' }, 404);
+  if (customerIds.size === 0) return json({ ok: false, error: 'no-stripe-customer', hint: 'Run Refresh subscription first.' }, 404);
 
   // Fetch the sub from Stripe and verify (a) it belongs to the
   // caller's customer, (b) it's a video priceId.
@@ -3118,7 +3153,7 @@ export async function handleVideoSubscriptionAttachTeam(req: Request, env: any, 
   } catch (err) {
     return json({ ok: false, error: String((err as any)?.message || err) }, 502);
   }
-  if (String(sub?.customer || '') !== customerId) {
+  if (!customerIds.has(String(sub?.customer || ''))) {
     return json({ ok: false, error: 'sub-not-yours' }, 403);
   }
   const priceId = String(sub?.items?.data?.[0]?.price?.id || '');

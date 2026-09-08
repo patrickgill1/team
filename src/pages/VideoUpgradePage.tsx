@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import { startVideoCheckout, openCustomerPortal } from '../utils/subscriptionApi';
 import { getShareOrigin } from '../utils/origin';
 
@@ -26,7 +26,7 @@ const VideoUpgradePage: React.FC = () => {
   // that killed the Coach mode picker on adult teams. Use the
   // per-team check so a coach whose global role is 'parent' still
   // hits the upgrade flow when they're actually a coach on this team.
-  const allowed = !!userData && isCoachOfTeam(userData, team);
+  const allowed = !!userData && isStaffOfTeam(userData, team);
   const proSkuConfigured = !!process.env.REACT_APP_STRIPE_PRICE_VIDEO_PRO;
   const addonSkuConfigured = !!process.env.REACT_APP_STRIPE_PRICE_VIDEO_ADDON;
 

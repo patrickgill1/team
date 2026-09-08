@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Player, Team, UserData } from '../../types';
-import { isCoachOfTeam } from '../../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../../utils/helpers';
 import { buildSidelineShouts, SHOUT_TYPE_LABEL, shoutAccentClass } from '../../utils/sidelineShouts';
 import EmptyState from '../common/EmptyState';
 import ProfileCard from './ProfileCard';
@@ -190,7 +190,7 @@ const SidelineShoutsSection: React.FC<Props> = ({
               && !!kudosRaw
               && !kudosConverted
               && !!userData
-              && isCoachOfTeam(userData, selectedTeam)
+              && isStaffOfTeam(userData, selectedTeam)
               && (selectedTeam as any)?.xpConfig?.enabled === true;
             const handleConvert = async () => {
               if (!kudosRaw) return;

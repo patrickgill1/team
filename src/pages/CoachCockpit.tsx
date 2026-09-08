@@ -5,7 +5,7 @@ import { collection, doc, getDocs, limit, orderBy, query, updateDoc, where, Time
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import type { CalendarEvent, Player } from '../types';
 import { REQUIRED_COACH_CERT_KINDS, isGuestActive } from '../types';
@@ -238,7 +238,7 @@ const CoachCockpit: React.FC = () => {
         ];
   }, [nextEvent]);
 
-  const isUserCoach = isCoachOfTeam(userData as any, selectedTeam as any);
+  const isUserCoach = isStaffOfTeam(userData as any, selectedTeam as any);
   if (!isUserCoach) {
     const teamName = (selectedTeam as any)?.name;
     return (

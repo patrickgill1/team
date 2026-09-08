@@ -432,7 +432,7 @@ const TeamChat: React.FC = () => {
   // adult player on Crushers: on Fire FC he suddenly could not see
   // the Coach thread scope, and on Crushers he could see it when he
   // shouldn't. Coach + staff are properties of a TEAM, not of a user.
-  const isCoach = isCoachOfTeam(userData as any, selectedTeam as any);
+  const isCoach = isStaffOfTeam(userData as any, selectedTeam as any);
   const isTeamStaff = isStaffOfTeam(userData as any, selectedTeam as any);
   const isUserClubAdmin = !!(userData as any)?.isClubAdmin;
   const canCreateTeamThread = !!selectedTeamId && (isTeamStaff || isUserClubAdmin);
@@ -1768,7 +1768,7 @@ const TeamChat: React.FC = () => {
     // 2026-08-03) — this client check keeps unauthorized taps
     // from wasting a round trip.
     const isOwnMsg = message.senderId === userData.uid;
-    const canModerate = isCoachOfTeam(userData, selectedTeam as any);
+    const canModerate = isStaffOfTeam(userData, selectedTeam as any);
     if (!isOwnMsg && !canModerate) return;
     const ageMs = Date.now() - new Date(message.timestamp).getTime();
     const isRecall = isOwnMsg && ageMs < 60_000;
@@ -3601,7 +3601,7 @@ const TeamChat: React.FC = () => {
                         // ad-hoc groups (not team-scoped).
                         (selectedThread as any)?.isDM !== true
                         && (selectedThread as any)?.isGroup !== true
-                        && isCoachOfTeam(userData, selectedTeam as any)
+                        && isStaffOfTeam(userData, selectedTeam as any)
                       }
                       onEdit={editMessage}
                       onTogglePin={togglePinMessage}
@@ -4111,7 +4111,7 @@ const TeamChat: React.FC = () => {
                     canModerate={
                       (selectedThread as any)?.isDM !== true
                       && (selectedThread as any)?.isGroup !== true
-                      && isCoachOfTeam(userData, selectedTeam as any)
+                      && isStaffOfTeam(userData, selectedTeam as any)
                     }
                     onEdit={editMessage}
                     onTogglePin={togglePinMessage}

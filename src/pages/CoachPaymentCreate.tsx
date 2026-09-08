@@ -4,7 +4,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import { grossUpCents, coachNetCents } from '../utils/pricing';
 import { intervalLabel } from '../utils/paymentIntervals';
@@ -94,7 +94,7 @@ const CoachPaymentCreate: React.FC = () => {
     return () => { cancelled = true; };
   }, [selectedTeamId]);
 
-  const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
+  const coachOnThisTeam = isStaffOfTeam(userData as any, selectedTeam as any);
 
   const feeCents = Math.round((Number(feeDollars) || 0) * 100);
   const intervalCents = Math.round((Number(intervalDollars) || 0) * 100);

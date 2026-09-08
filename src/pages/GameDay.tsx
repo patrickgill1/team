@@ -6,7 +6,7 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam, isOwner, resolveSenderRole } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam, isOwner, resolveSenderRole } from '../utils/helpers';
 import { isXpSourceEnabled } from '../utils/xpSource';
 import GameRecapCard from '../components/gameday/GameRecapCard';
 import PlayerRatingSheet from '../components/gameday/PlayerRatingSheet';
@@ -208,7 +208,7 @@ const GameDay: React.FC = () => {
   // whose global role is club_admin / team_manager but who are
   // actually on this specific team's coach roster.
   const isUserCoach = !!(userData && (
-    isCoachOfTeam(userData, selectedTeam)
+    isStaffOfTeam(userData, selectedTeam)
     || isOwner(userData)
   ));
 

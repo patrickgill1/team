@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { User, Player, FamilyRelationship, RELATIONSHIP_LABELS } from '../types';
-import { isCoachOfTeam, isHeadCoach, isOwner } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam, isHeadCoach, isOwner } from '../utils/helpers';
 import { computeDobAge } from '../utils/dobDate';
 import { enablePushForUser, getNotifPermission } from '../utils/push';
 import { useConfirm } from '../components/common/ConfirmDialog';
@@ -77,7 +77,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
   const [pushPerm, setPushPerm] = useState<string>(typeof window !== 'undefined' ? getNotifPermission() : 'unsupported');
   const [pushMsg, setPushMsg] = useState<string>('');
 
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
   const isUserHeadCoach = isHeadCoach(userData);
   const isUserOwner = isOwner(userData);
 

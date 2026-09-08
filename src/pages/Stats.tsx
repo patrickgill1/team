@@ -3,7 +3,7 @@ import { Player } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import { VOCAB } from '../vocab';
@@ -37,7 +37,7 @@ const Stats: React.FC = () => {
   const [adjustingPlayerId, setAdjustingPlayerId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>('goals');
 
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
   const { season: activeSeason } = useActiveSeason();
   const [statsScope, setStatsScope] = useState<'current' | 'lifetime'>('current');
 

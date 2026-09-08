@@ -4,7 +4,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 
 const QuickGameLauncher: React.FC = () => {
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ const QuickGameLauncher: React.FC = () => {
   const [homeAway, setHomeAway] = useState<'home' | 'away'>('home');
   const [busy, setBusy] = useState(false);
 
-  if (!isCoachOfTeam(userData, selectedTeam)) {
+  if (!isStaffOfTeam(userData, selectedTeam)) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base text-ink-primary flex items-center justify-center p-6">
         <div className="text-center">

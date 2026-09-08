@@ -116,7 +116,7 @@ const Calendar: React.FC<CalendarProps> = ({
   // glance most parents come to /calendar for.
   const [listTab, setListTab] = useState<'upcoming' | 'games' | 'practice' | 'past'>('upcoming');
 
-  // 2026-09-08: was isCoachOfTeam(userData, selectedTeam), which
+  // 2026-09-08: was isStaffOfTeam(userData, selectedTeam), which
   // rejected team managers even though they legitimately schedule
   // events. team_manager users live on team.managerIds, not
   // team.coachIds, so the coach-only check silently hid the create

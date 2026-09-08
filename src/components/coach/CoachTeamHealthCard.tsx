@@ -6,7 +6,7 @@ import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useViewMode } from '../../contexts/ViewModeContext';
-import { isCoachOfTeam } from '../../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../../utils/helpers';
 import { readCache, writeCache } from '../../utils/queryCache';
 
 /**
@@ -46,7 +46,7 @@ const CoachTeamHealthCard: React.FC = () => {
   const [loaded, setLoaded] = useState(false);
 
   const { viewMode } = useViewMode();
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam) && viewMode === 'coach';
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam) && viewMode === 'coach';
 
   useEffect(() => {
     if (!isUserCoach || !selectedTeamId) { setLoaded(true); return; }

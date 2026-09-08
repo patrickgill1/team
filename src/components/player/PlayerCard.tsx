@@ -176,7 +176,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
   const { teams } = useTeam();
   const playerTeam = teams.find(t => t.id === player.teamId) || null;
-  const isUserCoach = isCoachOfTeam(userData, playerTeam);
+  const isUserCoach = isStaffOfTeam(userData, playerTeam);
   const isUserStaff = isStaffOfTeam(userData, playerTeam);
   const canEdit = isUserCoach && showActions;
   const isMyChild = userData ? player.parentIds?.includes(userData.uid) : false;

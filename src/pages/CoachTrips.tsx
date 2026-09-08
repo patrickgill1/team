@@ -4,7 +4,7 @@ import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestor
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import { findOverlappingTripIds } from '../utils/tripAttribution';
 import type { Trip } from '../types';
@@ -74,7 +74,7 @@ const CoachTrips: React.FC = () => {
     return () => unsub();
   }, [selectedTeamId]);
 
-  const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
+  const coachOnThisTeam = isStaffOfTeam(userData as any, selectedTeam as any);
 
   const filtered = useMemo(() => trips.filter(t => t.status === tab), [trips, tab]);
 

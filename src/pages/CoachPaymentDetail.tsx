@@ -4,7 +4,7 @@ import { collection, doc, getDocs, onSnapshot, query, where } from 'firebase/fir
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import type { PaymentRequest, Player } from '../types';
 import { intervalShort } from '../utils/paymentIntervals';
@@ -91,7 +91,7 @@ const CoachPaymentDetail: React.FC = () => {
     return () => { cancelled = true; };
   }, [selectedTeamId]);
 
-  const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
+  const coachOnThisTeam = isStaffOfTeam(userData as any, selectedTeam as any);
 
   const relevantPlayers = useMemo(() => {
     if (!pr) return [];

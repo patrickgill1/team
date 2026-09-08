@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Player } from '../types';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 
 type SortKey = 'name' | 'status' | 'jersey';
 
@@ -16,7 +16,7 @@ const Equipment: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'outstanding' | 'returned'>('outstanding');
   const [sort, setSort] = useState<SortKey>('name');
-  const allowed = isCoachOfTeam(userData, selectedTeam);
+  const allowed = isStaffOfTeam(userData, selectedTeam);
 
   useEffect(() => {
     if (!selectedTeamId || !allowed) { setLoading(false); return; }

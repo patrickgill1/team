@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { Team, Player, CoachInvite, Invite } from '../types';
-import { isCoach, isCoachOfTeam } from '../utils/helpers';
+import { isCoach, isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import { normalizeKit } from '../utils/kitColors';
 import { createStaffInvite } from '../utils/invites';
 import { getShareOrigin } from '../utils/origin';
@@ -157,7 +157,7 @@ const TeamManagement: React.FC = () => {
 
   // Page manages all of the user's teams, so "coach on any of my
   // teams" is the correct page-level gate.
-  const isUserCoach = userData ? teams.some(t => isCoachOfTeam(userData, t)) : false;
+  const isUserCoach = userData ? teams.some(t => isStaffOfTeam(userData, t)) : false;
   const isUserClubAdmin = !!(userData as any)?.isClubAdmin;
 
   useEffect(() => {

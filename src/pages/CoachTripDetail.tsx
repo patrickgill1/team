@@ -4,7 +4,7 @@ import { collection, doc, getDocs, onSnapshot, query, where } from 'firebase/fir
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import { isGuestActive } from '../types';
 import Header from '../components/common/Header';
 import type { CalendarEvent, GameStat, Player, Trip } from '../types';
@@ -178,7 +178,7 @@ const CoachTripDetail: React.FC = () => {
     return () => unsub();
   }, [trip]);
 
-  const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
+  const coachOnThisTeam = isStaffOfTeam(userData as any, selectedTeam as any);
 
   const totals = useMemo(() => {
     let goals = 0, assists = 0, saves = 0;

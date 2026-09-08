@@ -6,7 +6,7 @@ import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useViewMode } from '../../contexts/ViewModeContext';
-import { isCoachOfTeam } from '../../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../../utils/helpers';
 import { useDismissible } from '../../hooks/useDismissible';
 import { readCache, writeCache } from '../../utils/queryCache';
 import type { CalendarEvent } from '../../types';
@@ -43,7 +43,7 @@ const CoachTonightCard: React.FC = () => {
   const [now, setNow] = useState(() => new Date());
 
   const { viewMode } = useViewMode();
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam) && viewMode === 'coach';
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam) && viewMode === 'coach';
 
   useEffect(() => {
     if (!isUserCoach || !selectedTeamId) { setLoaded(true); return; }

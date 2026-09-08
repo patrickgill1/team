@@ -5,7 +5,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { useStorage } from '../hooks/useStorage';
 import { Player, PlayerMedia as PlayerMediaType, MomentType, MOMENT_TYPES } from '../types';
-import { isCoachOfTeam, canManageTeamMedia, formatDate } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam, canManageTeamMedia, formatDate } from '../utils/helpers';
 import { isXpSourceEnabled } from '../utils/xpSource';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import { autoPostVideoToWall } from '../utils/autoPostToWall';
@@ -155,7 +155,7 @@ const PlayerMediaPage: React.FC = () => {
   const [allTeamEvents, setAllTeamEvents] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const deepLinkConsumedRef = useRef<string | null>(null);
@@ -173,7 +173,7 @@ const PlayerMediaPage: React.FC = () => {
   // select them when they open the page. Coaches skip this entirely.
   useEffect(() => {
     if (!userData?.uid || !selectedTeamId) return;
-    if (isCoachOfTeam(userData, selectedTeam)) return;
+    if (isStaffOfTeam(userData, selectedTeam)) return;
     (async () => {
       try {
         const q = fsQuery(
@@ -685,7 +685,7 @@ const PlayerMediaPage: React.FC = () => {
         if (i === 0 && userData?.uid && stampedMedia.type === 'video') {
           void autoPostVideoToWall(
             { id: newMediaId, ...(stampedMedia as any) },
-            { uid: userData.uid, name: userData.name || 'Coach', role: isCoachOfTeam(userData, selectedTeam) ? 'coach' : 'parent' }
+            { uid: userData.uid, name: userData.name || 'Coach', role: isStaffOfTeam(userData, selectedTeam) ? 'coach' : 'parent' }
           );
         }
 

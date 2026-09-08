@@ -5,7 +5,7 @@ import ImportPlayersModal, { ParsedPlayer } from '../components/player/ImportPla
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import { VOCAB } from '../vocab';
 import { createPlayerInvite, inviteUrl } from '../utils/invites';
 import { buildParentInviteEmail } from '../utils/inviteEmails';
@@ -18,7 +18,7 @@ const Players: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
   const { addDocument } = useFirestore();
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
 
   const positions = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward', 'Striker'];
 

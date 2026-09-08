@@ -10,7 +10,7 @@ import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe'
 import { getOrEnableStreamDownloadUrl, streamIframeUrl } from '../utils/streamUpload';
 import { coachVerifyLogEntry, buildPracticeDayKeys, computeStreakDaysFromKeys, didItToday } from '../utils/devPlanActions';
 import { resolveGoalVideo as resolveGoalVideoShared } from '../utils/resolveGoalVideo';
-import { isCoachOfTeam, formatDate } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam, formatDate } from '../utils/helpers';
 import { hasStaffPermission } from '../utils/staffPermissions';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
@@ -84,7 +84,7 @@ const PlayerDevelopment: React.FC = () => {
   const [viewMode, setViewMode] = useState<'coach' | 'parent'>('coach');
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
   // Team managers + assistants get dev-plan assignment by default
   // through the staff-permissions system; head coach can toggle off
   // per person in Staff Management. Head coach is always true. Covers

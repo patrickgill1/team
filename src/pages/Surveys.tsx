@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { Survey, SurveyQuestion, SurveyQuestionType, SurveyResponse } from '../types';
-import { isCoachOfTeam, formatDate } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -206,7 +206,7 @@ const Surveys: React.FC = () => {
   const [isPrivate, setIsPrivate] = useState(false);
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
 
-  const userIsCoach = isCoachOfTeam(userData, selectedTeam);
+  const userIsCoach = isStaffOfTeam(userData, selectedTeam);
 
   // ─── Load surveys ────────────────────────────────────────────────────────
   const loadSurveys = useCallback(async () => {

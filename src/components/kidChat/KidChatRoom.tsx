@@ -16,7 +16,7 @@ import {
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import type { KidChatMessage, Player, Team } from '../../types';
-import { isCoachOfTeam } from '../../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../../utils/helpers';
 import { extractMentions } from '../../utils/extractMentions';
 import { sendPushToUsers } from '../../utils/notify';
 import { getShareOrigin } from '../../utils/origin';
@@ -93,7 +93,7 @@ const KidChatRoom: React.FC<Props> = ({ actingAsPlayer, team, canPost, variant =
 
   const teamId = team?.id || '';
   const threadDocId = teamId ? `team_${teamId}` : '';
-  const isCoach = isCoachOfTeam(userData, team);
+  const isCoach = isStaffOfTeam(userData, team);
 
   // One-shot thread provisioning. Reads existence first, only writes
   // if missing. Runs on mount + on teamId change; the threadReady

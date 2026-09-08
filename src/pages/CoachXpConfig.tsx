@@ -4,7 +4,7 @@ import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/fire
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
 import type { Player } from '../types';
@@ -267,7 +267,7 @@ const CoachXpConfigInner: React.FC = () => {
     return false;
   }, [enabled, sources, initialEnabled, initialSources]);
 
-  const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
+  const coachOnThisTeam = isStaffOfTeam(userData as any, selectedTeam as any);
 
   const save = async () => {
     if (!selectedTeamId || saving) return;

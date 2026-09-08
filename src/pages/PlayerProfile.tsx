@@ -6,7 +6,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import { Player, PlayerMedia, DevelopmentPlan, Season, isGuestActive } from '../types';
 import { formatDobShort } from '../utils/dobDate';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
 import KudosComposerModal from '../components/kudos/KudosComposerModal';
@@ -929,18 +929,18 @@ const PlayerProfile: React.FC = () => {
       <ProfileHero
         player={player}
         teamName={selectedTeam?.name}
-        canEdit={!!userData && (isCoachOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid))}
+        canEdit={!!userData && (isStaffOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid))}
         isCurrentPotm={!!(player as any).isCurrentPotm}
         onBack={() => { window.history.length > 1 ? window.history.back() : (window.location.href = '/players'); }}
         onEdit={() => setEditOpen(true)}
         showKudos={canGiveKudos}
         onKudos={() => setShowKudos(true)}
-        showWhisper={!!userData && isCoachOfTeam(userData, selectedTeam) && !isAdultTeam}
+        showWhisper={!!userData && isStaffOfTeam(userData, selectedTeam) && !isAdultTeam}
         onWhisper={() => setShowWhisper(true)}
         showClaimSelf={
           isAdultTeam
           && !!userData?.uid
-          && isCoachOfTeam(userData, selectedTeam)
+          && isStaffOfTeam(userData, selectedTeam)
           && !(player.parentIds || []).includes(userData.uid)
         }
         claimSelfBusy={claimSelfBusy}
@@ -1040,7 +1040,7 @@ const PlayerProfile: React.FC = () => {
           the color pivots so a coach scanning the profile can tell at
           a glance which state they're in. */}
       {(player as any).isGuest && (() => {
-        const canCoach = !!userData && isCoachOfTeam(userData, selectedTeam);
+        const canCoach = !!userData && isStaffOfTeam(userData, selectedTeam);
         const stillActive = isGuestActive(player as any);
         const expiryLabel = (player as any).expiresAt
           ? formatDobShort((player as any).expiresAt)
@@ -1244,7 +1244,7 @@ const PlayerProfile: React.FC = () => {
             {/* PLAYER INFO — bio card + Personalize entry point. */}
             <PlayerInfoCard
               player={player}
-              canEdit={!!userData && (isCoachOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid))}
+              canEdit={!!userData && (isStaffOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid))}
               onUpdated={loadProfile}
               isAdultTeam={isAdultTeam}
             />
@@ -1293,7 +1293,7 @@ const PlayerProfile: React.FC = () => {
               teamNameById={teamNameById}
               userData={userData}
               canGiveKudos={canGiveKudos}
-              isCoach={!!userData && isCoachOfTeam(userData, selectedTeam)}
+              isCoach={!!userData && isStaffOfTeam(userData, selectedTeam)}
               setKudosList={setKudosList}
             />
 
@@ -1351,7 +1351,7 @@ const PlayerProfile: React.FC = () => {
                 stay unaffected. */}
             <PlayerTripsCard
               playerId={playerId!}
-              canLinkToTrip={!!userData && isCoachOfTeam(userData, selectedTeam)}
+              canLinkToTrip={!!userData && isStaffOfTeam(userData, selectedTeam)}
             />
 
             {/* PERSONAL RECORDS — number receipts pinned to the same
@@ -1373,7 +1373,7 @@ const PlayerProfile: React.FC = () => {
                 week's attempts. Coach + parents can log an attempt.
                 Moved from Overview → Stats (numbers cluster).
                 Hidden on adult teams (kid-flavored feature). */}
-            {!isAdultTeam && userData && (isCoachOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid)) && (() => {
+            {!isAdultTeam && userData && (isStaffOfTeam(userData, selectedTeam) || (player.parentIds || []).includes(userData.uid)) && (() => {
               const j = (player as any).juggles || {};
               const history: Array<{ count: number; date: any }> = Array.isArray(j.history) ? j.history : [];
               const best = typeof j.best === 'number' ? j.best : 0;
@@ -1577,7 +1577,7 @@ const PlayerProfile: React.FC = () => {
                           { name: player.name, teamId: player.teamId },
                           n,
                           oldPr,
-                          { uid: userData.uid, name: userData.name || 'Coach', role: isCoachOfTeam(userData, selectedTeam) ? 'coach' : 'parent' },
+                          { uid: userData.uid, name: userData.name || 'Coach', role: isStaffOfTeam(userData, selectedTeam) ? 'coach' : 'parent' },
                         );
                       } catch (e) { console.warn('juggle wall post failed', e); }
                     }

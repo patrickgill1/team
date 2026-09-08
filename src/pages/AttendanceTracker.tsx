@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Player } from '../types';
-import { formatDate, isCoachOfTeam } from '../utils/helpers';
+import { formatDate, isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import { computeTeamAttendanceCounts } from '../utils/attendance';
 import { isEventPast } from '../utils/eventTiming';
 import { maybeGrantPerfectAttendance } from '../utils/badgeGrants';
@@ -54,7 +54,7 @@ const AttendanceTracker: React.FC = () => {
   const [effortData, setEffortData] = useState<{[playerId: string]: boolean}>({});
   const [saving, setSaving] = useState(false);
 
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
 
   // Parent-privacy filter (Patrick 2026-07-17): non-coach viewers
   // only see their own kid's RSVP row. The coach view still gets the

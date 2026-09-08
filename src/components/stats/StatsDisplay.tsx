@@ -3,7 +3,7 @@ import { Player, GameStat } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
-import { formatDateTime, isCoachOfTeam } from '../../utils/helpers';
+import { formatDateTime, isCoachOfTeam, isStaffOfTeam } from '../../utils/helpers';
 import { debug } from '../../utils/debug';
 import StatsTrends from './StatsTrends';
 
@@ -26,7 +26,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'overview' | 'detailed'>('overview');
 
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
 
   useEffect(() => {
     if (selectedPlayerId) {

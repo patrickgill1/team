@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Drill } from '../types';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import { uploadToStream, streamThumbnailUrl, checkVideoLimit, getStreamDownloadUrl } from '../utils/streamUpload';
 import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 import {
@@ -118,7 +118,7 @@ const Drills: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
   const { getDocuments, addDocument, updateDocument } = useFirestore();
-  const allowed = isCoachOfTeam(userData, selectedTeam);
+  const allowed = isStaffOfTeam(userData, selectedTeam);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterTopic, setFilterTopic] = useState<Drill['topic'] | 'all'>('all');

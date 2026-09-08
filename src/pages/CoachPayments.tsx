@@ -4,7 +4,7 @@ import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/f
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import type { PaymentRequest } from '../types';
 import { intervalShort } from '../utils/paymentIntervals';
@@ -75,7 +75,7 @@ const CoachPayments: React.FC = () => {
     return () => unsub();
   }, [selectedTeamId, tab]);
 
-  const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
+  const coachOnThisTeam = isStaffOfTeam(userData as any, selectedTeam as any);
   const { clubId: stripeClubId, isReady: stripeIsReady, isLoading: stripeStatusLoading } = useTeamClubStripeStatus();
 
   // Server-side status filter already scopes the listener; this is a

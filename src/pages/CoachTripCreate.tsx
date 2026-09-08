@@ -4,7 +4,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import { isGuestActive } from '../types';
 import Header from '../components/common/Header';
 import type { Player } from '../types';
@@ -86,7 +86,7 @@ const CoachTripCreate: React.FC = () => {
     return () => { cancelled = true; };
   }, [selectedTeamId]);
 
-  const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
+  const coachOnThisTeam = isStaffOfTeam(userData as any, selectedTeam as any);
 
   const canSubmit = useMemo(() => {
     return name.trim().length > 0 && !!startDate && !!endDate && startDate <= endDate;

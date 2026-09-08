@@ -5,7 +5,7 @@ import { debug } from '../utils/debug';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam, resolveSenderRole } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam, resolveSenderRole } from '../utils/helpers';
 import { audienceOf } from '../hooks/useTeamAudience';
 import CloudflareStreamIframe from '../components/common/CloudflareStreamIframe';
 import { uploadToR2 } from '../utils/r2Upload';
@@ -134,7 +134,7 @@ const Wall: React.FC = () => {
     const t = window.setTimeout(() => setShowProgress(true), 400);
     return () => window.clearTimeout(t);
   }, [ready]);
-  const canManage = userData ? (isCoachOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin) : false;
+  const canManage = userData ? (isStaffOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin) : false;
   // Team-level wall config controls whether parents (Circle members)
   // can post, whether coach approval is required, and what side
   // features (polls, share, email, delete) are unlocked for them.
@@ -929,7 +929,7 @@ const Wall: React.FC = () => {
         // authorRole is the durable audit field ('parent' means it
         // came from a Circle member); senderRole mirrors it for the
         // renderer + legacy consumers.
-        const asCoach = isCoachOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin;
+        const asCoach = isStaffOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin;
         const roleValue = asCoach ? 'coach' : resolveSenderRole(userData, selectedTeam as any);
         const authorRole = asCoach ? 'coach' : 'parent';
         const status: 'live' | 'pending' = (!asCoach && requireCoachApproval) ? 'pending' : 'live';
@@ -1978,7 +1978,7 @@ const Wall: React.FC = () => {
                     </div>
                   ) : (p as any).potmResult ? (
                     <div className="px-3 pb-3">
-                      <PotmWinnerCard potm={(p as any).potmResult} timestamp={p.timestamp} isCoachView={isCoachOfTeam(userData, selectedTeam)} isAdultTeam={audienceOf(selectedTeam as any) === 'adult'} />
+                      <PotmWinnerCard potm={(p as any).potmResult} timestamp={p.timestamp} isCoachView={isStaffOfTeam(userData, selectedTeam)} isAdultTeam={audienceOf(selectedTeam as any) === 'adult'} />
                     </div>
                   ) : (() => {
                     // Structured POTM-voting-open payload — modern shape.
@@ -2259,7 +2259,7 @@ const Wall: React.FC = () => {
                             photoUrl={userPhotoUrl}
                             name={userData.name}
                             size="sm"
-                            variant={isCoachOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin ? 'coach' : 'parent'}
+                            variant={isStaffOfTeam(userData, selectedTeam) || (userData as any).isClubAdmin ? 'coach' : 'parent'}
                           />
                           <div className="flex-1 flex items-center gap-2">
                             <input

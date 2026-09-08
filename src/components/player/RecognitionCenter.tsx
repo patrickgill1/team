@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { Player, Team, UserData, Season, PlayerMembership } from '../../types';
-import { isCoachOfTeam, formatDate } from '../../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam, formatDate } from '../../utils/helpers';
 import { buildSidelineShouts, SHOUT_TYPE_LABEL, shoutAccentClass, SidelineShoutType } from '../../utils/sidelineShouts';
 import ProfileCard from './ProfileCard';
 
@@ -532,7 +532,7 @@ const RecognitionCenter: React.FC<Props> = ({
                 && !!kudosRaw
                 && !kudosConverted
                 && !!userData
-                && isCoachOfTeam(userData, selectedTeam)
+                && isStaffOfTeam(userData, selectedTeam)
                 && (selectedTeam as any)?.xpConfig?.enabled === true;
               nodes.push(
                 <li key={s.id} className={`py-3 sm:py-4 pr-3 sm:pr-4 pl-4 sm:pl-5 rounded-xl bg-surface-elevated ring-1 ring-line-default/15 border-l-4 ${shoutAccentClass(s.type)}`}>

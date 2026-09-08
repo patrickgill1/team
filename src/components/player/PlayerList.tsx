@@ -3,7 +3,7 @@ import { Player, isGuestActive } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
-import { isCoachOfTeam } from '../../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../../utils/helpers';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useTeamSeasonStats } from '../../hooks/useTeamSeasonStats';
@@ -41,7 +41,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
   // changes; null until first compute lands (card just skips the chip).
   const [attendanceByPlayerId, setAttendanceByPlayerId] = useState<Record<string, number | null>>({});
 
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
 
   // Per-player per-team per-season stats. Extracted to a shared hook
   // 2026-08-19 so Dashboard/ClubOverview/etc. can consume the same

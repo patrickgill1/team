@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Player, CalendarEvent, PlayerMedia as PlayerMediaType, isGuestActive } from '../types';
-import { formatDateTime, isCoachOfTeam } from '../utils/helpers';
+import { formatDateTime, isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import { computeXpLevel } from '../utils/xpLevel';
 import { badgeImageSrc, badgeLabel } from '../utils/badgeMeta';
 import { playerTier } from '../utils/playerTier';
@@ -159,7 +159,7 @@ const Dashboard: React.FC = () => {
   // photo). Built once from the users collection per team selection.
   const [userPhotoMap, setUserPhotoMap] = useState<Record<string, string>>({});
 
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
   const { season: activeSeason } = useActiveSeason();
 
   useEffect(() => {
@@ -1634,7 +1634,7 @@ const Dashboard: React.FC = () => {
               // parents on the traveling team. Trip chips are already
               // scoped to selectedTeamId (filter above), so the coach
               // check is against the currently-selected team.
-              const isCoachOfTripTeam = isCoachOfTeam(userData, selectedTeam);
+              const isCoachOfTripTeam = isStaffOfTeam(userData, selectedTeam);
               const href = isCoachOfTripTeam
                 ? `/coach/trips/${c.tripId}`
                 : c.shareToken

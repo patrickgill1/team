@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { Player, CalendarEvent } from '../types';
-import { formatDate, isCoachOfTeam } from '../utils/helpers';
+import { formatDate, isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import { isXpSourceEnabled } from '../utils/xpSource';
 import { doc, updateDoc, arrayUnion, where, orderBy, limit } from 'firebase/firestore';
@@ -81,7 +81,7 @@ const PlayerOfMatch: React.FC = () => {
   const [pendingVotingData, setPendingVotingData] = useState<Omit<MatchVoting, 'id' | 'eligiblePlayerIds'> | null>(null);
   const [editingVotingId, setEditingVotingId] = useState<string | null>(null);
 
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
   const { isAdult: isAdultTeam, copy: teamCopy } = useTeamAudience(selectedTeam as any);
   // Adult teams use "MVP" / "Vote for MVP"; youth stays "Player of the
   // Match". Both use the same underlying voting model — this is a copy

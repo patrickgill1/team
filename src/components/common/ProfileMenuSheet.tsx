@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useViewMode } from '../../contexts/ViewModeContext';
 import { useTeam } from '../../contexts/TeamContext';
-import { isClubAdmin as isClubAdminFn, isCoachOfTeam } from '../../utils/helpers';
+import { isClubAdmin as isClubAdminFn, isCoachOfTeam, isStaffOfTeam } from '../../utils/helpers';
 
 /**
  * Profile + view-mode sheet — opens from the top-right avatar in the
@@ -61,7 +61,7 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
   // adult player; coach is on team.coachIds). Non-applicable modes
   // stay pickable (user can set them globally) but get a subtle
   // "not on this team" tag so the mental model is honest.
-  const isCoachHere = !!userData && isCoachOfTeam(userData, selectedTeam);
+  const isCoachHere = !!userData && isStaffOfTeam(userData, selectedTeam);
   const isPickCurrentTeam = (mode: 'parent' | 'coach' | 'admin') => {
     if (!selectedTeam) return true; // no team scope, treat as active
     if (mode === 'coach') return isCoachHere;

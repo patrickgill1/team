@@ -214,7 +214,7 @@ const Navigation: React.FC = () => {
   const searchCtx: SearchCtx = useMemo(() => ({
     userData: (userData as any) || null,
     selectedTeam: (selectedTeam as any) || null,
-    isCoachOfTeam: isCoachOfTeam(userData, selectedTeam),
+    isCoachOfTeam: isStaffOfTeam(userData, selectedTeam),
     isClubAdmin: isClubAdmin(userData),
     isParentMode: (userData as any)?.role === 'parent',
     isAdultTeam,

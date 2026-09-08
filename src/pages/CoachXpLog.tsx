@@ -64,7 +64,7 @@ import {
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import Header from '../components/common/Header';
 import type { Player } from '../types';
 import { toMillis, relativeTime } from '../utils/timestamps';
@@ -576,7 +576,7 @@ const CoachXpLogInner: React.FC = () => {
     );
   }
 
-  const coachOnThisTeam = isCoachOfTeam(userData as any, selectedTeam as any);
+  const coachOnThisTeam = isStaffOfTeam(userData as any, selectedTeam as any);
   if (!coachOnThisTeam) {
     return (
       <div className="min-h-screen bg-surface-base text-ink-primary">

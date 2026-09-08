@@ -6,7 +6,7 @@ import { isGuestActive } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
-import { formatDateTime, isCoachOfTeam } from '../../utils/helpers';
+import { formatDateTime, isStaffOfTeam } from '../../utils/helpers';
 import EventForm from './EventForm';
 import DeleteEventSheet from './DeleteEventSheet';
 import EventListCard from './EventListCard';
@@ -116,7 +116,14 @@ const Calendar: React.FC<CalendarProps> = ({
   // glance most parents come to /calendar for.
   const [listTab, setListTab] = useState<'upcoming' | 'games' | 'practice' | 'past'>('upcoming');
 
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  // 2026-09-08: was isCoachOfTeam(userData, selectedTeam), which
+  // rejected team managers even though they legitimately schedule
+  // events. team_manager users live on team.managerIds, not
+  // team.coachIds, so the coach-only check silently hid the create
+  // + edit buttons. Widened to isStaffOfTeam (coach OR manager) so
+  // manager Patrick set up can actually manage the schedule they
+  // were granted permission for.
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
 
   // Every active player on this team that the current user is linked to
   // as a parent. Used to render one RSVP row per kid on every event

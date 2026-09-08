@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { CalendarEvent } from '../types';
-import { isCoachOfTeam } from '../utils/helpers';
+import { isStaffOfTeam } from '../utils/helpers';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 import EventForm from '../components/calendar/EventForm';
 import CarpoolBoard, { CarpoolPost } from '../components/calendar/CarpoolBoard';
@@ -181,7 +181,10 @@ const EventDetail: React.FC = () => {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
 
-  const isUserCoach = isCoachOfTeam(userData, audienceTeamObj);
+  // 2026-09-08: widened from isCoachOfTeam so team managers get the
+  // same edit/attendance controls a coach does on this page. See
+  // Calendar.tsx for the mirror + memory feedback_grep_isteamstaff_role.
+  const isUserCoach = isStaffOfTeam(userData, audienceTeamObj);
 
   // Trip context — resolve if this event is part of an active trip
   // (tournament) for its team. Renders as a chip in the hero meta row
@@ -1557,8 +1560,18 @@ const EventDetail: React.FC = () => {
           tracks Hunter going; this row tracks Patrick-the-coach
           going. Two RSVPs, two records, distinct STAFF row in the
           headcount. Patrick 2026-06-21: 'i want to clean up the
-          header' (moved off the dashboard hero into here). */}
-      {isUserCoach && myLinkedPlayers.length > 0 && (() => {
+          header' (moved off the dashboard hero into here).
+          2026-09-08: on adult teams where the coach's ONLY linked
+          player is themselves as an adult self-player, this section
+          duplicates the RSVP already collected via the player row
+          above (result: coach shows as staff RSVP + player RSVP, two
+          entries + two attendance rows for the same person). Hide
+          when every linked player IS the coach themselves. */}
+      {isUserCoach && myLinkedPlayers.length > 0 && !(
+        isAdultTeam
+        && myLinkedPlayers.every((p: any) => p.isAdultPlayer === true
+            && Array.isArray(p.parentIds) && userData?.uid && p.parentIds.includes(userData.uid))
+      ) && (() => {
         const coachEntry = event && userData?.uid ? (event.rsvps as any)?.[userData.uid] : null;
         const savedCoachReason: string = typeof coachEntry?.reason === 'string' ? coachEntry.reason : '';
         const draftKey = 'coach:self';

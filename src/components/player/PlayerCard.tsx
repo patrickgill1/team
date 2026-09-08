@@ -546,9 +546,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           {isUserCoach && (player.medicalInfo || (player.emergencyContacts && player.emergencyContacts.length > 0)) && (
             <div className="mt-4 pt-4 border-t border-line-default/10 space-y-3">
               {player.medicalInfo && (
-                <div className="rounded-xl bg-rose-500/15 ring-1 ring-rose-300/30 p-3 backdrop-blur">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-rose-700 mb-1">Medical Info</p>
-                  <p className="text-xs text-rose-800">{player.medicalInfo}</p>
+                <div className="rounded-xl bg-rose-500/15 ring-1 ring-rose-500/30 p-3 backdrop-blur">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary mb-1">Medical Info</p>
+                  <p className="text-xs text-ink-primary/90">{player.medicalInfo}</p>
                 </div>
               )}
 

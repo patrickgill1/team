@@ -73,7 +73,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
   return (
     <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between mb-2">
-        <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 flex items-center gap-1.5">
+        <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/60 flex items-center gap-1.5">
           <Icon name="car" className="w-3 h-3 text-brand-primary" />
           Carpool
         </div>
@@ -98,19 +98,19 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
       {/* Add form */}
       {adding && (
         <div className="mb-3 p-3 rounded-lg bg-surface-input ring-1 ring-line-default/10 space-y-2">
-          <div className="text-[11px] font-bold text-charcoal-200">
+          <div className="text-[11px] font-bold text-ink-primary">
             {adding === 'offer' ? 'Offer a ride' : 'Request a ride'}
           </div>
           {adding === 'offer' && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-charcoal-500">Seats</span>
+              <span className="text-xs text-ink-primary/60">Seats</span>
               <input
                 type="number"
                 value={seats}
                 onChange={(e) => setSeats(e.target.value)}
                 min={1}
                 max={9}
-                className="w-16 px-2 py-1 border border-line-default/10 rounded text-sm text-center"
+                className="w-16 px-2 py-1 border border-line-default/15 rounded text-sm text-center bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 outline-none focus:ring-2 focus:ring-brand-primary-soft"
               />
             </div>
           )}
@@ -118,18 +118,18 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder={adding === 'offer' ? 'Driving from (e.g. West side)' : 'Need ride from (e.g. North end)'}
-            className="w-full px-2 py-1.5 border border-line-default/10 rounded text-sm"
+            className="w-full px-2 py-1.5 border border-line-default/15 rounded text-sm bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 outline-none focus:ring-2 focus:ring-brand-primary-soft"
           />
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Optional note"
-            className="w-full px-2 py-1.5 border border-line-default/10 rounded text-sm"
+            className="w-full px-2 py-1.5 border border-line-default/15 rounded text-sm bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 outline-none focus:ring-2 focus:ring-brand-primary-soft"
           />
           <div className="flex gap-2 justify-end">
             <button
               onClick={() => setAdding(null)}
-              className="text-[11px] font-bold text-charcoal-500 px-3 py-1"
+              className="text-[11px] font-bold text-ink-primary/60 hover:text-ink-primary px-3 py-1"
             >Cancel</button>
             <button
               onClick={submit}
@@ -144,7 +144,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
 
       {/* Posts */}
       {posts.length === 0 && !adding ? (
-        <p className="text-sm text-charcoal-500">No posts yet. Offer or request a ride to get the board going.</p>
+        <p className="text-sm text-ink-primary/55">No posts yet. Offer or request a ride to get the board going.</p>
       ) : (
         <div className="space-y-2">
           {offers.length > 0 && (
@@ -263,7 +263,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
       )}
 
       {!currentUid && (
-        <p className="text-[11px] text-charcoal-500 mt-2">Sign in to offer or request a ride.</p>
+        <p className="text-[11px] text-ink-primary/55 mt-2">Sign in to offer or request a ride.</p>
       )}
     </section>
   );

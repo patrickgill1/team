@@ -1952,19 +1952,20 @@ service cloud.firestore {
     match /kudos/{kudosId} {
       allow get: if isAuthed() && callerCanReadWhisper();
       allow list: if isAuthed() && callerCanReadWhisper();
+      // 2026-09-08: widened from Circle-only ("sender in parentIds")
+      // to team-wide ("sender is on this player's team"). Patrick
+      // 2026-09-08: Kudos should surface on OTHER players' profiles,
+      // not on the sender's own kid — the goal is teammates cheering
+      // each other, not solo self/family praise. Still blocks:
+      //   - self-praise (adult self-player)
+      //   - own kid (sender in this player's parentIds)
       allow create: if isAuthed()
         && request.resource.data.senderUid == request.auth.uid
         && request.resource.data.playerId is string
         && exists(/databases/$(database)/documents/players/$(request.resource.data.playerId))
-        && request.auth.uid in get(/databases/$(database)/documents/players/$(request.resource.data.playerId)).data.parentIds
-        // Self / parent / guardian / coach-parent block. The base
-        // rule above already asserts the sender is in parentIds, so
-        // the coach-parent check just needs to confirm this player
-        // is one of the coach's linked kids (user.children).
-        && userDoc().get('selfPlayerId', '') != request.resource.data.playerId
-        && !(userDoc().get('relationship', '') in ['parent', 'guardian'])
-        && !(userDoc().get('role', '') == 'coach'
-             && request.resource.data.playerId in userDoc().get('children', []));
+        && onTeam(get(/databases/$(database)/documents/players/$(request.resource.data.playerId)).data.teamId)
+        && !(request.auth.uid in get(/databases/$(database)/documents/players/$(request.resource.data.playerId)).data.parentIds)
+        && userDoc().get('selfPlayerId', '') != request.resource.data.playerId;
       allow update: if isPlatformAdmin();
       allow delete: if isAuthed() && (
         resource.data.senderUid == request.auth.uid

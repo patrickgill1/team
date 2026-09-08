@@ -27,7 +27,7 @@ import GlobalSearchSheet from './GlobalSearchSheet';
 import { useTeam } from '../../contexts/TeamContext';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useClubStore } from '../../hooks/useClubStore';
-import { isCoachOfTeam, isClubAdmin } from '../../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam, isClubAdmin } from '../../utils/helpers';
 import { useTheme } from '../../contexts/ThemeContext';
 // Legacy InviteSystem import removed — invites now live on /people.
 import AppIcon from './AppIcon';
@@ -110,7 +110,14 @@ const Navigation: React.FC = () => {
     }
   };
 
-  const isUserCoach = isCoachOfTeam(userData, selectedTeam);
+  // 2026-09-08: widened from isCoachOfTeam so team managers get the
+  // Coach cockpit tab + related staff surfaces they were granted.
+  // team_manager users live on team.managerIds, not team.coachIds -
+  // the narrower gate silently hid Coach / Game Day / Practice Plan /
+  // Drills / Player XP from them under More. isStaffOfTeam accepts
+  // either. Feature-level per-permission gates still apply via
+  // hasStaffPermission where they matter.
+  const isUserCoach = isStaffOfTeam(userData, selectedTeam);
   const isUserClubAdmin = isClubAdmin(userData);
   // When inside a chat conversation, TeamChat sets body.chat-conversation.
   // We unmount the bottom tab bar entirely so the composer can dock at the

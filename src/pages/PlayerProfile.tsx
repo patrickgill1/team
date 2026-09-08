@@ -896,15 +896,30 @@ const PlayerProfile: React.FC = () => {
       || viewerRelationship === 'guardian'
       || viewerIsCoachOfOwnKid
     );
-  // Kudos gate — 2026-07-16: viewer is in this player's Circle and is
-  // not the player themselves. Ship 1 opened Kudos to any Circle
-  // member; self-praise is still blocked via selfPlayerId (adult
-  // players joining their own roster spot). 2026-07-19: also blocked
-  // for biological / legal parents so mom and dad can't cheer their
-  // own kid, and for coach-parents (see gate rationale above).
-  const canGiveKudos = inParentIds
-    && (userData as any)?.selfPlayerId !== player.id
-    && !isParentOfThisPlayer;
+  // Kudos gate — 2026-09-08 rewrite. Was "in this player's Circle
+  // and not the player's own parent" — which meant only extended
+  // family (grandparents, aunts) could kudos, and only kids they
+  // knew personally. Patrick 2026-09-08: this reads as backwards.
+  // Kudos should be teammate-parent → teammate's kid, so the whole
+  // team-family builds each other up (Sideline Shouts mission).
+  //
+  // New rule: any team member can kudos any teammate on this team,
+  // EXCEPT their own kid (viewer in this player's parentIds) and
+  // EXCEPT themselves (adult self-player). Rules mirror this at
+  // firestore.rules — client widen alone would 403.
+  const teamIdForThisPlayer: string | undefined = (player as any)?.teamId
+    || (Array.isArray((player as any)?.teamIds) ? (player as any).teamIds[0] : undefined);
+  const viewerTeamIds: string[] = Array.isArray((userData as any)?.teamIds)
+    ? (userData as any).teamIds
+    : [];
+  const viewerOnPlayerTeam = !!teamIdForThisPlayer && viewerTeamIds.includes(teamIdForThisPlayer);
+  const canGiveKudos = !!userData
+    && viewerOnPlayerTeam
+    && !inParentIds
+    && (userData as any)?.selfPlayerId !== player.id;
+  // Keep isParentOfThisPlayer live for other consumers below (e.g.
+  // "your kid" surfacing decisions elsewhere in the profile).
+  void isParentOfThisPlayer;
 
   return (
     <div className="min-h-screen bg-surface-base">

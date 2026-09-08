@@ -350,6 +350,61 @@ describe('players UPDATE', () => {
 // users — self-update allowed for editable fields; role and
 // teamIds mutations client-side would let anyone self-elevate to
 // a coach on any team. Both stay worker-only.
+// ────────────────────────────────────────────────────────────────
+// kudos — 2026-09-08 rewrite: was Circle-only ("sender in
+// player.parentIds"), now team-wide with own-kid + self blocks.
+// Regression here = kudos either 403 for legitimate teammate
+// senders or open a spam vector for outsiders.
+describe('kudos CREATE', () => {
+  test('teammate parent → allowed (not own kid, not self)', async () => {
+    await seedWorld();
+    await seed(async (db) => {
+      await setDoc(doc(db as any, 'players', 'kid-other'), {
+        name: 'Other Kid', teamId: TEAM_A, teamIds: [TEAM_A],
+        parentIds: ['someone-else-uid'], isActive: true, createdAt: new Date(),
+      });
+    });
+    const db = await asUser(PARENT);
+    await assertSucceeds(setDoc(doc(db, 'kudos', 'k1'), {
+      senderUid: PARENT, senderName: 'Test Parent',
+      playerId: 'kid-other', teamId: TEAM_A,
+      note: 'Great hustle today', createdAt: new Date(),
+    }));
+  });
+
+  test('viewer in this player’s parentIds → denied (own-kid block)', async () => {
+    await seedWorld();
+    await seed(async (db) => {
+      await setDoc(doc(db as any, 'players', 'kid-mine'), {
+        name: 'My Kid', teamId: TEAM_A, teamIds: [TEAM_A],
+        parentIds: [PARENT], isActive: true, createdAt: new Date(),
+      });
+    });
+    const db = await asUser(PARENT);
+    await assertFails(setDoc(doc(db, 'kudos', 'k2'), {
+      senderUid: PARENT, senderName: 'Test Parent',
+      playerId: 'kid-mine', teamId: TEAM_A,
+      note: 'Nope', createdAt: new Date(),
+    }));
+  });
+
+  test('outsider not on team → denied (spam guard)', async () => {
+    await seedWorld();
+    await seed(async (db) => {
+      await setDoc(doc(db as any, 'players', 'kid-a'), {
+        name: 'Kid A', teamId: TEAM_A, teamIds: [TEAM_A],
+        parentIds: ['someone-uid'], isActive: true, createdAt: new Date(),
+      });
+    });
+    const db = await asUser(OUTSIDER);
+    await assertFails(setDoc(doc(db, 'kudos', 'k3'), {
+      senderUid: OUTSIDER, senderName: 'Random',
+      playerId: 'kid-a', teamId: TEAM_A,
+      note: 'spam', createdAt: new Date(),
+    }));
+  });
+});
+
 describe('users UPDATE self', () => {
   test('self updates name → allowed', async () => {
     await seedWorld();

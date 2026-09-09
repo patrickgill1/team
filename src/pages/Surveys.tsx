@@ -581,13 +581,13 @@ const Surveys: React.FC = () => {
             <div className="flex rounded-xl overflow-hidden border border-brand-primary-soft/30 w-fit">
               <button
                 onClick={() => setResultsTab('summary')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'summary' ? 'bg-brand-primary text-white' : 'bg-surface-input text-ink-primary/65 hover:bg-line-default/[0.08]'}`}  // theme-ok: legacy hardcoded color, pending per-line audit
+                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'summary' ? 'bg-brand-primary text-white' : 'bg-surface-input text-ink-primary/65 hover:bg-line-default/[0.08]'}`}
               >
                 Summary
               </button>
               <button
                 onClick={() => { setResultsTab('individual'); setIndividualIndex(0); }}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'individual' ? 'bg-brand-primary text-white' : 'bg-surface-input text-ink-primary/65 hover:bg-line-default/[0.08]'}`}  // theme-ok: legacy hardcoded color, pending per-line audit
+                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'individual' ? 'bg-brand-primary text-white' : 'bg-surface-input text-ink-primary/65 hover:bg-line-default/[0.08]'}`}
               >
                 Individual
               </button>
@@ -1091,7 +1091,7 @@ const Surveys: React.FC = () => {
           <button
             onClick={() => { resetBuilder(); setView('create'); }}
             aria-label="New survey"
-            className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />

@@ -103,7 +103,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
         {isCoach && !editing && (
           <button
             onClick={() => setEditing(true)}
-            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary-hov dark:bg-brand-primary/15 dark:text-brand-primary-soft dark:hover:bg-brand-primary/25" /* theme-ok: legacy hardcoded color, pending audit */
+            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary-hov dark:bg-brand-primary/15 dark:text-brand-primary-soft dark:hover:bg-brand-primary/25"
           >
             {assignment ? 'Change' : 'Assign'}
           </button>
@@ -127,7 +127,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
             <select
               value={pickerId}
               onChange={e => setPickerId(e.target.value)}
-              className="flex-1 px-3 py-2 text-sm border border-line-default/10 rounded-lg bg-white" /* theme-ok: legacy hardcoded color, pending audit */
+              className="flex-1 px-3 py-2 text-sm border border-line-default/10 rounded-lg bg-white theme-ok"
             >
               <option value="">Pick a player…</option>
               {roster.map(r => (
@@ -138,7 +138,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
               onClick={suggestNextUp}
               disabled={suggesting}
               title="Suggest a player who hasn't been assigned recently"
-              className="px-3 text-[10px] font-extrabold tracking-widest uppercase rounded-lg border border-line-default/10 text-ink-primary/60 hover:bg-slate-50 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+              className="px-3 text-[10px] font-extrabold tracking-widest uppercase rounded-lg border border-line-default/10 text-ink-primary/60 hover:bg-slate-50 disabled:opacity-50 theme-ok"
             >
               {suggesting ? '…' : 'Suggest'}
             </button>
@@ -154,7 +154,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
             <button
               onClick={save}
               disabled={saving || !pickerId}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50"
             >
               {saving ? 'Saving…' : `Assign${selectedName ? ` to ${selectedName.split(' ')[0]}` : ''}`}
             </button>

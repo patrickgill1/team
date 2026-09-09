@@ -115,7 +115,7 @@ const InstallAppBanner: React.FC = () => {
     : 'Google Play';
 
   return (
-    <div className="lg:hidden bg-brand-primary text-white shadow">  // theme-ok: legacy hardcoded color, pending per-line audit
+    <div className="lg:hidden bg-brand-primary text-white shadow">
       <div className="max-w-7xl mx-auto px-3 py-2 flex items-center gap-3">
         <img loading="lazy" decoding="async"
           src="/images/logo.png"
@@ -124,7 +124,7 @@ const InstallAppBanner: React.FC = () => {
         />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold leading-tight truncate">{ctaTitle}</p>
-          <p className="text-[11px] text-white/80 leading-tight truncate">{ctaSubtitle}</p>  // theme-ok: legacy hardcoded color, pending per-line audit
+          <p className="text-[11px] text-white/80 leading-tight truncate">{ctaSubtitle}</p>
         </div>
         {installUrl ? (
           <a
@@ -132,7 +132,7 @@ const InstallAppBanner: React.FC = () => {
             target="_blank"
             rel="noopener noreferrer"
             onClick={onPrimary}
-            className="shrink-0 inline-flex items-center gap-1.5 bg-white text-ink-primary text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition" /* theme-ok: legacy hardcoded color, pending audit */
+            className="shrink-0 inline-flex items-center gap-1.5 bg-white text-ink-primary text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition theme-ok"
           >
             <span>{ctaButtonLabel}</span>
           </a>
@@ -140,7 +140,7 @@ const InstallAppBanner: React.FC = () => {
           <button
             type="button"
             onClick={onPrimary}
-            className="shrink-0 inline-flex items-center gap-1.5 bg-white text-ink-primary text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition" /* theme-ok: legacy hardcoded color, pending audit */
+            className="shrink-0 inline-flex items-center gap-1.5 bg-white text-ink-primary text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition theme-ok"
           >
             <span>{ctaButtonLabel}</span>
           </button>
@@ -149,7 +149,7 @@ const InstallAppBanner: React.FC = () => {
           onClick={dismiss}
           aria-label="Dismiss"
           title={`Hide for 14 days (${storeLabel})`}
-          className="shrink-0 -mr-1 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-line-default/10 transition" /* theme-ok: legacy hardcoded color, pending audit */
+          className="shrink-0 -mr-1 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-line-default/10 transition"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

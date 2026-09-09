@@ -41,7 +41,7 @@ const TONE_CLASS: Record<string, string> = {
   good: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   mid: 'bg-amber-50 text-amber-700 border-amber-200',
   bad: 'bg-rose-50 text-rose-700 border-rose-200',
-  gone: 'bg-slate-100 text-ink-primary/65 border-slate-200',  // theme-ok: legacy hardcoded color, pending per-line audit
+  gone: 'bg-slate-100 text-ink-primary/65 border-slate-200 theme-ok',
 };
 
 const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, teamNameById, playerNameById, onClose }) => {
@@ -132,8 +132,8 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">  // theme-ok: legacy hardcoded color, pending per-line audit
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col theme-ok">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <div>
             <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/80">Active invites</div>
             <div className="text-[11px] text-ink-primary/55 mt-0.5">{counts.active} active · {counts.all} total</div>
@@ -151,7 +151,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
               className={`px-3 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 filter === k
                   ? 'bg-brand-primary-soft text-brand-primary border-brand-primary-soft'
-                  : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
+                  : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary theme-ok'
               }`}
             >
               {k === 'active' ? `Active ${counts.active}` : `All ${counts.all}`}
@@ -180,7 +180,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
                 const daysLeft = Math.ceil((r.expiresAt.getTime() - Date.now()) / (24 * 3600 * 1000));
                 const isRevocable = s.tone === 'good' || s.tone === 'mid';
                 return (
-                  <li key={r.id} className="border border-slate-200 rounded-lg p-2.5">  // theme-ok: legacy hardcoded color, pending per-line audit
+                  <li key={r.id} className="border border-slate-200 rounded-lg p-2.5">
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="min-w-0 flex-1">
                         <div className="font-semibold text-ink-primary text-sm">{subject}</div>
@@ -204,14 +204,14 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
                           <button
                             onClick={() => handleCopy(r.id)}
                             disabled={busyId === r.id}
-                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-ink-primary/90 border-slate-200 hover:bg-slate-50 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-ink-primary/90 border-slate-200 hover:bg-slate-50 disabled:opacity-50 theme-ok"
                           >
                             Copy link
                           </button>
                           <button
                             onClick={() => handleRevoke(r.id)}
                             disabled={busyId === r.id}
-                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-rose-700 border-rose-200 hover:bg-rose-50 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-rose-700 border-rose-200 hover:bg-rose-50 disabled:opacity-50 theme-ok"
                           >
                             {busyId === r.id ? '…' : 'Revoke'}
                           </button>

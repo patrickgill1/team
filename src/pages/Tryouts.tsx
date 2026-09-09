@@ -326,7 +326,7 @@ const Tryouts: React.FC = () => {
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Club
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Tryout pool</h1>  // theme-ok: legacy hardcoded color, pending per-line audit
+          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Tryout pool</h1>
           <p className="text-sm text-ink-primary/40 mt-0.5">
             Coach view. Favorites, holds, ratings, and notes are visible to all coaches.
           </p>
@@ -370,7 +370,7 @@ const Tryouts: React.FC = () => {
             onClick={() => setShowFavoritesOnly(v => !v)}
             className={`text-sm font-bold rounded-lg px-3 py-2 ring-1 ${
               showFavoritesOnly
-                ? 'bg-rose-500 text-white ring-rose-400'  // theme-ok: legacy hardcoded color, pending per-line audit
+                ? 'bg-rose-500 text-white ring-rose-400'
                 : 'bg-surface-base text-ink-primary/85 ring-line-default/15 hover:ring-rose-400'
             }`}
             title="Show only candidates you've favorited"
@@ -482,7 +482,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
           onClick={onToggleFavorite}
           className={`shrink-0 mt-0.5 w-8 h-8 rounded-full flex items-center justify-center ring-1 transition ${
             my?.favorite
-              ? 'bg-rose-500/150 ring-rose-500 text-white'  // theme-ok: legacy hardcoded color, pending per-line audit
+              ? 'bg-rose-500/150 ring-rose-500 text-white'
               : 'bg-surface-elevated ring-line-default/10 text-ink-primary/40 hover:ring-rose-400 hover:text-rose-300'
           }`}
           title={my?.favorite ? 'Unfavorite' : 'Favorite'}
@@ -547,7 +547,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
         {r.promotedToPlayerId && (
           <Link
             to={`/club/person/${r.promotedToPlayerId}`}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary/150" /* theme-ok: legacy hardcoded color, pending audit */
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary/150"
           >
             Profile
           </Link>
@@ -575,7 +575,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
           onClick={onToggleAttended}
           className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 inline-flex items-center gap-1 ${
             (r as any).tryoutAttended
-              ? 'bg-emerald-500 text-white ring-emerald-400'  // theme-ok: legacy hardcoded color, pending per-line audit
+              ? 'bg-emerald-500 text-white ring-emerald-400'
               : 'bg-surface-elevated text-emerald-300 ring-emerald-300/60 hover:bg-emerald-500/15'
           }`}
           title={(r as any).tryoutAttended ? 'Mark NOT attended' : 'Mark attended tryouts — fills funnel stage 2'}
@@ -591,7 +591,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
           disabled={heldByOther}
           className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 ${
             heldByMe
-              ? 'bg-amber-500/150 text-white ring-amber-500'  // theme-ok: legacy hardcoded color, pending per-line audit
+              ? 'bg-amber-500/150 text-white ring-amber-500'
               : heldByOther
                 ? 'bg-surface-base text-ink-primary/40 ring-line-default/10 cursor-not-allowed'
                 : 'bg-surface-elevated text-amber-300 ring-amber-300 hover:bg-amber-500/15'
@@ -603,7 +603,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
           type="button"
           onClick={onOffer}
           disabled={heldByOther}
-          className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 bg-violet-600 text-white ring-violet-600 hover:bg-violet-500/150 disabled:opacity-50 disabled:cursor-not-allowed" /* theme-ok: legacy hardcoded color, pending audit */
+          className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 bg-violet-600 text-white ring-violet-600 hover:bg-violet-500/150 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Send offer
         </button>
@@ -627,7 +627,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
                 await onSaveNote(noteDraft);
                 setSavingNote(false);
               }}
-              className="px-3 py-1.5 rounded-lg bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 text-white text-xs font-bold" /* theme-ok: legacy hardcoded color, pending audit */
+              className="px-3 py-1.5 rounded-lg bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 text-white text-xs font-bold"
             >
               {savingNote ? 'Saving…' : 'Save note'}
             </button>

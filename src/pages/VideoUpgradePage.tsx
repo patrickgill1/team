@@ -318,7 +318,7 @@ const TierCard: React.FC<{
         className={`mt-3 w-full px-4 py-2.5 rounded-lg text-xs font-extrabold tracking-widest uppercase disabled:opacity-60 disabled:cursor-wait ${
           highlight
             ? 'bg-amber-500 hover:bg-amber-400 text-ink-primary'
-            : 'bg-brand-primary hover:bg-brand-primary/90 text-white'  // theme-ok: legacy hardcoded color, pending per-line audit
+            : 'bg-brand-primary hover:bg-brand-primary/90 text-white'
         }`}
       >
         {busy ? 'Opening checkout…' : ctaLabel}

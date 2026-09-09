@@ -625,7 +625,7 @@ const PlayerOfMatch: React.FC = () => {
           <div className="mb-6 flex justify-end">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-brand-primary hover:bg-brand-primary text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2" /* theme-ok: legacy hardcoded color, pending audit */
+              className="bg-brand-primary hover:bg-brand-primary text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
             >
               <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
               <span>Create Voting</span>
@@ -665,7 +665,7 @@ const PlayerOfMatch: React.FC = () => {
                     <>
                       <button
                         onClick={handleEditAttendance}
-                        className="bg-brand-primary hover:bg-brand-primary text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-1.5" /* theme-ok: legacy hardcoded color, pending audit */
+                        className="bg-brand-primary hover:bg-brand-primary text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-1.5"
                         title="Edit which players were present"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -675,13 +675,13 @@ const PlayerOfMatch: React.FC = () => {
                       </button>
                       <button
                         onClick={handleCloseVoting}
-                        className="bg-amber-500/150 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200" /* theme-ok: legacy hardcoded color, pending audit */
+                        className="bg-amber-500/150 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200"
                       >
                         Close Voting
                       </button>
                       <button
                         onClick={handleDeleteVoting}
-                        className="bg-rose-500/150 hover:bg-rose-600 text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-1.5" /* theme-ok: legacy hardcoded color, pending audit */
+                        className="bg-rose-500/150 hover:bg-rose-600 text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-1.5"
                         title="Permanently delete this voting session"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -765,7 +765,7 @@ const PlayerOfMatch: React.FC = () => {
                   <button
                     onClick={handleVote}
                     disabled={!selectedPlayer}
-                    className="w-full bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed" /* theme-ok: legacy hardcoded color, pending audit */
+                    className="w-full bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Submit Vote
                   </button>
@@ -908,7 +908,7 @@ const PlayerOfMatch: React.FC = () => {
                           </div>
                           <button
                             onClick={() => handleCreateVotingFromCalendarEvent(game.id)}
-                            className="bg-brand-primary hover:brightness-110 text-white px-3 py-1.5 rounded text-sm font-semibold transition flex items-center gap-1 flex-shrink-0" /* theme-ok: legacy hardcoded color, pending audit */
+                            className="bg-brand-primary hover:brightness-110 text-white px-3 py-1.5 rounded text-sm font-semibold transition flex items-center gap-1 flex-shrink-0"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -1302,7 +1302,7 @@ const PlayerOfMatch: React.FC = () => {
               <button
                 onClick={handleConfirmAttendanceAndCreate}
                 disabled={attendancePlayerIds.size === 0}
-                className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary disabled:opacity-50 font-medium" /* theme-ok: legacy hardcoded color, pending audit */
+                className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary disabled:opacity-50 font-medium"
               >
                 {editingVotingId ? `Update Attendance (${attendancePlayerIds.size} eligible)` : `Create Voting (${attendancePlayerIds.size} eligible)`}
               </button>
@@ -1328,7 +1328,7 @@ const PlayerOfMatch: React.FC = () => {
             <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white" /* theme-ok: legacy hardcoded color, pending audit */
+                className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white"
               >
                 Cancel
               </button>
@@ -1518,7 +1518,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit, isAdultTeam }
       <button
         type="submit"
         disabled={!gameTitle.trim() || !gameDate}
-        className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl transition duration-200 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+        className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl transition duration-200 disabled:opacity-50"
       >
         Open Custom Vote
       </button>
@@ -1542,7 +1542,7 @@ const ResultAvatar: React.FC<{ player: Player | undefined; name: string }> = ({ 
     );
   }
   return (
-    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary flex items-center justify-center text-white text-xs font-bold shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
+    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
       {(name || '?').charAt(0).toUpperCase()}
     </div>
   );
@@ -1554,7 +1554,7 @@ const ResultAvatar: React.FC<{ player: Player | undefined; name: string }> = ({ 
 const PlaceBadge: React.FC<{ index: number }> = ({ index }) => {
   if (index === 0) {
     return (
-      <span className="w-6 h-6 rounded-full bg-brand-primary text-white flex items-center justify-center flex-shrink-0" title="1st">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <span className="w-6 h-6 rounded-full bg-brand-primary text-white flex items-center justify-center flex-shrink-0" title="1st">
         <AppIcon name="trophy" className="w-3.5 h-3.5" strokeWidth={2.25} />
       </span>
     );

@@ -140,7 +140,7 @@ const MentionsInbox: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100">  // theme-ok: legacy hardcoded color, pending per-line audit
+    <div className="min-h-screen bg-slate-100 theme-ok">
       <header className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 sm:px-6 py-5 border-b border-brand-primary/15">
         <div className="max-w-3xl mx-auto">
           <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-brand-primary-soft hover:text-ink-primary mb-2">
@@ -162,7 +162,7 @@ const MentionsInbox: React.FC = () => {
         {loading ? (
           <div className="text-center text-sm text-ink-primary/60 py-12">Loading mentions…</div>
         ) : messages.length === 0 ? (
-          <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-10 text-center">  // theme-ok: legacy hardcoded color, pending per-line audit
+          <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-10 text-center theme-ok">
             <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary-soft ring-1 ring-brand-primary-soft flex items-center justify-center text-brand-primary mb-3">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" /></svg>
             </div>
@@ -178,13 +178,13 @@ const MentionsInbox: React.FC = () => {
                 <div className="text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-2 px-1">
                   {group.label}
                 </div>
-                <ul className="bg-white rounded-2xl ring-1 ring-slate-200 divide-y divide-slate-100 overflow-hidden">  // theme-ok: legacy hardcoded color, pending per-line audit
+                <ul className="bg-white rounded-2xl ring-1 ring-slate-200 divide-y divide-slate-100 overflow-hidden theme-ok">
                   {group.items.map(m => (
                     <li key={m.id}>
                       <button
                         type="button"
                         onClick={() => openMessage(m)}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors" /* theme-ok: legacy hardcoded color, pending audit */
+                        className="w-full text-left px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors theme-ok"
                       >
                         <div className="flex items-baseline gap-2 mb-1">
                           <span className="text-sm font-bold text-ink-primary">{m.senderName}</span>

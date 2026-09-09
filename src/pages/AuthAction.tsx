@@ -121,7 +121,7 @@ const AuthAction: React.FC = () => {
             </p>
             <a
               href={openAppUrl}
-              className="inline-block bg-brand-primary hover:bg-brand-primary-soft hover:text-ink-primary text-white font-bold px-6 py-3 rounded-xl transition" /* theme-ok: legacy hardcoded color, pending audit */
+              className="inline-block bg-brand-primary hover:bg-brand-primary-soft hover:text-ink-primary text-white font-bold px-6 py-3 rounded-xl transition"
             >
               Open GoalKickr
             </a>
@@ -136,7 +136,7 @@ const AuthAction: React.FC = () => {
             </p>
             <a
               href={openAppUrl + '/auth'}
-              className="inline-block bg-brand-primary hover:bg-brand-primary-soft hover:text-ink-primary text-white font-bold px-6 py-3 rounded-xl transition" /* theme-ok: legacy hardcoded color, pending audit */
+              className="inline-block bg-brand-primary hover:bg-brand-primary-soft hover:text-ink-primary text-white font-bold px-6 py-3 rounded-xl transition"
             >
               Open GoalKickr
             </a>
@@ -147,7 +147,7 @@ const AuthAction: React.FC = () => {
           <>
             <h1 className="text-2xl font-black text-ink-primary mb-2">Email change reverted.</h1>
             <p className="text-ink-primary/65 text-sm mb-6">Your account email is back to the previous address.</p>
-            <a href={openAppUrl} className="inline-block bg-brand-primary text-white font-bold px-6 py-3 rounded-xl">Open GoalKickr</a>  // theme-ok: legacy hardcoded color, pending per-line audit
+            <a href={openAppUrl} className="inline-block bg-brand-primary text-white font-bold px-6 py-3 rounded-xl">Open GoalKickr</a>
           </>
         )}
 
@@ -166,7 +166,7 @@ const AuthAction: React.FC = () => {
             <button
               onClick={handleResetPassword}
               disabled={pwBusy || newPassword.length < 8}
-              className="mt-3 w-full bg-brand-primary hover:bg-brand-primary-soft hover:text-ink-primary disabled:opacity-50 text-white font-bold rounded-lg py-3 transition" /* theme-ok: legacy hardcoded color, pending audit */
+              className="mt-3 w-full bg-brand-primary hover:bg-brand-primary-soft hover:text-ink-primary disabled:opacity-50 text-white font-bold rounded-lg py-3 transition"
             >
               {pwBusy ? 'Updating…' : 'Update password'}
             </button>
@@ -180,7 +180,7 @@ const AuthAction: React.FC = () => {
           <>
             <h1 className="text-2xl font-black text-ink-primary mb-2">Something's not right.</h1>
             <p className="text-ink-primary/65 text-sm mb-6">{error}</p>
-            <Link to="/auth" className="inline-block bg-brand-primary text-white font-bold px-6 py-3 rounded-xl">  // theme-ok: legacy hardcoded color, pending per-line audit
+            <Link to="/auth" className="inline-block bg-brand-primary text-white font-bold px-6 py-3 rounded-xl">
               Open GoalKickr
             </Link>
           </>

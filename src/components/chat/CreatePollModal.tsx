@@ -54,7 +54,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-full flex flex-col" /* theme-ok: legacy hardcoded color, pending audit */
+        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-full flex flex-col theme-ok"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated">
@@ -62,7 +62,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
             <h3 className="text-lg font-bold text-ink-primary">📊 New poll</h3>
             <p className="text-xs text-ink-primary/65">Ask the thread a quick question.</p>
           </div>
-          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 text-ink-primary/65" aria-label="Close">  // theme-ok: legacy hardcoded color, pending per-line audit
+          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 text-ink-primary/65 theme-ok" aria-label="Close">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -78,7 +78,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Practice Friday or Saturday?"
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base" /* theme-ok: legacy hardcoded color, pending audit */
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
               style={{ fontSize: '16px' }}
               maxLength={140}
             />
@@ -94,7 +94,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
                     value={o}
                     onChange={(e) => setOption(i, e.target.value)}
                     placeholder={`Option ${i + 1}`}
-                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base" /* theme-ok: legacy hardcoded color, pending audit */
+                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
                     style={{ fontSize: '16px' }}
                     maxLength={60}
                   />
@@ -133,14 +133,14 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
           </label>
         </div>
 
-        <div className="border-t border-gray-100 p-4 flex items-center justify-end gap-2 bg-gray-50">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="border-t border-gray-100 p-4 flex items-center justify-end gap-2 bg-gray-50 theme-ok">
           <button onClick={handleClose} className="px-4 py-2 text-sm font-semibold text-ink-primary/90 hover:text-ink-primary">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="bg-brand-primary hover:brightness-110 disabled:bg-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition active:scale-95" /* theme-ok: legacy hardcoded color, pending audit */
+            className="bg-brand-primary hover:brightness-110 disabled:bg-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition active:scale-95 theme-ok"
           >
             Send poll
           </button>

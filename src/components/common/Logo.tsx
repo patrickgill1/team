@@ -27,7 +27,7 @@ const Logo: React.FC<LogoProps> = ({
   // Color configurations for text
   const colorConfig = {
     primary: { text: 'text-ink-primary' },
-    white: { text: 'text-white' },  // theme-ok: legacy hardcoded color, pending per-line audit
+    white: { text: 'text-white' },
     dark: { text: 'text-ink-primary' }
   };
 

@@ -169,10 +169,10 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={submitting ? undefined : onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" /* theme-ok: legacy hardcoded color, pending audit */
+        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto theme-ok"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-5 border-b border-gray-100">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="px-6 py-5 border-b border-gray-100">
           <h2 className="text-xl font-bold text-ink-primary">End Season</h2>
           <p className="text-sm text-ink-primary/65 mt-1">
             {loading
@@ -201,12 +201,12 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
                   <p className="px-4 py-6 text-sm text-ink-primary/65 text-center">No active players on this team.</p>
                 ) : (
                   players.map((p) => (
-                    <label key={p.id} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50">  // theme-ok: legacy hardcoded color, pending per-line audit
+                    <label key={p.id} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 theme-ok">
                       <input
                         type="checkbox"
                         checked={keepIds.has(p.id)}
                         onChange={() => toggleKeep(p.id)}
-                        className="w-4 h-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
+                        className="w-4 h-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
                       />
                       <span className="text-sm font-medium text-ink-primary flex-1">
                         {p.jerseyNumber ? `#${p.jerseyNumber} ` : ''}{p.name}
@@ -242,19 +242,19 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
                   type="checkbox"
                   checked={createNext}
                   onChange={(e) => setCreateNext(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
+                  className="w-4 h-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
                 />
                 Create the next season now
               </label>
               {createNext && (
-                <div className="rounded-xl ring-1 ring-gray-100 p-4 space-y-3 bg-gray-50/50">  // theme-ok: legacy hardcoded color, pending per-line audit
+                <div className="rounded-xl ring-1 ring-gray-100 p-4 space-y-3 bg-gray-50/50 theme-ok">
                   <div>
                     <label className="block text-xs font-semibold text-ink-primary/90 mb-1">Season name</label>
                     <input
                       type="text"
                       value={nextName}
                       onChange={(e) => setNextName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -264,7 +264,7 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
                         type="date"
                         value={nextStart}
                         onChange={(e) => setNextStart(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
                       />
                     </div>
                     <div>
@@ -273,7 +273,7 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
                         type="date"
                         value={nextEnd}
                         onChange={(e) => setNextEnd(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
                       />
                     </div>
                   </div>
@@ -286,7 +286,7 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
           </div>
         )}
 
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50 theme-ok">
           <button
             onClick={onClose}
             disabled={submitting}
@@ -297,7 +297,7 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
           <button
             onClick={handleConfirm}
             disabled={submitting || loading || !season}
-            className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed" /* theme-ok: legacy hardcoded color, pending audit */
+            className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? 'Closing season…' : 'End season'}
           </button>

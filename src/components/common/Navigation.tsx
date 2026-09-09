@@ -530,7 +530,7 @@ const Navigation: React.FC = () => {
           {isUserCoach && (
             <Link
               to="/people"
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-brand-primary hover:bg-brand-primary-soft text-white transition-colors`}  // theme-ok: legacy hardcoded color, pending per-line audit
+              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-brand-primary hover:bg-brand-primary-soft text-white transition-colors`}
               title="Add a player or invite someone"
             >
               <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1135,7 +1135,7 @@ const Navigation: React.FC = () => {
           onClick={() => !deletingAccount && setShowDeleteAccount(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" /* theme-ok: legacy hardcoded color, pending audit */
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden theme-ok"
             onClick={e => e.stopPropagation()}
           >
             <div className="bg-red-50 border-b border-red-100 px-5 py-4">
@@ -1168,7 +1168,7 @@ const Navigation: React.FC = () => {
                   onChange={e => setDeleteConfirmText(e.target.value)}
                   placeholder="DELETE"
                   autoCapitalize="characters"
-                  className="w-full px-3 py-2 rounded-lg border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+                  className="w-full px-3 py-2 rounded-lg border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400 disabled:opacity-50"
                   disabled={deletingAccount}
                 />
                 {deleteError && (
@@ -1176,18 +1176,18 @@ const Navigation: React.FC = () => {
                 )}
               </div>
             </div>
-            <div className="bg-gray-50 px-5 py-3 flex justify-end gap-2 border-t border-gray-100">  // theme-ok: legacy hardcoded color, pending per-line audit
+            <div className="bg-gray-50 px-5 py-3 flex justify-end gap-2 border-t border-gray-100 theme-ok">
               <button
                 onClick={() => setShowDeleteAccount(false)}
                 disabled={deletingAccount}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-ink-primary/90 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+                className="px-4 py-2 rounded-lg text-sm font-medium text-ink-primary/90 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 theme-ok"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAccount}
                 disabled={deletingAccount || deleteConfirmText.trim().toLowerCase() !== 'delete'}
-                className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed" /* theme-ok: legacy hardcoded color, pending audit */
+                className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deletingAccount ? 'Deleting…' : 'Delete my account'}
               </button>

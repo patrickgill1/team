@@ -133,12 +133,12 @@ const SharedMedia: React.FC = () => {
   return (
     <div className="min-h-screen bg-surface-base flex flex-col">
       {/* Header */}
-      <div className="bg-surface-elevated border-b border-gray-700 px-4 py-3">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <div className="bg-surface-elevated border-b border-gray-700 px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <span className="text-2xl">⚽</span>
             <div>
-              <h1 className="text-white font-semibold text-sm sm:text-base truncate max-w-[200px] sm:max-w-none">  // theme-ok: legacy hardcoded color, pending per-line audit
+              <h1 className="text-white font-semibold text-sm sm:text-base truncate max-w-[200px] sm:max-w-none">
                 {title}
               </h1>
               {media.playerName && (
@@ -194,7 +194,7 @@ const SharedMedia: React.FC = () => {
           {(media.caption || media.uploadedByName) && (
             <div className="mt-3 px-1">
               {media.caption && (
-                <p className="text-white text-sm sm:text-base">{media.caption}</p>  // theme-ok: legacy hardcoded color, pending per-line audit
+                <p className="text-white text-sm sm:text-base">{media.caption}</p>
               )}
               {media.uploadedByName && (
                 <p className="text-ink-primary/65 text-xs mt-1">
@@ -210,10 +210,10 @@ const SharedMedia: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className="bg-surface-elevated border-t border-gray-700 px-4 py-3 text-center">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <div className="bg-surface-elevated border-t border-gray-700 px-4 py-3 text-center">
         <a
           href="/"
-          className="text-ink-primary/55 hover:text-white text-xs transition-colors" /* theme-ok: legacy hardcoded color, pending audit */
+          className="text-ink-primary/55 hover:text-white text-xs transition-colors"
         >
           GoalKickr
         </a>

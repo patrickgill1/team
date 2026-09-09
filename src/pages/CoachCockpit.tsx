@@ -207,7 +207,7 @@ const CoachCockpit: React.FC = () => {
             label: isGame ? 'Open Game Day mode' : 'Review event details',
             hint: isGame ? 'Score, lineup, rotation bell, and recap.' : 'RSVPs, notes, location, and discussion.',
             to: isGame ? `/game-day/${nextEvent.id}` : `/events/${nextEvent.id}`,
-            accent: isGame ? 'bg-brand-primary text-white' : 'bg-amber-500 text-ink-primary',  // theme-ok: legacy hardcoded color, pending per-line audit
+            accent: isGame ? 'bg-brand-primary text-white' : 'bg-amber-500 text-ink-primary',
           },
           {
             label: 'Check RSVPs',
@@ -233,7 +233,7 @@ const CoachCockpit: React.FC = () => {
             label: 'Post a team update',
             hint: 'Keep families oriented even when the calendar is quiet.',
             to: '/wall',
-            accent: 'bg-brand-primary text-white',  // theme-ok: legacy hardcoded color, pending per-line audit
+            accent: 'bg-brand-primary text-white',
           },
         ];
   }, [nextEvent]);

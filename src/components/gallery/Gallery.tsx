@@ -161,7 +161,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
           </h2>
           
           {/* View Mode Toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1">  // theme-ok: legacy hardcoded color, pending per-line audit
+          <div className="flex bg-gray-100 rounded-lg p-1 theme-ok">
             <button
               onClick={() => setViewMode('grid')}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
@@ -188,7 +188,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest')}
-            className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
+            className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -218,7 +218,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
             className={`px-2 py-1 text-xs rounded-full transition-colors duration-200 ${
               tagFilter === '' 
                 ? 'bg-brand-primary-soft text-ink-primary' 
-                : 'bg-gray-100 text-ink-primary/90 hover:bg-gray-200'  // theme-ok: legacy hardcoded color, pending per-line audit
+                : 'bg-gray-100 text-ink-primary/90 hover:bg-gray-200 theme-ok'
             }`}
           >
             All
@@ -230,7 +230,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               className={`px-2 py-1 text-xs rounded-full transition-colors duration-200 ${
                 tagFilter === tag 
                   ? 'bg-brand-primary-soft text-ink-primary' 
-                  : 'bg-gray-100 text-ink-primary/90 hover:bg-gray-200'  // theme-ok: legacy hardcoded color, pending per-line audit
+                  : 'bg-gray-100 text-ink-primary/90 hover:bg-gray-200 theme-ok'
               }`}
             >
               {tag}
@@ -341,7 +341,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-2">
             <button
               onClick={onClick}
-              className="p-2 bg-white bg-opacity-90 rounded-full hover:bg-opacity-100 transition-all duration-200" /* theme-ok: legacy hardcoded color, pending audit */
+              className="p-2 bg-white bg-opacity-90 rounded-full hover:bg-opacity-100 transition-all duration-200 theme-ok"
             >
               <svg className="w-5 h-5 text-ink-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -356,7 +356,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                 {isDeleting ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                 ) : (
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">  // theme-ok: legacy hardcoded color, pending per-line audit
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 )}
@@ -417,7 +417,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div className="max-w-4xl w-full max-h-full flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between text-white mb-4">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="flex items-center justify-between text-white mb-4">
           <div className="flex items-center space-x-4">
             <h3 className="text-lg font-semibold">
               {photo.caption || 'Team Photo'}
@@ -428,7 +428,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
               <button
                 onClick={onDelete}
                 disabled={isDeleting}
-                className="p-2 text-white hover:text-red-400 transition-colors duration-200 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+                className="p-2 text-white hover:text-red-400 transition-colors duration-200 disabled:opacity-50"
                 title="Delete Photo"
               >
                 {isDeleting ? (
@@ -442,7 +442,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
             )}
             <button
               onClick={onClose}
-              className="p-2 text-white hover:text-ink-primary/45 transition-colors duration-200" /* theme-ok: legacy hardcoded color, pending audit */
+              className="p-2 text-white hover:text-ink-primary/45 transition-colors duration-200"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

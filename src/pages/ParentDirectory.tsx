@@ -366,7 +366,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
             <div className="flex space-x-3">
               <button
                 onClick={handleRefreshDirectory}
-                className="bg-line-default/[0.04]0 hover:bg-gray-600 text-ink-primary px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2" /* theme-ok: legacy hardcoded color, pending audit */
+                className="bg-line-default/[0.04]0 hover:bg-gray-600 text-ink-primary px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2 theme-ok"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -375,7 +375,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
               </button>
               <button
                 onClick={() => setShowProfileEditor(true)}
-                className="bg-brand-primary hover:bg-brand-primary text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2" /* theme-ok: legacy hardcoded color, pending audit */
+                className="bg-brand-primary hover:bg-brand-primary text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -426,7 +426,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                   <div className="flex space-x-2 ml-4 shrink-0">
                     <button
                       onClick={() => handleApproveMember(member.uid)}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" /* theme-ok: legacy hardcoded color, pending audit */
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                       Approve
                     </button>
@@ -905,7 +905,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                           ? 'Permission denied.'
                           : `Could not enable push (${r.error}).`);
                     }}
-                    className="px-4 py-2 bg-brand-primary hover:bg-brand-primary text-white text-sm font-medium rounded-lg disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+                    className="px-4 py-2 bg-brand-primary hover:bg-brand-primary text-white text-sm font-medium rounded-lg disabled:opacity-50"
                   >
                     {pushBusy ? 'Enabling…' : 'Enable on this device'}
                   </button>
@@ -918,14 +918,14 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                 <button
                   onClick={() => setShowProfileEditor(false)}
                   disabled={isUpdating}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-ink-primary/90 font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-ink-primary/90 font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 theme-ok"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUpdateProfile}
                   disabled={isUpdating}
-                  className="flex-1 bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center" /* theme-ok: legacy hardcoded color, pending audit */
+                  className="flex-1 bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
                 >
                   {isUpdating ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

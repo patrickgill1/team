@@ -44,14 +44,14 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
     ? poll.options.reduce((s, o) => s + o.voters.length, 0)
     : totalVoters.size;
 
-  const labelColor = ownTheme ? 'text-white/85' : 'text-ink-primary/65';  // theme-ok: legacy hardcoded color, pending per-line audit
-  const bgInactive = ownTheme ? 'bg-line-default/10 ring-line-default/20' : 'bg-gray-50 ring-gray-200';  // theme-ok: legacy hardcoded color, pending per-line audit
-  const bgActive = ownTheme ? 'bg-white text-brand-primary-dim ring-white' : 'bg-brand-primary-soft ring-brand-primary-soft text-brand-primary-dim';  // theme-ok: legacy hardcoded color, pending per-line audit
+  const labelColor = ownTheme ? 'text-white/85' : 'text-ink-primary/65';
+  const bgInactive = ownTheme ? 'bg-line-default/10 ring-line-default/20 theme-ok' : 'bg-gray-50 ring-gray-200';
+  const bgActive = ownTheme ? 'bg-white text-brand-primary-dim ring-white theme-ok' : 'bg-brand-primary-soft ring-brand-primary-soft text-brand-primary-dim';
   const fillInactive = ownTheme ? 'bg-line-default/15' : 'bg-brand-primary-soft/60';
   const fillActive = ownTheme ? 'bg-line-default/35' : 'bg-brand-primary-soft/80';
 
   return (
-    <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${ownTheme ? 'bg-brand-primary text-white' : 'bg-gray-100 text-ink-primary'}`}>  // theme-ok: legacy hardcoded color, pending per-line audit
+    <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${ownTheme ? 'bg-brand-primary text-white theme-ok' : 'bg-gray-100 text-ink-primary'}`}>
       <div className="flex items-center gap-1.5 mb-2">
         <span className="text-base">📊</span>
         <span className={`text-[10px] font-bold uppercase tracking-wider ${labelColor}`}>Poll</span>
@@ -95,7 +95,7 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
             onClick={(e) => { e.stopPropagation(); setVotersOpen(true); }}
             className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded-md transition ${
               ownTheme
-                ? 'bg-line-default/15 text-white hover:bg-line-default/25'  // theme-ok: legacy hardcoded color, pending per-line audit
+                ? 'bg-line-default/15 text-white hover:bg-line-default/25'
                 : 'bg-brand-primary-soft text-brand-primary ring-1 ring-brand-primary-soft hover:bg-brand-primary-soft'
             }`}
           >
@@ -110,10 +110,10 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
           onClick={() => setVotersOpen(false)}
         >
           <div
-            className="bg-white text-ink-primary w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden" /* theme-ok: legacy hardcoded color, pending audit */
+            className="bg-white text-ink-primary w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden theme-ok"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">  // theme-ok: legacy hardcoded color, pending per-line audit
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
               <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/80">Voters</div>
               <button
                 onClick={() => setVotersOpen(false)}
@@ -124,7 +124,7 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
             </div>
             <div className="flex-1 overflow-y-auto">
               {poll.options.map(opt => (
-                <div key={opt.id} className="border-b border-slate-100 last:border-b-0">  // theme-ok: legacy hardcoded color, pending per-line audit
+                <div key={opt.id} className="border-b border-slate-100 last:border-b-0">
                   <div className="px-4 pt-3 pb-1 flex items-center justify-between">
                     <span className="text-sm font-bold text-ink-primary truncate">{opt.text}</span>
                     <span className="text-[11px] font-bold tabular-nums text-ink-primary/65 flex-shrink-0 ml-2">

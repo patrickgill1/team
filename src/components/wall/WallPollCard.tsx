@@ -99,7 +99,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
               className={`relative w-full text-left rounded-xl px-3 py-2 ring-1 transition overflow-hidden ${
                 mine
                   ? 'bg-surface-elevated text-ink-primary ring-brand-primary-soft'
-                  : 'bg-white text-ink-primary ring-slate-200 hover:bg-slate-50'  // theme-ok: legacy hardcoded color, pending per-line audit
+                  : 'bg-white text-ink-primary ring-slate-200 hover:bg-slate-50 theme-ok'
               }`}
             >
               {/* Fill bar — represents this option's share of total votes. */}
@@ -150,8 +150,8 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
             </div>
             <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
               {poll.options.map(opt => (
-                <div key={opt.id} className="border-b border-slate-100 last:border-b-0">  // theme-ok: legacy hardcoded color, pending per-line audit
-                  <div className="px-4 py-2 bg-slate-50 flex items-start justify-between gap-3">  // theme-ok: legacy hardcoded color, pending per-line audit
+                <div key={opt.id} className="border-b border-slate-100 last:border-b-0">
+                  <div className="px-4 py-2 bg-slate-50 flex items-start justify-between gap-3 theme-ok">
                     <span className="font-bold text-[14px] text-ink-primary leading-snug break-words min-w-0">{opt.text}</span>
                     <span className="text-[12px] text-ink-primary/65 font-semibold shrink-0 pt-0.5">{opt.voters.length}</span>
                   </div>

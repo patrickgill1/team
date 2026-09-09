@@ -325,7 +325,7 @@ const SimpleAuth: React.FC = () => {
       // Full-viewport scroll-snap container — each child slide gets
       // snap-start + h-screen so the swipe feels like flicking a
       // TikTok deck: one story per screen, no partial-slide bleed.
-      <div className="fixed inset-0 h-screen w-screen overflow-y-scroll overflow-x-hidden snap-y snap-mandatory bg-surface-base text-white overscroll-none">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <div className="fixed inset-0 h-screen w-screen overflow-y-scroll overflow-x-hidden snap-y snap-mandatory bg-surface-base text-white overscroll-none">
 
         {/* SLIDE 1: HERO */}
         <section className="relative h-screen w-full snap-start snap-always overflow-hidden">
@@ -369,25 +369,25 @@ const SimpleAuth: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setMode('register'); setJoinFlow(false); setShowLanding(false); }}
-                className="w-full py-3.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition" /* theme-ok: legacy hardcoded color, pending audit */
+                className="w-full py-3.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
               >
                 Set up a new team
               </button>
               <button
                 type="button"
                 onClick={() => { setMode('register'); setJoinFlow(true); setShowLanding(false); }}
-                className="w-full py-3.5 rounded-full bg-white text-ink-primary font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition" /* theme-ok: legacy hardcoded color, pending audit */
+                className="w-full py-3.5 rounded-full bg-white text-ink-primary font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition theme-ok"
               >
                 Join a team with a code
               </button>
               <button
                 type="button"
                 onClick={() => { setMode('login'); setShowLanding(false); }}
-                className="w-full py-3 rounded-full bg-white/10 hover:bg-white/15 backdrop-blur-md ring-1 ring-white/20 text-white/90 font-bold tracking-wider uppercase text-xs transition" /* theme-ok: legacy hardcoded color, pending audit */
+                className="w-full py-3 rounded-full bg-white/10 hover:bg-white/15 backdrop-blur-md ring-1 ring-white/20 text-white/90 font-bold tracking-wider uppercase text-xs transition theme-ok"
               >
                 Log in
               </button>
-              <p className="text-center text-[10px] tracking-widest uppercase text-white/55 pt-1">  // theme-ok: legacy hardcoded color, pending per-line audit
+              <p className="text-center text-[10px] tracking-widest uppercase text-white/55 pt-1">
                 Swipe up to see more ↑
               </p>
             </div>
@@ -437,26 +437,26 @@ const SimpleAuth: React.FC = () => {
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
               Start your team in a minute.
             </h2>
-            <p className="text-white/60 text-sm">7-day free trial for coaches. No card up front.</p>  // theme-ok: legacy hardcoded color, pending per-line audit
+            <p className="text-white/60 text-sm">7-day free trial for coaches. No card up front.</p>
             <div className="space-y-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => { setMode('register'); setJoinFlow(false); setShowLanding(false); }}
-                className="w-full py-3.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition" /* theme-ok: legacy hardcoded color, pending audit */
+                className="w-full py-3.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
               >
                 Set up a new team
               </button>
               <button
                 type="button"
                 onClick={() => { setMode('register'); setJoinFlow(true); setShowLanding(false); }}
-                className="w-full py-3.5 rounded-full bg-white text-ink-primary font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition" /* theme-ok: legacy hardcoded color, pending audit */
+                className="w-full py-3.5 rounded-full bg-white text-ink-primary font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition theme-ok"
               >
                 Join a team with a code
               </button>
               <button
                 type="button"
                 onClick={() => { setMode('login'); setShowLanding(false); }}
-                className="w-full py-3 rounded-full ring-1 ring-white/20 text-white/85 font-bold tracking-wider uppercase text-xs hover:bg-white/5 transition" /* theme-ok: legacy hardcoded color, pending audit */
+                className="w-full py-3 rounded-full ring-1 ring-white/20 text-white/85 font-bold tracking-wider uppercase text-xs hover:bg-white/5 transition theme-ok"
               >
                 I already have an account
               </button>
@@ -592,7 +592,7 @@ const SimpleAuth: React.FC = () => {
                   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="white">
                     <path d="M17.05 20.28c-.98.95-2.05.86-3.08.43-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.43C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
                   </svg>
-                  <span className="text-white font-medium">  // theme-ok: legacy hardcoded color, pending per-line audit
+                  <span className="text-white font-medium">
                     {isSubmitting ? 'Signing in...' : 'Continue with Apple'}
                   </span>
                 </button>
@@ -607,7 +607,7 @@ const SimpleAuth: React.FC = () => {
                 <button
                   onClick={handleGoogleSignIn}
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-line-default/40 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5" /* theme-ok: legacy hardcoded color, pending audit */
+                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-line-default/40 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 theme-ok"
                 >
                   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -643,7 +643,7 @@ const SimpleAuth: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setEmailFormOpen(true)}
-                className="w-full py-3.5 rounded-xl bg-line-default/[0.05] hover:bg-line-default/[0.08] ring-1 ring-line-default/10 text-white font-bold tracking-wider transition mb-4 flex items-center justify-center gap-2" /* theme-ok: legacy hardcoded color, pending audit */
+                className="w-full py-3.5 rounded-xl bg-line-default/[0.05] hover:bg-line-default/[0.08] ring-1 ring-line-default/10 text-white font-bold tracking-wider transition mb-4 flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -709,7 +709,7 @@ const SimpleAuth: React.FC = () => {
                       setEmailProbe('idle');
                     }
                   }}
-                  className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${  // theme-ok: legacy hardcoded color, pending per-line audit
+                  className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
                     errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
                   }`}
                   placeholder="you@example.com"
@@ -734,7 +734,7 @@ const SimpleAuth: React.FC = () => {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${  // theme-ok: legacy hardcoded color, pending per-line audit
+                  className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
                     errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
                   }`}
                   placeholder={mode === 'login' ? '••••••••' : 'At least 6 characters'}
@@ -754,7 +754,7 @@ const SimpleAuth: React.FC = () => {
                     type="password"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${  // theme-ok: legacy hardcoded color, pending per-line audit
+                    className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
                       errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
                     }`}
                     placeholder="Repeat your password"
@@ -775,7 +775,7 @@ const SimpleAuth: React.FC = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${  // theme-ok: legacy hardcoded color, pending per-line audit
+                    className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
                       errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
                     }`}
                     placeholder="Enter your full name"
@@ -805,18 +805,18 @@ const SimpleAuth: React.FC = () => {
                   filled (URL-driven ?invite=... path). */}
               {mode === 'register' && joinFlow && !formData.inviteCode && (
                 <div className="rounded-xl p-4 bg-brand-primary/10 ring-1 ring-brand-primary/30">
-                  <label className="block text-sm font-bold text-white mb-2">Team code from your coach</label>  // theme-ok: legacy hardcoded color, pending per-line audit
+                  <label className="block text-sm font-bold text-white mb-2">Team code from your coach</label>
                   <input
                     type="text"
                     value={formData.inviteCode}
                     onChange={(e) => setFormData(prev => ({ ...prev, inviteCode: e.target.value.trim().toUpperCase() }))}
                     placeholder="e.g. UF-841422"
-                    className="w-full px-3 py-2.5 rounded-lg bg-black/40 ring-1 ring-white/15 text-white font-mono tracking-wider placeholder-white/30 focus:ring-brand-primary-soft/60 focus:outline-none" /* theme-ok: legacy hardcoded color, pending audit */
+                    className="w-full px-3 py-2.5 rounded-lg bg-black/40 ring-1 ring-white/15 text-white font-mono tracking-wider placeholder-white/30 focus:ring-brand-primary-soft/60 focus:outline-none theme-ok"
                     autoCapitalize="characters"
                     autoCorrect="off"
                     spellCheck={false}
                   />
-                  <p className="mt-2 text-[11px] text-white/55">  // theme-ok: legacy hardcoded color, pending per-line audit
+                  <p className="mt-2 text-[11px] text-white/55">
                     Paste the code your coach shared. You'll join their team the moment you finish signing up.
                   </p>
                 </div>
@@ -850,7 +850,7 @@ const SimpleAuth: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting || !formData.email.trim() || !formData.password.trim()}
-                className="relative w-full overflow-hidden rounded-xl py-4 px-4 font-semibold text-white text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-[0_10px_30px_-10px_rgba(34,211,238,0.5)] enabled:hover:-translate-y-0.5 bg-brand-primary hover:bg-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
+                className="relative w-full overflow-hidden rounded-xl py-4 px-4 font-semibold text-white text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-[0_10px_30px_-10px_rgba(34,211,238,0.5)] enabled:hover:-translate-y-0.5 bg-brand-primary hover:bg-brand-primary"
               >
                 {isSubmitting ? (
                   <>
@@ -945,14 +945,14 @@ const TeaserSlide: React.FC<{
 
     {/* Copy stack pinned to bottom, respects safe area */}
     <div
-      className="absolute inset-x-0 bottom-0 px-6 pt-12 max-w-2xl mx-auto text-white" /* theme-ok: legacy hardcoded color, pending audit */
+      className="absolute inset-x-0 bottom-0 px-6 pt-12 max-w-2xl mx-auto text-white"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 32px)' }}
     >
       <p className="text-[10px] font-black tracking-[0.35em] uppercase text-brand-primary-soft drop-shadow-lg mb-3">{kicker}</p>
       <h2 className="text-[26px] sm:text-4xl font-black leading-[1.05] tracking-tight drop-shadow-lg mb-3 max-w-xl">
         {title}
       </h2>
-      <p className="text-[14px] sm:text-base text-white/85 leading-snug drop-shadow max-w-md">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <p className="text-[14px] sm:text-base text-white/85 leading-snug drop-shadow max-w-md">
         {body}
       </p>
     </div>

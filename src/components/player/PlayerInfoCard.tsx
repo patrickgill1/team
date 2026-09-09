@@ -205,8 +205,8 @@ const PlayerInfoEditModal: React.FC<{ player: Player; onClose: () => void; onSav
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 animate-fade-in">
-      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl overflow-hidden animate-sheet-up sm:animate-pop-in max-h-[92vh] flex flex-col">  // theme-ok: legacy hardcoded color, pending per-line audit
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl overflow-hidden animate-sheet-up sm:animate-pop-in max-h-[92vh] flex flex-col theme-ok">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <h2 className="font-black text-ink-primary">Make it yours</h2>
           <button type="button" onClick={onClose} className="text-ink-primary/55 hover:text-ink-primary/90 text-2xl leading-none">×</button>
         </div>
@@ -252,9 +252,9 @@ const PlayerInfoEditModal: React.FC<{ player: Player; onClose: () => void; onSav
           </label>
           {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
         </div>
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2 shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2 shrink-0">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-ink-primary/80 hover:text-ink-primary">Cancel</button>
-          <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold">  // theme-ok: legacy hardcoded color, pending per-line audit
+          <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : 'Save'}
           </button>
         </div>

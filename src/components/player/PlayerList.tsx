@@ -271,7 +271,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 className={`px-2 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-md border ${
                   sortBy === key
                     ? 'bg-brand-primary-soft text-brand-primary border-brand-primary-soft'
-                    : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
+                    : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary theme-ok'
                 }`}
               >
                 {label}
@@ -291,7 +291,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 className={`px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-md border ${
                   showGuests
                     ? 'bg-brand-primary-soft/20 text-brand-primary border-brand-primary-soft/40'
-                    : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
+                    : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary theme-ok'
                 }`}
                 title={showGuests ? 'Hide guest players from this view' : 'Show guest players in this view'}
               >
@@ -303,7 +303,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
               className={`px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-md border ${
                 showInactive
                   ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                  : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
+                  : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary theme-ok'
               }`}
               title="Show inactive (returning) players"
             >
@@ -311,7 +311,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
             </button>
             <button
               onClick={() => { setEditingPlayer(null); setIsAddPlayerOpen(true); }}
-              className="bg-gradient-to-br from-brand-primary to-surface-tint text-white text-xs font-extrabold tracking-widest uppercase py-1.5 px-3 rounded-md shadow-sm hover:from-brand-primary-soft hover:to-brand-primary flex items-center gap-1.5" /* theme-ok: legacy hardcoded color, pending audit */
+              className="bg-gradient-to-br from-brand-primary to-surface-tint text-white text-xs font-extrabold tracking-widest uppercase py-1.5 px-3 rounded-md shadow-sm hover:from-brand-primary-soft hover:to-brand-primary flex items-center gap-1.5"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -343,7 +343,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 setEditingPlayer(null);
                 setIsAddPlayerOpen(true);
               }}
-              className="bg-brand-primary hover:bg-brand-primary text-white font-semibold py-2 px-4 rounded-xl transition duration-200" /* theme-ok: legacy hardcoded color, pending audit */
+              className="bg-brand-primary hover:bg-brand-primary text-white font-semibold py-2 px-4 rounded-xl transition duration-200"
             >
               Add Your First Player
             </button>

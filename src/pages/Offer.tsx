@@ -402,7 +402,7 @@ const Offer: React.FC = () => {
                           onClick={() => setWaiverAck(prev => ({ ...prev, [w.id]: !prev[w.id] }))}
                           className={`shrink-0 w-7 h-7 rounded-full ring-1 flex items-center justify-center ${
                             ack
-                              ? 'bg-emerald-500 ring-emerald-400 text-white'  // theme-ok: legacy hardcoded color, pending per-line audit
+                              ? 'bg-emerald-500 ring-emerald-400 text-white'
                               : 'bg-surface-elevated ring-line-default/20 text-ink-primary/40 hover:ring-emerald-400/60'
                           }`}
                           aria-pressed={ack}
@@ -448,7 +448,7 @@ const Offer: React.FC = () => {
                     || !signedByName.trim()
                     || waivers.some(w => !waiverAck[w.id])
                   }
-                  className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 shadow-lg" /* theme-ok: legacy hardcoded color, pending audit */
+                  className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 shadow-lg"
                 >
                   {submitting ? 'Working…' : 'Sign & accept'}
                 </button>
@@ -468,7 +468,7 @@ const Offer: React.FC = () => {
                 type="button"
                 onClick={() => waivers.length > 0 ? setShowingWaivers(true) : handleAccept()}
                 disabled={submitting}
-                className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 shadow-lg" /* theme-ok: legacy hardcoded color, pending audit */
+                className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 shadow-lg"
               >
                 {submitting ? 'Working…' : waivers.length > 0 ? `Accept · sign ${waivers.length} release${waivers.length === 1 ? '' : 's'}` : 'Accept the offer'}
               </button>
@@ -496,7 +496,7 @@ const Offer: React.FC = () => {
                   type="button"
                   onClick={handleDecline}
                   disabled={submitting}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-rose-500 hover:bg-rose-400 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+                  className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-rose-500 hover:bg-rose-400 disabled:opacity-50"
                 >
                   {submitting ? 'Working…' : 'Confirm decline'}
                 </button>

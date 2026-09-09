@@ -111,8 +111,8 @@ const BulkEmailModal: React.FC<Props> = ({ registrations, clubId, signature, onC
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
-      <div className="bg-white w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">  // theme-ok: legacy hardcoded color, pending per-line audit
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <div className="bg-white w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh] theme-ok">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="font-black text-ink-primary">Email selected</h2>
             <p className="text-[11px] text-ink-primary/55">{recipients.length} famil{recipients.length === 1 ? 'y' : 'ies'} ({registrations.length} registration{registrations.length === 1 ? '' : 's'})</p>
@@ -147,7 +147,7 @@ const BulkEmailModal: React.FC<Props> = ({ registrations, clubId, signature, onC
           {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
         </div>
 
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-ink-primary/80 hover:text-ink-primary">
             {result ? 'Done' : 'Cancel'}
           </button>
@@ -156,7 +156,7 @@ const BulkEmailModal: React.FC<Props> = ({ registrations, clubId, signature, onC
               type="button"
               disabled={!canSend}
               onClick={handleSend}
-              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold" /* theme-ok: legacy hardcoded color, pending audit */
+              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold"
             >
               {sending ? 'Sending…' : `Send to ${recipients.length}`}
             </button>

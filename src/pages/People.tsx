@@ -97,10 +97,10 @@ function personRoleLabel(person: { role: Role; relationship?: string }): string 
 //                          them quiet so coaches/admins stand out)
 const ROLE_CHIP: Record<Role, string> = {
   player: 'bg-surface-input text-ink-primary/80 border-line-default/15',
-  parent: 'bg-emerald-600 text-white border-emerald-700',  // theme-ok: legacy hardcoded color, pending per-line audit
+  parent: 'bg-emerald-600 text-white border-emerald-700',
   coach: 'bg-amber-400 text-ink-primary border-amber-500',
-  team_manager: 'bg-sky-600 text-white border-sky-700',  // theme-ok: legacy hardcoded color, pending per-line audit
-  admin: 'bg-brand-primary text-white border-brand-primary',  // theme-ok: legacy hardcoded color, pending per-line audit
+  team_manager: 'bg-sky-600 text-white border-sky-700',
+  admin: 'bg-brand-primary text-white border-brand-primary',
 };
 
 const People: React.FC = () => {
@@ -435,7 +435,7 @@ const People: React.FC = () => {
             <button
               onClick={() => setChooserOpen(true)}
               aria-label="Add someone"
-              className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -509,7 +509,7 @@ const People: React.FC = () => {
                     setSelfAddBusy(false);
                   }
                 }}
-                className="flex-shrink-0 px-4 py-2 rounded-full bg-brand-primary text-white text-xs font-black tracking-wider uppercase shadow-lg hover:bg-brand-primary/90 disabled:opacity-50 transition" /* theme-ok: legacy hardcoded color, pending audit */
+                className="flex-shrink-0 px-4 py-2 rounded-full bg-brand-primary text-white text-xs font-black tracking-wider uppercase shadow-lg hover:bg-brand-primary/90 disabled:opacity-50 transition"
               >
                 {selfAddBusy ? 'Adding…' : 'Add me'}
               </button>
@@ -615,7 +615,7 @@ const People: React.FC = () => {
                 >
                   {selectMode && (
                     <span className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? 'bg-brand-primary border-brand-primary text-white' : 'border-line-default/15'  // theme-ok: legacy hardcoded color, pending per-line audit
+                      isSelected ? 'bg-brand-primary border-brand-primary text-white' : 'border-line-default/15'
                     }`}>
                       {isSelected && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                     </span>
@@ -623,7 +623,7 @@ const People: React.FC = () => {
                   {p.photoURL ? (
                     <img loading="lazy" decoding="async" src={p.photoURL} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                   ) : (
-                    <span className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">{initial}</span>  // theme-ok: legacy hardcoded color, pending per-line audit
+                    <span className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">{initial}</span>
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
@@ -669,7 +669,7 @@ const People: React.FC = () => {
                       // PersonAdmin → Teams tab does that + more.
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/club/person/${p.id}`); }}
-                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary/150 flex-shrink-0" /* theme-ok: legacy hardcoded color, pending audit */
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary/150 flex-shrink-0"
                       >
                         Profile
                       </button>
@@ -744,7 +744,7 @@ const People: React.FC = () => {
                 setBulkBusy(false);
               }
             }}
-            className="bg-brand-primary hover:bg-brand-primary/150 text-white text-xs font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-lg disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+            className="bg-brand-primary hover:bg-brand-primary/150 text-white text-xs font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-lg disabled:opacity-50"
           >
             {bulkBusy ? '…' : 'Add'}
           </button>

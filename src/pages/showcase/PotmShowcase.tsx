@@ -37,7 +37,7 @@ const PotmShowcase: React.FC = () => {
 };
 
 export const ShowcaseKicker: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="text-[10px] font-black tracking-[0.3em] uppercase text-white/40 mb-4 text-center">  // theme-ok: legacy hardcoded color, pending per-line audit
+  <p className="text-[10px] font-black tracking-[0.3em] uppercase text-white/40 mb-4 text-center">
     {children}
   </p>
 );

@@ -132,7 +132,7 @@ const NotificationsBanner: React.FC = () => {
           </p>
 
           {showSettingsHelp && state === 'denied' && (
-            <div className="mt-2 bg-white border border-slate-200 rounded-lg p-2.5 text-[11px] text-ink-primary/90 leading-relaxed">  // theme-ok: legacy hardcoded color, pending per-line audit
+            <div className="mt-2 bg-white border border-slate-200 rounded-lg p-2.5 text-[11px] text-ink-primary/90 leading-relaxed theme-ok">
               {platform === 'ios' ? (
                 <>
                   <b>iOS:</b> Settings → Notifications → GoalKickr → toggle <b>Allow Notifications</b> on.
@@ -153,7 +153,7 @@ const NotificationsBanner: React.FC = () => {
             {state === 'denied' ? (
               <button
                 onClick={() => setShowSettingsHelp(s => !s)}
-                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
+                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary"
               >
                 {showSettingsHelp ? 'Hide steps' : 'Open settings'}
               </button>
@@ -161,7 +161,7 @@ const NotificationsBanner: React.FC = () => {
               <button
                 onClick={enable}
                 disabled={state === 'busy'}
-                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50"
               >
                 {state === 'busy' ? 'Enabling…' : 'Enable'}
               </button>

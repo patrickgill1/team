@@ -2054,7 +2054,7 @@ const NextEventHero: React.FC<{
       )}
       <div className="p-4 sm:p-5 flex items-stretch gap-4">
         {/* Date tile */}
-        <div className={`flex-shrink-0 w-16 sm:w-20 rounded-xl bg-gradient-to-br ${tileGradient} text-white text-center flex flex-col justify-center shadow-sm`}>  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className={`flex-shrink-0 w-16 sm:w-20 rounded-xl bg-gradient-to-br ${tileGradient} text-white text-center flex flex-col justify-center shadow-sm`}>
           <div className="text-[10px] font-bold uppercase tracking-wider opacity-90">{month}</div>
           <div className="text-2xl sm:text-3xl font-black leading-none">{day}</div>
           <div className="text-[10px] font-bold uppercase tracking-wider opacity-90">{dow}</div>
@@ -2149,7 +2149,7 @@ const NextEventHero: React.FC<{
               <button
                 key={b.k}
                 onClick={(e) => { e.stopPropagation(); onRsvp(b.k); }}
-                className={`flex-1 px-3 py-1.5 rounded-full text-xs font-bold text-white shadow-sm transition active:scale-95 ${b.bg}`}  // theme-ok: legacy hardcoded color, pending per-line audit
+                className={`flex-1 px-3 py-1.5 rounded-full text-xs font-bold text-white shadow-sm transition active:scale-95 ${b.bg}`}
               >
                 {b.label}
               </button>
@@ -2189,7 +2189,7 @@ const UnreadMessagesCard: React.FC<{ count: number; thread: any | null }> = ({ c
         <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center ring-2 ring-surface-base">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center ring-2 ring-surface-base">
           {count > 99 ? '99+' : count}
         </span>
       </span>
@@ -2241,7 +2241,7 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
             for (let i = 0; i < (displayTitle || '').length; i++) hash = (hash * 31 + displayTitle.charCodeAt(i)) >>> 0;
             // Brand-coherent two-tone fallback — cyan for DMs you've
             // got a photo for and slate for everyone else. No rainbow.
-            const palette = ['bg-brand-primary', 'bg-slate-600'];  // theme-ok: legacy hardcoded color, pending per-line audit
+            const palette = ['bg-brand-primary theme-ok', 'bg-slate-600'];
             const avatarBg = palette[hash % palette.length];
             // For DMs, show the other participant's real photo when we have it.
             const dmPhotoUrl = isDM && otherUid ? userPhotoMap?.[otherUid] : undefined;
@@ -2270,7 +2270,7 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
                   />
                 ) : null}
                 <div
-                  className={`flex-shrink-0 w-9 h-9 rounded-full text-white font-bold text-sm flex items-center justify-center shadow-sm ${avatarBg}`}  // theme-ok: legacy hardcoded color, pending per-line audit
+                  className={`flex-shrink-0 w-9 h-9 rounded-full text-white font-bold text-sm flex items-center justify-center shadow-sm ${avatarBg}`}
                   style={dmPhotoUrl ? { display: 'none' } : undefined}
                 >
                   {initial}
@@ -2400,7 +2400,7 @@ const MyPlayerCard: React.FC<{
       case 'Forward':
       case 'Striker': return 'bg-rose-400';
       case 'Winger': return 'bg-orange-400';
-      default: return 'bg-slate-400';  // theme-ok: legacy hardcoded color, pending per-line audit
+      default: return 'bg-slate-400 theme-ok';
     }
   })();
 
@@ -2443,7 +2443,7 @@ const MyPlayerCard: React.FC<{
   return (
     <Link
       to={`/player/${player.id}`}
-      className={`relative overflow-hidden rounded-2xl ${isPotm ? 'text-white' : 'text-ink-primary'} active:scale-[0.995] transition block ${cardBg}`}  // theme-ok: legacy hardcoded color, pending per-line audit
+      className={`relative overflow-hidden rounded-2xl ${isPotm ? 'text-white' : 'text-ink-primary'} active:scale-[0.995] transition block ${cardBg}`}
       style={
         isPotm
           ? undefined
@@ -2600,7 +2600,7 @@ const MyPlayerCard: React.FC<{
                 loading="lazy"
               />
             ) : (
-              <div className={`absolute top-[16px] left-[16px] w-[96px] h-[96px] rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>  // theme-ok: legacy hardcoded color, pending per-line audit
+              <div className={`absolute top-[16px] left-[16px] w-[96px] h-[96px] rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-2xl font-black shadow-lg ring-[3px] ${isPotm ? 'ring-amber-300' : 'ring-brand-primary'}`}>
                 {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
               </div>
             )}
@@ -2614,7 +2614,7 @@ const MyPlayerCard: React.FC<{
                 surface-elevated so it bezels against the card bg. */}
             {player.jerseyNumber != null && !isPotm && (
               <span
-                className="absolute top-[6px] left-[6px] z-10 w-[32px] h-[32px] rounded-full bg-brand-primary text-white ring-2 ring-surface-elevated flex items-center justify-center text-[13px] font-black tabular-nums shadow-lg" /* theme-ok: legacy hardcoded color, pending audit */
+                className="absolute top-[6px] left-[6px] z-10 w-[32px] h-[32px] rounded-full bg-brand-primary text-white ring-2 ring-surface-elevated flex items-center justify-center text-[13px] font-black tabular-nums shadow-lg"
                 aria-label={`Jersey number ${player.jerseyNumber}`}
               >
                 {player.jerseyNumber}
@@ -2640,7 +2640,7 @@ const MyPlayerCard: React.FC<{
               lives INLINE at the head of the subtitle so it flows
               with the rest of the text. */}
           <div className="flex-1 min-w-0">
-            <p className={`text-[21px] sm:text-[23px] font-black leading-[1] tracking-tight ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>  // theme-ok: legacy hardcoded color, pending per-line audit
+            <p className={`text-[21px] sm:text-[23px] font-black leading-[1] tracking-tight ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>
               {player.name}
             </p>
             {!isPotm && (
@@ -2911,7 +2911,7 @@ const TeamPulseCard: React.FC<{
         to={`/game-day/quick_${Date.now()}`}
         className="mx-4 mt-4 p-3 rounded-xl bg-brand-primary/10 ring-1 ring-brand-primary/25 flex items-center gap-3 hover:bg-brand-primary/15 transition active:scale-[0.99]"
       >
-        <div className="w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-sm flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-sm flex-shrink-0">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" />
             <circle cx="12" cy="12" r="6" />
@@ -2941,7 +2941,7 @@ const TeamPulseCard: React.FC<{
         <div className="p-4 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
           {topScorer && (
             <Link to={`/player/${topScorer.id}`} className="flex items-center gap-2.5 p-2 rounded-xl bg-surface-base ring-1 ring-line-default/10 hover:bg-line-default/[0.05] transition">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-primary flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-primary flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
                 {ts.profilePhotoUrl ? (
                   <img loading="lazy" decoding="async" src={ts.profilePhotoUrl} alt={topScorer.name} className="w-full h-full object-cover" />
                 ) : (
@@ -2960,7 +2960,7 @@ const TeamPulseCard: React.FC<{
           )}
           {topAssister && topAssister.id !== topScorer?.id && (
             <Link to={`/player/${topAssister.id}`} className="flex items-center gap-2.5 p-2 rounded-xl bg-surface-base ring-1 ring-line-default/10 hover:bg-line-default/[0.05] transition">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-primary-soft flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-primary-soft flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
                 {ta.profilePhotoUrl ? (
                   <img loading="lazy" decoding="async" src={ta.profilePhotoUrl} alt={topAssister.name} className="w-full h-full object-cover" />
                 ) : (
@@ -3007,9 +3007,9 @@ const DashTile: React.FC<{
   badgeTone?: 'rose' | 'cyan' | 'amber';
 }> = ({ to, label, icon, badge, badgeTone = 'rose' }) => {
   const badgeColor = {
-    rose: 'bg-rose-500 text-white',  // theme-ok: legacy hardcoded color, pending per-line audit
-    cyan: 'bg-brand-primary text-white',  // theme-ok: legacy hardcoded color, pending per-line audit
-    amber: 'bg-orange-500 text-white',  // theme-ok: legacy hardcoded color, pending per-line audit
+    rose: 'bg-rose-500 text-white',
+    cyan: 'bg-brand-primary text-white',
+    amber: 'bg-orange-500 text-white',
   }[badgeTone];
   return (
     <Link

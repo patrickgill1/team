@@ -1045,7 +1045,7 @@ const PlayerDevelopment: React.FC = () => {
               type="button"
               onClick={() => setViewMode('coach')}
               className={`px-4 py-1.5 rounded-lg text-xs font-extrabold tracking-widest uppercase transition ${
-                viewMode === 'coach' ? 'bg-brand-primary text-white shadow' : 'text-ink-primary/50 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
+                viewMode === 'coach' ? 'bg-brand-primary text-white shadow' : 'text-ink-primary/50 hover:text-ink-primary'
               }`}
             >
               Coach View
@@ -1054,7 +1054,7 @@ const PlayerDevelopment: React.FC = () => {
               type="button"
               onClick={() => { setViewMode('parent'); setSelectedPlayerId('all'); }}
               className={`px-4 py-1.5 rounded-lg text-xs font-extrabold tracking-widest uppercase transition ${
-                viewMode === 'parent' ? 'bg-brand-primary text-white shadow' : 'text-ink-primary/50 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
+                viewMode === 'parent' ? 'bg-brand-primary text-white shadow' : 'text-ink-primary/50 hover:text-ink-primary'
               }`}
             >
               My {myLinkedPlayers.length > 1 ? 'kids' : 'kid'}
@@ -1083,7 +1083,7 @@ const PlayerDevelopment: React.FC = () => {
           {canAssignDevPlans && (
             <button
               onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(true); }}
-              className="bg-brand-primary hover:bg-brand-primary text-white px-4 py-2.5 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm" /* theme-ok: legacy hardcoded color, pending audit */
+              className="bg-brand-primary hover:bg-brand-primary text-white px-4 py-2.5 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
               <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
               <span>New Plan</span>
@@ -1327,7 +1327,7 @@ const PlayerDevelopment: React.FC = () => {
                                 }}
                                 title={p.name}
                                 className={`px-2.5 py-1 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${checked
-                                  ? 'bg-brand-primary text-white shadow-sm'  // theme-ok: legacy hardcoded color, pending per-line audit
+                                  ? 'bg-brand-primary text-white shadow-sm'
                                   : 'bg-surface-elevated text-ink-primary/85 ring-1 ring-line-default/15 hover:ring-brand-primary-soft'}`}
                               >
                                 {label}
@@ -1515,7 +1515,7 @@ const PlayerDevelopment: React.FC = () => {
                                     urlInput.value = '';
                                     titleInput.value = '';
                                   }}
-                                  className="px-2 py-1 bg-brand-primary hover:bg-brand-primary text-white text-xs font-medium rounded" /* theme-ok: legacy hardcoded color, pending audit */
+                                  className="px-2 py-1 bg-brand-primary hover:bg-brand-primary text-white text-xs font-medium rounded"
                                 >
                                   +
                                 </button>
@@ -1559,7 +1559,7 @@ const PlayerDevelopment: React.FC = () => {
                   type="button"
                   onClick={editingPlanId ? handleUpdatePlan : handleCreatePlan}
                   disabled={submitting || (editingPlanId ? !planPlayerId : (bulkPlayerIds.length === 0 && !planPlayerId)) || !planTitle.trim() || planGoals.every(g => !g.title.trim())}
-                  className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 rounded-lg" /* theme-ok: legacy hardcoded color, pending audit */
+                  className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 rounded-lg"
                 >
                   {submitting
                     ? 'Creating…'
@@ -1649,7 +1649,7 @@ const PlayerDevelopment: React.FC = () => {
                     type="button"
                     onClick={() => void commitCreatePlan(finalIds)}
                     disabled={submitting || finalIds.length === 0}
-                    className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary/90 disabled:opacity-50 rounded-lg" /* theme-ok: legacy hardcoded color, pending audit */
+                    className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary/90 disabled:opacity-50 rounded-lg"
                   >
                     {submitting
                       ? 'Creating…'
@@ -1815,7 +1815,7 @@ const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) =>
           type="button"
           onClick={handleSubmit}
           disabled={!draft.trim()}
-          className="px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 text-white text-xs font-bold" /* theme-ok: legacy hardcoded color, pending audit */
+          className="px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 text-white text-xs font-bold"
         >
           Post
         </button>
@@ -1968,7 +1968,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
               />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-primary to-surface-raised text-white flex items-center justify-center font-bold text-base ring-2 ring-brand-primary-soft">  // theme-ok: legacy hardcoded color, pending per-line audit
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-primary to-surface-raised text-white flex items-center justify-center font-bold text-base ring-2 ring-brand-primary-soft">
                 {playerInitial}
               </div>
             )}
@@ -2041,7 +2041,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
         <div className="border-t border-line-default/10 p-4">
           {plan.description && (
             <div className="mb-4 flex items-start gap-3">
-              <span className="w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center shrink-0 mt-0.5">  // theme-ok: legacy hardcoded color, pending per-line audit
+              <span className="w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center shrink-0 mt-0.5">
                 <AppIcon name="highlight" className="w-4 h-4" />
               </span>
               <p className="text-sm text-ink-primary/85 flex-1">{plan.description}</p>
@@ -2249,12 +2249,12 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                         />
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
                                           <div className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center shadow-md">
-                                            <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>  // theme-ok: legacy hardcoded color, pending per-line audit
+                                            <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                           </div>
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="aspect-video bg-gradient-to-br from-brand-primary to-surface-raised flex items-center justify-center text-white text-xs px-2 text-center">  // theme-ok: legacy hardcoded color, pending per-line audit
+                                      <div className="aspect-video bg-gradient-to-br from-brand-primary to-surface-raised flex items-center justify-center text-white text-xs px-2 text-center">
                                         Open link
                                       </div>
                                     )}
@@ -2270,7 +2270,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                         e.preventDefault();
                                         if (window.confirm('Remove this link?')) onRemoveVideoLink(goal.id, link.id);
                                       }}
-                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-opacity" /* theme-ok: legacy hardcoded color, pending audit */
+                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-opacity theme-ok"
                                       aria-label="Remove link"
                                     >
                                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -2316,7 +2316,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                       setLinkTitle('');
                                     }}
                                     disabled={!linkUrl.trim()}
-                                    className="text-xs bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white font-medium px-3 py-1 rounded" /* theme-ok: legacy hardcoded color, pending audit */
+                                    className="text-xs bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white font-medium px-3 py-1 rounded"
                                   >
                                     Add Link
                                   </button>
@@ -2440,7 +2440,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             return (
                               <div className="mt-3">
                                 {loggedToday ? (
-                                  <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 px-5 py-4 text-white shadow-md">  // theme-ok: legacy hardcoded color, pending per-line audit
+                                  <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 px-5 py-4 text-white shadow-md">
                                     <div className="flex items-center gap-3">
                                       <span className="flex-shrink-0 w-10 h-10 rounded-full bg-line-default/20 ring-2 ring-line-default/30 flex items-center justify-center">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
@@ -2457,15 +2457,15 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => onQuickDidIt(goal.id)}
-                                    className="w-full rounded-xl bg-brand-primary hover:bg-brand-primary-soft dark:bg-gradient-to-br dark:from-brand-primary dark:via-brand-primary dark:to-surface-elevated dark:hover:from-brand-primary-soft dark:hover:via-brand-primary dark:hover:to-surface-input text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all px-5 py-4 group" /* theme-ok: legacy hardcoded color, pending audit */
+                                    className="w-full rounded-xl bg-brand-primary hover:bg-brand-primary-soft dark:bg-gradient-to-br dark:from-brand-primary dark:via-brand-primary dark:to-surface-elevated dark:hover:from-brand-primary-soft dark:hover:via-brand-primary dark:hover:to-surface-input text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all px-5 py-4 group"
                                   >
                                     <div className="flex items-center justify-center gap-3">
-                                      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/25 ring-2 ring-white/30 flex items-center justify-center group-hover:scale-110 transition-transform">  // theme-ok: legacy hardcoded color, pending per-line audit
+                                      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/25 ring-2 ring-white/30 flex items-center justify-center group-hover:scale-110 transition-transform theme-ok">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                                       </span>
                                       <span className="text-lg font-black tracking-wide uppercase">I did it</span>
                                       {streakToShow > 0 && (
-                                        <span className="text-xs font-bold bg-white/25 px-2 py-0.5 rounded-full">  // theme-ok: legacy hardcoded color, pending per-line audit
+                                        <span className="text-xs font-bold bg-white/25 px-2 py-0.5 rounded-full theme-ok">
                                           {streakToShow}-day streak, don't break it
                                         </span>
                                       )}
@@ -2507,7 +2507,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
             {isCoach && plan.status === 'completed' && (
               <button
                 onClick={onCreateNextPlan}
-                className="text-sm bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-brand-primary font-medium flex items-center space-x-1" /* theme-ok: legacy hardcoded color, pending audit */
+                className="text-sm bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-brand-primary font-medium flex items-center space-x-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />

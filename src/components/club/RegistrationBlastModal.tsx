@@ -176,8 +176,8 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
-      <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">  // theme-ok: legacy hardcoded color, pending per-line audit
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh] theme-ok">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-black text-ink-primary">Push registration email</h2>
           <button type="button" onClick={onClose} className="text-ink-primary/55 hover:text-ink-primary/90 text-2xl leading-none">×</button>
         </div>
@@ -215,8 +215,8 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
                           onClick={() => setAgeFilter(on ? ageFilter.filter(x => x !== ag) : [...ageFilter, ag])}
                           className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${
                             on
-                              ? 'bg-brand-primary text-white ring-brand-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
-                              : 'bg-white text-ink-primary/80 ring-slate-200 hover:ring-brand-primary-soft'  // theme-ok: legacy hardcoded color, pending per-line audit
+                              ? 'bg-brand-primary text-white ring-brand-primary'
+                              : 'bg-white text-ink-primary/80 ring-slate-200 hover:ring-brand-primary-soft theme-ok'
                           }`}
                         >
                           {ag}
@@ -270,7 +270,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-ink-primary/80 hover:text-ink-primary">
             {result ? 'Done' : 'Cancel'}
           </button>
@@ -279,7 +279,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
               type="button"
               disabled={sending || recipients.length === 0 || !seasonId}
               onClick={handleSend}
-              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold" /* theme-ok: legacy hardcoded color, pending audit */
+              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold"
             >
               {sending ? 'Sending…' : `Send to ${recipients.length}`}
             </button>

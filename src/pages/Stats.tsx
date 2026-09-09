@@ -234,7 +234,7 @@ const Stats: React.FC = () => {
                   <button
                     onClick={() => setIsStatsTrackerOpen(true)}
                     disabled={players.length === 0}
-                    className="bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2" /* theme-ok: legacy hardcoded color, pending audit */
+                    className="bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -256,7 +256,7 @@ const Stats: React.FC = () => {
                     </p>
                     <button
                       onClick={() => window.location.href = '/players'}
-                      className="bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200" /* theme-ok: legacy hardcoded color, pending audit */
+                      className="bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200"
                     >
                       Build Your Squad
                     </button>
@@ -537,7 +537,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
               <button
                 onClick={() => setStatsScope('current')}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
-                  statsScope === 'current' ? 'bg-brand-primary text-white shadow-sm' : 'text-ink-primary/65 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
+                  statsScope === 'current' ? 'bg-brand-primary text-white shadow-sm' : 'text-ink-primary/65 hover:text-ink-primary'
                 }`}
               >
                 This Season
@@ -545,7 +545,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
               <button
                 onClick={() => setStatsScope('lifetime')}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
-                  statsScope === 'lifetime' ? 'bg-brand-primary text-white shadow-sm' : 'text-ink-primary/65 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
+                  statsScope === 'lifetime' ? 'bg-brand-primary text-white shadow-sm' : 'text-ink-primary/65 hover:text-ink-primary'
                 }`}
               >
                 Overall
@@ -580,7 +580,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
           <p className="text-ink-primary/65 mb-4">Build the squad first. Stats come once players are in.</p>
           <button
             onClick={() => window.location.href = '/players'}
-            className="bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition" /* theme-ok: legacy hardcoded color, pending audit */
+            className="bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition"
           >
             Add Players
           </button>
@@ -735,8 +735,8 @@ const QuickStat: React.FC<{ icon: any; tint: 'cyan' | 'emerald' | 'navy' | 'fire
 
 const RANK_STYLES: Record<number, { card: string; ribbon: string; pill: string; stat: string }> = {
   1: { card: 'bg-brand-primary/15 ring-brand-primary-soft/30',         ribbon: 'bg-amber-400 text-amber-950',   pill: 'bg-amber-400 text-amber-950',   stat: 'text-emerald-300' },
-  2: { card: 'bg-emerald-500/15 ring-emerald-400/30',   ribbon: 'bg-gray-300 text-ink-primary/90',     pill: 'bg-emerald-500/150 text-white',     stat: 'text-emerald-300' },  // theme-ok: legacy hardcoded color, pending per-line audit
-  3: { card: 'bg-brand-primary/15 ring-brand-primary-soft/30',         ribbon: 'bg-orange-300 text-orange-950', pill: 'bg-brand-primary text-white',        stat: 'text-brand-primary-soft'    },  // theme-ok: legacy hardcoded color, pending per-line audit
+  2: { card: 'bg-emerald-500/15 ring-emerald-400/30 theme-ok',   ribbon: 'bg-gray-300 text-ink-primary/90',     pill: 'bg-emerald-500/150 text-white',     stat: 'text-emerald-300' },
+  3: { card: 'bg-brand-primary/15 ring-brand-primary-soft/30',         ribbon: 'bg-orange-300 text-orange-950', pill: 'bg-brand-primary text-white',        stat: 'text-brand-primary-soft'    },
 };
 
 const PerformerCard: React.FC<{
@@ -781,7 +781,7 @@ const PlayerAvatar: React.FC<{ player: Player; large?: boolean }> = ({ player, l
     return <img loading="lazy" decoding="async" src={photo} alt={player.name} className={`${size} rounded-full object-cover ring-white shadow-sm shrink-0`} />;
   }
   return (
-    <div className={`${size} rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary ring-white shadow-sm shrink-0 flex items-center justify-center text-white font-bold`}>  // theme-ok: legacy hardcoded color, pending per-line audit
+    <div className={`${size} rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary ring-white shadow-sm shrink-0 flex items-center justify-center text-white font-bold`}>
       {(player.name || '?').charAt(0).toUpperCase()}
     </div>
   );
@@ -916,7 +916,7 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-ink-primary/85 hover:bg-line-default/[0.08]" disabled={saving}>
             Cancel
           </button>
-          <button onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50">  // theme-ok: legacy hardcoded color, pending per-line audit
+          <button onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50">
             {saving ? 'Saving…' : 'Save correction'}
           </button>
         </div>

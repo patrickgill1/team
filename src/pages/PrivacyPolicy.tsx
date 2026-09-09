@@ -8,14 +8,14 @@ const APP_DOMAIN = 'goalkickr.com';
 
 const PrivacyPolicy: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white">  // theme-ok: legacy hardcoded color, pending per-line audit
-      <header className="bg-gradient-to-r from-surface-raised via-surface-tint to-surface-raised text-white">  // theme-ok: legacy hardcoded color, pending per-line audit
+    <div className="min-h-screen bg-white theme-ok">
+      <header className="bg-gradient-to-r from-surface-raised via-surface-tint to-surface-raised text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-          <Link to="/" className="text-sm text-white/70 hover:text-white inline-flex items-center gap-1">  // theme-ok: legacy hardcoded color, pending per-line audit
+          <Link to="/" className="text-sm text-white/70 hover:text-white inline-flex items-center gap-1">
             ← Back to {APP_NAME}
           </Link>
           <h1 className="text-3xl sm:text-4xl font-bold mt-3 tracking-tight">Privacy Policy</h1>
-          <p className="text-white/80 text-sm mt-1">Effective {EFFECTIVE_DATE}</p>  // theme-ok: legacy hardcoded color, pending per-line audit
+          <p className="text-white/80 text-sm mt-1">Effective {EFFECTIVE_DATE}</p>
         </div>
       </header>
 
@@ -167,7 +167,7 @@ const PrivacyPolicy: React.FC = () => {
           </p>
         </section>
 
-        <footer className="pt-6 mt-8 border-t border-slate-200 text-xs text-ink-primary/65">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <footer className="pt-6 mt-8 border-t border-slate-200 text-xs text-ink-primary/65">
           {APP_NAME} · {APP_DOMAIN}
         </footer>
       </main>

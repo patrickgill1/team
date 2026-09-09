@@ -238,7 +238,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-full flex flex-col" /* theme-ok: legacy hardcoded color, pending audit */
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-full flex flex-col theme-ok"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated">
@@ -246,7 +246,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
             <h3 className="text-lg font-bold text-ink-primary">Import Schedule</h3>
             <p className="text-xs text-ink-primary/65">Upload an .ics file exported from GotSoccer, Demosphere, TeamSnap, Google Calendar, etc.</p>
           </div>
-          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 text-ink-primary/65" aria-label="Close">  // theme-ok: legacy hardcoded color, pending per-line audit
+          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 text-ink-primary/65 theme-ok" aria-label="Close">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -277,13 +277,13 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                     value={feedUrl}
                     onChange={(e) => setFeedUrl(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleFetchUrl(); }}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40" /* theme-ok: legacy hardcoded color, pending audit */
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                   />
                   <button
                     type="button"
                     onClick={handleFetchUrl}
                     disabled={!feedUrl.trim() || fetchingUrl}
-                    className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 rounded-lg whitespace-nowrap" /* theme-ok: legacy hardcoded color, pending audit */
+                    className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 rounded-lg whitespace-nowrap"
                   >
                     {fetchingUrl ? 'Fetching…' : 'Fetch'}
                   </button>
@@ -295,10 +295,10 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
 
               <div className="relative my-5">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />  // theme-ok: legacy hardcoded color, pending per-line audit
+                  <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-[10px] uppercase tracking-widest text-ink-primary/55">
-                  <span className="bg-white px-2">or upload a file</span>  // theme-ok: legacy hardcoded color, pending per-line audit
+                  <span className="bg-white px-2 theme-ok">or upload a file</span>
                 </div>
               </div>
 
@@ -338,7 +338,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                   schedule usually don't want last year's matches
                   too. Defaults to today onwards on first parse;
                   clear it to backfill history. */}
-              <div className="mb-4 rounded-xl ring-1 ring-slate-200 bg-white p-3">  // theme-ok: legacy hardcoded color, pending per-line audit
+              <div className="mb-4 rounded-xl ring-1 ring-slate-200 bg-white p-3 theme-ok">
                 <div className="flex items-center justify-between mb-2.5">
                   <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/90">
                     Date filter
@@ -374,7 +374,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
                       style={{ colorScheme: 'light' }}
-                      className="w-full px-3 py-2 text-sm text-ink-primary border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40 bg-white" /* theme-ok: legacy hardcoded color, pending audit */
+                      className="w-full px-3 py-2 text-sm text-ink-primary border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40 bg-white theme-ok"
                     />
                   </div>
                 </div>
@@ -404,16 +404,16 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                   </button>
                 )}
               </div>
-              <ul className="divide-y divide-gray-100 ring-1 ring-gray-200 rounded-xl overflow-hidden bg-white">  // theme-ok: legacy hardcoded color, pending per-line audit
+              <ul className="divide-y divide-gray-100 ring-1 ring-gray-200 rounded-xl overflow-hidden bg-white theme-ok">
                 {rows.map((row, i) => {
                   if (!isInRange(row)) return null;
                   const cls = classifyEvent(row.raw.title, selectedTeam?.name || '');
                   const typePill =
                     cls.type === 'game' ? 'bg-rose-100 text-rose-700' :
                     cls.type === 'practice' ? 'bg-emerald-100 text-emerald-700' :
-                    'bg-slate-100 text-ink-primary/90';  // theme-ok: legacy hardcoded color, pending per-line audit
+                    'bg-slate-100 text-ink-primary/90 theme-ok';
                   return (
-                    <li key={i} className={`p-3 flex items-start gap-3 ${row.selected ? '' : 'bg-gray-50'}`}>  // theme-ok: legacy hardcoded color, pending per-line audit
+                    <li key={i} className={`p-3 flex items-start gap-3 ${row.selected ? 'theme-ok' : 'bg-gray-50'}`}>
                       <input
                         type="checkbox"
                         checked={row.selected}
@@ -452,14 +452,14 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
         </div>
 
         {rows.length > 0 && (
-          <div className="border-t border-gray-100 p-4 flex items-center justify-between gap-3 bg-gray-50">  // theme-ok: legacy hardcoded color, pending per-line audit
+          <div className="border-t border-gray-100 p-4 flex items-center justify-between gap-3 bg-gray-50 theme-ok">
             <button onClick={reset} className="text-sm font-medium text-ink-primary/80 hover:text-ink-primary">
               Choose another file
             </button>
             <button
               onClick={handleImport}
               disabled={importing || visibleSelectedCount === 0}
-              className="bg-brand-primary hover:bg-brand-primary disabled:bg-gray-300 text-white font-semibold rounded-xl px-5 py-2.5 transition-colors" /* theme-ok: legacy hardcoded color, pending audit */
+              className="bg-brand-primary hover:bg-brand-primary disabled:bg-gray-300 text-white font-semibold rounded-xl px-5 py-2.5 transition-colors theme-ok"
             >
               {importing ? 'Importing…' : `Import ${visibleSelectedCount} event${visibleSelectedCount === 1 ? '' : 's'}`}
             </button>

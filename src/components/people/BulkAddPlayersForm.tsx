@@ -267,7 +267,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
         type="button"
         onClick={handleSubmit}
         disabled={busy}
-        className="mt-6 w-full px-5 py-3 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition disabled:opacity-60 disabled:cursor-wait" /* theme-ok: legacy hardcoded color, pending audit */
+        className="mt-6 w-full px-5 py-3 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition disabled:opacity-60 disabled:cursor-wait"
       >
         {busy ? 'Adding players…' : primaryLabel}
       </button>

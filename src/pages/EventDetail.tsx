@@ -1193,7 +1193,7 @@ const EventDetail: React.FC = () => {
         </p>
         <Link
           to="/calendar"
-          className="inline-flex items-center gap-2 min-h-11 px-4 py-2.5 rounded-lg bg-brand-primary text-white text-sm font-bold hover:bg-brand-primary-hov transition" /* theme-ok: legacy hardcoded color, pending audit */
+          className="inline-flex items-center gap-2 min-h-11 px-4 py-2.5 rounded-lg bg-brand-primary text-white text-sm font-bold hover:bg-brand-primary-hov transition"
         >
           Back to calendar
         </Link>
@@ -1212,7 +1212,7 @@ const EventDetail: React.FC = () => {
     countdown?.variant === 'live'
       ? 'bg-rose-500/15 border-rose-500/35 text-rose-200'
       : countdown?.variant === 'past'
-      ? 'bg-line-default/10 border-slate-500/20 text-ink-primary/50'  // theme-ok: legacy hardcoded color, pending per-line audit
+      ? 'bg-line-default/10 border-slate-500/20 text-ink-primary/50'
       : 'bg-brand-primary/10 border-brand-primary/25 text-ink-primary/85';
   const pulseClass =
     countdown?.variant === 'live' ? 'bg-rose-500'
@@ -1469,7 +1469,7 @@ const EventDetail: React.FC = () => {
             </div>
             <button
               onClick={handleRestoreDeleted}
-              className="shrink-0 inline-flex items-center gap-1.5 min-h-11 px-3 py-2.5 rounded-lg bg-emerald-500 text-white text-[11px] font-extrabold tracking-widest uppercase hover:bg-emerald-400 transition" /* theme-ok: legacy hardcoded color, pending audit */
+              className="shrink-0 inline-flex items-center gap-1.5 min-h-11 px-3 py-2.5 rounded-lg bg-emerald-500 text-white text-[11px] font-extrabold tracking-widest uppercase hover:bg-emerald-400 transition"
             >
               <Icon name="check" className="w-4 h-4" />
               Restore
@@ -1512,7 +1512,7 @@ const EventDetail: React.FC = () => {
                   onClick={() => setPlayerRsvp(p.id, p.name, status)}
                   className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
                     current === status
-                      ? `${active} text-white border-transparent shadow-sm`  // theme-ok: legacy hardcoded color, pending per-line audit
+                      ? `${active} text-white border-transparent shadow-sm`
                       : 'bg-surface-input text-ink-primary/75 border-line-default/10 hover:border-line-default/20'
                   }`}
                 >
@@ -1620,7 +1620,7 @@ const EventDetail: React.FC = () => {
                 ? 'bg-emerald-500 text-ink-primary ring-emerald-400'
                 : s === 'maybe'
                   ? 'bg-sky-500 text-sky-950 ring-sky-400'
-                  : 'bg-rose-500 text-white ring-rose-400';  // theme-ok: legacy hardcoded color, pending per-line audit
+                  : 'bg-rose-500 text-white ring-rose-400';
               return (
                 <button
                   key={s}
@@ -1773,7 +1773,7 @@ const EventDetail: React.FC = () => {
               />
             ))}
             {buckets.going.length > 6 && (
-              <span className="w-9 h-9 rounded-full bg-brand-primary text-white ring-2 ring-surface-elevated flex items-center justify-center text-[11px] font-black">  // theme-ok: legacy hardcoded color, pending per-line audit
+              <span className="w-9 h-9 rounded-full bg-brand-primary text-white ring-2 ring-surface-elevated flex items-center justify-center text-[11px] font-black">
                 +{buckets.going.length - 6}
               </span>
             )}
@@ -2027,7 +2027,7 @@ const EventDetail: React.FC = () => {
               type="button"
               onClick={handleRemindPending}
               disabled={remindBusy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary text-white text-[11px] font-bold tracking-wider uppercase hover:bg-brand-primary disabled:opacity-60 disabled:cursor-not-allowed" /* theme-ok: legacy hardcoded color, pending audit */
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary text-white text-[11px] font-bold tracking-wider uppercase hover:bg-brand-primary disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Icon name="bell" className="w-3.5 h-3.5" />
               {remindBusy ? 'Sending…' : `Remind ${buckets.pending} pending`}
@@ -2288,7 +2288,7 @@ const EventDetail: React.FC = () => {
                       onClick={() => setPlayerRsvp(p.id, p.name, status)}
                       className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[11px] font-bold border transition ${
                         current === status
-                          ? `${active} text-white border-transparent shadow-sm`  // theme-ok: legacy hardcoded color, pending per-line audit
+                          ? `${active} text-white border-transparent shadow-sm`
                           : 'bg-surface-elevated text-ink-primary/70 border-line-default/10 hover:border-line-default/15'
                       }`}
                     >
@@ -2407,7 +2407,7 @@ const EventDetail: React.FC = () => {
                     onClick={() => setFeedbackDraft(player.id, { feel: value })}
                     className={`rounded-lg px-2.5 py-1.5 text-[11px] font-bold ring-1 transition ${
                       selectedFeel === value
-                        ? 'bg-brand-primary text-white ring-brand-primary-soft/40 shadow-sm'  // theme-ok: legacy hardcoded color, pending per-line audit
+                        ? 'bg-brand-primary text-white ring-brand-primary-soft/40 shadow-sm'
                         : 'bg-surface-input text-ink-primary/70 ring-line-default/10 hover:ring-line-default/20'
                     }`}
                   >
@@ -2465,7 +2465,7 @@ const EventDetail: React.FC = () => {
                       type="button"
                       disabled={feedbackSaving[player.id] || !selectedFeel}
                       onClick={() => submitPlayerFeedback(player)}
-                      className="mt-2 w-full rounded-lg bg-brand-primary text-white px-3 py-2 text-[12px] font-extrabold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed" /* theme-ok: legacy hardcoded color, pending audit */
+                      className="mt-2 w-full rounded-lg bg-brand-primary text-white px-3 py-2 text-[12px] font-extrabold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {feedbackSaving[player.id] ? 'Sending...' : mine ? 'Update Coach' : 'Send to Coach'}
                     </button>
@@ -2858,7 +2858,7 @@ const PackingListSection: React.FC<{
         {isCoach && !editing && (
           <button
             onClick={() => setEditing(true)}
-            className="text-[11px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary-hov dark:bg-transparent dark:text-brand-primary dark:hover:text-brand-primary-dim" /* theme-ok: legacy hardcoded color, pending audit */
+            className="text-[11px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary-hov dark:bg-transparent dark:text-brand-primary dark:hover:text-brand-primary-dim"
           >
             {list.length === 0 ? '+ Add' : 'Edit'}
           </button>
@@ -2912,7 +2912,7 @@ const PackingListSection: React.FC<{
                   setNewLabel('');
                 }
               }}
-              className="px-3 py-1.5 bg-brand-primary text-white text-xs font-bold rounded-md" /* theme-ok: legacy hardcoded color, pending audit */
+              className="px-3 py-1.5 bg-brand-primary text-white text-xs font-bold rounded-md"
             >Add</button>
           </div>
         </div>
@@ -2930,7 +2930,7 @@ const PackingListSection: React.FC<{
                   className="w-full flex items-center gap-2.5 py-1 text-left disabled:cursor-not-allowed"
                 >
                   <span className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                    isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-line-default/15'  // theme-ok: legacy hardcoded color, pending per-line audit
+                    isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-line-default/15'
                   }`}>
                     {isChecked && (
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>

@@ -321,7 +321,7 @@ const SubscriptionCard: React.FC = () => {
             type="button"
             onClick={handleEmailConfirm}
             disabled={emailSaving || !emailDraft.trim()}
-            className="px-4 py-2.5 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white transition disabled:opacity-60 disabled:cursor-wait" /* theme-ok: legacy hardcoded color, pending audit */
+            className="px-4 py-2.5 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white transition disabled:opacity-60 disabled:cursor-wait"
           >
             {emailSaving ? 'Saving…' : 'Continue'}
           </button>
@@ -356,7 +356,7 @@ const SubscriptionCard: React.FC = () => {
           <button
             type="button"
             onClick={handleSubscribe}
-            className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold bg-brand-primary hover:bg-brand-primary text-white transition-all" /* theme-ok: legacy hardcoded color, pending audit */
+            className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold bg-brand-primary hover:bg-brand-primary text-white transition-all"
           >
             Subscribe at goalkickr.com
           </button>

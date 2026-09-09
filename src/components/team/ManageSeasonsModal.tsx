@@ -169,7 +169,7 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
       onClick={busy ? undefined : onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-full flex flex-col" /* theme-ok: legacy hardcoded color, pending audit */
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-full flex flex-col theme-ok"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated">
@@ -177,7 +177,7 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
             <h3 className="text-lg font-bold text-ink-primary">Manage seasons</h3>
             <p className="text-xs text-ink-primary/65">Rename, set active, or delete past seasons for this team.</p>
           </div>
-          <button onClick={onClose} disabled={busy} className="p-2 rounded-lg hover:bg-gray-100 text-ink-primary/65 disabled:opacity-50" aria-label="Close">  // theme-ok: legacy hardcoded color, pending per-line audit
+          <button onClick={onClose} disabled={busy} className="p-2 rounded-lg hover:bg-gray-100 text-ink-primary/65 disabled:opacity-50 theme-ok" aria-label="Close">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -200,7 +200,7 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base" /* theme-ok: legacy hardcoded color, pending audit */
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
                         style={{ fontSize: '16px' }}
                       />
                       <div className="grid grid-cols-2 gap-2">
@@ -208,14 +208,14 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
                           type="date"
                           value={editStart}
                           onChange={(e) => setEditStart(e.target.value)}
-                          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base" /* theme-ok: legacy hardcoded color, pending audit */
+                          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
                           style={{ fontSize: '16px' }}
                         />
                         <input
                           type="date"
                           value={editEnd}
                           onChange={(e) => setEditEnd(e.target.value)}
-                          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base" /* theme-ok: legacy hardcoded color, pending audit */
+                          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
                           style={{ fontSize: '16px' }}
                         />
                       </div>
@@ -223,7 +223,7 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
                         <button onClick={cancelEdit} disabled={busy} className="px-3 py-1.5 text-sm font-semibold text-ink-primary/90">
                           Cancel
                         </button>
-                        <button onClick={saveEdit} disabled={busy} className="bg-brand-primary hover:bg-brand-primary text-white font-semibold px-3 py-1.5 rounded-lg text-sm disabled:opacity-50">  // theme-ok: legacy hardcoded color, pending per-line audit
+                        <button onClick={saveEdit} disabled={busy} className="bg-brand-primary hover:bg-brand-primary text-white font-semibold px-3 py-1.5 rounded-lg text-sm disabled:opacity-50">
                           Save
                         </button>
                       </div>
@@ -240,7 +240,7 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
                       </div>
                       <p className="text-xs text-ink-primary/65">{fmt(s.startDate)} → {fmt(s.endDate)}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <button onClick={() => startEdit(s)} disabled={busy} className="text-xs font-semibold text-ink-primary/90 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-full disabled:opacity-50">  // theme-ok: legacy hardcoded color, pending per-line audit
+                        <button onClick={() => startEdit(s)} disabled={busy} className="text-xs font-semibold text-ink-primary/90 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-full disabled:opacity-50 theme-ok">
                           Edit
                         </button>
                         {!s.isActive && (
@@ -261,7 +261,7 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
 
-        <div className="border-t border-gray-100 p-3 text-center bg-gray-50">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="border-t border-gray-100 p-3 text-center bg-gray-50 theme-ok">
           <button onClick={onClose} disabled={busy} className="text-sm font-semibold text-ink-primary/90 disabled:opacity-50">
             Done
           </button>

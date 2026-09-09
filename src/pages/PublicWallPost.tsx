@@ -68,14 +68,14 @@ const PublicWallPost: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center theme-ok">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary/30 border-t-cyan-400" />
       </div>
     );
   }
   if (error || !post) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center theme-ok">
         <div>
           <h1 className="text-xl font-bold text-ink-primary mb-1">{error || 'Post unavailable'}</h1>
           <p className="text-sm text-ink-primary/65">The link may have expired or the post may have been deleted.</p>
@@ -85,15 +85,15 @@ const PublicWallPost: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">  // theme-ok: legacy hardcoded color, pending per-line audit
-      <header className="bg-white px-4 sm:px-6 py-5 text-center border-b border-brand-primary/15">  // theme-ok: legacy hardcoded color, pending per-line audit
+    <div className="min-h-screen bg-slate-50 theme-ok">
+      <header className="bg-white px-4 sm:px-6 py-5 text-center border-b border-brand-primary/15 theme-ok">
         <p className="text-[10px] font-extrabold tracking-[0.3em] text-brand-primary uppercase">GoalKickr · Team Wall</p>
         <h1 className="text-xl sm:text-2xl font-black text-ink-primary mt-1">A post from {post.senderName}</h1>
       </header>
 
       <article className="max-w-2xl mx-auto px-4 sm:px-6 py-6" style={publicShareLightStyle}>
-        <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">  // theme-ok: legacy hardcoded color, pending per-line audit
-          <div className="px-4 sm:px-6 py-3 border-b border-slate-100 flex items-center gap-2">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden theme-ok">
+          <div className="px-4 sm:px-6 py-3 border-b border-slate-100 flex items-center gap-2">
             <span className="text-sm font-bold text-ink-primary">{post.senderName}</span>
             {post.senderRole === 'coach' && (
               <span className="text-[10px] font-bold uppercase tracking-wider text-brand-primary bg-brand-primary-soft ring-1 ring-brand-primary-soft px-1.5 py-0.5 rounded">Coach</span>

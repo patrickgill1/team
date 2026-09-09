@@ -251,7 +251,7 @@ const PlayerJoin: React.FC = () => {
     <div className="min-h-screen bg-surface-base flex items-center justify-center p-4">
       <div className="bg-surface-elevated rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
         {/* Player header */}
-        <div className="bg-brand-primary p-6 text-white text-center">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="bg-brand-primary p-6 text-white text-center">
           {player?.profilePhotoUrl ? (
             <img loading="lazy" decoding="async"
               src={player.profilePhotoUrl}
@@ -260,7 +260,7 @@ const PlayerJoin: React.FC = () => {
             />
           ) : (
             <div className="w-20 h-20 rounded-full bg-surface-elevated bg-opacity-20 flex items-center justify-center mx-auto mb-3 border-4 border-white shadow-lg">
-              <span className="text-white font-bold text-3xl">  // theme-ok: legacy hardcoded color, pending per-line audit
+              <span className="text-white font-bold text-3xl">
                 {player?.name.charAt(0).toUpperCase()}
               </span>
             </div>

@@ -138,8 +138,8 @@ const MedicalEditModal: React.FC<Props> = ({ player, actorUid, actorName, onClos
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
-      <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">  // theme-ok: legacy hardcoded color, pending per-line audit
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh] theme-ok">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="font-black text-ink-primary">Medical profile</h2>
             <p className="text-[11px] text-ink-primary/55">{player.name}</p>
@@ -292,9 +292,9 @@ const MedicalEditModal: React.FC<Props> = ({ player, actorUid, actorName, onClos
           {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
         </div>
 
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-ink-primary/80 hover:text-ink-primary">Cancel</button>
-          <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold">  // theme-ok: legacy hardcoded color, pending per-line audit
+          <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : 'Save medical profile'}
           </button>
         </div>
@@ -333,7 +333,7 @@ const Section: React.FC<{ title: string; onAdd: () => void; children: React.Reac
 );
 
 const Row: React.FC<{ onRemove: () => void; children: React.ReactNode }> = ({ onRemove, children }) => (
-  <div className="bg-slate-50 ring-1 ring-slate-200 rounded-xl p-3 relative">  // theme-ok: legacy hardcoded color, pending per-line audit
+  <div className="bg-slate-50 ring-1 ring-slate-200 rounded-xl p-3 relative theme-ok">
     <button type="button" onClick={onRemove} className="absolute top-1.5 right-2 text-ink-primary/55 hover:text-rose-600 text-lg leading-none">×</button>
     {children}
   </div>

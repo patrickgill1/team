@@ -83,7 +83,7 @@ const TrialCountdownBanner: React.FC = () => {
       <button
         type="button"
         onClick={handleClick}
-        className="flex-shrink-0 px-3 py-1.5 rounded-full bg-surface-elevated hover:bg-surface-raised ring-1 ring-line-default/20 text-white text-[11px] font-black tracking-widest uppercase transition" /* theme-ok: legacy hardcoded color, pending audit */
+        className="flex-shrink-0 px-3 py-1.5 rounded-full bg-surface-elevated hover:bg-surface-raised ring-1 ring-line-default/20 text-white text-[11px] font-black tracking-widest uppercase transition"
       >
         {cta}
       </button>

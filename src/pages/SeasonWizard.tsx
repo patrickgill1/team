@@ -249,7 +249,7 @@ const SeasonWizard: React.FC = () => {
                       done
                         ? 'bg-emerald-500 ring-emerald-400 text-ink-primary'
                         : isActive
-                          ? 'bg-brand-primary ring-brand-primary-soft text-white'  // theme-ok: legacy hardcoded color, pending per-line audit
+                          ? 'bg-brand-primary ring-brand-primary-soft text-white'
                           : 'bg-surface-base ring-line-default/15 text-ink-primary/50'
                     }`}
                   >
@@ -334,7 +334,7 @@ const SeasonWizard: React.FC = () => {
                               )}
                               className={`text-[12px] font-extrabold tracking-wide px-2.5 py-1 rounded-full transition-colors ring-1 ${
                                 on
-                                  ? 'bg-brand-primary ring-brand-primary-soft text-white'  // theme-ok: legacy hardcoded color, pending per-line audit
+                                  ? 'bg-brand-primary ring-brand-primary-soft text-white'
                                   : 'bg-surface-base ring-line-default/10 text-ink-primary/65 hover:bg-line-default/5 hover:text-ink-primary'
                               }`}
                             >
@@ -354,7 +354,7 @@ const SeasonWizard: React.FC = () => {
                         type="button"
                         onClick={savePlan}
                         disabled={saving}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary text-white font-bold rounded-md ring-1 ring-brand-primary-soft/30 transition-colors text-sm disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary text-white font-bold rounded-md ring-1 ring-brand-primary-soft/30 transition-colors text-sm disabled:opacity-50"
                       >
                         {saving ? 'Saving…' : (done ? 'Save changes' : 'Save and continue')}
                       </button>

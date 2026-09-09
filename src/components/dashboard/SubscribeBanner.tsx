@@ -87,7 +87,7 @@ const SubscribeBanner: React.FC = () => {
           <button
             type="button"
             onClick={handleStart}
-            className="mt-3 inline-flex items-center justify-center px-4 py-2 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition" /* theme-ok: legacy hardcoded color, pending audit */
+            className="mt-3 inline-flex items-center justify-center px-4 py-2 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition"
           >
             Start free trial at goalkickr.com
           </button>

@@ -147,7 +147,7 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
   };
 
   return (
-    <section className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${tone} text-white shadow-2xl ring-1 ring-line-default/10`}>  // theme-ok: legacy hardcoded color, pending per-line audit
+    <section className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${tone} text-white shadow-2xl ring-1 ring-line-default/10`}>
       <div className="absolute -top-16 -right-16 w-48 h-48 bg-line-default/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-20 -left-10 w-56 h-56 bg-line-default/5 rounded-full blur-3xl pointer-events-none" />
       <div className="relative p-5 sm:p-6">
@@ -156,11 +156,11 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-line-default/15 ring-1 ring-line-default/20">
             Final
           </span>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">  // theme-ok: legacy hardcoded color, pending per-line audit
+          <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">
             {won ? 'Win' : tied ? 'Draw' : 'Loss'}
           </span>
           {homeAway && (
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">  // theme-ok: legacy hardcoded color, pending per-line audit
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">
               {homeAway === 'home' ? '🏠 Home' : '✈️ Away'}
             </span>
           )}
@@ -169,12 +169,12 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
         {/* Scoreline */}
         <div className="grid grid-cols-3 items-center text-center gap-2 mb-4">
           <div className="min-w-0">
-            <p className="text-xs text-white/70 truncate">{teamName}</p>  // theme-ok: legacy hardcoded color, pending per-line audit
+            <p className="text-xs text-white/70 truncate">{teamName}</p>
             <p className="text-5xl font-black tabular-nums leading-none">{ourScore}</p>
           </div>
-          <p className="text-white/40 font-bold text-sm tracking-widest">vs.</p>  // theme-ok: legacy hardcoded color, pending per-line audit
+          <p className="text-white/40 font-bold text-sm tracking-widest">vs.</p>
           <div className="min-w-0">
-            <p className="text-xs text-white/70 truncate">{opponent}</p>  // theme-ok: legacy hardcoded color, pending per-line audit
+            <p className="text-xs text-white/70 truncate">{opponent}</p>
             <p className="text-5xl font-black tabular-nums leading-none">{oppScore}</p>
           </div>
         </div>
@@ -182,14 +182,14 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
         {/* Scorers */}
         {scorers.length > 0 && (
           <div className="mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1.5">⚽ Goals</p>  // theme-ok: legacy hardcoded color, pending per-line audit
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1.5">⚽ Goals</p>
             <ul className="space-y-1">
               {scorers.map((s, i) => (
                 <li key={i} className="text-sm flex items-center justify-between gap-2">
                   <span className="font-semibold truncate">
                     {s.jersey != null ? `#${s.jersey} ` : ''}{s.name}
                   </span>
-                  <span className="text-xs text-white/75 flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
+                  <span className="text-xs text-white/75 flex-shrink-0">
                     {ordinal(s.minute)}'
                     {s.assistBy ? ` · 🎯 ${s.assistBy}` : ''}
                   </span>
@@ -215,7 +215,7 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-wider text-amber-200">MVP</p>
               <p className="font-bold truncate">{mvp.name}</p>
-              <p className="text-xs text-white/80">{mvp.goals} goal{mvp.goals === 1 ? '' : 's'} · {mvp.assists} assist{mvp.assists === 1 ? '' : 's'} · {mvp.minutes} min</p>  // theme-ok: legacy hardcoded color, pending per-line audit
+              <p className="text-xs text-white/80">{mvp.goals} goal{mvp.goals === 1 ? '' : 's'} · {mvp.assists} assist{mvp.assists === 1 ? '' : 's'} · {mvp.minutes} min</p>
             </div>
           </div>
         )}
@@ -223,12 +223,12 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
         {/* Iron men (top minutes) */}
         {ironMen.length > 0 && (
           <div className="mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1.5">⛓️ Most minutes</p>  // theme-ok: legacy hardcoded color, pending per-line audit
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1.5">⛓️ Most minutes</p>
             <ul className="space-y-0.5">
               {ironMen.map((p) => (
                 <li key={p.id} className="text-sm flex items-center justify-between gap-2">
                   <span className="font-semibold truncate">{p.name}</span>
-                  <span className="text-xs text-white/75 flex-shrink-0">{p.minutes} min</span>  // theme-ok: legacy hardcoded color, pending per-line audit
+                  <span className="text-xs text-white/75 flex-shrink-0">{p.minutes} min</span>
                 </li>
               ))}
             </ul>
@@ -239,7 +239,7 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleShare}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-ink-primary font-bold text-sm shadow active:scale-95" /* theme-ok: legacy hardcoded color, pending audit */
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-ink-primary font-bold text-sm shadow active:scale-95 theme-ok"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />

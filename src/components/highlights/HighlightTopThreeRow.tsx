@@ -162,7 +162,7 @@ const TopCard: React.FC<TopCardProps> = ({ rank, clip, players, onTap }) => {
         aria-hidden
       >
         <span className="w-11 h-11 rounded-full bg-black/45 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/20">
-          <svg className="w-5 h-5 text-white translate-x-[1px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden>  // theme-ok: legacy hardcoded color, pending per-line audit
+          <svg className="w-5 h-5 text-white translate-x-[1px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M8 5v14l11-7z" />
           </svg>
         </span>
@@ -193,9 +193,9 @@ const TopCard: React.FC<TopCardProps> = ({ rank, clip, players, onTap }) => {
             className="ring-1 ring-white/50"
           />
           <div className="min-w-0 flex-1">
-            <div className="text-white text-[14px] font-bold truncate leading-tight">{name}</div>  // theme-ok: legacy hardcoded color, pending per-line audit
+            <div className="text-white text-[14px] font-bold truncate leading-tight">{name}</div>
             {secondary && (
-              <div className="text-white/75 text-[11px] font-medium truncate leading-tight mt-0.5">  // theme-ok: legacy hardcoded color, pending per-line audit
+              <div className="text-white/75 text-[11px] font-medium truncate leading-tight mt-0.5">
                 {secondary}
               </div>
             )}

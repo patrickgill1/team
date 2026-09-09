@@ -109,7 +109,7 @@ const ChatAttachmentImage: React.FC<{
 }> = ({ src, alt, solo, onLoad, onClick, insideBubble }) => {
   const skinClasses = insideBubble
     ? 'bg-black/10'
-    : 'rounded-2xl bg-slate-100';  // theme-ok: legacy hardcoded color, pending per-line audit
+    : 'rounded-2xl bg-slate-100 theme-ok';
 
   // Solo: let the image drive its own size (intrinsic, capped at
   // max-h-72). This is what the pre-ChatAttachmentImage code did
@@ -219,7 +219,7 @@ const ChatAttachmentImage: React.FC<{
 
 function renderRichContent(text: string, ownTheme: boolean): string {
   const safe = escapeHtml(text);
-  const linkColor = ownTheme ? 'text-white underline underline-offset-2' : 'text-brand-primary underline underline-offset-2';  // theme-ok: legacy hardcoded color, pending per-line audit
+  const linkColor = ownTheme ? 'text-white underline underline-offset-2' : 'text-brand-primary underline underline-offset-2';
   const linked = safe.replace(
     /\b((?:https?:\/\/|www\.)[^\s<]+)/gi,
     (raw) => {
@@ -233,7 +233,7 @@ function renderRichContent(text: string, ownTheme: boolean): string {
       return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="${linkColor} break-all">${label}</a>${trailing}`;
     }
   );
-  const mentionColor = ownTheme ? 'bg-line-default/25 text-white' : 'bg-brand-primary-soft text-brand-primary-dim';  // theme-ok: legacy hardcoded color, pending per-line audit
+  const mentionColor = ownTheme ? 'bg-line-default/25 text-white' : 'bg-brand-primary-soft text-brand-primary-dim';
   // @team is a special everyone-ping mention; render it noticeably
   // differently so it's clear at a glance that the whole team got
   // pinged, not just one parent.
@@ -277,9 +277,9 @@ const ActionRow: React.FC<{
   onClick: () => void;
 }> = ({ icon, label, description, tone = 'slate', onClick }) => {
   const chipClass = {
-    cyan: 'bg-rose-600 text-white',          // reply / view profile / DM (primary action)  // theme-ok: legacy hardcoded color, pending per-line audit
+    cyan: 'bg-rose-600 text-white',          // reply / view profile / DM (primary action)
     amber: 'bg-amber-500 text-ink-primary', // pin (warm fill / dark text — POTM pattern)
-    rose: 'bg-rose-600 text-white',          // delete (label below also goes rose)  // theme-ok: legacy hardcoded color, pending per-line audit
+    rose: 'bg-rose-600 text-white',          // delete (label below also goes rose)
     slate: 'bg-surface-input text-ink-primary ring-1 ring-line-default/10', // copy / seen-by / mute (neutral)
   }[tone];
   const labelColor = tone === 'rose' ? 'text-rose-300' : 'text-ink-primary';
@@ -325,7 +325,7 @@ const senderColor = (name: string): string => {
     'bg-brand-primary',
     'bg-amber-500',
     'bg-emerald-600',
-    'bg-slate-500',  // theme-ok: legacy hardcoded color, pending per-line audit
+    'bg-slate-500 theme-ok',
   ];
   return palette[h % palette.length];
 };
@@ -466,7 +466,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // dark theme — sender names + content became unreadable per the
   // web app dark-mode bug report).
   const bubbleBg = isOwn
-    ? 'bg-brand-primary text-white'  // theme-ok: legacy hardcoded color, pending per-line audit
+    ? 'bg-brand-primary text-white'
     : 'bg-surface-elevated text-ink-primary ring-1 ring-line-default/15';
 
   // Swipe-gesture state. We resolve each touch into ONE of three modes:
@@ -571,7 +571,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       {showReplyIcon && (
         <span
           aria-hidden
-          className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-brand-primary text-white flex items-center justify-center pointer-events-none" /* theme-ok: legacy hardcoded color, pending audit */
+          className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-brand-primary text-white flex items-center justify-center pointer-events-none"
           style={{ opacity: swipeProgress }}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
@@ -580,7 +580,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       {showDeleteIcon && (
         <span
           aria-hidden
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-rose-500 text-white flex items-center justify-center pointer-events-none" /* theme-ok: legacy hardcoded color, pending audit */
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-rose-500 text-white flex items-center justify-center pointer-events-none"
           style={{ opacity: swipeProgress }}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
@@ -607,7 +607,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               />
             ) : (
               <div
-                className={`w-8 h-8 rounded-full text-white text-sm font-bold flex items-center justify-center shadow-sm ${senderColor(  // theme-ok: legacy hardcoded color, pending per-line audit
+                className={`w-8 h-8 rounded-full text-white text-sm font-bold flex items-center justify-center shadow-sm ${senderColor(
                   message.senderName
                 )}`}
                 title={message.senderName}
@@ -755,7 +755,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   }
                 }}
                 disabled={savingEdit || !editDraft.trim()}
-                className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
+                className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50"
               >
                 {savingEdit ? 'Saving…' : 'Save'}
               </button>
@@ -864,7 +864,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 ) : (
                   <button
                     onClick={() => onAcknowledge?.(message)}
-                    className="w-full bg-amber-700 hover:bg-amber-800 active:scale-95 text-white font-bold py-2 rounded-xl text-sm shadow-sm transition" /* theme-ok: legacy hardcoded color, pending audit */
+                    className="w-full bg-amber-700 hover:bg-amber-800 active:scale-95 text-white font-bold py-2 rounded-xl text-sm shadow-sm transition"
                   >
                     ✓ I see this
                   </button>
@@ -971,7 +971,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 className={`text-[11px] px-2 py-0.5 rounded-full transition-colors flex items-center gap-1 ${
                   info.mine
                     ? 'bg-brand-primary-soft ring-1 ring-brand-primary-soft text-brand-primary-dim'
-                    : 'bg-surface-elevated ring-1 ring-line-default text-ink-primary hover:bg-slate-50'  // theme-ok: legacy hardcoded color, pending per-line audit
+                    : 'bg-surface-elevated ring-1 ring-line-default text-ink-primary hover:bg-slate-50 theme-ok'
                 }`}
               >
                 <span className="text-sm leading-none">{emoji}</span>

@@ -1730,7 +1730,7 @@ const EventForm: React.FC<EventFormProps> = ({
             type="button"
             onClick={() => formRef.current?.requestSubmit()}
             disabled={isSubmitting}
-            className="w-full bg-gradient-to-br from-brand-primary to-surface-tint hover:from-brand-primary-soft hover:to-brand-primary text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md shadow-brand-primary/30 transition disabled:opacity-50 flex items-center justify-center" /* theme-ok: legacy hardcoded color, pending audit */
+            className="w-full bg-gradient-to-br from-brand-primary to-surface-tint hover:from-brand-primary-soft hover:to-brand-primary text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md shadow-brand-primary/30 transition disabled:opacity-50 flex items-center justify-center"
           >
             {isSubmitting ? (
               <span className="inline-flex items-center gap-2">

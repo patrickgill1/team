@@ -137,7 +137,7 @@ const PlayerRatingSheet: React.FC<PlayerRatingSheetProps> = ({ event, players, o
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-line-default/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {p.profilePhotoUrl ? (
-                        <img src={p.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
+                        <img loading="lazy" decoding="async" src={p.profilePhotoUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-xs font-black text-ink-primary/70">
                           {p.jerseyNumber ? `#${p.jerseyNumber}` : p.name.charAt(0)}

@@ -1961,7 +1961,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
           {/* Player avatar with category icon overlay */}
           <div className="relative shrink-0">
             {playerPhoto ? (
-              <img
+              <img loading="lazy" decoding="async"
                 src={playerPhoto}
                 alt={plan.playerName}
                 className="w-12 h-12 rounded-full object-cover ring-2 ring-brand-primary-soft"

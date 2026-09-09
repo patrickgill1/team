@@ -181,7 +181,7 @@ const PublicPlayerCard: React.FC = () => {
         <div className="relative max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-14 flex flex-col items-center text-center">
           <div className="relative">
             {player.profilePhotoUrl ? (
-              <img
+              <img loading="lazy" decoding="async"
                 src={player.profilePhotoUrl}
                 alt={player.name}
                 className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover ring-4 ring-brand-primary-soft/60 shadow-2xl shadow-brand-primary/30"

@@ -101,7 +101,7 @@ const ClubBrandingCard: React.FC<Props> = ({ club }) => {
           style={{ boxShadow: `0 0 0 2px ${currentColor}` }}
         >
           {club?.logoUrl ? (
-            <img src={club.logoUrl} alt={`${club.name || 'Club'} logo`} className="w-full h-full object-contain" />
+            <img loading="lazy" decoding="async" src={club.logoUrl} alt={`${club.name || 'Club'} logo`} className="w-full h-full object-contain" />
           ) : (
             <span className="text-ink-primary/30 text-xs font-bold">No logo</span>
           )}

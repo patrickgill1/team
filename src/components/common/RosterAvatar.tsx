@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 // Initials-instant avatar with photo fade-over on load. Eliminates
 // the 'profile pics pop in late' cascade in roster lists by ALWAYS
 // rendering the colored initials circle as the base layer; the
-// photo <img> overlays on top with opacity 0 and fades in only after
+// photo <img loading="lazy" decoding="async"> overlays on top with opacity 0 and fades in only after
 // it finishes loading. If the photo never resolves (no url, 404,
 // fails to decode), the initials stay visible — no broken state.
 //
@@ -57,7 +57,7 @@ interface Props {
    *  the source photo instead of chopping the top + sides like a
    *  circle does, so portrait selfies keep their face intact. */
   shape?: 'circle' | 'card';
-  /** CSS object-position for the underlying <img>. Defaults tuned per
+  /** CSS object-position for the underlying <img loading="lazy" decoding="async">. Defaults tuned per
    *  shape: 50% 20% for cards (face-sweet-spot for portrait crops),
    *  50% 25% for circles (splits center vs top so both centered
    *  selfies and coach-shot portraits survive). Prior code hardcoded

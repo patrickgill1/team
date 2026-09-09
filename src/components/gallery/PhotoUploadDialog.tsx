@@ -166,7 +166,7 @@ const PhotoUploadDialog: React.FC<Props> = ({
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {previews.map((src, i) => (
                   <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-surface-base ring-1 ring-line-default/10 group">
-                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
                     <button
                       onClick={() => removeAt(i)}
                       disabled={uploading}

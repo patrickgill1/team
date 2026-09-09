@@ -608,7 +608,7 @@ const RegisterForm: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 rounded-xl bg-surface-base ring-1 ring-line-default/15 overflow-hidden flex items-center justify-center shrink-0">
                   {clubShell?.logoUrl ? (
-                    <img src={clubShell.logoUrl} alt={clubName} className="w-full h-full object-cover" />
+                    <img loading="lazy" decoding="async" src={clubShell.logoUrl} alt={clubName} className="w-full h-full object-cover" />
                   ) : (
                     <Logo size="md" variant="icon" />
                   )}

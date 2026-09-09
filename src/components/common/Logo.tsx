@@ -41,7 +41,7 @@ const Logo: React.FC<LogoProps> = ({
     
     return (
       <div className={`${config.icon} flex items-center justify-center mx-auto`}>
-        <img 
+        <img loading="lazy" decoding="async" 
           src={logoSrc}
           alt="Team Logo"
           className={`${config.icon} object-contain hover:scale-105 transition-transform duration-200`}

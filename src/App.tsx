@@ -165,7 +165,7 @@ const UPDATE_STORY_MIN_MS = 6500;
 const PageSpinner = () => (
   <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex items-center justify-center">
     <div className="flex flex-col items-center gap-6 animate-fade-in">
-      <img
+      <img loading="lazy" decoding="async"
         src="/images/logo.png"
         alt=""
         className="w-24 h-24 rounded-2xl shadow-2xl shadow-brand-primary/20 ring-1 ring-line-default/10 splash-breathe"
@@ -1225,7 +1225,7 @@ const UpdateStorySplash: React.FC<{ percent: number; mode: UpdateStoryMode }> = 
       className="fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex items-center justify-center px-8 animate-fade-in"
     >
       <div className="flex flex-col items-center gap-6 max-w-lg w-full">
-        <img
+        <img loading="lazy" decoding="async"
           src="/images/logo.png"
           alt=""
           className="w-20 h-20 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-line-default/10 splash-breathe"
@@ -1356,7 +1356,7 @@ const JustUpdatedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       style={{ transitionDuration: '400ms' }}
     >
       <div className="flex flex-col items-center gap-6 max-w-md">
-        <img
+        <img loading="lazy" decoding="async"
           src="/images/logo.png"
           alt=""
           className="w-20 h-20 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-line-default/10 splash-breathe"
@@ -1440,7 +1440,7 @@ const BrandedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       style={{ transitionDuration: '400ms' }}
     >
       <div className="flex flex-col items-center gap-6">
-        <img
+        <img loading="lazy" decoding="async"
           src="/images/logo.png"
           alt=""
           className="w-28 h-28 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-line-default/10 splash-breathe"

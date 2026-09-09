@@ -159,7 +159,7 @@ const Equipment: React.FC = () => {
                     <Link to={`/player/${p.id}`} className="block px-4 py-3 hover:bg-line-default/[0.05]">
                       <div className="flex items-center gap-3">
                         {p.profilePhotoUrl ? (
-                          <img src={p.profilePhotoUrl} alt={p.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-1 ring-line-default/10" />
+                          <img loading="lazy" decoding="async" src={p.profilePhotoUrl} alt={p.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-1 ring-line-default/10" />
                         ) : (
                           <span className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                             {p.jerseyNumber != null ? `#${p.jerseyNumber}` : p.name.charAt(0).toUpperCase()}

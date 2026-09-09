@@ -519,7 +519,7 @@ const KidMessageBubble: React.FC<{
       {!isMine && (
         <div className="flex items-center gap-1.5 pl-1">
           {message.actingAsPhotoUrl ? (
-            <img src={message.actingAsPhotoUrl} alt="" className="w-4 h-4 rounded-full object-cover" />
+            <img loading="lazy" decoding="async" src={message.actingAsPhotoUrl} alt="" className="w-4 h-4 rounded-full object-cover" />
           ) : (
             <div className="w-4 h-4 rounded-full bg-line-default/20 flex items-center justify-center text-[8px] font-black text-ink-primary/70">
               {message.actingAsName?.charAt(0) || '?'}

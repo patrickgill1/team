@@ -87,7 +87,7 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
                     >
                       <span className="flex items-center gap-2 min-w-0">
                         {photo ? (
-                          <img src={photo} alt="" className="w-7 h-7 rounded-full object-cover" />
+                          <img loading="lazy" decoding="async" src={photo} alt="" className="w-7 h-7 rounded-full object-cover" />
                         ) : (
                           <span className={`w-7 h-7 rounded-full bg-gradient-to-br ${senderColor(name)} text-white text-xs font-bold flex items-center justify-center`}>
                             {initial}

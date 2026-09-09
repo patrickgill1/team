@@ -274,7 +274,7 @@ const PhotoTape: React.FC<Props> = ({ playerId, playerName, teamId, season }) =>
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center px-2">
-            <img
+            <img loading="lazy" decoding="async"
               key={active.id}
               src={active.url}
               alt={active.caption || ''}

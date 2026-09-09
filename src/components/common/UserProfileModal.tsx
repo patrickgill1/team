@@ -150,7 +150,7 @@ const UserProfileModal: React.FC<Props> = ({ uid, onClose, onStartDm }) => {
               {/* Identity card */}
               <div className="px-4 pt-5 pb-4 flex items-start gap-4">
                 {profile.photoURL ? (
-                  <img src={profile.photoURL} alt={profile.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-brand-primary-soft" />
+                  <img loading="lazy" decoding="async" src={profile.photoURL} alt={profile.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-brand-primary-soft" />
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white text-xl font-extrabold flex items-center justify-center">
                     {initials}

@@ -111,7 +111,7 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
         <div className="flex items-center gap-3 px-5 py-4 border-b border-line-default/5">
           <div className="w-12 h-12 rounded-full overflow-hidden bg-brand-primary text-white flex items-center justify-center font-bold text-base shrink-0">
             {(userData as any)?.photoURL || (userData as any)?.profilePhotoUrl ? (
-              <img src={(userData as any).photoURL || (userData as any).profilePhotoUrl} alt="" className="w-full h-full object-cover" />
+              <img loading="lazy" decoding="async" src={(userData as any).photoURL || (userData as any).profilePhotoUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               (userData as any)?.name?.charAt(0).toUpperCase() || '?'
             )}

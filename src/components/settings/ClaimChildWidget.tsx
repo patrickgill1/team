@@ -170,7 +170,7 @@ const ClaimChildWidget: React.FC<Props> = ({
                 className="flex items-center gap-3 p-2 rounded-lg bg-surface-input ring-1 ring-line-default/10"
               >
                 {row.photoUrl ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={row.photoUrl}
                     alt=""
                     className="w-9 h-9 rounded-full object-cover ring-1 ring-line-default/10 flex-shrink-0"

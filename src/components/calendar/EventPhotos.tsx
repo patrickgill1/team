@@ -199,7 +199,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
               </svg>
             </button>
           )}
-          <img
+          <img loading="lazy" decoding="async"
             src={photos[lightboxIdx].url}
             alt=""
             onClick={(e) => e.stopPropagation()}

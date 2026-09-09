@@ -2257,7 +2257,7 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
                 className="flex items-start gap-2.5 p-2.5 rounded-xl bg-line-default/[0.04] hover:bg-line-default/[0.08] active:bg-line-default/[0.12] ring-1 ring-line-default/10 transition"
               >
                 {dmPhotoUrl ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={dmPhotoUrl}
                     alt={displayTitle}
                     className="flex-shrink-0 w-9 h-9 rounded-full object-cover shadow-sm ring-1 ring-black/5"
@@ -2943,7 +2943,7 @@ const TeamPulseCard: React.FC<{
             <Link to={`/player/${topScorer.id}`} className="flex items-center gap-2.5 p-2 rounded-xl bg-surface-base ring-1 ring-line-default/10 hover:bg-line-default/[0.05] transition">
               <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-primary flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
                 {ts.profilePhotoUrl ? (
-                  <img src={ts.profilePhotoUrl} alt={topScorer.name} className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={ts.profilePhotoUrl} alt={topScorer.name} className="w-full h-full object-cover" />
                 ) : (
                   <span>{topScorer.name.charAt(0)}</span>
                 )}
@@ -2962,7 +2962,7 @@ const TeamPulseCard: React.FC<{
             <Link to={`/player/${topAssister.id}`} className="flex items-center gap-2.5 p-2 rounded-xl bg-surface-base ring-1 ring-line-default/10 hover:bg-line-default/[0.05] transition">
               <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-primary-soft flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
                 {ta.profilePhotoUrl ? (
-                  <img src={ta.profilePhotoUrl} alt={topAssister.name} className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={ta.profilePhotoUrl} alt={topAssister.name} className="w-full h-full object-cover" />
                 ) : (
                   <span>{topAssister.name.charAt(0)}</span>
                 )}

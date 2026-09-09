@@ -117,7 +117,7 @@ const InstallAppBanner: React.FC = () => {
   return (
     <div className="lg:hidden bg-brand-primary text-white shadow">  // theme-ok: legacy hardcoded color, pending per-line audit
       <div className="max-w-7xl mx-auto px-3 py-2 flex items-center gap-3">
-        <img
+        <img loading="lazy" decoding="async"
           src="/images/logo.png"
           alt="GoalKickr"
           className="w-9 h-9 rounded-xl bg-line-default/10 ring-1 ring-line-default/20 p-1 shrink-0"

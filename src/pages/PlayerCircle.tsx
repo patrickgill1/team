@@ -402,7 +402,7 @@ const PlayerCircle: React.FC = () => {
                   }`}
                 >
                   {(k as any).photoUrl ? (
-                    <img src={(k as any).photoUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+                    <img loading="lazy" decoding="async" src={(k as any).photoUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
                   ) : (
                     <span className={`w-5 h-5 rounded-full inline-flex items-center justify-center text-[10px] font-black ${
                       active ? 'bg-surface-base/20 text-surface-base' : 'bg-brand-primary/15 text-brand-primary'
@@ -421,7 +421,7 @@ const PlayerCircle: React.FC = () => {
         {activePlayer && (
           <section className="rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-5 flex items-center gap-4">
             {(activePlayer as any).photoUrl ? (
-              <img src={(activePlayer as any).photoUrl} alt="" className="w-16 h-16 rounded-full object-cover ring-1 ring-line-default/20" />
+              <img loading="lazy" decoding="async" src={(activePlayer as any).photoUrl} alt="" className="w-16 h-16 rounded-full object-cover ring-1 ring-line-default/20" />
             ) : (
               <div className="w-16 h-16 rounded-full bg-brand-primary/15 flex items-center justify-center text-brand-primary text-2xl font-black ring-1 ring-brand-primary/25">
                 {(activePlayer.name || '?').charAt(0)}
@@ -474,7 +474,7 @@ const PlayerCircle: React.FC = () => {
               {members.map(m => (
                 <li key={m.uid} className="flex items-center gap-3 p-2 rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/8">
                   {m.photoURL ? (
-                    <img src={m.photoURL} alt="" className="w-10 h-10 rounded-full object-cover" />
+                    <img loading="lazy" decoding="async" src={m.photoURL} alt="" className="w-10 h-10 rounded-full object-cover" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-brand-primary/15 text-brand-primary flex items-center justify-center font-black text-sm">
                       {(m.name || '?').charAt(0)}
@@ -546,9 +546,9 @@ const PlayerCircle: React.FC = () => {
                 <li key={s.id} className={`px-5 py-3.5 flex items-start gap-3 border-l-4 ${shoutAccentClass(s.type)}`}>
                   <div className="flex-shrink-0">
                     {s.type === 'badge' && s.badgeImage ? (
-                      <img src={s.badgeImage} className="w-8 h-8 object-contain" alt="" />
+                      <img loading="lazy" decoding="async" src={s.badgeImage} className="w-8 h-8 object-contain" alt="" />
                     ) : s.fromAvatarUrl ? (
-                      <img src={s.fromAvatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      <img loading="lazy" decoding="async" src={s.fromAvatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-brand-primary/15 text-brand-primary flex items-center justify-center font-black text-xs">
                         {(s.fromName || '?').charAt(0)}

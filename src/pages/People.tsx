@@ -621,7 +621,7 @@ const People: React.FC = () => {
                     </span>
                   )}
                   {p.photoURL ? (
-                    <img src={p.photoURL} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                    <img loading="lazy" decoding="async" src={p.photoURL} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                   ) : (
                     <span className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">{initial}</span>  // theme-ok: legacy hardcoded color, pending per-line audit
                   )}

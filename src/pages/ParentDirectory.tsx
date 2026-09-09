@@ -503,7 +503,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                   {/* Avatar + name */}
                   <div className="flex items-center gap-4 mb-5">
                     {(entry.user as any).photoURL || (entry.user as any).profilePhotoUrl ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={(entry.user as any).photoURL || (entry.user as any).profilePhotoUrl}
                         alt={entry.user.name || ''}
                         className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover ring-2 ring-line-default/25 shadow-lg flex-shrink-0"
@@ -552,7 +552,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                           return (
                             <div key={player.id} className="rounded-2xl bg-line-default/10 ring-1 ring-line-default/15 backdrop-blur p-3 flex items-center gap-3">
                               {player.profilePhotoUrl ? (
-                                <img
+                                <img loading="lazy" decoding="async"
                                   src={player.profilePhotoUrl}
                                   alt={player.name}
                                   className="w-10 h-10 rounded-full object-cover ring-1 ring-line-default/30 flex-shrink-0"

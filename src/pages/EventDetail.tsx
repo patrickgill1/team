@@ -1234,7 +1234,7 @@ const EventDetail: React.FC = () => {
             wide; on phone widths the gradient eats the left half
             anyway so the image presence comes through as a glow on
             the right side. */}
-        <img
+        <img loading="lazy" decoding="async"
           src="/images/event-hero.jpg"
           alt=""
           aria-hidden

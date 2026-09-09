@@ -204,7 +204,7 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
           <div className="mb-4 flex items-center gap-3 p-3 rounded-2xl bg-line-default/10 ring-1 ring-line-default/15">
             <div className="relative flex-shrink-0">
               {mvp.photoUrl ? (
-                <img src={mvp.photoUrl} alt={mvp.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-amber-300" />
+                <img loading="lazy" decoding="async" src={mvp.photoUrl} alt={mvp.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-amber-300" />
               ) : (
                 <div className="w-12 h-12 rounded-full bg-amber-400/90 text-amber-900 font-black flex items-center justify-center ring-2 ring-amber-300">
                   {mvp.name.charAt(0)}

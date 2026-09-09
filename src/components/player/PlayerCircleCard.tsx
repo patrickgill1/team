@@ -178,7 +178,7 @@ const PlayerCircleCard: React.FC<Props> = ({ player, viewerUid, viewerEmail, vie
                 title={m.isViewer ? 'You' : m.name}
               >
                 {m.photoURL ? (
-                  <img src={m.photoURL} alt="" className="w-6 h-6 rounded-full object-cover" />
+                  <img loading="lazy" decoding="async" src={m.photoURL} alt="" className="w-6 h-6 rounded-full object-cover" />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-line-default/15 flex items-center justify-center text-[10px] font-bold text-ink-primary">
                     {m.name.charAt(0)}

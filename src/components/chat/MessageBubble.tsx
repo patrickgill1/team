@@ -91,7 +91,7 @@ function escapeHtml(s: string): string {
 }
 
 // Chat-attachment image with a soft slate placeholder and an opacity
-// fade once the bytes decode. This replaces the bare <img>, which on
+// fade once the bytes decode. This replaces the bare <img loading="lazy" decoding="async">, which on
 // iOS WKWebView shows a brief BLACK flash between request and decode —
 // the source of the "photos flash to black" feedback. The wrapping div
 // holds the layout dimensions so there is also no layout shift as the
@@ -162,7 +162,7 @@ const ChatAttachmentImage: React.FC<{
   }, [onClick, src]);
 
   // iOS long-press suppression — BOTH WebkitTouchCallout AND
-  // WebkitUserSelect need to be 'none' on the actual <img> to
+  // WebkitUserSelect need to be 'none' on the actual <img loading="lazy" decoding="async"> to
   // prevent the native "Copy / Look Up / Translate" callout that
   // races our custom long-press action sheet. Patrick 2026-07-08:
   // "when i hold and click on a gif to see who saw it, it always
@@ -436,7 +436,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   // Be defensive: skip attachments missing a URL — historic messages
-  // can have malformed data, and rendering <img src={undefined}> in a
+  // can have malformed data, and rendering <img loading="lazy" decoding="async" src={undefined}> in a
   // long thread is a known way to OOM the iOS WKWebView (which is what
   // caused the force-close on threads with photos after the 1.0 release).
   const images = (message.attachments || []).filter(
@@ -593,14 +593,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         <div className="w-9 mr-2 flex-shrink-0 self-end">
           {isFirstInGroup && (
             resolvedPhotoUrl ? (
-              <img
+              <img loading="lazy" decoding="async"
                 src={resolvedPhotoUrl}
                 alt={message.senderName}
                 title={message.senderName}
                 className="w-8 h-8 rounded-full object-cover shadow-sm ring-1 ring-black/5"
                 onError={(e) => {
                   // If the photo URL 404s (deleted Storage object, etc.)
-                  // hide the broken <img> so the colored-initial fallback
+                  // hide the broken <img loading="lazy" decoding="async"> so the colored-initial fallback
                   // doesn't get crowded out.
                   (e.currentTarget as HTMLImageElement).style.display = 'none';
                 }}

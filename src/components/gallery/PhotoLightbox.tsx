@@ -134,7 +134,7 @@ const PhotoLightbox: React.FC<Props> = ({
 
       {/* Photo canvas */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <img
+        <img loading="lazy" decoding="async"
           key={photo.id}
           src={photo.url}
           alt={photo.caption || ''}

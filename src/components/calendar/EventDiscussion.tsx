@@ -156,7 +156,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
             return (
               <li key={c.id} className={`flex gap-2 ${isMine ? 'flex-row-reverse' : ''}`}>
                 {c.authorPhotoURL ? (
-                  <img src={c.authorPhotoURL} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                  <img loading="lazy" decoding="async" src={c.authorPhotoURL} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
                 ) : (
                   <span className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                     {(c.authorName || '?').charAt(0).toUpperCase()}

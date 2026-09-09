@@ -2088,7 +2088,7 @@ const PlayerMediaPage: React.FC = () => {
                               >
                                 <div className={`relative w-11 h-11 rounded-full overflow-hidden flex-shrink-0 ${on ? 'ring-2 ring-brand-primary-soft' : 'ring-1 ring-line-default/15'}`}>
                                   {(p as any).profilePhotoUrl ? (
-                                    <img src={(p as any).profilePhotoUrl} alt="" className="w-full h-full object-cover" />
+                                    <img loading="lazy" decoding="async" src={(p as any).profilePhotoUrl} alt="" className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full bg-line-default/10 flex items-center justify-center">
                                       <span className="text-[13px] font-black text-ink-primary/70">
@@ -2228,7 +2228,7 @@ const PlayerMediaPage: React.FC = () => {
                   />
                 )
               ) : (
-                <img
+                <img loading="lazy" decoding="async"
                   src={selectedMedia.url}
                   alt={selectedMedia.caption || selectedMedia.playerName}
                   className="max-w-full max-h-[60vh] sm:max-h-[70vh] rounded-lg object-contain"
@@ -2899,7 +2899,7 @@ const FeaturedCard: React.FC<FeaturedCardProps> = ({ item, player, timeAgo, onCl
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent p-3 pt-10">
         <div className="flex items-center gap-2">
           {player?.profilePhotoUrl ? (
-            <img src={player.profilePhotoUrl} alt="" className="w-8 h-8 rounded-full object-cover ring-2 ring-brand-primary/40" />
+            <img loading="lazy" decoding="async" src={player.profilePhotoUrl} alt="" className="w-8 h-8 rounded-full object-cover ring-2 ring-brand-primary/40" />
           ) : (
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-surface-raised to-surface-elevated flex items-center justify-center text-white text-xs font-bold ring-2 ring-brand-primary/40">
               {player?.jerseyNumber || item.playerName?.charAt(0)}

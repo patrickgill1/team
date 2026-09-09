@@ -253,7 +253,7 @@ const PlayerJoin: React.FC = () => {
         {/* Player header */}
         <div className="bg-brand-primary p-6 text-white text-center">  // theme-ok: legacy hardcoded color, pending per-line audit
           {player?.profilePhotoUrl ? (
-            <img
+            <img loading="lazy" decoding="async"
               src={player.profilePhotoUrl}
               alt={player?.name}
               className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-4 border-white shadow-lg"

@@ -59,6 +59,7 @@ const PhotoOrInitial: React.FC<{ name: string; url?: string | null }> = ({ name,
         className="w-full h-full object-cover"
         onError={() => setFailed(true)}
         loading="lazy"
+        decoding="async"
       />
     </div>
   );

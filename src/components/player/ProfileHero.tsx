@@ -147,7 +147,7 @@ const ProfileHero: React.FC<Props> = ({
               read as chunky washed pink; the Season Card set the
               cleaner reference and this page now matches it. */}
           {player.profilePhotoUrl ? (
-            <img
+            <img loading="lazy" decoding="async"
               src={player.profilePhotoUrl}
               alt={player.name}
               className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover shadow-lg ring-[3px] ${

@@ -283,7 +283,7 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
             >
               <div className="relative">
                 {p.profilePhotoUrl ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={p.profilePhotoUrl}
                     alt={p.name}
                     draggable={false}

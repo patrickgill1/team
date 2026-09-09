@@ -288,7 +288,7 @@ const StaffManagement: React.FC = () => {
             <li key={uid} className="bg-surface-elevated ring-1 ring-line-default/10 rounded-2xl overflow-hidden">
               <div className="flex items-center gap-3 p-3">
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                  <img loading="lazy" decoding="async" src={user.photoURL} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-line-default/10 flex items-center justify-center text-sm font-bold text-ink-primary flex-shrink-0">
                     {(user.name || '?').charAt(0)}

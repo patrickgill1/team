@@ -344,7 +344,7 @@ const InviteJoin: React.FC = () => {
     <>
       <div className="flex items-center gap-4 mb-3">
         {player.profilePhotoUrl ? (
-          <img src={player.profilePhotoUrl} alt={player.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-line-default/25" />
+          <img loading="lazy" decoding="async" src={player.profilePhotoUrl} alt={player.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-line-default/25" />
         ) : (
           <div className="w-16 h-16 rounded-full bg-line-default/10 ring-2 ring-line-default/25 flex items-center justify-center text-2xl font-black">
             {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0)}
@@ -404,7 +404,7 @@ const InviteJoin: React.FC = () => {
           }}
         >
           {clubBrand.logoUrl ? (
-            <img
+            <img loading="lazy" decoding="async"
               src={clubBrand.logoUrl}
               alt={clubBrand.name}
               className="w-9 h-9 rounded-md object-contain bg-line-default/5 ring-1 ring-line-default/10"

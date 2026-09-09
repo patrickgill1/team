@@ -397,7 +397,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <div className="mb-2 flex flex-wrap gap-2">
           {pending.map((a, i) => (
             <div key={i} className="relative">
-              <img
+              <img loading="lazy" decoding="async"
                 src={a.url}
                 alt={a.name}
                 className="w-16 h-16 object-cover rounded-xl ring-1 ring-line-default/10"

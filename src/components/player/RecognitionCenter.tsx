@@ -538,9 +538,9 @@ const RecognitionCenter: React.FC<Props> = ({
                 <li key={s.id} className={`py-3 sm:py-4 pr-3 sm:pr-4 pl-4 sm:pl-5 rounded-xl bg-surface-elevated ring-1 ring-line-default/15 border-l-4 ${shoutAccentClass(s.type)}`}>
                   <div className="flex items-start gap-3">
                     {s.type === 'badge' && s.badgeImage ? (
-                      <img src={s.badgeImage} className="w-9 h-9 object-contain flex-shrink-0" alt="" />
+                      <img loading="lazy" decoding="async" src={s.badgeImage} className="w-9 h-9 object-contain flex-shrink-0" alt="" />
                     ) : s.fromAvatarUrl ? (
-                      <img src={s.fromAvatarUrl} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                      <img loading="lazy" decoding="async" src={s.fromAvatarUrl} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-brand-primary/15 text-brand-primary flex items-center justify-center font-black text-sm flex-shrink-0">
                         {(s.fromName || '?').charAt(0)}

@@ -421,7 +421,7 @@ const Navigation: React.FC = () => {
         {/* Logo + Collapse Toggle */}
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
           <Link to="/dashboard" className="flex items-center space-x-3">
-            <img src="/images/logo.png" alt="GoalKickr" className="h-10 w-10 object-contain" />
+            <img loading="lazy" decoding="async" src="/images/logo.png" alt="GoalKickr" className="h-10 w-10 object-contain" />
             {!sidebarCollapsed && (
               <span className="text-ink-primary font-bold text-lg tracking-wide">GoalKickr</span>
             )}
@@ -546,7 +546,7 @@ const Navigation: React.FC = () => {
               className="h-9 w-9 rounded-full overflow-hidden bg-brand-primary-soft flex items-center justify-center text-ink-primary font-bold text-sm flex-shrink-0"
             >
               {userData?.photoURL ? (
-                <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />
+                <img loading="lazy" decoding="async" src={userData.photoURL} alt="" className="w-full h-full object-cover" />
               ) : (
                 userData?.name?.charAt(0).toUpperCase()
               )}
@@ -602,7 +602,7 @@ const Navigation: React.FC = () => {
               light-mode wordmark can be dropped in once the exported
               SVG/PNG contains visible paths/pixels. */}
           <Link to="/dashboard" className="shrink-0 inline-flex items-center" aria-label="GoalKickr home">
-            <img
+            <img loading="lazy" decoding="async"
               src={wordmarkFailed ? '/images/logo.png' : wordmarkSrc}
               alt="GoalKickr"
               className={wordmarkFailed ? 'h-8 w-8 object-contain' : 'h-7 w-auto max-w-[150px] object-contain'}
@@ -671,7 +671,7 @@ const Navigation: React.FC = () => {
               className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-ink-primary font-bold text-xs bg-brand-primary-soft ring-1 ring-line-default/20 hover:ring-line-default/40 transition"
             >
               {userData?.photoURL ? (
-                <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />
+                <img loading="lazy" decoding="async" src={userData.photoURL} alt="" className="w-full h-full object-cover" />
               ) : (
                 userData?.name?.charAt(0).toUpperCase()
               )}
@@ -878,7 +878,7 @@ const Navigation: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-3">
               <div className="flex items-center space-x-3">
-                <img src="/images/logo.png" alt="GoalKickr" className="h-8 w-8 object-contain" />
+                <img loading="lazy" decoding="async" src="/images/logo.png" alt="GoalKickr" className="h-8 w-8 object-contain" />
                 <div>
                   <div className="font-bold text-ink-primary">{selectedTeam?.name || 'GoalKickr'}</div>
                   <div className="text-xs text-ink-primary/60">{userData?.name}</div>

@@ -453,7 +453,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
 
         {/* Photo */}
         <div className="flex-1 flex items-center justify-center mb-4">
-          <img
+          <img loading="lazy" decoding="async"
             src={photo.url}
             alt={photo.caption}
             className="max-w-full max-h-full object-contain rounded-lg"

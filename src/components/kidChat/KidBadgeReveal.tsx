@@ -222,7 +222,7 @@ const RevealCard: React.FC<CardProps> = ({ event, onDismiss }) => {
           className={`mt-3 relative w-32 h-32 flex items-center justify-center transition-transform duration-700 ease-out ${entered ? 'scale-100 rotate-0' : 'scale-50 -rotate-12'}`}
           style={{ filter: 'drop-shadow(0 12px 24px rgba(200,32,44,0.45))' }}
         >
-          <img
+          <img loading="lazy" decoding="async"
             src={badgeImageSrc(event.slug, 192)}
             srcSet={badgeSrcSet(event.slug, 128)}
             alt=""

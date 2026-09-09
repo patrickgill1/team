@@ -225,7 +225,7 @@ export default function SelfServeWelcomeWizard({ player, teamId, uid, onClose, p
               <div className="mt-4 flex items-center gap-4">
                 <div className="relative shrink-0">
                   {photoUrl ? (
-                    <img src={photoUrl} alt="" className="w-20 h-20 rounded-full object-cover ring-2 ring-line-default/25" />
+                    <img loading="lazy" decoding="async" src={photoUrl} alt="" className="w-20 h-20 rounded-full object-cover ring-2 ring-line-default/25" />
                   ) : (
                     <div className="w-20 h-20 rounded-full bg-line-default/10 ring-2 ring-line-default/25 flex items-center justify-center text-3xl font-black text-ink-primary/50">
                       {firstName.charAt(0)}

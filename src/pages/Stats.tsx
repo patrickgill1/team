@@ -778,7 +778,7 @@ const PlayerAvatar: React.FC<{ player: Player; large?: boolean }> = ({ player, l
   const photo = (player as any).profilePhotoUrl;
   const size = large ? 'w-16 h-16 text-lg ring-4' : 'w-9 h-9 text-xs ring-2';
   if (photo) {
-    return <img src={photo} alt={player.name} className={`${size} rounded-full object-cover ring-white shadow-sm shrink-0`} />;
+    return <img loading="lazy" decoding="async" src={photo} alt={player.name} className={`${size} rounded-full object-cover ring-white shadow-sm shrink-0`} />;
   }
   return (
     <div className={`${size} rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary ring-white shadow-sm shrink-0 flex items-center justify-center text-white font-bold`}>  // theme-ok: legacy hardcoded color, pending per-line audit

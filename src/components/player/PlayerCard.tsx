@@ -334,7 +334,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ring-2 shadow-lg ${
                   (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/50' : 'ring-line-default/25'
                 }`}>
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={player.profilePhotoUrl}
                     alt={player.name}
                     className="w-full h-full object-cover"

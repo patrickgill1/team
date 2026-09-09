@@ -150,7 +150,7 @@ const PublicFixtures: React.FC = () => {
       <header className="bg-surface-elevated border-b border-line-default/10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 flex items-center gap-4">
           {data.team.logoUrl ? (
-            <img src={data.team.logoUrl} alt="" className="w-16 h-16 rounded-2xl object-cover ring-1 ring-line-default/15" />
+            <img loading="lazy" decoding="async" src={data.team.logoUrl} alt="" className="w-16 h-16 rounded-2xl object-cover ring-1 ring-line-default/15" />
           ) : (
             <div className="w-16 h-16 rounded-2xl bg-brand-primary/20 flex items-center justify-center ring-1 ring-brand-primary/40">
               <span className="text-2xl font-black text-brand-primary-soft">
@@ -270,7 +270,7 @@ const PublicFixtures: React.FC = () => {
                 {data.roster.map(p => (
                   <li key={p.id} className="p-4 rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 flex items-center gap-3">
                     {p.profilePhotoUrl ? (
-                      <img src={p.profilePhotoUrl} alt="" className="w-14 h-14 rounded-full object-cover ring-1 ring-line-default/15" />
+                      <img loading="lazy" decoding="async" src={p.profilePhotoUrl} alt="" className="w-14 h-14 rounded-full object-cover ring-1 ring-line-default/15" />
                     ) : (
                       <div className="w-14 h-14 rounded-full bg-line-default/10 flex items-center justify-center">
                         <span className="text-lg font-black text-ink-primary/60">

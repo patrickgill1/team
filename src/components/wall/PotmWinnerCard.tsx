@@ -78,7 +78,7 @@ const PotmWinnerCard: React.FC<Props> = ({ potm, timestamp, isCoachView = false,
           </span>
           {showPhoto ? (
             <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden ring-4 ring-amber-300 shadow-2xl shadow-amber-900/60">
-              <img
+              <img loading="lazy" decoding="async"
                 src={potm.playerPhotoUrl || ''}
                 alt=""
                 className="w-full h-full object-cover"

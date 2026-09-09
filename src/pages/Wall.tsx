@@ -852,11 +852,11 @@ const Wall: React.FC = () => {
   const handlePost = async () => {
     // composer now holds HTML emitted by TipTap. We treat an editor
     // that only contains an empty paragraph as "no content" so an
-    // image-only post (a single <img>) still counts. The plainText
+    // image-only post (a single <img loading="lazy" decoding="async">) still counts. The plainText
     // version drives the push notification body + the empty-check.
     const content = composer.trim();
     const plainText = htmlToPlainText(content);
-    const hasImage = /<img\s/i.test(content);
+    const hasImage = /<img loading="lazy" decoding="async"\s/i.test(content);
     // canAddPoll re-checked at submit so a parent whose Circle-poll
     // permission is revoked between composer open and Post doesn't
     // sneak a poll through.
@@ -2058,7 +2058,7 @@ const Wall: React.FC = () => {
                       render as inline playable elements: Cloudflare
                       Stream URLs get an iframe embed, direct-hosted
                       MP4/WebM/MOV get a native <video> element with
-                      controls. Photos keep the existing <img> render. */}
+                      controls. Photos keep the existing <img loading="lazy" decoding="async"> render. */}
                   {p.attachments && p.attachments.length > 0 && (
                     p.attachments.length === 1 ? (
                       <WallAttachment a={p.attachments[0]} single />
@@ -2571,7 +2571,7 @@ const Wall: React.FC = () => {
 };
 
 // ── Avatar for wall posts + comments ──────────────────────────
-// Renders an <img> when a senderPhotoUrl is available, otherwise
+// Renders an <img loading="lazy" decoding="async"> when a senderPhotoUrl is available, otherwise
 // falls back to the original initial-circle treatment. Same look
 // in both spots so post + comment + composer-row read as one.
 
@@ -2703,7 +2703,7 @@ const SpinnerIcon: React.FC = () => (
 );
 
 // ── Attachment renderer ────────────────────────────────────────
-// Photos → <img>. Videos → inline player: Cloudflare Stream URLs
+// Photos → <img loading="lazy" decoding="async">. Videos → inline player: Cloudflare Stream URLs
 // get the iframe embed with autoplay disabled (poster/thumbnail
 // shown until tap → controls). Direct-hosted MP4/WebM/MOV get a
 // native <video> with controls + playsInline + poster fallback.

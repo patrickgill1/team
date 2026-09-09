@@ -387,7 +387,7 @@ const Settings: React.FC = () => {
                   aria-label={userData?.photoURL ? 'Change profile photo' : 'Add a profile photo'}
                 >
                   {userData?.photoURL ? (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={userData.photoURL}
                       alt={userData.name}
                       className="w-20 h-20 rounded-full object-cover ring-2 ring-line-default/10"
@@ -566,7 +566,7 @@ const Settings: React.FC = () => {
                     className="flex flex-col items-center text-center rounded-xl ring-1 ring-line-default/10 hover:ring-brand-primary-soft hover:shadow-sm p-3 transition"
                   >
                     {p.profilePhotoUrl ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={p.profilePhotoUrl}
                         alt={p.name}
                         className="w-20 h-20 rounded-full object-cover ring-2 ring-line-default/10"

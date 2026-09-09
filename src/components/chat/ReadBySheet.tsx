@@ -40,7 +40,7 @@ const ReadBySheet: React.FC<Props> = ({ readers, threadParticipantCount, onClose
           {sorted.map(r => (
             <li key={r.uid} className="px-4 py-2 flex items-center gap-2.5">
               {r.photoURL ? (
-                <img src={r.photoURL} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                <img loading="lazy" decoding="async" src={r.photoURL} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
               ) : (
                 <span className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                   {(r.name || '?').charAt(0).toUpperCase()}

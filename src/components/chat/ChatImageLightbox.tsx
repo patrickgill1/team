@@ -198,7 +198,7 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
         </div>
       </div>
       <div className="flex-1 flex items-center justify-center px-4 overflow-hidden">
-        <img
+        <img loading="lazy" decoding="async"
           src={current.url}
           alt={current.caption || ''}
           className="max-w-full max-h-full object-contain transition-transform"

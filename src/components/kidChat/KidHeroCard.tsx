@@ -297,7 +297,7 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
             (isPotm ? 'ring-amber-400' : 'ring-brand-primary/60')
           }>
             {player.profilePhotoUrl ? (
-              <img
+              <img loading="lazy" decoding="async"
                 src={player.profilePhotoUrl}
                 alt={player.name}
                 className="w-full h-full object-cover"
@@ -475,7 +475,7 @@ const KidHeroCard: React.FC<KidHeroCardProps> = ({ player, team }) => {
                     title={badgeLabel(cell.slug)}
                     aria-label={badgeLabel(cell.slug)}
                   >
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={badgeImageSrc(cell.slug, 48)}
                       srcSet={badgeSrcSet(cell.slug, 32)}
                       alt=""

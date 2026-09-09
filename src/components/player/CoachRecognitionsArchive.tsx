@@ -194,7 +194,7 @@ const CoachRecognitionsArchive: React.FC<Props> = ({ playerId, teamId, xpEnabled
           return (
             <li key={row.id} className="px-4 py-3 flex items-start gap-3">
               {avatarUrl ? (
-                <img
+                <img loading="lazy" decoding="async"
                   src={avatarUrl}
                   alt=""
                   className="shrink-0 w-10 h-10 rounded-full object-cover ring-1 ring-line-default/20"

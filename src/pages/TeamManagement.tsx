@@ -915,7 +915,7 @@ const TeamManagement: React.FC = () => {
                 <div key={player.id} className="flex items-center space-x-3 p-3 bg-line-default/[0.04] rounded-lg">
                   {player.profilePhotoUrl ? (
                     <div className="relative w-10 h-10 flex-shrink-0">
-                      <img src={player.profilePhotoUrl} alt={player.name} className="w-10 h-10 rounded-full object-cover" />
+                      <img loading="lazy" decoding="async" src={player.profilePhotoUrl} alt={player.name} className="w-10 h-10 rounded-full object-cover" />
                       {player.jerseyNumber != null && (
                         <span className="absolute -bottom-1 -right-1 bg-brand-primary text-white rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-black shadow ring-2 ring-white">
                           {player.jerseyNumber}

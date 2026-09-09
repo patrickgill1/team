@@ -1533,7 +1533,7 @@ const ResultAvatar: React.FC<{ player: Player | undefined; name: string }> = ({ 
   const photo = (player as any)?.profilePhotoUrl;
   if (photo) {
     return (
-      <img
+      <img loading="lazy" decoding="async"
         src={photo}
         alt={name}
         className="w-7 h-7 rounded-full object-cover ring-2 ring-white shrink-0"

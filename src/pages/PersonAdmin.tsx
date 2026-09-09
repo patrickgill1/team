@@ -691,7 +691,7 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
                 <li key={t.id} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-7 h-7 rounded bg-surface-base ring-1 ring-line-default/10 flex items-center justify-center shrink-0">
-                      {t.logoUrl ? <img src={t.logoUrl} alt="" className="w-full h-full object-cover rounded" /> : <svg className="w-4 h-4 text-ink-primary/40" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+                      {t.logoUrl ? <img loading="lazy" decoding="async" src={t.logoUrl} alt="" className="w-full h-full object-cover rounded" /> : <svg className="w-4 h-4 text-ink-primary/40" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-ink-primary truncate">{t.name}</div>
@@ -1065,7 +1065,7 @@ const TeamsTab: React.FC<{ player: any; teams: any[]; onAssignTeam: () => void }
             <li key={t.id} className="px-4 py-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded bg-surface-base ring-1 ring-line-default/10 flex items-center justify-center shrink-0 overflow-hidden">
-                  {t.logoUrl ? <img src={t.logoUrl} alt="" className="w-full h-full object-cover" /> : <svg className="w-5 h-5 text-ink-primary/40" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+                  {t.logoUrl ? <img loading="lazy" decoding="async" src={t.logoUrl} alt="" className="w-full h-full object-cover" /> : <svg className="w-5 h-5 text-ink-primary/40" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
                 </div>
                 <div className="min-w-0">
                   <div className="font-bold text-ink-primary truncate">{t.name}</div>
@@ -1842,7 +1842,7 @@ const PaymentLinkModal: React.FC<{
 
 const Avatar: React.FC<{ player: any }> = ({ player }) => {
   if (player.profilePhotoUrl) {
-    return <img src={player.profilePhotoUrl} alt="" className="w-24 h-24 rounded-full ring-2 ring-slate-100 object-cover shrink-0" />;
+    return <img loading="lazy" decoding="async" src={player.profilePhotoUrl} alt="" className="w-24 h-24 rounded-full ring-2 ring-slate-100 object-cover shrink-0" />;
   }
   const initials = (player.name || '?').split(/\s+/).slice(0, 2).map((x: string) => x[0]?.toUpperCase()).join('');
   return (

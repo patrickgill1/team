@@ -2641,7 +2641,7 @@ const TeamChat: React.FC = () => {
               {membersSheetData.map((m) => (
                 <li key={m.uid} className="px-4 py-2 flex items-center gap-3">
                   {m.photoUrl ? (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={m.photoUrl}
                       alt=""
                       aria-hidden
@@ -2818,7 +2818,7 @@ const TeamChat: React.FC = () => {
   ) : null;
 
   // Image lightbox — tap-to-close, native long-press still triggers
-  // iOS's "Save Image / Copy / Share" menu since the <img> isn't
+  // iOS's "Save Image / Copy / Share" menu since the <img loading="lazy" decoding="async"> isn't
   // wrapped in any interactive element.
   const lightbox = lightboxUrl ? (
     <div
@@ -2836,7 +2836,7 @@ const TeamChat: React.FC = () => {
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
-      <img
+      <img loading="lazy" decoding="async"
         src={lightboxUrl}
         alt=""
         onClick={(e) => e.stopPropagation()}
@@ -3084,7 +3084,7 @@ const TeamChat: React.FC = () => {
                     className="w-full text-left px-4 py-3 border-b border-line-default/5 hover:bg-line-default/[0.05] active:bg-line-default/[0.08] transition-colors flex items-start gap-3 cursor-pointer"
                   >
                     {threadPhotoUrl ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={threadPhotoUrl}
                         alt={displayTitle}
                         className="w-12 h-12 rounded-full object-cover flex-shrink-0 shadow-sm ring-1 ring-black/5"
@@ -3680,7 +3680,7 @@ const TeamChat: React.FC = () => {
                   <div className="flex -space-x-1.5">
                     {typingMembers.slice(0, 3).map((m) => (
                       m.photoURL ? (
-                        <img key={m.uid} src={m.photoURL} alt={m.name} className="w-5 h-5 rounded-full object-cover ring-2 ring-white" />
+                        <img loading="lazy" decoding="async" key={m.uid} src={m.photoURL} alt={m.name} className="w-5 h-5 rounded-full object-cover ring-2 ring-white" />
                       ) : (
                         <span key={m.uid} className="w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 ring-2 ring-white flex items-center justify-center text-[9px] font-bold text-white">  // theme-ok: legacy hardcoded color, pending per-line audit
                           {(m.name || '?').charAt(0).toUpperCase()}

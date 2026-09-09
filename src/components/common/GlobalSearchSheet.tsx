@@ -268,7 +268,7 @@ const GlobalSearchSheet: React.FC<Props> = ({ open, onClose, teamId, teamName })
                   className="flex items-center gap-3 px-4 py-2.5 hover:bg-line-default/[0.05] transition"
                 >
                   {p.profilePhotoUrl ? (
-                    <img src={p.profilePhotoUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                    <img loading="lazy" decoding="async" src={p.profilePhotoUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-line-default/15 text-ink-primary/60 text-xs font-bold flex items-center justify-center shrink-0">
                       {p.name.charAt(0)}

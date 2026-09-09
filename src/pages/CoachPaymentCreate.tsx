@@ -495,7 +495,7 @@ const CoachPaymentCreate: React.FC = () => {
                                 className="w-4 h-4 accent-brand-primary rounded shrink-0"
                               />
                               {photoUrl ? (
-                                <img
+                                <img loading="lazy" decoding="async"
                                   src={photoUrl}
                                   alt={p.name}
                                   className="w-8 h-8 rounded-full object-cover ring-1 ring-brand-primary-soft shrink-0"

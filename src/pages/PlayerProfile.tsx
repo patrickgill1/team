@@ -1114,7 +1114,7 @@ const PlayerProfile: React.FC = () => {
           >
             <div className="flex items-center gap-2.5 py-2">
               {player.profilePhotoUrl ? (
-                <img
+                <img loading="lazy" decoding="async"
                   src={player.profilePhotoUrl}
                   alt=""
                   className="w-8 h-8 rounded-full object-cover ring-1 ring-brand-primary/40"
@@ -1635,7 +1635,7 @@ const PlayerProfile: React.FC = () => {
                 />
               )
             ) : (
-              <img
+              <img loading="lazy" decoding="async"
                 src={lightboxItem.url}
                 alt={lightboxItem.caption || ''}
                 className="max-w-full max-h-[80vh] rounded-lg object-contain"

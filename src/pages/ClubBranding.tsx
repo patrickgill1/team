@@ -82,7 +82,7 @@ const ClubBranding: React.FC = () => {
                   style={{ boxShadow: `inset 0 2px 0 ${club.brandColor || '#DC2626'}` }}
                 >
                   {club.logoUrl ? (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={club.logoUrl}
                       alt={club.name}
                       className="w-14 h-14 rounded-lg object-contain bg-line-default/5 ring-1 ring-line-default/10"

@@ -215,7 +215,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                   return (
                     <div key={index} className="relative bg-gray-100 rounded-lg overflow-hidden">  // theme-ok: legacy hardcoded color, pending per-line audit
                       <div className="aspect-square">
-                        <img 
+                        <img loading="lazy" decoding="async" 
                           src={preview} 
                           alt={file?.name || `Preview ${index}`}
                           className="w-full h-full object-cover"

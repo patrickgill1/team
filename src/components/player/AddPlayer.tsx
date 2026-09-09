@@ -819,7 +819,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             <div className="flex items-center space-x-4">
               <div className="w-20 h-20 bg-surface-base ring-1 ring-line-default/10 rounded-full overflow-hidden flex items-center justify-center">
                 {profilePhotoPreview ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={profilePhotoPreview}
                     alt="Profile preview"
                     className="w-full h-full object-cover"

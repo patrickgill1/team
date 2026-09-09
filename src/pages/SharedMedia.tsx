@@ -183,7 +183,7 @@ const SharedMedia: React.FC = () => {
               />
             )
           ) : (
-            <img
+            <img loading="lazy" decoding="async"
               src={media.url}
               alt={media.caption || ''}
               className="w-full max-h-[80vh] object-contain rounded-lg"

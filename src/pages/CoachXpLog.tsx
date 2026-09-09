@@ -864,7 +864,7 @@ const LogRow: React.FC<{ row: XpRow; roster: Map<string, RosterEntry> }> = ({ ro
           down chrome elsewhere; the avatar helps a coach scan by kid. */}
       <div className="shrink-0">
         {photoUrl ? (
-          <img
+          <img loading="lazy" decoding="async"
             src={photoUrl}
             alt=""
             className={`${isCoachAction ? 'w-9 h-9' : 'w-7 h-7'} rounded-full object-cover ring-1 ring-line-default/20`}
@@ -917,7 +917,7 @@ const LogRow: React.FC<{ row: XpRow; roster: Map<string, RosterEntry> }> = ({ ro
         {showCoach && (
           <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-ink-primary/55">
             {row.awardedByAvatarUrl ? (
-              <img
+              <img loading="lazy" decoding="async"
                 src={row.awardedByAvatarUrl}
                 alt=""
                 className="w-4 h-4 rounded-full object-cover"

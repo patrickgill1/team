@@ -1477,7 +1477,7 @@ const RsvpBar: React.FC<{
                           return (
                             <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
                               {photo ? (
-                                <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
+                                <img loading="lazy" decoding="async" src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary flex items-center justify-center text-white text-xs font-bold shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
@@ -1501,7 +1501,7 @@ const RsvpBar: React.FC<{
                           return (
                             <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
                               {photo ? (
-                                <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
+                                <img loading="lazy" decoding="async" src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-dim flex items-center justify-center text-white text-xs font-bold shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
@@ -1534,7 +1534,7 @@ const RsvpBar: React.FC<{
                           return (
                             <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
                               {photo ? (
-                                <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
+                                <img loading="lazy" decoding="async" src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-xs font-bold shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
@@ -1623,7 +1623,7 @@ const CarpoolBar: React.FC<{
                 }`}
               >
                 {photo ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={photo}
                     alt={p.name}
                     className="w-7 h-7 rounded-full object-cover ring-1 ring-white shrink-0 mt-0.5"

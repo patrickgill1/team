@@ -578,7 +578,7 @@ const AttendanceTracker: React.FC = () => {
                                     jersey-number chip so brand-new players still look
                                     deliberate. */}
                                 {(player as any).profilePhotoUrl ? (
-                                  <img
+                                  <img loading="lazy" decoding="async"
                                     src={(player as any).profilePhotoUrl}
                                     alt={player.name}
                                     className="w-10 h-10 rounded-full object-cover ring-2 ring-brand-primary-soft shrink-0"

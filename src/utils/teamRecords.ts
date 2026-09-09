@@ -26,6 +26,16 @@ const isSyntheticGameId = (gid: unknown): boolean => {
   return gid.startsWith('clip_') || gid.startsWith('adjust_');
 };
 
+// Stat-adjustment rows (Stats page "+ Log" tool) are pure aggregate
+// bumps that don't represent a real single game — they legitimately
+// don't belong in single-game records. Clip credits, on the other
+// hand, DO represent real player achievements (a coach uploaded a
+// clip of a goal that happened in a real match), so they should
+// appear in records even though the row's gameId is a synthetic
+// clip_* string. Callers filter accordingly.
+const isAdjustmentRow = (gid: unknown): boolean =>
+  typeof gid === 'string' && gid.startsWith('adjust_');
+
 export type LeaderStat = 'goals' | 'assists' | 'saves' | 'yellowCards' | 'redCards';
 
 export interface LeaderRow {
@@ -142,7 +152,16 @@ export function computeTeamRecords(
 
   for (const r of rows) {
     const gid = (r as any).gameId;
-    if (isSyntheticGameId(gid)) continue;
+    // 2026-09-09: was skipping ALL synthetic gameIds (clip_* and
+    // adjust_*), which hid every clip-credited goal from single-game
+    // records — Patrick saw "1 save" but no goals/assists because all
+    // his stats came in via clip uploads (he coaches + runs two
+    // cameras, can't drive GameDay). Now only adjustment rows are
+    // skipped (those are pure aggregate bumps, not per-game). Clip
+    // credits show up with "Clip credit" as the opponent (the value
+    // stamped by PlayerMediaPage) — imperfect but honest, and the
+    // record surfaces the actual player achievement.
+    if (isAdjustmentRow(gid)) continue;
     const pid = r.playerId;
     if (!pid) continue;
     const player = byId.get(pid);

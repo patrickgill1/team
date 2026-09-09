@@ -379,16 +379,53 @@ const PlayerMediaPage: React.FC = () => {
       } catch { /* non-fatal — stays season-scoped */ }
     }
 
+    // 2026-09-09: gamesPlayed bump on clip credit. Patrick 2026-09-09:
+    // "when I put in a stat for a specific game, it should auto count
+    // there is a game." He coaches + runs two cameras, can't always
+    // drive GameDay end-to-end, so clip credits are his primary stat
+    // entry path — but the old flow bumped goals/assists without
+    // bumping gamesPlayed. Fix: when the clip is linked to a real
+    // game (linkedGameId), check if this player has an existing stat
+    // row for that game. If not, count it as a new game for them.
+    // Query is per-player per-batch — cheap, and only when linkedGameId
+    // is provided (unlinked clips still skip the bump; over-counting
+    // pickup / off-team credits is worse than under-counting the
+    // occasional linked game).
+    const alreadyCountedForGame = new Set<string>();
+    if (linkedGameId) {
+      try {
+        const existing = await getDocuments('stats', [
+          fsWhere('gameId', '==', linkedGameId),
+        ]);
+        for (const row of existing as any[]) {
+          if (row?.playerId) alreadyCountedForGame.add(String(row.playerId));
+        }
+      } catch (err) {
+        console.warn('[applyStatsDiff] linkedGame dedupe failed', err);
+      }
+    }
+
     for (const [pid, d] of Array.from(delta.entries())) {
       if (d.goals === 0 && d.assists === 0) continue;
       const player = players.find(p => p.id === pid);
       if (!player) continue;
       const cur = player.stats || { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0 };
+      // Bump gamesPlayed only when the clip is linked to a real game
+      // AND this player hasn't already been counted for that game.
+      // Prevents over-count when a coach credits multiple clips to the
+      // same game for the same player (4 goals scored, 4 clips = still
+      // 1 game).
+      const shouldBumpGames = !!linkedGameId && !alreadyCountedForGame.has(pid);
       const next = {
         ...cur,
         goals: Math.max(0, (cur.goals || 0) + d.goals),
         assists: Math.max(0, (cur.assists || 0) + d.assists),
+        gamesPlayed: (cur.gamesPlayed || 0) + (shouldBumpGames ? 1 : 0),
       };
+      // Mark counted so subsequent iterations in the same batch don't
+      // double-bump (rare, but possible if two players in the same
+      // delta share the same linkedGameId).
+      if (shouldBumpGames) alreadyCountedForGame.add(pid);
       try {
         // Skip the season-aggregate mirror + first-stat badge for
         // trip-scoped clip credits (kept for the regulation journey).

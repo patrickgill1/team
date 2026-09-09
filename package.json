@@ -1,6 +1,6 @@
 {
   "name": "soccer-team-app",
-  "version": "3.9.491",
+  "version": "3.9.492",
   "private": true,
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
@@ -46,8 +46,7 @@
     "react-swipeable": "^7.0.2",
     "terser": "^5.46.1",
     "typescript": "^4.7.4",
-    "uuid": "^8.3.2",
-    "web-vitals": "^2.1.4"
+    "uuid": "^8.3.2"
   },
   "scripts": {
     "postinstall": "patch-package",
@@ -63,6 +62,7 @@
     "ios:run": "npm run ios:sync && cap run ios",
     "capgo:push": "npm run build && npx @capgo/cli bundle upload -c production && node ./scripts/verify-capgo-push.js",
     "test:rules": "./scripts/run-rules-tests.sh",
+    "bundle:report": "npm run build:dirty >/dev/null 2>&1 && du -k build/static/js/*.js | sort -rn | head -20 | awk '{ printf \"%6d KB  %s\\n\", $1, $2 }'",
     "capgo:canary": "npm run build && npx @capgo/cli bundle upload -c canary",
     "capgo:status": "npx @capgo/cli app list && npx @capgo/cli bundle list",
     "deploy": "npm run build && wrangler deploy",

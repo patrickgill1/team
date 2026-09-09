@@ -48,12 +48,12 @@ const STATUS_TONE: Record<Registration['status'], { label: string; bg: string; t
   },
   declined: {
     label: 'Declined',
-    bg: 'bg-slate-100', text: 'text-slate-700', ring: 'ring-slate-300',
+    bg: 'bg-slate-100', text: 'text-ink-primary/90', ring: 'ring-slate-300',  // theme-ok: legacy hardcoded color, pending per-line audit
     subtitle: 'You declined the offer. The club will be in touch about other options.',
   },
   withdrawn: {
     label: 'Withdrawn',
-    bg: 'bg-slate-100', text: 'text-slate-700', ring: 'ring-slate-300',
+    bg: 'bg-slate-100', text: 'text-ink-primary/90', ring: 'ring-slate-300',  // theme-ok: legacy hardcoded color, pending per-line audit
     subtitle: 'Registration withdrawn. Reply to your club email if this was a mistake.',
   },
 };
@@ -109,7 +109,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
     <div className="relative bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep px-4 py-10 sm:py-14">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-6">
-          <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">  // theme-ok: legacy hardcoded color, pending per-line audit
             {overallVibe === 'offer_action' ? (
               <>You've got an <span className="text-brand-primary-soft">offer</span> waiting, {firstName}.</>
             ) : overallVibe === 'all_rostered' ? (
@@ -137,7 +137,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
         ) : kids.length === 0 ? (
           <div className="bg-line-default/[0.04] ring-1 ring-line-default/10 rounded-2xl p-6 text-center">
             <p className="text-sm text-ink-secondary mb-4">We don't see a registration on file under <b className="text-ink-primary">{email}</b> yet.</p>
-            <Link to="/register" className="inline-block px-5 py-2.5 rounded-xl bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold">
+            <Link to="/register" className="inline-block px-5 py-2.5 rounded-xl bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold">  // theme-ok: legacy hardcoded color, pending per-line audit
               Start registration
             </Link>
           </div>
@@ -150,7 +150,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <div className="min-w-0">
                       <div className={`font-black text-lg ${tone.text}`}>{k.playerName}</div>
-                      {k.ageGroup && <div className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{k.ageGroup}</div>}
+                      {k.ageGroup && <div className="text-[11px] font-bold uppercase tracking-widest text-ink-primary/65">{k.ageGroup}</div>}
                     </div>
                     <span className={`text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>
                       {tone.label}
@@ -185,7 +185,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
               <li className="flex items-start gap-2"><span className="text-brand-primary-soft mt-0.5">②</span> If a team wants your kid, you'll get an email with an offer link.</li>
               <li className="flex items-start gap-2"><span className="text-brand-primary-soft mt-0.5">③</span> You tap Accept — your kid is on the team and this dashboard becomes their team home.</li>
             </ul>
-            <p className="text-[11px] text-slate-500 mt-3 italic">Hang tight. You can close this app and we'll email you when something changes.</p>
+            <p className="text-[11px] text-ink-primary/65 mt-3 italic">Hang tight. You can close this app and we'll email you when something changes.</p>
           </div>
         )}
       </div>

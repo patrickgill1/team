@@ -222,7 +222,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
   const getSortIcon = (column: typeof sortBy) => {
     if (sortBy !== column) {
       return (
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-ink-primary/55" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
         </svg>
       );
@@ -244,7 +244,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center space-y-3">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary-soft border-t-cyan-500" />
-          <span className="text-sm text-gray-400 font-medium">Loading...</span>
+          <span className="text-sm text-ink-primary/55 font-medium">Loading...</span>
         </div>
       </div>
     );
@@ -255,8 +255,8 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
       {/* Header — count, sort pills, action buttons */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-xs font-extrabold tracking-widest uppercase text-slate-600">
-            Roster <span className="text-slate-400 ml-0.5">{filteredPlayers.length}</span>
+          <h2 className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/80">
+            Roster <span className="text-ink-primary/55 ml-0.5">{filteredPlayers.length}</span>
           </h2>
           <div className="flex gap-1">
             {[
@@ -271,7 +271,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 className={`px-2 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-md border ${
                   sortBy === key
                     ? 'bg-brand-primary-soft text-brand-primary border-brand-primary-soft'
-                    : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                    : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
                 }`}
               >
                 {label}
@@ -291,7 +291,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 className={`px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-md border ${
                   showGuests
                     ? 'bg-brand-primary-soft/20 text-brand-primary border-brand-primary-soft/40'
-                    : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                    : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
                 }`}
                 title={showGuests ? 'Hide guest players from this view' : 'Show guest players in this view'}
               >
@@ -303,7 +303,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
               className={`px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-md border ${
                 showInactive
                   ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                  : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                  : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
               }`}
               title="Show inactive (returning) players"
             >
@@ -311,7 +311,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
             </button>
             <button
               onClick={() => { setEditingPlayer(null); setIsAddPlayerOpen(true); }}
-              className="bg-gradient-to-br from-brand-primary to-surface-tint text-white text-xs font-extrabold tracking-widest uppercase py-1.5 px-3 rounded-md shadow-sm hover:from-brand-primary-soft hover:to-brand-primary flex items-center gap-1.5"
+              className="bg-gradient-to-br from-brand-primary to-surface-tint text-white text-xs font-extrabold tracking-widest uppercase py-1.5 px-3 rounded-md shadow-sm hover:from-brand-primary-soft hover:to-brand-primary flex items-center gap-1.5" /* theme-ok: legacy hardcoded color, pending audit */
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -326,13 +326,13 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
       {/* Players Grid */}
       {filteredPlayers.length === 0 ? (
         <div className="card-modern text-center py-12 px-6">
-          <div className="text-gray-400 mb-4">
+          <div className="text-ink-primary/55 mb-4">
             <svg className="mx-auto h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-charcoal-950 mb-2">No Players Found</h3>
-          <p className="text-gray-600 mb-4">
+          <h3 className="text-lg font-semibold text-ink-primary mb-2">No Players Found</h3>
+          <p className="text-ink-primary/80 mb-4">
             {searchTerm || positionFilter
               ? 'No players match your current filters.'
               : 'No players have been added to the team yet.'}
@@ -343,7 +343,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 setEditingPlayer(null);
                 setIsAddPlayerOpen(true);
               }}
-              className="bg-brand-primary hover:bg-brand-primary text-white font-semibold py-2 px-4 rounded-xl transition duration-200"
+              className="bg-brand-primary hover:bg-brand-primary text-white font-semibold py-2 px-4 rounded-xl transition duration-200" /* theme-ok: legacy hardcoded color, pending audit */
             >
               Add Your First Player
             </button>
@@ -385,8 +385,8 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
       {showInactive && inactivePlayers.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-3 mt-4">
-            <h3 className="text-base font-bold text-gray-700">Past Players ({inactivePlayers.length})</h3>
-            <span className="text-xs text-gray-500">Click "Bring Back" to add a returning player to the current season</span>
+            <h3 className="text-base font-bold text-ink-primary/90">Past Players ({inactivePlayers.length})</h3>
+            <span className="text-xs text-ink-primary/65">Click "Bring Back" to add a returning player to the current season</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-80">
             {inactivePlayers.map((player) => (
@@ -402,7 +402,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
         </div>
       )}
       {showInactive && inactivePlayers.length === 0 && (
-        <div className="text-center py-8 text-sm text-gray-500">No inactive players for this team.</div>
+        <div className="text-center py-8 text-sm text-ink-primary/65">No inactive players for this team.</div>
       )}
 
       {/* Add/Edit Player Modal */}

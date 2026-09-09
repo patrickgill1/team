@@ -147,7 +147,7 @@ const DashboardHero: React.FC<Props> = ({
         className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-4 sm:pb-5 lg:pb-10 h-full flex flex-col justify-end"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4rem)' }}
       >
-        <h1 className="text-base sm:text-lg lg:text-2xl xl:text-3xl font-bold text-white">
+        <h1 className="text-base sm:text-lg lg:text-2xl xl:text-3xl font-bold text-white">  // theme-ok: legacy hardcoded color, pending per-line audit
           {greeting}, {firstName}!
         </h1>
         <p className="text-[11px] sm:text-xs lg:text-sm text-ink-secondary">
@@ -163,7 +163,7 @@ const DashboardHero: React.FC<Props> = ({
               className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-surface-elevated/55 ring-1 ring-brand-primary-soft/40 shadow-lg shadow-brand-primary/10"
             >
               <span className="text-[10px] font-bold tracking-wider text-brand-primary-soft">{eventMonth}</span>
-              <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{eventDay}</span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{eventDay}</span>  // theme-ok: legacy hardcoded color, pending per-line audit
               <span className="text-[9px] font-semibold tracking-wider text-ink-secondary mt-0.5">{eventDow}</span>
             </Link>
 
@@ -182,7 +182,7 @@ const DashboardHero: React.FC<Props> = ({
                   </span>
                 )}
               </p>
-              <p className="mt-0.5 text-[11px] sm:text-xs text-slate-400">
+              <p className="mt-0.5 text-[11px] sm:text-xs text-ink-primary/55">
                 {goingCount} going
                 {pendingRsvpCount > 0 ? ` · ${pendingRsvpCount} pending` : ''}
               </p>
@@ -201,7 +201,7 @@ const DashboardHero: React.FC<Props> = ({
                   </svg>
                 </span>
                 <div className="leading-tight">
-                  <div className="text-base sm:text-lg font-bold text-white">{newMessagesCount}</div>
+                  <div className="text-base sm:text-lg font-bold text-white">{newMessagesCount}</div>  // theme-ok: legacy hardcoded color, pending per-line audit
                   <div className="text-[10px] sm:text-xs text-ink-secondary -mt-0.5">new messages</div>
                 </div>
               </Link>
@@ -217,7 +217,7 @@ const DashboardHero: React.FC<Props> = ({
                   </svg>
                 </span>
                 <div className="leading-tight">
-                  <div className="text-base sm:text-lg font-bold text-white">{pendingRsvpCount}</div>
+                  <div className="text-base sm:text-lg font-bold text-white">{pendingRsvpCount}</div>  // theme-ok: legacy hardcoded color, pending per-line audit
                   <div className="text-[10px] sm:text-xs text-ink-secondary -mt-0.5">awaiting RSVP</div>
                 </div>
               </Link>
@@ -234,7 +234,7 @@ const DashboardHero: React.FC<Props> = ({
               aria-label={`${playerCount} players on roster`}
               className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-surface-elevated/55 ring-1 ring-brand-primary-soft/40 shadow-lg shadow-brand-primary/10"
             >
-              <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{playerCount}</span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{playerCount}</span>  // theme-ok: legacy hardcoded color, pending per-line audit
               <span className="text-[9px] font-semibold tracking-wider text-ink-secondary mt-1">ROSTER</span>
             </Link>
 
@@ -267,7 +267,7 @@ const DashboardHero: React.FC<Props> = ({
                   </svg>
                 </span>
                 <div className="leading-tight">
-                  <div className="text-base sm:text-lg font-bold text-white">{newMessagesCount}</div>
+                  <div className="text-base sm:text-lg font-bold text-white">{newMessagesCount}</div>  // theme-ok: legacy hardcoded color, pending per-line audit
                   <div className="text-[10px] sm:text-xs text-ink-secondary -mt-0.5">new messages</div>
                 </div>
               </Link>

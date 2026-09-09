@@ -120,7 +120,7 @@ const ShowIfEditor: React.FC<{
                       const first = possibleAnswersFor(src)[0] || '';
                       onChange({ showIf: { questionId: id, equals: first } });
                     }}
-                    className="w-full border border-brand-primary-soft/30 rounded-lg px-2 py-1.5 text-sm text-charcoal-900 bg-surface-base focus:ring-2 focus:ring-brand-primary-soft outline-none"
+                    className="w-full border border-brand-primary-soft/30 rounded-lg px-2 py-1.5 text-sm text-ink-primary bg-surface-base focus:ring-2 focus:ring-brand-primary-soft outline-none"
                   >
                     <option value="">Choose a question</option>
                     {sources.map(s => (
@@ -147,7 +147,7 @@ const ShowIfEditor: React.FC<{
                       if (!question.showIf) return;
                       onChange({ showIf: { ...question.showIf, equals: e.target.value } });
                     }}
-                    className="w-full border border-brand-primary-soft/30 rounded-lg px-2 py-1.5 text-sm text-charcoal-900 bg-surface-base focus:ring-2 focus:ring-brand-primary-soft outline-none disabled:opacity-50"
+                    className="w-full border border-brand-primary-soft/30 rounded-lg px-2 py-1.5 text-sm text-ink-primary bg-surface-base focus:ring-2 focus:ring-brand-primary-soft outline-none disabled:opacity-50"
                   >
                     <option value="">Pick an answer</option>
                     {answers.map(a => (
@@ -581,13 +581,13 @@ const Surveys: React.FC = () => {
             <div className="flex rounded-xl overflow-hidden border border-brand-primary-soft/30 w-fit">
               <button
                 onClick={() => setResultsTab('summary')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'summary' ? 'bg-brand-primary text-white' : 'bg-surface-input text-ink-primary/65 hover:bg-line-default/[0.08]'}`}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'summary' ? 'bg-brand-primary text-white' : 'bg-surface-input text-ink-primary/65 hover:bg-line-default/[0.08]'}`}  // theme-ok: legacy hardcoded color, pending per-line audit
               >
                 Summary
               </button>
               <button
                 onClick={() => { setResultsTab('individual'); setIndividualIndex(0); }}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'individual' ? 'bg-brand-primary text-white' : 'bg-surface-input text-ink-primary/65 hover:bg-line-default/[0.08]'}`}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'individual' ? 'bg-brand-primary text-white' : 'bg-surface-input text-ink-primary/65 hover:bg-line-default/[0.08]'}`}  // theme-ok: legacy hardcoded color, pending per-line audit
               >
                 Individual
               </button>
@@ -687,7 +687,7 @@ const Surveys: React.FC = () => {
                                   the light-cyan bar. */}
                               <div className="flex-1 h-6 bg-line-default/10 rounded-full overflow-hidden">
                                 <div className="h-6 bg-brand-primary-soft rounded-full transition-all flex items-center pl-2" style={{ width: `${((counts[opt] || 0) / max) * 100}%`, minWidth: counts[opt] ? '28px' : '0' }}>
-                                  {counts[opt] ? <span className="text-xs font-bold text-charcoal-950">{counts[opt]}</span> : null}
+                                  {counts[opt] ? <span className="text-xs font-bold text-ink-primary">{counts[opt]}</span> : null}
                                 </div>
                               </div>
                             </div>
@@ -902,7 +902,7 @@ const Surveys: React.FC = () => {
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="e.g. End of Season Feedback"
-              className="w-full border border-brand-primary-soft/30 rounded-xl px-4 py-2.5 text-charcoal-900 focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none"
+              className="w-full border border-brand-primary-soft/30 rounded-xl px-4 py-2.5 text-ink-primary focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none"
             />
           </div>
           <div>
@@ -912,7 +912,7 @@ const Surveys: React.FC = () => {
               onChange={e => setDescription(e.target.value)}
               rows={2}
               placeholder="Brief description shown to respondents…"
-              className="w-full border border-brand-primary-soft/30 rounded-xl px-4 py-2.5 text-charcoal-900 focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none resize-none"
+              className="w-full border border-brand-primary-soft/30 rounded-xl px-4 py-2.5 text-ink-primary focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none resize-none"
             />
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -964,7 +964,7 @@ const Surveys: React.FC = () => {
                 value={q.text}
                 onChange={e => updateQuestion(q.id, { text: e.target.value })}
                 placeholder="Question text…"
-                className="w-full border border-brand-primary-soft/30 rounded-lg px-3 py-2 text-sm text-charcoal-900 focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none mb-2"
+                className="w-full border border-brand-primary-soft/30 rounded-lg px-3 py-2 text-sm text-ink-primary focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none mb-2"
               />
 
               {q.type === 'date' && (
@@ -1000,7 +1000,7 @@ const Surveys: React.FC = () => {
                           next[oi] = e.target.value;
                           updateQuestion(q.id, { options: next });
                         }}
-                        className="flex-1 border border-brand-primary-soft/30 rounded-lg px-3 py-1.5 text-sm text-charcoal-900 focus:ring-2 focus:ring-brand-primary-soft outline-none"
+                        className="flex-1 border border-brand-primary-soft/30 rounded-lg px-3 py-1.5 text-sm text-ink-primary focus:ring-2 focus:ring-brand-primary-soft outline-none"
                       />
                       {(q.options || []).length > 2 && (
                         <button onClick={() => updateQuestion(q.id, { options: (q.options || []).filter((_, i) => i !== oi) })} className="text-rose-400 hover:text-rose-300 text-sm">✕</button>
@@ -1091,7 +1091,7 @@ const Surveys: React.FC = () => {
           <button
             onClick={() => { resetBuilder(); setView('create'); }}
             aria-label="New survey"
-            className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />

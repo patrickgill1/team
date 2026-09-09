@@ -224,7 +224,7 @@ const EventListCard: React.FC<Props> = ({
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase text-charcoal-300 ring-1 ring-charcoal-500/50 hover:ring-brand-primary/40 transition-colors">
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase text-ink-primary/50 ring-1 ring-charcoal-500/50 hover:ring-brand-primary/40 transition-colors">
         Tap to RSVP
       </span>
     );
@@ -290,19 +290,19 @@ const EventListCard: React.FC<Props> = ({
           <div className="w-[52px] rounded-lg bg-surface-base ring-1 ring-brand-primary-soft/30 flex flex-col items-center justify-center py-1.5">
             <span className="text-[9px] font-extrabold tracking-widest text-brand-primary-soft">{month}</span>
             <span className={`text-[22px] font-black leading-none text-ink-primary ${cancelled ? 'line-through decoration-2' : ''}`}>{day}</span>
-            <span className="text-[8px] font-bold tracking-widest text-charcoal-400 mt-0.5">{dow}</span>
+            <span className="text-[8px] font-bold tracking-widest text-ink-primary/60 mt-0.5">{dow}</span>
           </div>
 
           <div className="min-w-0">
             <h3 className={`text-[16px] font-extrabold leading-tight tracking-tight text-ink-primary ${cancelled ? 'line-through' : ''}`}>
               {event.title}
             </h3>
-            <div className="mt-1 text-[11.5px] text-charcoal-300 flex items-center gap-1 flex-wrap">
+            <div className="mt-1 text-[11.5px] text-ink-primary/50 flex items-center gap-1 flex-wrap">
               <Icon name="clock" className="w-3 h-3 text-brand-primary-soft" />
               <span>{formatTimeRange(date, end)}</span>
               {effectiveWeatherText && (
                 <>
-                  <span className="text-charcoal-500">·</span>
+                  <span className="text-ink-primary/70">·</span>
                   <span className="inline-flex items-center gap-1" title={weather?.label || undefined}>
                     {effectiveWeatherIconName && (
                       <WeatherIcon iconName={effectiveWeatherIconName} className="w-3 h-3 text-brand-primary-soft" />
@@ -313,7 +313,7 @@ const EventListCard: React.FC<Props> = ({
               )}
               {tripForEvent && (
                 <>
-                  <span className="text-charcoal-500">·</span>
+                  <span className="text-ink-primary/70">·</span>
                   <span
                     className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-brand-primary/15 text-brand-primary-soft text-[10px] font-extrabold tracking-widest uppercase ring-1 ring-brand-primary-soft/30 max-w-[140px]"
                     title={`Part of ${tripForEvent.name}`}
@@ -325,7 +325,7 @@ const EventListCard: React.FC<Props> = ({
               )}
               {(event as any).fieldNumber && (
                 <>
-                  <span className="text-charcoal-500">·</span>
+                  <span className="text-ink-primary/70">·</span>
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-brand-primary/15 text-brand-primary-soft text-[9px] font-extrabold tracking-widest uppercase ring-1 ring-brand-primary-soft/30">
                     Field {(event as any).fieldNumber}
                   </span>
@@ -377,14 +377,14 @@ const EventListCard: React.FC<Props> = ({
             <Icon name="users" className="w-3.5 h-3.5 text-brand-primary-soft shrink-0" />
             <div className="text-left">
               <div className="text-[12px] font-black text-ink-primary leading-none tabular-nums">{goingCount}</div>
-              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Going</div>
+              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-ink-primary/60 mt-0.5">Going</div>
             </div>
           </div>
           <div className="flex items-center gap-1.5 justify-start pl-1 border-l border-line-default/5">
             <Icon name="clock" className="w-3.5 h-3.5 text-brand-primary-soft shrink-0" />
             <div className="text-left">
               <div className="text-[12px] font-black text-ink-primary leading-none tabular-nums">{pendingCount}</div>
-              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Pending</div>
+              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-ink-primary/60 mt-0.5">Pending</div>
             </div>
           </div>
           {arriveText ? (
@@ -392,17 +392,17 @@ const EventListCard: React.FC<Props> = ({
               <Icon name="arrive" className="w-3.5 h-3.5 text-brand-primary-soft shrink-0" />
               <div className="text-left min-w-0">
                 <div className="text-[11px] font-black text-ink-primary leading-none truncate">{arriveText.replace(/^Arrive\s*/i, '')}</div>
-                <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Arrive</div>
+                <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-ink-primary/60 mt-0.5">Arrive</div>
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-start pl-1 border-l border-line-default/5 text-charcoal-600 text-[10px]">—</div>
+            <div className="flex items-center justify-start pl-1 border-l border-line-default/5 text-ink-primary/85 text-[10px]">—</div>
           )}
           <div className="flex items-center gap-1.5 justify-start pl-1 border-l border-line-default/5">
             <Icon name="chat" className="w-3.5 h-3.5 text-brand-primary-soft shrink-0" />
             <div className="text-left">
               <div className="text-[12px] font-black text-ink-primary leading-none tabular-nums">{eventChatUnread}</div>
-              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Comments</div>
+              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-ink-primary/60 mt-0.5">Comments</div>
             </div>
           </div>
         </div>
@@ -463,19 +463,19 @@ const EventListCard: React.FC<Props> = ({
           if (withReasons.length === 0) return null;
           return (
             <div className="mt-2.5 pt-2.5 border-t border-line-default/5">
-              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mb-1">
+              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1">
                 Can't make it
               </div>
               <ul className="space-y-0.5">
                 {withReasons.map((n, i) => (
                   <li
                     key={i}
-                    className="text-[11px] text-charcoal-300 flex items-baseline gap-1.5 flex-wrap min-w-0"
+                    className="text-[11px] text-ink-primary/50 flex items-baseline gap-1.5 flex-wrap min-w-0"
                   >
                     <span className="font-semibold text-ink-primary/85">
                       {n.name.split(' ')[0] || n.name}
                     </span>
-                    <span className="italic text-charcoal-400 truncate min-w-0">
+                    <span className="italic text-ink-primary/60 truncate min-w-0">
                       {n.reason!.trim()}
                     </span>
                   </li>
@@ -487,8 +487,8 @@ const EventListCard: React.FC<Props> = ({
 
         {/* Snacks chip — preserved from the prior design. */}
         {(event as any).snackAssignment?.playerName && (
-          <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-charcoal-300">
-            <span className="text-[9px] font-extrabold tracking-widest uppercase text-charcoal-500">Snacks</span>
+          <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-ink-primary/50">
+            <span className="text-[9px] font-extrabold tracking-widest uppercase text-ink-primary/70">Snacks</span>
             <span className="font-bold text-ink-primary">{(event as any).snackAssignment.playerName}</span>
           </div>
         )}

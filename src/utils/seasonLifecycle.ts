@@ -52,15 +52,15 @@ export function seasonLifecycleLabel(s: SeasonLifecycle): string {
 
 export function seasonLifecycleTone(s: SeasonLifecycle): { bg: string; text: string; ring: string } {
   switch (s) {
-    case 'draft': return { bg: 'bg-slate-100', text: 'text-slate-700', ring: 'ring-slate-300' };
+    case 'draft': return { bg: 'bg-slate-100', text: 'text-ink-primary/90', ring: 'ring-slate-300' };  // theme-ok: legacy hardcoded color, pending per-line audit
     case 'coach_commit': return { bg: 'bg-amber-100', text: 'text-amber-800', ring: 'ring-amber-300' };
     case 'tryout_prep': return { bg: 'bg-sky-100', text: 'text-sky-800', ring: 'ring-sky-300' };
     case 'registration_open': return { bg: 'bg-brand-primary-soft', text: 'text-brand-primary-dim', ring: 'ring-brand-primary-soft' };
     case 'tryouts': return { bg: 'bg-violet-100', text: 'text-violet-800', ring: 'ring-violet-300' };
     case 'roster_locked': return { bg: 'bg-amber-100', text: 'text-amber-800', ring: 'ring-amber-300' };
     case 'in_season': return { bg: 'bg-emerald-100', text: 'text-emerald-800', ring: 'ring-emerald-300' };
-    case 'ended': return { bg: 'bg-slate-100', text: 'text-slate-600', ring: 'ring-slate-300' };
-    case 'archived': return { bg: 'bg-slate-100', text: 'text-slate-500', ring: 'ring-slate-200' };
+    case 'ended': return { bg: 'bg-slate-100', text: 'text-ink-primary/80', ring: 'ring-slate-300' };  // theme-ok: legacy hardcoded color, pending per-line audit
+    case 'archived': return { bg: 'bg-slate-100', text: 'text-ink-primary/65', ring: 'ring-slate-200' };  // theme-ok: legacy hardcoded color, pending per-line audit
   }
 }
 

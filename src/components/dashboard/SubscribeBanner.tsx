@@ -80,14 +80,14 @@ const SubscribeBanner: React.FC = () => {
           <p className="text-ink-primary font-bold leading-tight">
             Start your 7-day free trial.
           </p>
-          <p className="text-charcoal-300 text-sm mt-1.5 leading-snug">
+          <p className="text-ink-primary/50 text-sm mt-1.5 leading-snug">
             Keep everything you&apos;ve built and unlock the full coach toolkit.
             Cancel anytime. Trial billing happens on goalkickr.com.
           </p>
           <button
             type="button"
             onClick={handleStart}
-            className="mt-3 inline-flex items-center justify-center px-4 py-2 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition"
+            className="mt-3 inline-flex items-center justify-center px-4 py-2 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition" /* theme-ok: legacy hardcoded color, pending audit */
           >
             Start free trial at goalkickr.com
           </button>

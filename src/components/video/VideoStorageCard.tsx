@@ -113,7 +113,7 @@ const VideoStorageCard: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/upgrade/video')}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-400 text-charcoal-950"
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-400 text-ink-primary"
             >
               See what Pro unlocks
             </button>

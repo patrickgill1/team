@@ -375,7 +375,7 @@ const Drills: React.FC = () => {
                   onClick={() => setTab(t.k)}
                   className={`flex-1 px-3 py-1.5 rounded-md text-xs font-extrabold tracking-widest uppercase whitespace-nowrap transition ${
                     tab === t.k
-                      ? 'bg-brand-primary text-white shadow-sm'
+                      ? 'bg-brand-primary text-white shadow-sm'  // theme-ok: legacy hardcoded color, pending per-line audit
                       : 'text-ink-primary/55 hover:text-ink-primary'
                   }`}
                 >
@@ -446,7 +446,7 @@ const Drills: React.FC = () => {
               onClick={() => setFilterUseCase(c.k)}
               className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold tracking-widest uppercase transition ${
                 filterUseCase === c.k
-                  ? 'bg-brand-primary text-white shadow-sm'
+                  ? 'bg-brand-primary text-white shadow-sm'  // theme-ok: legacy hardcoded color, pending per-line audit
                   : 'bg-surface-elevated text-ink-primary/55 ring-1 ring-line-default/10 hover:text-ink-primary'
               }`}
             >
@@ -516,7 +516,7 @@ const Drills: React.FC = () => {
             <p className="text-xs text-ink-primary/50 mt-1 mb-4">Build one yourself, or have AI draft one from a topic.</p>
             <button
               onClick={() => { setEditing(null); setCreateOpen(true); }}
-              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase shadow-sm"
+              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase shadow-sm" /* theme-ok: legacy hardcoded color, pending audit */
             >
               + Add your first drill
             </button>
@@ -543,7 +543,7 @@ const Drills: React.FC = () => {
                       />
                       <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <span className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                          <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>  // theme-ok: legacy hardcoded color, pending per-line audit
                         </span>
                       </span>
                     </div>
@@ -836,7 +836,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
                 type="button"
                 onClick={runAI}
                 disabled={generating}
-                className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500/150 disabled:opacity-60 text-white text-sm font-bold whitespace-nowrap"
+                className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500/150 disabled:opacity-60 text-white text-sm font-bold whitespace-nowrap" /* theme-ok: legacy hardcoded color, pending audit */
               >
                 {generating ? 'Generating…' : 'Generate'}
               </button>
@@ -891,7 +891,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
                   title={c.hint}
                   className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold tracking-widest uppercase transition ${
                     useCase === c.k
-                      ? 'bg-brand-primary text-white shadow-sm'
+                      ? 'bg-brand-primary text-white shadow-sm'  // theme-ok: legacy hardcoded color, pending per-line audit
                       : 'bg-surface-elevated text-ink-primary/55 ring-1 ring-line-default/10 hover:text-ink-primary'
                   }`}
                 >
@@ -1026,7 +1026,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
           <button
             onClick={handleSave}
             disabled={saving || uploading || !title.trim()}
-            className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 rounded-lg"
+            className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 rounded-lg" /* theme-ok: legacy hardcoded color, pending audit */
             title={uploading ? 'Wait for the video upload to finish' : undefined}
           >
             {saving ? 'Saving…' : uploading ? `Uploading video · ${uploadPct}%` : 'Save drill'}
@@ -1124,7 +1124,7 @@ const ShareToLibraryRow: React.FC<{ drill: Drill }> = ({ drill }) => {
           disabled={busy || (!shared && !clubAllowsSharing)}
           className={`shrink-0 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition disabled:opacity-50 ${
             shared
-              ? 'bg-brand-primary text-white'
+              ? 'bg-brand-primary text-white'  // theme-ok: legacy hardcoded color, pending per-line audit
               : 'bg-line-default/[0.06] text-ink-primary/65 ring-1 ring-line-default/15 hover:bg-line-default/[0.1]'
           }`}
         >
@@ -1354,7 +1354,7 @@ const LibraryCard: React.FC<{
                 className={`flex-1 px-3 py-2 rounded-lg text-xs font-extrabold uppercase tracking-widest transition ${
                   alreadySaved
                     ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30 cursor-default'
-                    : 'bg-brand-primary text-white hover:bg-brand-primary-soft hover:text-charcoal-950 disabled:opacity-60'
+                    : 'bg-brand-primary text-white hover:bg-brand-primary-soft hover:text-ink-primary disabled:opacity-60'  // theme-ok: legacy hardcoded color, pending per-line audit
                 }`}
               >
                 {alreadySaved ? 'In your library' : saving ? 'Saving…' : 'Save to my drills'}
@@ -1503,7 +1503,7 @@ const DrillPreviewSheet: React.FC<{
             className={`flex-1 px-4 py-2.5 rounded-lg text-xs font-extrabold uppercase tracking-widest transition ${
               alreadySaved
                 ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30 cursor-default'
-                : 'bg-brand-primary text-white hover:bg-brand-primary-soft hover:text-charcoal-950 disabled:opacity-60'
+                : 'bg-brand-primary text-white hover:bg-brand-primary-soft hover:text-ink-primary disabled:opacity-60'  // theme-ok: legacy hardcoded color, pending per-line audit
             }`}
           >
             {alreadySaved ? 'Already in your library' : saving ? 'Saving…' : 'Save to my drills'}

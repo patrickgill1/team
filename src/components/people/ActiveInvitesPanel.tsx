@@ -41,7 +41,7 @@ const TONE_CLASS: Record<string, string> = {
   good: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   mid: 'bg-amber-50 text-amber-700 border-amber-200',
   bad: 'bg-rose-50 text-rose-700 border-rose-200',
-  gone: 'bg-slate-100 text-slate-500 border-slate-200',
+  gone: 'bg-slate-100 text-ink-primary/65 border-slate-200',  // theme-ok: legacy hardcoded color, pending per-line audit
 };
 
 const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, teamNameById, playerNameById, onClose }) => {
@@ -132,13 +132,13 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">  // theme-ok: legacy hardcoded color, pending per-line audit
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">  // theme-ok: legacy hardcoded color, pending per-line audit
           <div>
-            <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Active invites</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">{counts.active} active · {counts.all} total</div>
+            <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/80">Active invites</div>
+            <div className="text-[11px] text-ink-primary/55 mt-0.5">{counts.active} active · {counts.all} total</div>
           </div>
-          <button onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-700">
+          <button onClick={onClose} aria-label="Close" className="text-ink-primary/55 hover:text-ink-primary/90">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
@@ -151,7 +151,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
               className={`px-3 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 filter === k
                   ? 'bg-brand-primary-soft text-brand-primary border-brand-primary-soft'
-                  : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                  : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
               }`}
             >
               {k === 'active' ? `Active ${counts.active}` : `All ${counts.all}`}
@@ -165,7 +165,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-primary-soft border-t-cyan-500" />
             </div>
           ) : visible.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-6">
+            <p className="text-sm text-ink-primary/65 text-center py-6">
               {filter === 'active' ? 'No active invites.' : 'No invites yet.'}
             </p>
           ) : (
@@ -180,11 +180,11 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
                 const daysLeft = Math.ceil((r.expiresAt.getTime() - Date.now()) / (24 * 3600 * 1000));
                 const isRevocable = s.tone === 'good' || s.tone === 'mid';
                 return (
-                  <li key={r.id} className="border border-slate-200 rounded-lg p-2.5">
+                  <li key={r.id} className="border border-slate-200 rounded-lg p-2.5">  // theme-ok: legacy hardcoded color, pending per-line audit
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-slate-900 text-sm">{subject}</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
+                        <div className="font-semibold text-ink-primary text-sm">{subject}</div>
+                        <div className="text-[11px] text-ink-primary/65 mt-0.5">
                           {teamName} · {r.type === 'player' ? 'Parent invite' : 'Staff invite'}
                         </div>
                       </div>
@@ -192,7 +192,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
                         {s.label}
                       </span>
                     </div>
-                    <div className="text-[10px] text-slate-400 mb-2">
+                    <div className="text-[10px] text-ink-primary/55 mb-2">
                       {s.tone === 'good' || s.tone === 'mid'
                         ? (daysLeft > 0 ? `Expires in ${daysLeft}d` : 'Expires today')
                         : `Expired ${r.expiresAt.toLocaleDateString()}`}
@@ -204,14 +204,14 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
                           <button
                             onClick={() => handleCopy(r.id)}
                             disabled={busyId === r.id}
-                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-slate-700 border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-ink-primary/90 border-slate-200 hover:bg-slate-50 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
                           >
                             Copy link
                           </button>
                           <button
                             onClick={() => handleRevoke(r.id)}
                             disabled={busyId === r.id}
-                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-rose-700 border-rose-200 hover:bg-rose-50 disabled:opacity-50"
+                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-rose-700 border-rose-200 hover:bg-rose-50 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
                           >
                             {busyId === r.id ? '…' : 'Revoke'}
                           </button>

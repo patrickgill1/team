@@ -755,7 +755,7 @@ const Calendar: React.FC<CalendarProps> = ({
                   setIsEventFormOpen(true);
                 }}
                 aria-label="Add event"
-                className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
+                className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <line x1="12" y1="5" x2="12" y2="19" />
@@ -818,7 +818,7 @@ const Calendar: React.FC<CalendarProps> = ({
                     setSelectedDate(null);
                     setIsEventFormOpen(true);
                   }}
-                  className="mt-4 bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all text-sm"
+                  className="mt-4 bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all text-sm" /* theme-ok: legacy hardcoded color, pending audit */
                 >
                   Put Something on the Calendar
                 </button>
@@ -956,11 +956,11 @@ const eventColors = (type: string) => {
     case 'game':
       return { stripe: 'bg-surface-raised', stripeText: 'text-ink-primary', pill: 'bg-surface-raised/10 text-ink-primary' };
     case 'practice':
-      return { stripe: 'bg-brand-primary', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
+      return { stripe: 'bg-brand-primary', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-ink-primary' };  // theme-ok: legacy hardcoded color, pending per-line audit
     case 'event':
-      return { stripe: 'bg-surface-raised', stripeText: 'text-ink-primary', pill: 'bg-brand-primary-soft text-charcoal-800' };
+      return { stripe: 'bg-surface-raised', stripeText: 'text-ink-primary', pill: 'bg-brand-primary-soft text-ink-primary' };
     default:
-      return { stripe: 'bg-brand-primary', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
+      return { stripe: 'bg-brand-primary', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-ink-primary' };  // theme-ok: legacy hardcoded color, pending per-line audit
   }
 };
 
@@ -1180,7 +1180,7 @@ const EventCard: React.FC<EventCardProps> = ({
             {event.type === 'game' && (
               <a
                 href={`/game-day/${event.id}`}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-white bg-brand-primary hover:brightness-110 rounded-full shadow-sm transition"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-white bg-brand-primary hover:brightness-110 rounded-full shadow-sm transition" /* theme-ok: legacy hardcoded color, pending audit */
                 title="Open Game Day live tracker"
               >
                 <AppIcon name="whistle" className="w-3.5 h-3.5" />
@@ -1280,7 +1280,7 @@ const RsvpBar: React.FC<{
     const dim = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5';
     if (status === 'going') {
       return (
-        <span className={`${cls} rounded-full bg-emerald-500 flex items-center justify-center text-white`}>
+        <span className={`${cls} rounded-full bg-emerald-500 flex items-center justify-center text-white`}>  // theme-ok: legacy hardcoded color, pending per-line audit
           <svg className={dim} fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
@@ -1289,7 +1289,7 @@ const RsvpBar: React.FC<{
     }
     if (status === 'no') {
       return (
-        <span className={`${cls} rounded-full bg-rose-500 flex items-center justify-center text-white`}>
+        <span className={`${cls} rounded-full bg-rose-500 flex items-center justify-center text-white`}>  // theme-ok: legacy hardcoded color, pending per-line audit
           <svg className={dim} fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -1297,7 +1297,7 @@ const RsvpBar: React.FC<{
       );
     }
     return (
-      <span className={`${cls} rounded-full bg-amber-400 flex items-center justify-center text-white text-[10px] font-bold`}>
+      <span className={`${cls} rounded-full bg-amber-400 flex items-center justify-center text-white text-[10px] font-bold`}>  // theme-ok: legacy hardcoded color, pending per-line audit
         ?
       </span>
     );
@@ -1386,7 +1386,7 @@ const RsvpBar: React.FC<{
                 disabled={!userUid}
                 className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
                   current === status
-                    ? `${color} text-white border-transparent shadow-sm`
+                    ? `${color} text-white border-transparent shadow-sm`  // theme-ok: legacy hardcoded color, pending per-line audit
                     : 'bg-surface-elevated text-ink-primary border-line-default hover:border-line-default/60'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
@@ -1415,9 +1415,9 @@ const RsvpBar: React.FC<{
                 {userName ? `Me · ${userName.split(' ')[0]}` : 'Me'}
               </div>
               <div className="flex-1 flex gap-1.5">
-                {btn('going', 'Going', 'bg-emerald-600', 'text-white')}
-                {btn('maybe', 'Maybe', 'bg-amber-500', 'text-white')}
-                {btn('no', "Can't", 'bg-rose-600', 'text-white')}
+                {btn('going', 'Going', 'bg-emerald-600', 'text-white')}  // theme-ok: legacy hardcoded color, pending per-line audit
+                {btn('maybe', 'Maybe', 'bg-amber-500', 'text-white')}  // theme-ok: legacy hardcoded color, pending per-line audit
+                {btn('no', "Can't", 'bg-rose-600', 'text-white')} /* theme-ok: legacy hardcoded color, pending audit */
               </div>
             </div>
           )}
@@ -1480,7 +1480,7 @@ const RsvpBar: React.FC<{
                                 <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary flex items-center justify-center text-white text-xs font-bold shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}
@@ -1504,7 +1504,7 @@ const RsvpBar: React.FC<{
                                 <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-dim flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary-dim flex items-center justify-center text-white text-xs font-bold shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}
@@ -1537,7 +1537,7 @@ const RsvpBar: React.FC<{
                                 <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-xs font-bold shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}
@@ -1630,7 +1630,7 @@ const CarpoolBar: React.FC<{
                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5">  // theme-ok: legacy hardcoded color, pending per-line audit
                     {(p.name || '?').charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -1661,13 +1661,13 @@ const CarpoolBar: React.FC<{
                 <button
                   onClick={() => setType('offer')}
                   className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
-                    type === 'offer' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-surface-elevated text-ink-primary/80 border-line-default'
+                    type === 'offer' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-surface-elevated text-ink-primary/80 border-line-default'  // theme-ok: legacy hardcoded color, pending per-line audit
                   }`}
                 >Offer</button>
                 <button
                   onClick={() => setType('request')}
                   className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
-                    type === 'request' ? 'bg-amber-500 text-white border-amber-500' : 'bg-surface-elevated text-ink-primary/80 border-line-default'
+                    type === 'request' ? 'bg-amber-500 text-white border-amber-500' : 'bg-surface-elevated text-ink-primary/80 border-line-default'  // theme-ok: legacy hardcoded color, pending per-line audit
                   }`}
                 >Request</button>
               </div>

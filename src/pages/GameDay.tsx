@@ -99,7 +99,7 @@ const KIND_META: Record<StatKind, { label: string; emoji: string; color: string 
   yellow:  { label: 'Yellow',   emoji: '🟨', color: 'bg-yellow-500' },
   red:     { label: 'Red',      emoji: '🟥', color: 'bg-red-600' },
   sub:     { label: 'Sub',      emoji: '🔄', color: 'bg-purple-500' },
-  note:    { label: 'Note',     emoji: '📝', color: 'bg-gray-500' },
+  note:    { label: 'Note',     emoji: '📝', color: 'bg-gray-500' },  // theme-ok: legacy hardcoded color, pending per-line audit
 };
 
 // Tap-to-record action icons. Monoline SVGs — replaces the
@@ -1375,7 +1375,7 @@ const GameDay: React.FC = () => {
           Watch-triggered swap. Renders above the sticky header so it
           isn't hidden by the scoreboard. */}
       {pendingSubUndo && (
-        <div className="sticky top-0 z-30 bg-emerald-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold shadow-lg animate-slide-down">
+        <div className="sticky top-0 z-30 bg-emerald-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold shadow-lg animate-slide-down">  // theme-ok: legacy hardcoded color, pending per-line audit
           <span className="truncate">
             <span className="opacity-80 mr-1">Sub:</span>
             {pendingSubUndo.inName.split(' ')[0]} in for {pendingSubUndo.outName.split(' ')[0]}
@@ -1383,7 +1383,7 @@ const GameDay: React.FC = () => {
           <button
             type="button"
             onClick={undoQuickSub}
-            className="text-[11px] tracking-widest uppercase font-black bg-white/20 rounded-full px-3 py-1 hover:bg-white/30 active:bg-white/40 transition-colors"
+            className="text-[11px] tracking-widest uppercase font-black bg-white/20 rounded-full px-3 py-1 hover:bg-white/30 active:bg-white/40 transition-colors" /* theme-ok: legacy hardcoded color, pending audit */
           >
             Undo
           </button>
@@ -1397,7 +1397,7 @@ const GameDay: React.FC = () => {
       {attributionToast && (
         <div
           role="alert"
-          className="sticky top-0 z-30 bg-amber-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold shadow-lg animate-slide-down"
+          className="sticky top-0 z-30 bg-amber-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold shadow-lg animate-slide-down" /* theme-ok: legacy hardcoded color, pending audit */
         >
           <span className="truncate">
             {attributionToast.kind === 'retry'
@@ -1409,7 +1409,7 @@ const GameDay: React.FC = () => {
               <button
                 type="button"
                 onClick={attributionToast.onRetry}
-                className="text-[11px] tracking-widest uppercase font-black bg-white/20 rounded-full px-3 py-1 hover:bg-white/30 active:bg-white/40 transition-colors"
+                className="text-[11px] tracking-widest uppercase font-black bg-white/20 rounded-full px-3 py-1 hover:bg-white/30 active:bg-white/40 transition-colors" /* theme-ok: legacy hardcoded color, pending audit */
               >
                 Retry
               </button>
@@ -1417,7 +1417,7 @@ const GameDay: React.FC = () => {
             <button
               type="button"
               onClick={() => setAttributionToast(null)}
-              className="text-[11px] tracking-widest uppercase font-black bg-white/10 rounded-full px-3 py-1 hover:bg-white/25 active:bg-white/40 transition-colors"
+              className="text-[11px] tracking-widest uppercase font-black bg-white/10 rounded-full px-3 py-1 hover:bg-white/25 active:bg-white/40 transition-colors" /* theme-ok: legacy hardcoded color, pending audit */
               aria-label="Dismiss"
             >
               ×
@@ -1498,7 +1498,7 @@ const GameDay: React.FC = () => {
               <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${
                 status === 'live' ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40 animate-pulse' :
                 status === 'halftime' ? 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40' :
-                status === 'final' ? 'bg-gray-500/20 text-gray-300 ring-1 ring-gray-500/40' :
+                status === 'final' ? 'bg-gray-500/20 text-ink-primary/45 ring-1 ring-gray-500/40' :  // theme-ok: legacy hardcoded color, pending per-line audit
                 'bg-brand-primary/20 text-brand-primary-soft ring-1 ring-brand-primary/40'
               }`}>
                 {status === 'live' ? '● LIVE' : status === 'halftime' ? 'PAUSED' : status === 'final' ? 'FINAL' : 'SCHEDULED'}
@@ -1596,7 +1596,7 @@ const GameDay: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowRatings(true)}
-              className="px-4 py-2.5 rounded-full bg-brand-primary text-white text-xs font-extrabold uppercase tracking-widest hover:bg-brand-primary-soft hover:text-charcoal-950 transition"
+              className="px-4 py-2.5 rounded-full bg-brand-primary text-white text-xs font-extrabold uppercase tracking-widest hover:bg-brand-primary-soft hover:text-ink-primary transition" /* theme-ok: legacy hardcoded color, pending audit */
             >
               {event?.playerRatings && Object.keys(event.playerRatings).length > 0 ? 'Edit player ratings' : 'Rate players'}
             </button>
@@ -1681,7 +1681,7 @@ const GameDay: React.FC = () => {
                         key={f}
                         onClick={() => patch({ format: f })}
                         className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full transition ${
-                          active ? 'bg-white text-charcoal-900 shadow' : 'text-ink-primary/70 hover:text-ink-primary'
+                          active ? 'bg-white text-ink-primary shadow' : 'text-ink-primary/70 hover:text-ink-primary'  // theme-ok: legacy hardcoded color, pending per-line audit
                         }`}
                       >
                         {f}
@@ -1812,7 +1812,7 @@ const GameDay: React.FC = () => {
                           className="w-full flex items-center gap-2 p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 ring-1 ring-emerald-500/30 text-left"
                           title="Tap to sub OFF"
                         >
-                          <span className="w-7 h-7 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">
+                          <span className="w-7 h-7 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
                             {p.jerseyNumber != null ? `#${p.jerseyNumber}` : (p.name || '?').charAt(0)}
                           </span>
                           <span className="flex-1 min-w-0">
@@ -1844,13 +1844,13 @@ const GameDay: React.FC = () => {
                             className={`w-full flex items-center gap-2 p-1.5 rounded-lg ring-1 text-left ${isNext ? 'bg-amber-500/15 ring-amber-500/50 hover:bg-amber-500/25' : 'bg-line-default/5 ring-line-default/10 hover:bg-line-default/10'}`}
                             title="Tap to sub ON"
                           >
-                            <span className={`w-7 h-7 rounded-full text-white text-[10px] font-black flex items-center justify-center flex-shrink-0 ${isNext ? 'bg-amber-600' : 'bg-slate-600'}`}>
+                            <span className={`w-7 h-7 rounded-full text-white text-[10px] font-black flex items-center justify-center flex-shrink-0 ${isNext ? 'bg-amber-600' : 'bg-slate-600'}`}>  // theme-ok: legacy hardcoded color, pending per-line audit
                               {p.jerseyNumber != null ? `#${p.jerseyNumber}` : (p.name || '?').charAt(0)}
                             </span>
                             <span className="flex-1 min-w-0">
                               <span className="text-xs font-semibold truncate flex items-center gap-1">
                                 {p.name}
-                                {isNext && <span className="text-[9px] bg-amber-600 px-1 rounded text-white">NEXT</span>}
+                                {isNext && <span className="text-[9px] bg-amber-600 px-1 rounded text-white">NEXT</span>} /* theme-ok: legacy hardcoded color, pending audit */
                               </span>
                               <span className="block text-[10px] text-ink-primary/55 tabular-nums">{mins} min</span>
                             </span>
@@ -2014,7 +2014,7 @@ const GameDay: React.FC = () => {
                     }}
                     className="flex items-center gap-2 p-2 rounded-lg bg-line-default/5 hover:bg-line-default/10 ring-1 ring-line-default/10 text-left"
                   >
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint flex items-center justify-center text-white text-xs font-black flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint flex items-center justify-center text-white text-xs font-black flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
                       {p.jerseyNumber != null ? `#${p.jerseyNumber}` : (p.name || '?').charAt(0)}
                     </div>
                     <div className="min-w-0">

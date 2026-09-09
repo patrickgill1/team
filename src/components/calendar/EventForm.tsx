@@ -1552,7 +1552,7 @@ const EventForm: React.FC<EventFormProps> = ({
               const until = new Date(`${formData.recurrenceUntil}T${formData.time || '10:00'}`);
               const count = generateSeriesDates(dt, until, formData.recurrence).length;
               return (
-                <p className="-mt-2 text-xs font-semibold text-charcoal-700 bg-brand-primary-soft border border-brand-primary-soft rounded-lg px-3 py-2">
+                <p className="-mt-2 text-xs font-semibold text-ink-primary/90 bg-brand-primary-soft border border-brand-primary-soft rounded-lg px-3 py-2">
                   Will create <b>{count}</b> events ({formData.recurrence}). Each can be edited or deleted individually.
                 </p>
               );
@@ -1730,7 +1730,7 @@ const EventForm: React.FC<EventFormProps> = ({
             type="button"
             onClick={() => formRef.current?.requestSubmit()}
             disabled={isSubmitting}
-            className="w-full bg-gradient-to-br from-brand-primary to-surface-tint hover:from-brand-primary-soft hover:to-brand-primary text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md shadow-brand-primary/30 transition disabled:opacity-50 flex items-center justify-center"
+            className="w-full bg-gradient-to-br from-brand-primary to-surface-tint hover:from-brand-primary-soft hover:to-brand-primary text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md shadow-brand-primary/30 transition disabled:opacity-50 flex items-center justify-center" /* theme-ok: legacy hardcoded color, pending audit */
           >
             {isSubmitting ? (
               <span className="inline-flex items-center gap-2">

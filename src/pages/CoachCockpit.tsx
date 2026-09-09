@@ -207,19 +207,19 @@ const CoachCockpit: React.FC = () => {
             label: isGame ? 'Open Game Day mode' : 'Review event details',
             hint: isGame ? 'Score, lineup, rotation bell, and recap.' : 'RSVPs, notes, location, and discussion.',
             to: isGame ? `/game-day/${nextEvent.id}` : `/events/${nextEvent.id}`,
-            accent: isGame ? 'bg-brand-primary text-white' : 'bg-amber-500 text-charcoal-950',
+            accent: isGame ? 'bg-brand-primary text-white' : 'bg-amber-500 text-ink-primary',  // theme-ok: legacy hardcoded color, pending per-line audit
           },
           {
             label: 'Check RSVPs',
             hint: 'See who is in, maybe, out, or still pending.',
             to: `/events/${nextEvent.id}`,
-            accent: 'bg-emerald-500 text-charcoal-950',
+            accent: 'bg-emerald-500 text-ink-primary',
           },
           {
             label: 'Message the team',
             hint: 'Send the update parents are probably waiting for.',
             to: '/chat',
-            accent: 'bg-sky-500 text-charcoal-950',
+            accent: 'bg-sky-500 text-ink-primary',
           },
         ]
       : [
@@ -227,13 +227,13 @@ const CoachCockpit: React.FC = () => {
             label: 'Schedule the next event',
             hint: 'Add the practice, game, or meeting parents need next.',
             to: '/calendar',
-            accent: 'bg-amber-500 text-charcoal-950',
+            accent: 'bg-amber-500 text-ink-primary',
           },
           {
             label: 'Post a team update',
             hint: 'Keep families oriented even when the calendar is quiet.',
             to: '/wall',
-            accent: 'bg-brand-primary text-white',
+            accent: 'bg-brand-primary text-white',  // theme-ok: legacy hardcoded color, pending per-line audit
           },
         ];
   }, [nextEvent]);

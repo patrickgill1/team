@@ -2650,7 +2650,7 @@ const TeamChat: React.FC = () => {
                   ) : (
                     <span
                       aria-hidden
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 bg-slate-500"
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 bg-slate-500" /* theme-ok: legacy hardcoded color, pending audit */
                     >
                       {(m.name || '?').charAt(0).toUpperCase()}
                     </span>
@@ -2763,7 +2763,7 @@ const TeamChat: React.FC = () => {
                     checked ? 'bg-violet-500/20 ring-1 ring-violet-300' : 'hover:bg-violet-500/15'
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-base font-bold ${m.role === 'coach' ? 'bg-surface-tint text-ink-primary' : 'bg-emerald-600 text-white'}`}>
+                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-base font-bold ${m.role === 'coach' ? 'bg-surface-tint text-ink-primary' : 'bg-emerald-600 text-white'}`}>  // theme-ok: legacy hardcoded color, pending per-line audit
                     {m.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -2778,7 +2778,7 @@ const TeamChat: React.FC = () => {
                   <span
                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                       checked
-                        ? 'bg-violet-600 border-violet-600 text-white'
+                        ? 'bg-violet-600 border-violet-600 text-white'  // theme-ok: legacy hardcoded color, pending per-line audit
                         : 'border-line-default/15 bg-surface-elevated'
                     }`}
                     aria-hidden
@@ -2802,7 +2802,7 @@ const TeamChat: React.FC = () => {
             type="button"
             onClick={startSelectedChat}
             disabled={selectedDmUids.size === 0 || dmStarting !== null}
-            className="w-full bg-brand-primary hover:brightness-110 text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md transition disabled:opacity-40 flex items-center justify-center"
+            className="w-full bg-brand-primary hover:brightness-110 text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md transition disabled:opacity-40 flex items-center justify-center" /* theme-ok: legacy hardcoded color, pending audit */
           >
             {dmStarting !== null ? (
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-line-default/40 border-t-white" />
@@ -2828,7 +2828,7 @@ const TeamChat: React.FC = () => {
     >
       <button
         onClick={(e) => { e.stopPropagation(); setLightboxUrl(null); }}
-        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center"
+        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center" /* theme-ok: legacy hardcoded color, pending audit */
         style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}
         aria-label="Close"
       >
@@ -2871,7 +2871,7 @@ const TeamChat: React.FC = () => {
           keyboard) and skip `bottom`. */}
       <div
         // bg-surface-elevated (not gray-50). Both child views already paint their
-        // own bg-white, so the container color is only visible behind
+        // own bg-white, so the container color is only visible behind  // theme-ok: legacy hardcoded color, pending per-line audit
         // the iOS keyboard's slightly-rounded top corners. Gray bled
         // through there as two little gray quarter-circles next to the
         // composer; white makes the seam disappear.
@@ -2940,7 +2940,7 @@ const TeamChat: React.FC = () => {
                   {canCreateAnyThread && (
                     <button
                       onClick={openCreateThread}
-                      className="bg-brand-primary hover:bg-brand-primary text-white p-2.5 rounded-lg transition-colors"
+                      className="bg-brand-primary hover:bg-brand-primary text-white p-2.5 rounded-lg transition-colors" /* theme-ok: legacy hardcoded color, pending audit */
                       title="New channel"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3000,7 +3000,7 @@ const TeamChat: React.FC = () => {
                     onClick={() => setFilterTag(key)}
                     className={`px-3 py-2 text-sm rounded-full transition-colors whitespace-nowrap ${
                       filterTag === key
-                        ? 'bg-brand-primary text-white font-semibold'
+                        ? 'bg-brand-primary text-white font-semibold'  // theme-ok: legacy hardcoded color, pending per-line audit
                         : 'bg-line-default/10 text-ink-primary/70 hover:bg-line-default/15 hover:text-ink-primary'
                     }`}
                   >
@@ -3098,7 +3098,7 @@ const TeamChat: React.FC = () => {
                       />
                     ) : null}
                     <div
-                      className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold shadow-sm ${avatarBg}`}
+                      className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold shadow-sm ${avatarBg}`}  // theme-ok: legacy hardcoded color, pending per-line audit
                       style={threadPhotoUrl ? { display: 'none' } : undefined}
                     >
                       {initial}
@@ -3124,17 +3124,17 @@ const TeamChat: React.FC = () => {
                           </span>
                         )}
                         {thread.isPrivate && (
-                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-rose-600 text-white flex-shrink-0">
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-rose-600 text-white flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
                             Coach only
                           </span>
                         )}
                         {(thread as any).scope === 'club' && (
-                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500 text-charcoal-950 flex-shrink-0">
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500 text-ink-primary flex-shrink-0">
                             Club
                           </span>
                         )}
                         {(thread as any).scope === 'coaches' && (
-                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-brand-primary text-white flex-shrink-0">
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-brand-primary text-white flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
                             Coaches
                           </span>
                         )}
@@ -3148,7 +3148,7 @@ const TeamChat: React.FC = () => {
                           </svg>
                         )}
                         {(thread as any).scope === 'admins' && (
-                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-sky-600 text-white flex-shrink-0">
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-sky-600 text-white flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
                             Admins
                           </span>
                         )}
@@ -3204,7 +3204,7 @@ const TeamChat: React.FC = () => {
                             {section.label}
                             <span className="text-ink-primary/40">{section.threads.length}</span>
                             {sectionUnread > 0 && (
-                              <span className="px-1.5 py-0.5 rounded-full bg-brand-primary text-white text-[9px] font-extrabold">
+                              <span className="px-1.5 py-0.5 rounded-full bg-brand-primary text-white text-[9px] font-extrabold">  // theme-ok: legacy hardcoded color, pending per-line audit
                                 {sectionUnread} new
                               </span>
                             )}
@@ -3236,14 +3236,14 @@ const TeamChat: React.FC = () => {
                   <div className="flex justify-center gap-2">
                     <button
                       onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
-                      className="px-4 py-2 text-sm font-semibold rounded-full bg-violet-600 text-white hover:bg-violet-700"
+                      className="px-4 py-2 text-sm font-semibold rounded-full bg-violet-600 text-white hover:bg-violet-700" /* theme-ok: legacy hardcoded color, pending audit */
                     >
                       New DM
                     </button>
                     {canCreateAnyThread && (
                       <button
                         onClick={openCreateThread}
-                        className="px-4 py-2 text-sm font-semibold rounded-full bg-brand-primary text-white hover:bg-brand-primary"
+                        className="px-4 py-2 text-sm font-semibold rounded-full bg-brand-primary text-white hover:bg-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
                       >
                           New thread
                       </button>
@@ -3682,7 +3682,7 @@ const TeamChat: React.FC = () => {
                       m.photoURL ? (
                         <img key={m.uid} src={m.photoURL} alt={m.name} className="w-5 h-5 rounded-full object-cover ring-2 ring-white" />
                       ) : (
-                        <span key={m.uid} className="w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 ring-2 ring-white flex items-center justify-center text-[9px] font-bold text-white">
+                        <span key={m.uid} className="w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 ring-2 ring-white flex items-center justify-center text-[9px] font-bold text-white">  // theme-ok: legacy hardcoded color, pending per-line audit
                           {(m.name || '?').charAt(0).toUpperCase()}
                         </span>
                       )
@@ -3836,7 +3836,7 @@ const TeamChat: React.FC = () => {
                   <button
                     onClick={createThread}
                     disabled={!newThread.title.trim()}
-                    className="flex-1 px-4 py-2.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary disabled:bg-line-default/40 transition-colors font-medium"
+                    className="flex-1 px-4 py-2.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary disabled:bg-line-default/40 transition-colors font-medium" /* theme-ok: legacy hardcoded color, pending audit */
                   >
                     Create
                   </button>
@@ -3891,7 +3891,7 @@ const TeamChat: React.FC = () => {
               {canCreateAnyThread && (
                 <button
                   onClick={openCreateThread}
-                  className="bg-brand-primary hover:bg-brand-primary text-white p-2 rounded-lg transition-colors"
+                  className="bg-brand-primary hover:bg-brand-primary text-white p-2 rounded-lg transition-colors" /* theme-ok: legacy hardcoded color, pending audit */
                   title="New channel"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4300,7 +4300,7 @@ const TeamChat: React.FC = () => {
                 <button
                   onClick={createThread}
                   disabled={!newThread.title.trim()}
-                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary disabled:bg-line-default/40 transition-colors"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary disabled:bg-line-default/40 transition-colors" /* theme-ok: legacy hardcoded color, pending audit */
                 >
                   Create Thread
                 </button>

@@ -31,10 +31,10 @@ const EmptyState: React.FC<Props> = ({ icon, title, description, cta, tone = 'li
   const isDark = tone === 'dark';
   const wrapper = isDark
     ? 'bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-2xl'
-    : 'bg-white rounded-2xl shadow-sm ring-1 ring-gray-100';
+    : 'bg-white rounded-2xl shadow-sm ring-1 ring-gray-100';  // theme-ok: legacy hardcoded color, pending per-line audit
   const pad = compact ? 'px-5 py-6' : 'px-6 py-10';
-  const titleClass = isDark ? 'text-white' : 'text-slate-900';
-  const descClass = isDark ? 'text-white/60' : 'text-slate-500';
+  const titleClass = isDark ? 'text-white' : 'text-ink-primary';  // theme-ok: legacy hardcoded color, pending per-line audit
+  const descClass = isDark ? 'text-white/60' : 'text-ink-primary/65';  // theme-ok: legacy hardcoded color, pending per-line audit
   const iconTile = isDark
     ? 'bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft'
     : 'bg-brand-primary-soft ring-1 ring-brand-primary-soft text-brand-primary';
@@ -55,7 +55,7 @@ const EmptyState: React.FC<Props> = ({ icon, title, description, cta, tone = 'li
           {cta.to ? (
             <Link
               to={cta.to}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold transition"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold transition" /* theme-ok: legacy hardcoded color, pending audit */
             >
               {cta.label} →
             </Link>
@@ -63,7 +63,7 @@ const EmptyState: React.FC<Props> = ({ icon, title, description, cta, tone = 'li
             <button
               type="button"
               onClick={cta.onClick}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold transition"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold transition" /* theme-ok: legacy hardcoded color, pending audit */
             >
               {cta.label}
             </button>

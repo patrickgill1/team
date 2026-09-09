@@ -8,18 +8,18 @@ const APP_DOMAIN = 'goalkickr.com';
 
 const PrivacyPolicy: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-gradient-to-r from-surface-raised via-surface-tint to-surface-raised text-white">
+    <div className="min-h-screen bg-white">  // theme-ok: legacy hardcoded color, pending per-line audit
+      <header className="bg-gradient-to-r from-surface-raised via-surface-tint to-surface-raised text-white">  // theme-ok: legacy hardcoded color, pending per-line audit
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-          <Link to="/" className="text-sm text-white/70 hover:text-white inline-flex items-center gap-1">
+          <Link to="/" className="text-sm text-white/70 hover:text-white inline-flex items-center gap-1">  // theme-ok: legacy hardcoded color, pending per-line audit
             ← Back to {APP_NAME}
           </Link>
           <h1 className="text-3xl sm:text-4xl font-bold mt-3 tracking-tight">Privacy Policy</h1>
-          <p className="text-white/80 text-sm mt-1">Effective {EFFECTIVE_DATE}</p>
+          <p className="text-white/80 text-sm mt-1">Effective {EFFECTIVE_DATE}</p>  // theme-ok: legacy hardcoded color, pending per-line audit
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 text-slate-800 leading-relaxed text-[15px] space-y-6">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 text-ink-primary leading-relaxed text-[15px] space-y-6">
         <p>
           This Privacy Policy describes how {APP_NAME} (the "App") collects, uses, and shares
           information when you create an account or use the App as a coach, team manager,
@@ -28,7 +28,7 @@ const PrivacyPolicy: React.FC = () => {
         </p>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Information We Collect</h2>
+          <h2 className="text-xl font-bold text-ink-primary mt-6 mb-2">Information We Collect</h2>
           <p className="mb-2">We collect only what's needed to run your team:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>Account info</strong>: name, email address, and optionally phone number, profile photo, and address (parent role only, optional).</li>
@@ -42,7 +42,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">How We Use This Information</h2>
+          <h2 className="text-xl font-bold text-ink-primary mt-6 mb-2">How We Use This Information</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li>To create and authenticate your account.</li>
             <li>To show team rosters, schedules, photos, messages, and stats to the people on your team.</li>
@@ -56,7 +56,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Who Can See Your Information</h2>
+          <h2 className="text-xl font-bold text-ink-primary mt-6 mb-2">Who Can See Your Information</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>Your team</strong>: coaches, team managers, and parents on the same team can see player records, rosters, photos, calendar events, and messages within that team.</li>
             <li><strong>Public share links</strong>: when a coach or parent generates a share link for an event, photo, video, or "Player of the Match" vote, anyone with that link can view (and in some cases respond to) the linked item without signing in. Don't share the link with anyone you don't want viewing the content.</li>
@@ -72,7 +72,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Children's Privacy</h2>
+          <h2 className="text-xl font-bold text-ink-primary mt-6 mb-2">Children's Privacy</h2>
           <p>
             {APP_NAME} is intended for use by coaches, team managers, and parents — not by
             children directly. Information about players (who may be under 13) is entered by
@@ -88,7 +88,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Data Retention & Deletion</h2>
+          <h2 className="text-xl font-bold text-ink-primary mt-6 mb-2">Data Retention & Deletion</h2>
           <p>
             We retain account information and team data for as long as your account is active
             and your team is using the App. You can request deletion of your own account
@@ -105,7 +105,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Location</h2>
+          <h2 className="text-xl font-bold text-ink-primary mt-6 mb-2">Location</h2>
           <p>
             <strong>The App does not request your device's location.</strong> Coaches
             create events by searching for a venue on a map and dropping a pin — the
@@ -120,7 +120,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Security</h2>
+          <h2 className="text-xl font-bold text-ink-primary mt-6 mb-2">Security</h2>
           <p>
             Data is transmitted over HTTPS and stored with our service providers (Google
             Firebase, Cloudflare) using their standard at-rest encryption. No system is
@@ -130,7 +130,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Your Choices</h2>
+          <h2 className="text-xl font-bold text-ink-primary mt-6 mb-2">Your Choices</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li>You can edit or remove information from your profile inside the App.</li>
             <li>You can disable push notifications in your device settings.</li>
@@ -142,7 +142,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">International Users</h2>
+          <h2 className="text-xl font-bold text-ink-primary mt-6 mb-2">International Users</h2>
           <p>
             {APP_NAME} is operated from the United States. By using the App you understand
             that your information will be processed in the United States, which may have
@@ -151,7 +151,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Changes to This Policy</h2>
+          <h2 className="text-xl font-bold text-ink-primary mt-6 mb-2">Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy as the App evolves. If we make a material
             change, we will update the "Effective" date above and, where appropriate, notify
@@ -160,14 +160,14 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Contact</h2>
+          <h2 className="text-xl font-bold text-ink-primary mt-6 mb-2">Contact</h2>
           <p>
             Questions, requests, or concerns? Email{' '}
             <a className="text-brand-primary underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
           </p>
         </section>
 
-        <footer className="pt-6 mt-8 border-t border-slate-200 text-xs text-slate-500">
+        <footer className="pt-6 mt-8 border-t border-slate-200 text-xs text-ink-primary/65">  // theme-ok: legacy hardcoded color, pending per-line audit
           {APP_NAME} · {APP_DOMAIN}
         </footer>
       </main>

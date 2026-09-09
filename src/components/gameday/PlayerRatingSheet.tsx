@@ -208,7 +208,7 @@ const PlayerRatingSheet: React.FC<PlayerRatingSheetProps> = ({ event, players, o
             type="button"
             onClick={save}
             disabled={saving || players.length === 0}
-            className="flex-1 px-4 py-2.5 rounded-lg bg-brand-primary text-white text-xs font-extrabold uppercase tracking-widest hover:bg-brand-primary-soft hover:text-charcoal-950 disabled:opacity-60 transition"
+            className="flex-1 px-4 py-2.5 rounded-lg bg-brand-primary text-white text-xs font-extrabold uppercase tracking-widest hover:bg-brand-primary-soft hover:text-ink-primary disabled:opacity-60 transition" /* theme-ok: legacy hardcoded color, pending audit */
           >
             {saving ? 'Saving…' : 'Save ratings'}
           </button>

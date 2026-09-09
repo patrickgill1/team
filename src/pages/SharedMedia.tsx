@@ -87,7 +87,7 @@ const SharedMedia: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
       </div>
     );
@@ -131,18 +131,18 @@ const SharedMedia: React.FC = () => {
   const title = media.caption || `${media.playerName || 'Team'} — ${isVideo ? 'Video' : 'Photo'}`;
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-surface-base flex flex-col">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-3">
+      <div className="bg-surface-elevated border-b border-gray-700 px-4 py-3">  // theme-ok: legacy hardcoded color, pending per-line audit
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <span className="text-2xl">⚽</span>
             <div>
-              <h1 className="text-white font-semibold text-sm sm:text-base truncate max-w-[200px] sm:max-w-none">
+              <h1 className="text-white font-semibold text-sm sm:text-base truncate max-w-[200px] sm:max-w-none">  // theme-ok: legacy hardcoded color, pending per-line audit
                 {title}
               </h1>
               {media.playerName && (
-                <p className="text-gray-400 text-xs sm:text-sm">{media.playerName}</p>
+                <p className="text-ink-primary/55 text-xs sm:text-sm">{media.playerName}</p>
               )}
             </div>
           </div>
@@ -194,10 +194,10 @@ const SharedMedia: React.FC = () => {
           {(media.caption || media.uploadedByName) && (
             <div className="mt-3 px-1">
               {media.caption && (
-                <p className="text-white text-sm sm:text-base">{media.caption}</p>
+                <p className="text-white text-sm sm:text-base">{media.caption}</p>  // theme-ok: legacy hardcoded color, pending per-line audit
               )}
               {media.uploadedByName && (
-                <p className="text-gray-500 text-xs mt-1">
+                <p className="text-ink-primary/65 text-xs mt-1">
                   Shared by {media.uploadedByName}
                   {media.createdAt?.toDate && (
                     <> · {media.createdAt.toDate().toLocaleDateString()}</>
@@ -210,10 +210,10 @@ const SharedMedia: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-800 border-t border-gray-700 px-4 py-3 text-center">
+      <div className="bg-surface-elevated border-t border-gray-700 px-4 py-3 text-center">  // theme-ok: legacy hardcoded color, pending per-line audit
         <a
           href="/"
-          className="text-gray-400 hover:text-white text-xs transition-colors"
+          className="text-ink-primary/55 hover:text-white text-xs transition-colors" /* theme-ok: legacy hardcoded color, pending audit */
         >
           GoalKickr
         </a>

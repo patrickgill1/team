@@ -285,13 +285,13 @@ const SubscriptionCard: React.FC = () => {
           <h3 className="text-ink-primary text-lg font-bold leading-tight">
             What email should we put on the receipt?
           </h3>
-          <p className="text-charcoal-300 text-sm mt-2">
+          <p className="text-ink-primary/50 text-sm mt-2">
             We don&apos;t have an email on file for your account. Add one and we&apos;ll
             open goalkickr.com for checkout.
           </p>
         </div>
         <label className="block">
-          <span className="text-charcoal-300 text-[11px] font-bold uppercase tracking-widest">Email</span>
+          <span className="text-ink-primary/50 text-[11px] font-bold uppercase tracking-widest">Email</span>
           <input
             type="email"
             autoComplete="email"
@@ -321,7 +321,7 @@ const SubscriptionCard: React.FC = () => {
             type="button"
             onClick={handleEmailConfirm}
             disabled={emailSaving || !emailDraft.trim()}
-            className="px-4 py-2.5 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white transition disabled:opacity-60 disabled:cursor-wait"
+            className="px-4 py-2.5 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white transition disabled:opacity-60 disabled:cursor-wait" /* theme-ok: legacy hardcoded color, pending audit */
           >
             {emailSaving ? 'Saving…' : 'Continue'}
           </button>
@@ -333,7 +333,7 @@ const SubscriptionCard: React.FC = () => {
   if (loading) {
     return (
       <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4">
-        <p className="text-charcoal-400 text-sm">Loading subscription…</p>
+        <p className="text-ink-primary/60 text-sm">Loading subscription…</p>
       </div>
     );
   }
@@ -348,7 +348,7 @@ const SubscriptionCard: React.FC = () => {
         <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4 space-y-3">
           <div>
             <p className="text-ink-primary font-bold">Coach with GoalKickr</p>
-            <p className="text-charcoal-300 text-sm mt-1">
+            <p className="text-ink-primary/50 text-sm mt-1">
               You&apos;re using GoalKickr for free. Coaches unlock the full toolkit (chat, RSVPs, gameday, dev plans) with a Team plan starting at $9.99/mo.
               {!isAppleDevice() && ' Founding Coach pricing locks in $4.99/mo forever.'}
             </p>
@@ -356,7 +356,7 @@ const SubscriptionCard: React.FC = () => {
           <button
             type="button"
             onClick={handleSubscribe}
-            className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold bg-brand-primary hover:bg-brand-primary text-white transition-all"
+            className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold bg-brand-primary hover:bg-brand-primary text-white transition-all" /* theme-ok: legacy hardcoded color, pending audit */
           >
             Subscribe at goalkickr.com
           </button>
@@ -507,7 +507,7 @@ const SubscriptionCard: React.FC = () => {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-ink-primary font-bold">{tierLabel}</p>
-          <p className="text-charcoal-300 text-sm mt-1">
+          <p className="text-ink-primary/50 text-sm mt-1">
             {tierPrice}
             {willCancelAtPeriodEnd && renewsAt && ` · ends ${renewsAt}`}
             {!willCancelAtPeriodEnd && renewsAt && ` · renews ${renewsAt}`}
@@ -554,7 +554,7 @@ const SubscriptionCard: React.FC = () => {
           <p className="text-ink-primary text-sm font-bold leading-tight">
             Upgrade to Club at goalkickr.com →
           </p>
-          <p className="text-charcoal-300 text-[11px] mt-1 leading-snug">
+          <p className="text-ink-primary/50 text-[11px] mt-1 leading-snug">
             One subscription covers every team in your club. $299/yr, waived for clubs running $15K+/yr in registrations.
           </p>
         </button>
@@ -571,7 +571,7 @@ const SubscriptionCard: React.FC = () => {
           <p className="text-ink-primary text-sm font-bold leading-tight">
             Upgrade to Club Pro at goalkickr.com →
           </p>
-          <p className="text-charcoal-300 text-[11px] mt-1 leading-snug">
+          <p className="text-ink-primary/50 text-[11px] mt-1 leading-snug">
             Sports Affinity sync, registration onboarding, dedicated support. $499/yr.
           </p>
         </button>
@@ -721,7 +721,7 @@ const SubscriptionCard: React.FC = () => {
         )}
       </div>
 
-      <p className="text-charcoal-500 text-[11px] leading-snug pt-1">
+      <p className="text-ink-primary/70 text-[11px] leading-snug pt-1">
         Cancel any time in the app. Plan changes and payment method updates open goalkickr.com in your system browser.
       </p>
       {emailModal}

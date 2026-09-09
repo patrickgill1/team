@@ -34,7 +34,7 @@ const RecapShowcase: React.FC = () => {
   const timestamp = new Date();
 
   return (
-    <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-surface-base flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <ShowcaseKicker>Team Wall · Game Recap Card</ShowcaseKicker>
         <GameRecapCard recap={recap} timestamp={timestamp} />

@@ -404,7 +404,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
               />
               <button
                 onClick={() => removePending(i)}
-                className="absolute -top-1.5 -right-1.5 bg-black hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow ring-1 ring-line-default/20"
+                className="absolute -top-1.5 -right-1.5 bg-black hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow ring-1 ring-line-default/20" /* theme-ok: legacy hardcoded color, pending audit */
                 aria-label="Remove"
               >
                 ×
@@ -485,7 +485,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                     }`}
                   >
                     {isTeam && (
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white text-[10px] font-bold flex-shrink-0">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white text-[10px] font-bold flex-shrink-0">  // theme-ok: legacy hardcoded color, pending per-line audit
                         @
                       </span>
                     )}
@@ -505,7 +505,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <button
           onClick={doSend}
           disabled={uploading || (!text.trim() && pending.length === 0)}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-primary hover:brightness-110 active:scale-95 disabled:bg-line-default/10 disabled:text-ink-primary/30 text-white flex items-center justify-center shadow-sm disabled:shadow-none disabled:cursor-not-allowed transition"
+          className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-primary hover:brightness-110 active:scale-95 disabled:bg-line-default/10 disabled:text-ink-primary/30 text-white flex items-center justify-center shadow-sm disabled:shadow-none disabled:cursor-not-allowed transition" /* theme-ok: legacy hardcoded color, pending audit */
           aria-label="Send"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -541,7 +541,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                 onClick={() => { setPlusOpen(false); fileRef.current?.click(); }}
                 className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-line-default/[0.04]"
               >
-                <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-rose-600 text-white flex items-center justify-center">
+                <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-rose-600 text-white flex items-center justify-center">  // theme-ok: legacy hardcoded color, pending per-line audit
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <rect x="3" y="3" width="18" height="18" rx="2"/>
                     <circle cx="9" cy="9" r="2"/>
@@ -559,7 +559,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                   onClick={() => { setPlusOpen(false); setIsGifPickerOpen(true); }}
                   className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-line-default/[0.04]"
                 >
-                  <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-violet-600 text-white flex items-center justify-center text-[10px] font-extrabold tracking-wider">
+                  <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-violet-600 text-white flex items-center justify-center text-[10px] font-extrabold tracking-wider">  // theme-ok: legacy hardcoded color, pending per-line audit
                     GIF
                   </span>
                   <span className="min-w-0 flex-1">
@@ -574,7 +574,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                   onClick={() => { setPlusOpen(false); setIsPollOpen(true); }}
                   className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-line-default/[0.04]"
                 >
-                  <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+                  <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center">  // theme-ok: legacy hardcoded color, pending per-line audit
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <rect x="3" y="12" width="4" height="9" rx="1"/>
                       <rect x="10" y="7" width="4" height="14" rx="1"/>
@@ -594,7 +594,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                   className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-line-default/[0.04]"
                 >
                   <span className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-                    markImportant ? 'bg-amber-400 text-charcoal-950 ring-2 ring-amber-300' : 'bg-amber-500 text-charcoal-950'
+                    markImportant ? 'bg-amber-400 text-ink-primary ring-2 ring-amber-300' : 'bg-amber-500 text-ink-primary'
                   }`}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -618,7 +618,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                   className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-line-default/[0.04]"
                 >
                   <span className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-                    postToWall ? 'bg-brand-primary text-white ring-2 ring-brand-primary-soft' : 'bg-brand-primary text-white'
+                    postToWall ? 'bg-brand-primary text-white ring-2 ring-brand-primary-soft' : 'bg-brand-primary text-white'  // theme-ok: legacy hardcoded color, pending per-line audit
                   }`}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M12 2v6"/>

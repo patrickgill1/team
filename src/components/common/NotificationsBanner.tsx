@@ -112,7 +112,7 @@ const NotificationsBanner: React.FC = () => {
         onClick={snooze}
         aria-label="Not now"
         title="Not now"
-        className="absolute top-2 right-2 w-8 h-8 rounded-full text-slate-500 hover:text-slate-900 hover:bg-brand-primary/10 flex items-center justify-center transition"
+        className="absolute top-2 right-2 w-8 h-8 rounded-full text-ink-primary/65 hover:text-ink-primary hover:bg-brand-primary/10 flex items-center justify-center transition"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
       </button>
@@ -124,15 +124,15 @@ const NotificationsBanner: React.FC = () => {
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-slate-900">Turn on notifications</div>
-          <p className="text-xs text-slate-600 mt-0.5">
+          <div className="text-sm font-bold text-ink-primary">Turn on notifications</div>
+          <p className="text-xs text-ink-primary/80 mt-0.5">
             {state === 'denied'
               ? `Notifications are off in your ${platform === 'ios' ? 'iOS' : platform === 'android' ? 'Android' : 'browser'} settings. Open settings to turn them back on for GoalKickr.`
               : 'Get pushed when teammates message you, RSVPs change, or game day kicks off.'}
           </p>
 
           {showSettingsHelp && state === 'denied' && (
-            <div className="mt-2 bg-white border border-slate-200 rounded-lg p-2.5 text-[11px] text-slate-700 leading-relaxed">
+            <div className="mt-2 bg-white border border-slate-200 rounded-lg p-2.5 text-[11px] text-ink-primary/90 leading-relaxed">  // theme-ok: legacy hardcoded color, pending per-line audit
               {platform === 'ios' ? (
                 <>
                   <b>iOS:</b> Settings → Notifications → GoalKickr → toggle <b>Allow Notifications</b> on.
@@ -153,7 +153,7 @@ const NotificationsBanner: React.FC = () => {
             {state === 'denied' ? (
               <button
                 onClick={() => setShowSettingsHelp(s => !s)}
-                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary"
+                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary" /* theme-ok: legacy hardcoded color, pending audit */
               >
                 {showSettingsHelp ? 'Hide steps' : 'Open settings'}
               </button>
@@ -161,14 +161,14 @@ const NotificationsBanner: React.FC = () => {
               <button
                 onClick={enable}
                 disabled={state === 'busy'}
-                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50"
+                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
               >
                 {state === 'busy' ? 'Enabling…' : 'Enable'}
               </button>
             )}
             <button
               onClick={snooze}
-              className="text-[11px] font-bold uppercase tracking-wider px-2 py-1.5 text-slate-500 hover:text-slate-800"
+              className="text-[11px] font-bold uppercase tracking-wider px-2 py-1.5 text-ink-primary/65 hover:text-ink-primary"
             >
               Not now
             </button>

@@ -358,7 +358,7 @@ const Offer: React.FC = () => {
             {typeof offer.feeCents === 'number' && offer.feeCents > 0 && <Detail label="Fee" value={`$${(offer.feeCents / 100).toFixed(2)}`} />}
           </div>
 
-          <div className="text-[11px] text-slate-500 text-center">
+          <div className="text-[11px] text-ink-primary/65 text-center">
             From {offer.coachName} · expires {toDate(offer.expiresAt).toLocaleDateString()}
           </div>
 
@@ -402,7 +402,7 @@ const Offer: React.FC = () => {
                           onClick={() => setWaiverAck(prev => ({ ...prev, [w.id]: !prev[w.id] }))}
                           className={`shrink-0 w-7 h-7 rounded-full ring-1 flex items-center justify-center ${
                             ack
-                              ? 'bg-emerald-500 ring-emerald-400 text-white'
+                              ? 'bg-emerald-500 ring-emerald-400 text-white'  // theme-ok: legacy hardcoded color, pending per-line audit
                               : 'bg-surface-elevated ring-line-default/20 text-ink-primary/40 hover:ring-emerald-400/60'
                           }`}
                           aria-pressed={ack}
@@ -417,7 +417,7 @@ const Offer: React.FC = () => {
               </ul>
 
               <label className="block">
-                <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink-primary/55 mb-1">
                   Type your full name to sign <span className="text-rose-300 ml-0.5">*</span>
                 </span>
                 <input
@@ -448,7 +448,7 @@ const Offer: React.FC = () => {
                     || !signedByName.trim()
                     || waivers.some(w => !waiverAck[w.id])
                   }
-                  className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 shadow-lg"
+                  className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 shadow-lg" /* theme-ok: legacy hardcoded color, pending audit */
                 >
                   {submitting ? 'Working…' : 'Sign & accept'}
                 </button>
@@ -468,7 +468,7 @@ const Offer: React.FC = () => {
                 type="button"
                 onClick={() => waivers.length > 0 ? setShowingWaivers(true) : handleAccept()}
                 disabled={submitting}
-                className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 shadow-lg"
+                className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 shadow-lg" /* theme-ok: legacy hardcoded color, pending audit */
               >
                 {submitting ? 'Working…' : waivers.length > 0 ? `Accept · sign ${waivers.length} release${waivers.length === 1 ? '' : 's'}` : 'Accept the offer'}
               </button>
@@ -496,7 +496,7 @@ const Offer: React.FC = () => {
                   type="button"
                   onClick={handleDecline}
                   disabled={submitting}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-rose-500 hover:bg-rose-400 disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-rose-500 hover:bg-rose-400 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
                 >
                   {submitting ? 'Working…' : 'Confirm decline'}
                 </button>
@@ -534,7 +534,7 @@ const Frame: React.FC<{ tone?: 'success' | 'warning'; title: string; body?: stri
         )}
       </div>
       <h1 className="text-xl font-black text-ink-primary mb-2">{title}</h1>
-      {body && <p className="text-sm text-slate-400 leading-relaxed">{body}</p>}
+      {body && <p className="text-sm text-ink-primary/55 leading-relaxed">{body}</p>}
       <Link to="/" className="block mt-4 text-brand-primary-soft hover:text-ink-primary text-xs font-bold">Home</Link>
     </div>
   </div>

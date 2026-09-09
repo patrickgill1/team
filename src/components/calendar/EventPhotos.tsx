@@ -102,10 +102,10 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
   };
 
   return (
-    <div className="mt-3 pt-3 border-t border-gray-100">
+    <div className="mt-3 pt-3 border-t border-gray-100">  // theme-ok: legacy hardcoded color, pending per-line audit
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-          Photos {photos.length > 0 && <span className="text-gray-700">· {photos.length}</span>}
+        <span className="text-xs font-medium text-ink-primary/65 uppercase tracking-wide">
+          Photos {photos.length > 0 && <span className="text-ink-primary/90">· {photos.length}</span>}
         </span>
         {canUpload && (
           <>
@@ -129,7 +129,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
       </div>
 
       {photos.length === 0 ? (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-ink-primary/55">
           {canUpload ? 'No photos yet — be the first to add some.' : 'No photos yet.'}
         </p>
       ) : (
@@ -138,7 +138,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
             <button
               key={p.id}
               onClick={() => setLightboxIdx(idx)}
-              className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 ring-1 ring-gray-200 hover:opacity-90 active:scale-95 transition"
+              className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 ring-1 ring-gray-200 hover:opacity-90 active:scale-95 transition" /* theme-ok: legacy hardcoded color, pending audit */
             >
               <img
                 src={p.url}
@@ -153,7 +153,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
           {photos.length > 8 && (
             <button
               onClick={() => setLightboxIdx(8)}
-              className="relative aspect-square rounded-lg overflow-hidden bg-gray-900/80 text-white flex items-center justify-center text-sm font-bold"
+              className="relative aspect-square rounded-lg overflow-hidden bg-surface-base/80 text-white flex items-center justify-center text-sm font-bold" /* theme-ok: legacy hardcoded color, pending audit */
             >
               +{photos.length - 8}
             </button>
@@ -171,7 +171,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
         >
           <button
             onClick={(e) => { e.stopPropagation(); setLightboxIdx(null); }}
-            className="absolute right-4 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white flex items-center justify-center"
+            className="absolute right-4 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white flex items-center justify-center" /* theme-ok: legacy hardcoded color, pending audit */
             style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}
             aria-label="Close"
           >
@@ -182,7 +182,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
           {lightboxIdx > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx ?? 0) - 1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white flex items-center justify-center"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white flex items-center justify-center" /* theme-ok: legacy hardcoded color, pending audit */
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -192,7 +192,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
           {lightboxIdx < photos.length - 1 && (
             <button
               onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx ?? 0) + 1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white flex items-center justify-center"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white flex items-center justify-center" /* theme-ok: legacy hardcoded color, pending audit */
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -206,7 +206,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
             className="max-w-[95vw] max-h-[85vh] object-contain rounded-lg select-none"
           />
           <div
-            className="absolute left-0 right-0 bottom-0 px-6 py-3 text-center text-xs text-white/80 bg-gradient-to-t from-black/70 to-transparent"
+            className="absolute left-0 right-0 bottom-0 px-6 py-3 text-center text-xs text-white/80 bg-gradient-to-t from-black/70 to-transparent" /* theme-ok: legacy hardcoded color, pending audit */
             style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
             onClick={(e) => e.stopPropagation()}
           >

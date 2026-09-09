@@ -181,7 +181,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
       {/* Explainer banner so the coach knows what each row will do.
           Patrick: "why is the email optional? they need to be
           invited, or will it share a link, or what?" */}
-      <div className="rounded-md bg-surface-base ring-1 ring-line-default/10 px-3 py-2.5 mb-4 text-charcoal-300 text-xs leading-relaxed">
+      <div className="rounded-md bg-surface-base ring-1 ring-line-default/10 px-3 py-2.5 mb-4 text-ink-primary/50 text-xs leading-relaxed">
         <span className="text-ink-primary font-bold">With an email:</span> we shoot {isAdultTeam ? 'the player' : 'the parent'} a link to join. They're in within a minute.
         <br />
         <span className="text-ink-primary font-bold">Without:</span> we add the player anyway. Grab a join link from the Team page and send it however you want.
@@ -267,7 +267,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
         type="button"
         onClick={handleSubmit}
         disabled={busy}
-        className="mt-6 w-full px-5 py-3 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition disabled:opacity-60 disabled:cursor-wait"
+        className="mt-6 w-full px-5 py-3 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition disabled:opacity-60 disabled:cursor-wait" /* theme-ok: legacy hardcoded color, pending audit */
       >
         {busy ? 'Adding players…' : primaryLabel}
       </button>

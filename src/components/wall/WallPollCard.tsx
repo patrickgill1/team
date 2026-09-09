@@ -82,7 +82,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
         </svg>
         <span className="text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-dim">Poll</span>
       </div>
-      <p className="font-bold text-[15px] leading-snug text-slate-900 mb-2.5">{poll.question}</p>
+      <p className="font-bold text-[15px] leading-snug text-ink-primary mb-2.5">{poll.question}</p>
 
       <div className="space-y-1.5">
         {poll.options.map(opt => {
@@ -99,7 +99,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
               className={`relative w-full text-left rounded-xl px-3 py-2 ring-1 transition overflow-hidden ${
                 mine
                   ? 'bg-surface-elevated text-ink-primary ring-brand-primary-soft'
-                  : 'bg-white text-slate-800 ring-slate-200 hover:bg-slate-50'
+                  : 'bg-white text-ink-primary ring-slate-200 hover:bg-slate-50'  // theme-ok: legacy hardcoded color, pending per-line audit
               }`}
             >
               {/* Fill bar — represents this option's share of total votes. */}
@@ -110,7 +110,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
               />
               <span className="relative flex items-start justify-between gap-3">
                 <span className="font-semibold text-[14.5px] leading-snug break-words min-w-0">{opt.text}</span>
-                <span className="text-[12px] font-bold tabular-nums text-slate-600 shrink-0 pt-0.5">
+                <span className="text-[12px] font-bold tabular-nums text-ink-primary/80 shrink-0 pt-0.5">
                   {pct}% · {opt.voters.length}
                 </span>
               </span>
@@ -119,7 +119,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
         })}
       </div>
 
-      <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+      <div className="mt-2 flex items-center justify-between text-[11px] text-ink-primary/65">
         <span>{totalVoters.size} {totalVoters.size === 1 ? 'voter' : 'voters'}</span>
         {canSeeVoters && totalVoters.size > 0 && (
           <button
@@ -142,7 +142,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
-              <button onClick={() => setVotersOpen(false)} className="text-[11px] font-extrabold tracking-widest uppercase text-slate-500 hover:text-slate-900">
+              <button onClick={() => setVotersOpen(false)} className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/65 hover:text-ink-primary">
                 Close
               </button>
               <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">Voters</div>
@@ -150,17 +150,17 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
             </div>
             <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
               {poll.options.map(opt => (
-                <div key={opt.id} className="border-b border-slate-100 last:border-b-0">
-                  <div className="px-4 py-2 bg-slate-50 flex items-start justify-between gap-3">
-                    <span className="font-bold text-[14px] text-slate-900 leading-snug break-words min-w-0">{opt.text}</span>
-                    <span className="text-[12px] text-slate-500 font-semibold shrink-0 pt-0.5">{opt.voters.length}</span>
+                <div key={opt.id} className="border-b border-slate-100 last:border-b-0">  // theme-ok: legacy hardcoded color, pending per-line audit
+                  <div className="px-4 py-2 bg-slate-50 flex items-start justify-between gap-3">  // theme-ok: legacy hardcoded color, pending per-line audit
+                    <span className="font-bold text-[14px] text-ink-primary leading-snug break-words min-w-0">{opt.text}</span>
+                    <span className="text-[12px] text-ink-primary/65 font-semibold shrink-0 pt-0.5">{opt.voters.length}</span>
                   </div>
                   {opt.voters.length === 0 ? (
-                    <div className="px-4 py-2 text-[12px] text-slate-400 italic">No votes</div>
+                    <div className="px-4 py-2 text-[12px] text-ink-primary/55 italic">No votes</div>
                   ) : (
                     <ul>
                       {opt.voters.map(uid => (
-                        <li key={uid} className="px-4 py-2 text-[14px] text-slate-700">
+                        <li key={uid} className="px-4 py-2 text-[14px] text-ink-primary/90">
                           {resolveName(uid)}
                         </li>
                       ))}

@@ -97,13 +97,13 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
   return (
     <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400">
+        <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/60">
           Snacks
         </div>
         {isCoach && !editing && (
           <button
             onClick={() => setEditing(true)}
-            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary-hov dark:bg-brand-primary/15 dark:text-brand-primary-soft dark:hover:bg-brand-primary/25"
+            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary-hov dark:bg-brand-primary/15 dark:text-brand-primary-soft dark:hover:bg-brand-primary/25" /* theme-ok: legacy hardcoded color, pending audit */
           >
             {assignment ? 'Change' : 'Assign'}
           </button>
@@ -115,11 +115,11 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
           <div>
             <div className="text-sm text-ink-primary font-semibold">{assignment.playerName}</div>
             {assignment.notes && (
-              <div className="mt-0.5 text-xs text-charcoal-500 whitespace-pre-wrap">{assignment.notes}</div>
+              <div className="mt-0.5 text-xs text-ink-primary/70 whitespace-pre-wrap">{assignment.notes}</div>
             )}
           </div>
         ) : (
-          <div className="text-sm text-charcoal-500 italic">No one assigned yet.</div>
+          <div className="text-sm text-ink-primary/70 italic">No one assigned yet.</div>
         )
       ) : (
         <div className="space-y-2">
@@ -127,7 +127,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
             <select
               value={pickerId}
               onChange={e => setPickerId(e.target.value)}
-              className="flex-1 px-3 py-2 text-sm border border-line-default/10 rounded-lg bg-white"
+              className="flex-1 px-3 py-2 text-sm border border-line-default/10 rounded-lg bg-white" /* theme-ok: legacy hardcoded color, pending audit */
             >
               <option value="">Pick a player…</option>
               {roster.map(r => (
@@ -138,7 +138,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
               onClick={suggestNextUp}
               disabled={suggesting}
               title="Suggest a player who hasn't been assigned recently"
-              className="px-3 text-[10px] font-extrabold tracking-widest uppercase rounded-lg border border-line-default/10 text-charcoal-400 hover:bg-slate-50 disabled:opacity-50"
+              className="px-3 text-[10px] font-extrabold tracking-widest uppercase rounded-lg border border-line-default/10 text-ink-primary/60 hover:bg-slate-50 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
             >
               {suggesting ? '…' : 'Suggest'}
             </button>
@@ -154,14 +154,14 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
             <button
               onClick={save}
               disabled={saving || !pickerId}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50"
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
             >
               {saving ? 'Saving…' : `Assign${selectedName ? ` to ${selectedName.split(' ')[0]}` : ''}`}
             </button>
             <button
               onClick={() => setEditing(false)}
               disabled={saving}
-              className="text-[11px] font-bold uppercase tracking-wider px-2 py-1.5 text-charcoal-500 hover:text-ink-primary"
+              className="text-[11px] font-bold uppercase tracking-wider px-2 py-1.5 text-ink-primary/70 hover:text-ink-primary"
             >
               Cancel
             </button>

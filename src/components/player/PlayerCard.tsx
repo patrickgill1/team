@@ -78,7 +78,7 @@ const StreakPill: React.FC<{ days: number }> = ({ days }) => {
   return (
     <span
       title={`${days}-day practice streak`}
-      className={`inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-full text-[11px] font-black tracking-wide text-white shadow-md ring-1 ring-white/10 ${tone}`}
+      className={`inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-full text-[11px] font-black tracking-wide text-white shadow-md ring-1 ring-white/10 ${tone}`}  // theme-ok: legacy hardcoded color, pending per-line audit
     >
       <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
         <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z" clipRule="evenodd" />
@@ -314,7 +314,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               {heroLayout && ((player as any).currentStreakDays ?? 0) > 0 && (
                 <span
                   title={`${(player as any).currentStreakDays}-day practice streak`}
-                  className={`absolute -top-1 -left-1 z-10 inline-flex h-9 min-w-9 items-center justify-center gap-0.5 px-1.5 rounded-full text-[12px] font-black tabular-nums ring-2 ring-offset-2 ring-offset-surface-elevated text-white shadow-lg ${
+                  className={`absolute -top-1 -left-1 z-10 inline-flex h-9 min-w-9 items-center justify-center gap-0.5 px-1.5 rounded-full text-[12px] font-black tabular-nums ring-2 ring-offset-2 ring-offset-surface-elevated text-white shadow-lg ${  // theme-ok: legacy hardcoded color, pending per-line audit
                     ((player as any).currentStreakDays ?? 0) >= 25
                       ? 'bg-gradient-to-br from-amber-300 to-orange-600'
                       : ((player as any).currentStreakDays ?? 0) >= 10
@@ -484,7 +484,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           <div className="mt-auto pt-4 flex flex-wrap gap-2 items-center">
             <Link
               to={`/player/${player.id}`}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-charcoal-800 font-bold text-sm shadow hover:scale-105 transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-ink-primary font-bold text-sm shadow hover:scale-105 transition" /* theme-ok: legacy hardcoded color, pending audit */
             >
               View Profile →
             </Link>
@@ -596,22 +596,22 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               </div>
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-charcoal-950 mb-2">Archive Player</h3>
-              <p className="text-sm text-gray-500 mb-6">
+              <h3 className="text-lg font-semibold text-ink-primary mb-2">Archive Player</h3>
+              <p className="text-sm text-ink-primary/65 mb-6">
                 Archive <strong>{player.name}</strong>? They'll be removed from the active roster but their stats, photos, and history are preserved. You can restore them later from the Archived view.
               </p>
               <div className="flex space-x-3">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={isDeleting}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-xl transition duration-200 disabled:opacity-50"
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-ink-primary font-semibold py-2 px-4 rounded-xl transition duration-200 disabled:opacity-50" /* theme-ok: legacy hardcoded color, pending audit */
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDelete}
                   disabled={isDeleting}
-                  className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-200 disabled:opacity-50 flex items-center justify-center"
+                  className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-200 disabled:opacity-50 flex items-center justify-center" /* theme-ok: legacy hardcoded color, pending audit */
                 >
                   {isDeleting ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

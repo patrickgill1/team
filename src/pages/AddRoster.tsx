@@ -52,11 +52,11 @@ const AddRoster: React.FC = () => {
                 : 'Nothing to add'}
             </h1>
             {result.invitesSent > 0 ? (
-              <p className="text-charcoal-300 text-sm mt-2">
+              <p className="text-ink-primary/50 text-sm mt-2">
                 {result.invitesSent} {result.invitesSent === 1 ? 'invite' : 'invites'} sent. {isAdultTeam ? 'Players' : 'Parents'} get a link to join {selectedTeam.name} in their inbox.
               </p>
             ) : result.created > 0 ? (
-              <p className="text-charcoal-300 text-sm mt-2">
+              <p className="text-ink-primary/50 text-sm mt-2">
                 Players added without {isAdultTeam ? 'contact emails' : 'parent emails'}. You can invite them later from the Team page.
               </p>
             ) : null}
@@ -73,7 +73,7 @@ const AddRoster: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
-              className="px-5 py-3 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition"
+              className="px-5 py-3 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition" /* theme-ok: legacy hardcoded color, pending audit */
             >
               Open dashboard
             </button>
@@ -94,7 +94,7 @@ const AddRoster: React.FC = () => {
           <h1 className="text-ink-primary text-2xl sm:text-3xl font-black tracking-tight">
             Roster + parent invites
           </h1>
-          <p className="text-charcoal-300 text-sm mt-2 leading-snug">
+          <p className="text-ink-primary/50 text-sm mt-2 leading-snug">
             Drop in as many players as you want. Parents with an email get a private link to join in their inbox.
           </p>
 

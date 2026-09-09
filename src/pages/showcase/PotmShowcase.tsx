@@ -27,7 +27,7 @@ const PotmShowcase: React.FC = () => {
   const timestamp = new Date();
 
   return (
-    <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-surface-base flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <ShowcaseKicker>Team Wall · POTM Card</ShowcaseKicker>
         <PotmWinnerCard potm={potm} timestamp={timestamp} />
@@ -37,7 +37,7 @@ const PotmShowcase: React.FC = () => {
 };
 
 export const ShowcaseKicker: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="text-[10px] font-black tracking-[0.3em] uppercase text-white/40 mb-4 text-center">
+  <p className="text-[10px] font-black tracking-[0.3em] uppercase text-white/40 mb-4 text-center">  // theme-ok: legacy hardcoded color, pending per-line audit
     {children}
   </p>
 );

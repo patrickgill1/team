@@ -317,7 +317,7 @@ const WidgetBridgeDiagnostics: React.FC<{ token: string | null }> = ({ token }) 
         type="button"
         onClick={runCheck}
         disabled={busy}
-        className="mt-3 px-3 py-1.5 rounded-md bg-amber-500 text-charcoal-950 text-xs font-extrabold tracking-widest uppercase disabled:opacity-50"
+        className="mt-3 px-3 py-1.5 rounded-md bg-amber-500 text-ink-primary text-xs font-extrabold tracking-widest uppercase disabled:opacity-50"
       >
         {busy ? 'Running…' : 'Run bridge check'}
       </button>

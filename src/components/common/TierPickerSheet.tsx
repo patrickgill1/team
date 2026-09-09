@@ -59,7 +59,7 @@ const TierPickerSheet: React.FC<Props> = ({ open, onClose, email, uid, intent = 
         />
       </div>
       {showFounder && (
-        <p className="text-charcoal-500 text-[11px] text-center pt-3">
+        <p className="text-ink-primary/70 text-[11px] text-center pt-3">
           Founder Rate ($5/mo lifetime) is available on the web for the first 50 coaches.
         </p>
       )}
@@ -90,7 +90,7 @@ const TierOption: React.FC<{
           {kicker}
         </p>
         <p className="text-ink-primary font-bold text-base leading-tight">{title}</p>
-        <p className="text-charcoal-300 text-xs mt-1 leading-snug">{note}</p>
+        <p className="text-ink-primary/50 text-xs mt-1 leading-snug">{note}</p>
       </div>
       <div className="shrink-0 text-ink-primary text-sm font-black tabular-nums">{price}</div>
     </div>

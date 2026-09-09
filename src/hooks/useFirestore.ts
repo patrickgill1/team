@@ -21,6 +21,30 @@ import { db } from '../utils/firebase';
 import { Player, GameStat, CalendarEvent, GalleryPhoto, User, ChatThread, ChatMessage, DevelopmentPlan, PlayerMedia, CoachInvite, Team } from '../types';
 import { cleanFirestoreData } from '../utils/helpers';
 import { debug, debugWarn } from '../utils/debug';
+import { readCache, writeCache, isStale } from '../utils/queryCache';
+
+// 2026-09-09: request-dedup layer for the hot list endpoints
+// (players + events per team). Prevents a thundering-herd cold-boot
+// where Dashboard + Calendar + Wall all mount and each fires its
+// own copy of the same query. Any concurrent caller for the same
+// key gets the SAME promise; second-and-later callers pay nothing.
+const inflight = new Map<string, Promise<any>>();
+async function dedupe<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const existing = inflight.get(key);
+  if (existing) return existing;
+  const p = fn().finally(() => { inflight.delete(key); });
+  inflight.set(key, p);
+  return p;
+}
+// Cache TTLs — long enough to soak up repeated navigation within a
+// session, short enough that stale reads self-heal fast. Mutation
+// functions BELOW (addPlayer/updatePlayer/addEvent/updateEvent)
+// explicitly invalidate the matching prefix so a client-side edit
+// is reflected on next read without waiting for TTL. Worker-driven
+// writes bypass this hook layer and rely on TTL / snapshot listeners
+// downstream — same posture as before this cache landed.
+const PLAYERS_TTL_MS = 60_000;
+const EVENTS_TTL_MS = 30_000;
 
 export const useFirestore = () => {
   const [error, setError] = useState<string | null>(null);
@@ -231,7 +255,10 @@ const getUserData = useCallback(async (uid: string) => {
         cleanSheets: 0
       }
     };
-    return addDocument('players', playerToAdd);
+    const result = await addDocument('players', playerToAdd);
+    // Drop cached rosters so the new player shows on next read.
+    (await import('../utils/queryCache')).invalidateCachePrefix('players:');
+    return result;
   }, []);
 
   const updatePlayer = useCallback(async (playerId: string, playerData: Partial<Player>) => {
@@ -239,7 +266,9 @@ const getUserData = useCallback(async (uid: string) => {
       ...playerData,
       updatedAt: new Date()
     };
-    return updateDocument('players', playerId, updateData);
+    const result = await updateDocument('players', playerId, updateData);
+    (await import('../utils/queryCache')).invalidateCachePrefix('players:');
+    return result;
   }, []);
 
   // Scope users LIST to a single team, mirroring getPlayersByTeam.
@@ -272,33 +301,41 @@ const getUserData = useCallback(async (uid: string) => {
   }, [getDocuments]);
 
   const getPlayersByTeam = useCallback(async (teamId: string) => {
-    // Scope to the requested team AT THE QUERY LEVEL. The old
-    // "fetch every active player, filter client-side" pattern worked
-    // when player LIST was `if request.auth != null`, but the
-    // 2026-07-08 hardening (callerCanReadPlayer) denies any LIST
-    // query whose matched set includes a doc the caller can't read.
-    // As multi-tenant data grew, every coach's roster silently came
-    // back empty because SOMEONE ELSE's player was in the match set.
-    // A coach re-adds the same player because their added kid "disappears".
-    //
-    // teamIds is the canonical multi-team field; teamId is the legacy
-    // pre-2026 single-team fallback. Firestore doesn't support OR
-    // across `array-contains` and `==` in one query, so we run both
-    // and merge. Both queries include team scope, so the rule passes
-    // for every matched doc.
-    const [byTeamIds, byLegacyTeamId] = await Promise.all([
-      getDocuments('players', [where('teamIds', 'array-contains', teamId)]).catch(() => []),
-      getDocuments('players', [where('teamId', '==', teamId)]).catch(() => []),
-    ]);
-    const seen = new Set<string>();
-    const merged: any[] = [];
-    for (const p of [...byTeamIds, ...byLegacyTeamId] as any[]) {
-      if (seen.has(p.id)) continue;
-      if (p.isActive === false) continue;
-      seen.add(p.id);
-      merged.push(p);
-    }
-    return merged.sort((a, b) => (a.jerseyNumber || 999) - (b.jerseyNumber || 999));
+    // Cache + dedup wrapper. See notes at top of file. On a warm
+    // cache within TTL, return synchronously (no network); background
+    // refetch NOT triggered here since callers await the promise
+    // anyway — components that want swr-like "stale then fresh" can
+    // call this repeatedly and get cache-hits inside TTL.
+    const cacheKey = `players:${teamId}`;
+    const cached = readCache<any[]>(cacheKey);
+    if (cached && !isStale(cacheKey, PLAYERS_TTL_MS)) return cached;
+    return dedupe(cacheKey, async () => {
+      // Scope to the requested team AT THE QUERY LEVEL. The old
+      // "fetch every active player, filter client-side" pattern worked
+      // when player LIST was `if request.auth != null`, but the
+      // 2026-07-08 hardening (callerCanReadPlayer) denies any LIST
+      // query whose matched set includes a doc the caller can't read.
+      // teamIds is the canonical multi-team field; teamId is the legacy
+      // pre-2026 single-team fallback. Firestore doesn't support OR
+      // across `array-contains` and `==` in one query, so we run both
+      // and merge. Both queries include team scope, so the rule passes
+      // for every matched doc.
+      const [byTeamIds, byLegacyTeamId] = await Promise.all([
+        getDocuments('players', [where('teamIds', 'array-contains', teamId)]).catch(() => []),
+        getDocuments('players', [where('teamId', '==', teamId)]).catch(() => []),
+      ]);
+      const seen = new Set<string>();
+      const merged: any[] = [];
+      for (const p of [...byTeamIds, ...byLegacyTeamId] as any[]) {
+        if (seen.has(p.id)) continue;
+        if (p.isActive === false) continue;
+        seen.add(p.id);
+        merged.push(p);
+      }
+      const sorted = merged.sort((a, b) => (a.jerseyNumber || 999) - (b.jerseyNumber || 999));
+      writeCache(cacheKey, sorted);
+      return sorted;
+    });
   }, [getDocuments]);
 
   const updatePlayerStats = useCallback(async (playerId: string, newStats: Player['stats']) => {
@@ -425,7 +462,9 @@ const getUserData = useCallback(async (uid: string) => {
       updatedAt: new Date(),
       date: eventData.date instanceof Date ? eventData.date : new Date(eventData.date)
     };
-    return addDocument('events', eventToAdd);
+    const result = await addDocument('events', eventToAdd);
+    (await import('../utils/queryCache')).invalidateCachePrefix('events:');
+    return result;
   }, []);
 
   const updateEvent = useCallback(async (eventId: string, eventData: Partial<CalendarEvent>) => {
@@ -436,20 +475,33 @@ const getUserData = useCallback(async (uid: string) => {
     if (eventData.date) {
       updateData.date = eventData.date instanceof Date ? eventData.date : new Date(eventData.date);
     }
-    return updateDocument('events', eventId, updateData);
+    const result = await updateDocument('events', eventId, updateData);
+    (await import('../utils/queryCache')).invalidateCachePrefix('events:');
+    return result;
   }, []);
 
   const getEventsByTeam = useCallback(async (teamId: string) => {
-    // Soft-deleted events (isActive === false) are dropped client-side
-    // to keep tombstoned items off every list without demanding a
-    // composite index. `!=` filters in Firestore skip missing fields,
-    // which would silently exclude every legacy event; a client-side
-    // filter matches the convention used elsewhere in this hook.
-    const docs = await getDocuments('events', [
-      where('teamId', '==', teamId),
-      orderBy('date', 'asc')
-    ]);
-    return docs.filter((d: any) => d.isActive !== false);
+    // Cache + dedup wrapper. Shorter TTL than players since events
+    // move faster (RSVPs, cancellations) — 30s is generous enough
+    // for repeated intra-session navigation without leaking a stale
+    // schedule for long.
+    const cacheKey = `events:${teamId}`;
+    const cached = readCache<any[]>(cacheKey);
+    if (cached && !isStale(cacheKey, EVENTS_TTL_MS)) return cached;
+    return dedupe(cacheKey, async () => {
+      // Soft-deleted events (isActive === false) are dropped client-side
+      // to keep tombstoned items off every list without demanding a
+      // composite index. `!=` filters in Firestore skip missing fields,
+      // which would silently exclude every legacy event; a client-side
+      // filter matches the convention used elsewhere in this hook.
+      const docs = await getDocuments('events', [
+        where('teamId', '==', teamId),
+        orderBy('date', 'asc')
+      ]);
+      const filtered = docs.filter((d: any) => d.isActive !== false);
+      writeCache(cacheKey, filtered);
+      return filtered;
+    });
   }, [getDocuments]);
 
   // Gallery-specific functions

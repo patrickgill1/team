@@ -551,6 +551,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setError(null);
 
+      // Clear the in-memory query cache so a subsequent sign-in as
+      // a DIFFERENT user doesn't briefly see the previous user's
+      // players/events from the last session. Cheap; runs before
+      // any network work.
+      try {
+        (await import('../utils/queryCache')).clearCache();
+      } catch { /* non-fatal */ }
+
       // Clear Sentry user context so post-logout errors aren't
       // attributed to the signed-out user. Runs before Firebase
       // signOut so the ordering matches the localStorage clears.

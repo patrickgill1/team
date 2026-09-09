@@ -14,6 +14,7 @@ import { updateDoc } from 'firebase/firestore';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import { ConfirmProvider } from './components/common/ConfirmDialog';
+import { ToastProvider } from './components/common/ToastProvider';
 import SilentErrorBoundary from './components/common/SilentErrorBoundary';
 import OnboardingGate from './components/gates/OnboardingGate';
 // Onboarding wizard — post-signup guided setup (team, kid, schedule,
@@ -544,6 +545,7 @@ function App() {
     <AuthProvider>
       <TeamProvider>
         <ViewModeProvider>
+        <ToastProvider>
         <ConfirmProvider>
         <Router>
           <Suspense fallback={<PageSpinner />}>
@@ -1185,6 +1187,7 @@ function App() {
           </Suspense>
       </Router>
         </ConfirmProvider>
+        </ToastProvider>
         </ViewModeProvider>
       </TeamProvider>
       {splashPlaying && (

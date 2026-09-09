@@ -13,6 +13,7 @@ import {
 import { db } from '../../utils/firebase';
 import { sendPushToUsers } from '../../utils/notify';
 import { useConfirm } from '../common/ConfirmDialog';
+import { useToast } from '../common/ToastProvider';
 
 // Per-event discussion thread. Lives on the event page, NOT in the
 // Chat tab — keeps the chat inbox uncluttered while still giving
@@ -62,6 +63,7 @@ function formatRelative(d: Date): string {
 
 const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, userPhotoURL, notifyUids, eventTitle, onCountChange }) => {
   const confirm = useConfirm();
+  const toast = useToast();
   const [comments, setComments] = useState<Comment[]>([]);
   const [draft, setDraft] = useState('');
   const [posting, setPosting] = useState(false);
@@ -131,12 +133,28 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
 
   const deleteComment = async (c: Comment) => {
     if (c.authorId !== userUid) return;
-    if (!(await confirm({ body: 'Delete this comment?', destructive: true, confirmText: 'Delete' }))) return;
-    try {
-      await deleteDoc(doc(db, 'eventComments', c.id));
-    } catch (err) {
-      console.error('delete comment failed', err);
-    }
+    // 2026-09-09: swapped confirm dialog for optimistic-delete-with-
+    // undo. Removes the comment from the list immediately, shows a
+    // toast with Undo for 6s. If the user doesn't undo, the actual
+    // Firestore delete fires on toast dismiss. If they do, the row
+    // is put back and the write never happens. Same pattern Gmail
+    // uses for Archive/Trash - one tap to reverse instead of a
+    // modal that stops the world.
+    const snapshot = c;
+    setComments(prev => prev.filter(x => x.id !== c.id));
+    toast.undo('Comment deleted', {
+      onUndo: () => setComments(prev => prev.some(x => x.id === c.id) ? prev : [...prev, snapshot].sort((a, b) => (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0))),
+      commit: async () => {
+        try {
+          await deleteDoc(doc(db, 'eventComments', c.id));
+        } catch (err) {
+          console.error('delete comment failed', err);
+          setComments(prev => prev.some(x => x.id === c.id) ? prev : [...prev, snapshot]);
+          toast.error("Couldn't delete. Restored.");
+        }
+      },
+    });
+    void confirm;
   };
 
   return (

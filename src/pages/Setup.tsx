@@ -243,7 +243,7 @@ const Setup: React.FC = () => {
                   type="text"
                   value={formData.season}
                   onChange={(e) => setFormData({ ...formData, season: e.target.value })}
-                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   placeholder="e.g., 2024-25"
                   disabled={isSubmitting}
                 />

@@ -1809,7 +1809,7 @@ const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) =>
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey || true)) handleSubmit(); }}
           placeholder="Question, update, or note…"
-          className="flex-1 min-w-0 px-3 py-2 text-sm border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+          className="flex-1 min-w-0 px-3 py-2 text-sm border border-line-default/15 rounded-lg bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
         />
         <button
           type="button"
@@ -2290,7 +2290,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   value={linkUrl}
                                   onChange={e => setLinkUrl(e.target.value)}
                                   placeholder="Paste YouTube link (https://youtu.be/...)"
-                                  className="w-full px-2 py-1.5 text-xs border border-line-default/15 rounded focus:ring-2 focus:ring-brand-primary"
+                                  className="w-full px-2 py-1.5 text-xs border border-line-default/15 rounded bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 focus:ring-2 focus:ring-brand-primary"
                                   autoFocus
                                 />
                                 <input
@@ -2298,7 +2298,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   value={linkTitle}
                                   onChange={e => setLinkTitle(e.target.value)}
                                   placeholder="Optional title (e.g. 'Inside-of-foot pass technique')"
-                                  className="w-full px-2 py-1.5 text-xs border border-line-default/15 rounded focus:ring-2 focus:ring-brand-primary"
+                                  className="w-full px-2 py-1.5 text-xs border border-line-default/15 rounded bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 focus:ring-2 focus:ring-brand-primary"
                                 />
                                 <div className="flex justify-end space-x-2">
                                   <button

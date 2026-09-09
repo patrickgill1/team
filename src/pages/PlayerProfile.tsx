@@ -1539,7 +1539,7 @@ const PlayerProfile: React.FC = () => {
                   value={juggleDraft}
                   onChange={(e) => setJuggleDraft(e.target.value)}
                   autoFocus
-                  className="w-full px-3 py-3 text-2xl font-black text-center border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+                  className="w-full px-3 py-3 text-2xl font-black text-center border border-line-default/15 rounded-lg bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                   placeholder="0"
                 />
               </div>

@@ -299,7 +299,24 @@ const MedicalEditModal: React.FC<Props> = ({ player, actorUid, actorName, onClos
           </button>
         </div>
 
-        <style>{`.input-sm{padding:.5rem .75rem;border:1px solid rgb(226 232 240);border-radius:.5rem;font-size:.875rem;}.input-sm:focus{outline:none;box-shadow:0 0 0 2px rgb(103 232 249 / .6);}`}</style>
+        {/* 2026-09-09: swapped hardcoded slate-200 border + no bg/color
+            for theme-aware CSS var refs. Was invisible in dark mode
+            (white input + no readable label) and would be white-on-
+            white in light mode. Vars map to bg-surface-elevated /
+            text-ink-primary / border-line-default via the theme
+            token layer. */}
+        <style>{`
+          .input-sm {
+            padding: .5rem .75rem;
+            border: 1px solid var(--color-line-default, rgb(226 232 240));
+            border-radius: .5rem;
+            font-size: .875rem;
+            background: var(--color-surface-elevated, #fff);
+            color: var(--color-ink-primary, #0f172a);
+          }
+          .input-sm::placeholder { color: var(--color-ink-primary, #64748b); opacity: .45; }
+          .input-sm:focus { outline: none; box-shadow: 0 0 0 2px rgb(103 232 249 / .6); }
+        `}</style>
       </div>
     </div>
   );

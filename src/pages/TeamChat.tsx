@@ -3386,7 +3386,7 @@ const TeamChat: React.FC = () => {
                       value={threadSearchQuery}
                       onChange={(e) => setThreadSearchQuery(e.target.value)}
                       placeholder="Search this conversation…"
-                      className="w-full pl-9 pr-3 py-2 text-sm border border-line-default/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-line-default/10 rounded-lg bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
                     />
                   </div>
                 )}
@@ -3757,7 +3757,7 @@ const TeamChat: React.FC = () => {
                       type="text"
                       value={newThread.title}
                       onChange={(e) => setNewThread(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
+                      className="w-full border border-line-default/15 rounded-lg bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
                       placeholder="Enter thread title..."
                       style={{ fontSize: '16px' }}
                     />
@@ -3771,7 +3771,7 @@ const TeamChat: React.FC = () => {
                       value={newThread.description}
                       onChange={(e) => setNewThread(prev => ({ ...prev, description: e.target.value }))}
                       rows={3}
-                      className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
+                      className="w-full border border-line-default/15 rounded-lg bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
                       placeholder="What's this thread about?"
                       style={{ fontSize: '16px' }}
                     />
@@ -3908,7 +3908,7 @@ const TeamChat: React.FC = () => {
               placeholder="Search threads..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              className="w-full pl-10 pr-4 py-2 border border-line-default/15 rounded-lg bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:ring-2 focus:ring-brand-primary"
             />
             <svg className="w-4 h-4 text-ink-primary/40 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -4225,7 +4225,7 @@ const TeamChat: React.FC = () => {
                     type="text"
                     value={newThread.title}
                     onChange={(e) => setNewThread(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full border border-line-default/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full border border-line-default/15 rounded-lg bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     placeholder="Enter thread title..."
                   />
                 </div>
@@ -4238,7 +4238,7 @@ const TeamChat: React.FC = () => {
                     value={newThread.description}
                     onChange={(e) => setNewThread(prev => ({ ...prev, description: e.target.value }))}
                     rows={3}
-                    className="w-full border border-line-default/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full border border-line-default/15 rounded-lg bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     placeholder="What's this thread about?"
                   />
                 </div>

@@ -851,7 +851,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Half-turn receive"
-              className="w-full px-3 py-2 text-sm border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+              className="w-full px-3 py-2 text-sm border border-line-default/15 rounded-lg bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
             />
           </Field>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

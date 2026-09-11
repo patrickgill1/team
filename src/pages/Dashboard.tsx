@@ -868,9 +868,19 @@ const Dashboard: React.FC = () => {
   // the Spotlight (matches the neighboring "New for you" window and
   // avoids a hollow-card week after a bye), while the gold-hero
   // toggle keeps its stricter 7-day window.
-  const [isPotmThisWeek, setIsPotmThisWeek] = useState(false);
+  // null = query hasn't resolved yet; false = resolved and player is
+  // NOT this week's POTM; true = resolved and IS. The render site
+  // suppresses the whole hero card until this resolves so the card
+  // never flashes normal → gold. Atomic-render pattern (2026-09-11):
+  // Patrick's son won POTM and saw the normal card mount for ~200ms
+  // before the query flipped it to gold, which read as broken.
+  const [isPotmThisWeek, setIsPotmThisWeek] = useState<boolean | null>(null);
   useEffect(() => {
     if (!selectedTeamId) { setIsPotmThisWeek(false); return; }
+    // Coach view (no myPlayer) never gets the gold treatment; resolve
+    // to false immediately so the render gate doesn't wait on a query
+    // whose result we're going to ignore.
+    if (!myPlayer) { setIsPotmThisWeek(false); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -889,19 +899,20 @@ const Dashboard: React.FC = () => {
         if (cancelled) return;
         const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-        // Gold-hero toggle: 7-day window, keyed on my player (coach
-        // viewer never gets the gold treatment).
-        const won = myPlayer ? snap.docs.some(d => {
+        // Gold-hero toggle: 7-day window, keyed on my player.
+        const won = snap.docs.some(d => {
           const v = d.data() as any;
           const closed = v.closedAt?.toDate ? v.closedAt.toDate().getTime() : 0;
           if (!closed || closed < weekAgo) return false;
           const winners: any[] = Array.isArray(v.winners) ? v.winners : [];
           const winner = v.winner;
           return winners.some(w => w.playerId === myPlayer.id) || winner?.playerId === myPlayer.id;
-        }) : false;
+        });
         setIsPotmThisWeek(won);
       } catch (err) {
         console.warn('potm check failed', err);
+        // Fail open (no gold) so the card can still render.
+        if (!cancelled) setIsPotmThisWeek(false);
       }
     })();
     return () => { cancelled = true; };
@@ -1585,6 +1596,11 @@ const Dashboard: React.FC = () => {
               />
             );
           }
+          // Suppress the hero until the POTM query resolves so a
+          // freshly-crowned kid never sees the normal card mount for
+          // ~200ms and then swap to gold. Coach path resolves to false
+          // synchronously (see useEffect) so no coach ever waits here.
+          if (isPotmThisWeek === null) return null;
           return myPlayers.length === 1 ? (
             <MyPlayerCard
               player={myPlayers[0]}

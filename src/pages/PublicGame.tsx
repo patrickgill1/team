@@ -6,7 +6,7 @@ import { FullGame } from '../types';
 import { downloadFile } from '../utils/downloadFile';
 import { getStreamDownloadUrl } from '../utils/streamUpload';
 import StreamPlayer from '../components/common/StreamPlayer';
-import YouTubePosterCard from '../components/common/YouTubePosterCard';
+import YouTubeSmartEmbed from '../components/common/YouTubeSmartEmbed';
 
 const PublicGame: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -143,11 +143,11 @@ const PublicGame: React.FC = () => {
               playsInline
             />
           ) : game.youtubeId ? (
-            <YouTubePosterCard
+            <YouTubeSmartEmbed
               youtubeId={game.youtubeId}
               title={game.title}
               caption={game.opponent ? `vs ${game.opponent}` : undefined}
-              className="block relative w-full h-full rounded-lg overflow-hidden bg-black ring-1 ring-white/10 group theme-ok"
+              className="relative w-full h-full rounded-lg overflow-hidden bg-black ring-1 ring-white/10 theme-ok"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-white/60">

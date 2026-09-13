@@ -79,25 +79,7 @@ function displayName(clip: PlayerMediaType, players?: Player[]): string {
   return clip.playerName || 'Highlight';
 }
 
-const HighlightCardLite: React.FC<Props> = ({ clip, players, onOpen, fullWidth, onFeature }) => {
-  const [featuring, setFeaturing] = React.useState(false);
-  const handleFeature = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (!onFeature || featuring) return;
-    setFeaturing(true);
-    try {
-      onFeature();
-    } finally {
-      // The parent replaces the clip out from under us on success
-      // (featuredByCoach flips to true and the ghost button is no
-      // longer rendered), so leaving the busy flag on is safe. Reset
-      // after a tick anyway in case the parent write throws and the
-      // clip stays visible.
-      setTimeout(() => setFeaturing(false), 800);
-    }
-  };
-
+const HighlightCardLite: React.FC<Props> = ({ clip, players, onOpen, fullWidth, onFeature: _onFeature }) => {
   const poster = posterFor(clip);
   const name = displayName(clip, players);
   const tagged = primaryTaggedPlayer(clip, players);
@@ -145,32 +127,15 @@ const HighlightCardLite: React.FC<Props> = ({ clip, players, onOpen, fullWidth, 
         </span>
       </span>
 
-      {/* Coach-only "Feature this" ghost pill. Top-right so it clears
-          the poster's action and never overlaps the bottom label. The
-          button stops propagation so tapping it doesn't also open the
-          reel. Only renders when the parent passed onFeature, which
-          means: viewer is a coach AND this clip is coach-uploaded AND
-          it isn't already featured. */}
-      {onFeature && (
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={handleFeature}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleFeature(e as unknown as React.MouseEvent);
-            }
-          }}
-          aria-label="Feature this clip in From Your Coach"
-          className={`absolute top-1.5 right-1.5 z-10 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/55 text-cyan-200 ring-1 ring-cyan-400/40 backdrop-blur-sm hover:bg-black/75 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-400/70 cursor-pointer ${featuring ? 'opacity-60 pointer-events-none' : ''}`}
-        >
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2" />
-          </svg>
-          <span>{featuring ? 'Featuring' : 'Feature'}</span>
-        </span>
-      )}
+      {/* Feature chip removed 2026-09-13: it sat on every coach-
+          uploaded card, on every grid, and read as visual noise
+          Patrick called out ("kill the FEATURE button on every tile").
+          Coaches can still feature clips from the lightbox editor
+          (editingFeaturedByCoach toggle), which is the natural place
+          for it — you're already looking at the specific clip. The
+          onFeature prop is kept for API stability but ignored here;
+          handleFeature/featuring are no-ops until we surface it a
+          different way (long-press, kebab menu, etc). */}
 
       {/* Bottom-left label overlay. Avatar + name/secondary column. */}
       <div className="absolute inset-x-0 bottom-0 p-2.5 pt-8 bg-gradient-to-t from-black/80 via-black/50 to-transparent pointer-events-none">

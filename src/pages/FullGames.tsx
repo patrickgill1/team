@@ -6,7 +6,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { FullGame } from '../types';
 import { canManageTeamMedia, formatDate } from '../utils/helpers';
-import YouTubePosterCard from '../components/common/YouTubePosterCard';
+import YouTubeSmartEmbed from '../components/common/YouTubeSmartEmbed';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamThumbnailUrl, checkVideoLimit } from '../utils/streamUpload';
 import { canUploadFullGameFile } from '../utils/videoQuota';
@@ -498,11 +498,11 @@ const FullGames: React.FC = () => {
                   playsInline
                 />
               ) : (
-                <YouTubePosterCard
+                <YouTubeSmartEmbed
                   youtubeId={selectedGame.youtubeId}
                   title={selectedGame.title}
                   caption={selectedGame.opponent ? `vs ${selectedGame.opponent}` : undefined}
-                  className="block relative w-full h-full rounded-lg overflow-hidden bg-black ring-1 ring-white/10 group theme-ok"
+                  className="relative w-full h-full rounded-lg overflow-hidden bg-black ring-1 ring-white/10 theme-ok"
                 />
               )}
             </div>

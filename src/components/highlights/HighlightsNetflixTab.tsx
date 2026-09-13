@@ -17,6 +17,7 @@
 // there is no card-to-Reel navigation from this tab.
 
 import React, { useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Player, PlayerMedia as PlayerMediaType, Team } from '../../types';
 import { mediaBelongsToPlayer } from '../../utils/mediaAttribution';
 import HighlightHero from './HighlightHero';
@@ -24,9 +25,9 @@ import HighlightTopThreeRow from './HighlightTopThreeRow';
 import HighlightRow from './HighlightRow';
 import HighlightCardLite from './HighlightCardLite';
 import PlayerAvatarRow from './PlayerAvatarRow';
-import SortPill, { SortKey } from './SortPill';
+import { SortKey } from './SortPill';
 import NeedsCreditChip from './NeedsCreditChip';
-import GameFilterSheet, { GameFilterOption } from './GameFilterSheet';
+import { GameFilterOption } from './GameFilterSheet';
 
 interface Props {
   media: PlayerMediaType[];
@@ -353,6 +354,55 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   const visibleGrid = gridExpanded ? gridClips : gridClips.slice(0, GRID_INITIAL);
   const canExpand = gridClips.length > visibleGrid.length;
 
+  // ── Game grouping ─────────────────────────────────────────────────
+  // When we're in the default view (no player filter, no needs-credit
+  // filter, no explicit game pick), chunk the clip wall into one
+  // section per game. Rationale (2026-09-13, Patrick): a flat grid of
+  // 28+ tiles reads as overwhelming on a phone; game sections let
+  // parents scan "vs La Roca · 6 clips" then tap in. See all N → link
+  // deep-links to the game event page's own Highlights section.
+  //
+  // gameId → {opponent, date, title, clips[]}. Falls back to "Other
+  // clips" bucket for anything without a linked game (keeps them
+  // reachable instead of silently dropping).
+  const shouldGroupByGame = !creditFilter && selectedPlayerId === 'all' && selectedGameId === 'all' && sortKey === 'recent';
+  const gameGroups = useMemo(() => {
+    if (!shouldGroupByGame) return null;
+    const byId = new Map<string, GameFilterOption>();
+    for (const g of gameOptions) byId.set(g.gameId, g);
+    const groups: Array<{
+      key: string;
+      meta: GameFilterOption | null;
+      clips: PlayerMediaType[];
+    }> = [];
+    const groupIndex = new Map<string, number>();
+    for (const clip of gridClips) {
+      const gid = String((clip as any).gameId || '');
+      const key = gid && byId.has(gid) ? gid : '__other__';
+      let idx = groupIndex.get(key);
+      if (idx == null) {
+        idx = groups.length;
+        groups.push({ key, meta: byId.get(key) || null, clips: [] });
+        groupIndex.set(key, idx);
+      }
+      groups[idx].clips.push(clip);
+    }
+    // Order groups by most-recent game date; "Other" always last.
+    groups.sort((a, b) => {
+      if (a.key === '__other__') return 1;
+      if (b.key === '__other__') return -1;
+      const ad = a.meta?.date?.getTime() ?? 0;
+      const bd = b.meta?.date?.getTime() ?? 0;
+      return bd - ad;
+    });
+    return groups;
+  }, [shouldGroupByGame, gridClips, gameOptions]);
+
+  // Per-game display cap. Beyond this the group shows a "See all N →"
+  // link that navigates to the game event's own Highlights section
+  // (EventDetail.tsx renders EventHighlights on type='game' events).
+  const GAME_GROUP_CAP = 6;
+
   return (
     <div className="relative">
       {totalClips === 0 ? (
@@ -441,22 +491,18 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                   </button>
                 )}
               </div>
-              {!creditFilter && (
-                <div className="shrink-0 flex items-center gap-2 flex-wrap justify-end">
-                  {gameOptions.length > 0 && (
-                    <GameFilterSheet
-                      options={gameOptions}
-                      value={selectedGameId}
-                      onChange={handleSelectGame}
-                    />
-                  )}
-                  <SortPill value={sortKey} onChange={(k) => { setSortKey(k); setGridExpanded(false); }} />
-                </div>
-              )}
+              {/* Game filter dropdown + Sort dropdown removed 2026-09-13.
+                  Game filtering is handled by the per-game groupings
+                  below; recent is the only sort that matters on the
+                  default view. Individual game / different sort still
+                  reachable by picking a player (flat grid takes over). */}
             </div>
 
             {/* Main clip grid — sits IMMEDIATELY below the header so
-                the count you just read matches the cards you scroll into. */}
+                the count you just read matches the cards you scroll into.
+                Layout branches on shouldGroupByGame: default view
+                chunks by game (2026-09-13 mobile UX pass), any active
+                filter falls back to the flat grid. */}
             {visibleGrid.length === 0 ? (
               <div className="text-center py-14 bg-surface-elevated rounded-xl border border-line-default/10">
                 <p className="text-ink-primary font-bold">No clips match this view.</p>
@@ -468,27 +514,73 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                   Show all clips
                 </button>
               </div>
+            ) : shouldGroupByGame && gameGroups && gameGroups.length > 1 ? (
+              <div className="space-y-5">
+                {gameGroups.map(group => {
+                  const shown = group.clips.slice(0, GAME_GROUP_CAP);
+                  const overflow = group.clips.length - shown.length;
+                  const isOther = group.key === '__other__';
+                  const dateLabel = group.meta?.date
+                    ? group.meta.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                    : '';
+                  const opponentLabel = isOther
+                    ? 'Other clips'
+                    : `vs ${group.meta?.opponent || group.meta?.title || 'Opponent'}`;
+                  return (
+                    <div key={group.key}>
+                      {/* Section header: opponent · date · count. Reads
+                          at a glance on a phone and gives each cluster
+                          a mental anchor ("the La Roca game"). */}
+                      <div className="flex items-baseline justify-between gap-2 mb-2 px-0.5">
+                        <div className="min-w-0 flex items-baseline gap-1.5 flex-wrap">
+                          <span className="text-sm font-black text-ink-primary truncate">{opponentLabel}</span>
+                          {dateLabel && (
+                            <span className="text-[11px] font-bold text-ink-primary/55 tabular-nums">· {dateLabel}</span>
+                          )}
+                          <span className="text-[11px] font-bold text-ink-primary/55 tabular-nums">
+                            · {group.clips.length} {group.clips.length === 1 ? 'clip' : 'clips'}
+                          </span>
+                        </div>
+                        {!isOther && group.meta && overflow > 0 && (
+                          <Link
+                            to={`/event/${group.key}`}
+                            className="shrink-0 inline-flex items-center gap-0.5 text-[11px] font-black text-brand-primary hover:brightness-110 whitespace-nowrap"
+                            aria-label={`See all ${group.clips.length} clips from ${opponentLabel}`}
+                          >
+                            See all {group.clips.length}
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <polyline points="9 6 15 12 9 18" />
+                            </svg>
+                          </Link>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                        {shown.map(clip => (
+                          <HighlightCardLite
+                            key={clip.id}
+                            clip={clip}
+                            players={players}
+                            onOpen={() => openClip(clip.id)}
+                            fullWidth
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
               <>
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                  {visibleGrid.map(clip => {
-                    // Coach-only ghost affordance: only render onFeature
-                    // when the viewer is a coach, the parent wired the
-                    // callback in, and this specific clip is coach-
-                    // uploaded but not yet featured. Parents see nothing.
-                    const showFeatureAffordance =
-                      isUserCoach && !!onFeatureClip && coachUnfeaturedIdSet.has(clip.id);
-                    return (
-                      <HighlightCardLite
-                        key={clip.id}
-                        clip={clip}
-                        players={players}
-                        onOpen={() => openClip(clip.id)}
-                        fullWidth
-                        onFeature={showFeatureAffordance ? () => onFeatureClip!(clip.id) : undefined}
-                      />
-                    );
-                  })}
+                  {visibleGrid.map(clip => (
+                    <HighlightCardLite
+                      key={clip.id}
+                      clip={clip}
+                      players={players}
+                      onOpen={() => openClip(clip.id)}
+                      fullWidth
+                    />
+                  ))}
                 </div>
                 {canExpand && (
                   <button

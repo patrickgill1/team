@@ -6,7 +6,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useStorage } from '../hooks/useStorage';
 import { Player, PlayerMedia as PlayerMediaType, MomentType, MOMENT_TYPES } from '../types';
 import { isCoachOfTeam, isStaffOfTeam, canManageTeamMedia, formatDate } from '../utils/helpers';
-import YouTubePosterCard from '../components/common/YouTubePosterCard';
+import YouTubeSmartEmbed from '../components/common/YouTubeSmartEmbed';
 import { isXpSourceEnabled } from '../utils/xpSource';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import { autoPostVideoToWall } from '../utils/autoPostToWall';
@@ -2298,19 +2298,23 @@ const PlayerMediaPage: React.FC = () => {
             <div className="max-w-4xl w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
               {selectedMedia.type === 'video' ? (
                 (selectedMedia as any).source === 'youtube' ? (() => {
-                  // Poster card that opens externally. Avoids YouTube's
-                  // embed player entirely so "Error 153" (which the iOS
-                  // Capacitor WebView triggers even on nocookie + origin=
-                  // URLs) never appears in-app.
+                  // Try inline via SmartEmbed; falls back to poster-
+                  // card + external open if YouTube's iframe API
+                  // posts a fatal error (100/101/150/153) or never
+                  // signals ready. Restores in-app playback for the
+                  // videos that DO work in Capacitor's WebView (most)
+                  // without ever leaking YouTube's error UI on the
+                  // ones that don't.
                   const raw = String((selectedMedia as any).embedUrl || selectedMedia.url || '');
                   const idMatch = raw.match(/\/embed\/([a-zA-Z0-9_-]{11})/) || raw.match(/v=([a-zA-Z0-9_-]{11})/);
                   const youtubeId = (selectedMedia as any).youtubeId || (idMatch ? idMatch[1] : '');
                   if (!youtubeId) return null;
                   return (
                     <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))]">
-                      <YouTubePosterCard
+                      <YouTubeSmartEmbed
                         youtubeId={youtubeId}
                         title={selectedMedia.caption || selectedMedia.playerName}
+                        className="relative w-full aspect-video rounded-lg overflow-hidden bg-black theme-ok"
                       />
                     </div>
                   );

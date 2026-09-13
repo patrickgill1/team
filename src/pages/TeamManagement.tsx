@@ -46,7 +46,7 @@ const TeamManagement: React.FC = () => {
   const [teamAgeGroup, setTeamAgeGroup] = useState('');
   const [teamLeague, setTeamLeague] = useState('');
   const [teamHomeField, setTeamHomeField] = useState('');
-  const [teamFormat, setTeamFormat] = useState<'4v4' | '7v7' | '9v9' | '11v11'>('7v7');
+  const [teamFormat, setTeamFormat] = useState<'4v4' | '5v5' | '6v6' | '7v7' | '8v8' | '9v9' | '10v10' | '11v11'>('7v7');
   const [teamHomeKit, setTeamHomeKit] = useState('');
   const [teamAwayKit, setTeamAwayKit] = useState('');
   // Adult vs youth switch — drives Player Circle / Whispers /
@@ -1053,13 +1053,18 @@ const TeamManagement: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-ink-primary/85 mb-1">Match Format</label>
-                    <div className="inline-flex items-center bg-line-default/[0.08] ring-1 ring-line-default/10 rounded-full p-0.5">
-                      {(['4v4', '7v7', '9v9', '11v11'] as const).map((f) => (
+                    {/* 2026-09-13: expanded from 4/7/9/11 to include
+                        5v5, 6v6, 8v8, 10v10 (Patrick had a coach
+                        needing 5v5 and another 8v8). 8 pills won't fit
+                        on one line at 375px, so wrap into a grid-of-
+                        pills layout instead of the pill-toggle row. */}
+                    <div className="flex flex-wrap gap-1 bg-line-default/[0.08] ring-1 ring-line-default/10 rounded-xl p-1 max-w-md">
+                      {(['4v4', '5v5', '6v6', '7v7', '8v8', '9v9', '10v10', '11v11'] as const).map((f) => (
                         <button
                           type="button"
                           key={f}
                           onClick={() => { setTeamFormat(f); setTeamFormatTouched(true); }}
-                          className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition ${
+                          className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition ${
                             teamFormat === f ? 'bg-brand-primary text-white shadow-sm' : 'text-ink-primary/65 hover:text-ink-primary'
                           }`}
                         >

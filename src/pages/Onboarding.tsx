@@ -30,11 +30,17 @@ import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 //
 // Step lives in URL (?step=…) so a refresh mid-wizard keeps place.
 
+// 2026-09-13: added 5v5/6v6/8v8/10v10 for youth leagues that don't
+// fit the FIFA-standard progression. Also dedupes the stray double
+// '4v4' entry that shipped originally.
 const TEAM_FORMATS = [
-  { id: '4v4', label: '4v4' },
-  { id: '4v4', label: '4v4' },
-  { id: '7v7', label: '7v7' },
-  { id: '9v9', label: '9v9' },
+  { id: '4v4',   label: '4v4' },
+  { id: '5v5',   label: '5v5' },
+  { id: '6v6',   label: '6v6' },
+  { id: '7v7',   label: '7v7' },
+  { id: '8v8',   label: '8v8' },
+  { id: '9v9',   label: '9v9' },
+  { id: '10v10', label: '10v10' },
   { id: '11v11', label: '11v11' },
 ];
 

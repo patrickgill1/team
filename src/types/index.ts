@@ -2101,7 +2101,12 @@ export interface Photo {
   createdAt: Date;
 }
 
-export type GameFormat = '4v4' | '7v7' | '9v9' | '11v11';
+// 2026-09-13: added 5v5/6v6/8v8/10v10 for youth leagues that don't fit
+// the FIFA-standard progression (Patrick had a coach needing 5v5 and
+// another needing 8v8). Keeping string-literal union rather than a
+// {sides:number} discriminated variant so existing FormationView slot
+// tables + all callers stay type-safe without a runtime switch.
+export type GameFormat = '4v4' | '5v5' | '6v6' | '7v7' | '8v8' | '9v9' | '10v10' | '11v11';
 
 // ── League MVP (2026-07-11) ──────────────────────────────────────
 // Represents a round-robin competition among 2-24 teams. Fixtures
@@ -3233,7 +3238,12 @@ export interface ParentWhisper {
  *  never wired to stats, XP, or badges (that's the whole point of
  *  the feature). Coaches opt in per upload; parents can view but
  *  not set. */
-export type MomentType = 'goal' | 'assist' | 'big_play';
+// 2026-09-13: expanded from goal/assist/big_play to full category set
+// so coaches can post per-game highlights (defensive plays, shots,
+// skill moments) that filter cleanly on the game detail view. Legacy
+// 'big_play' is retained so existing clip data continues to render;
+// new writes come from the expanded picker below.
+export type MomentType = 'goal' | 'assist' | 'save' | 'defense' | 'shot' | 'skill' | 'big_play';
 
 export interface MomentTypeMeta {
   key: MomentType;
@@ -3243,11 +3253,18 @@ export interface MomentTypeMeta {
 }
 
 /** Warm, soccer-native labels used in the upload picker + overlays.
- *  Icons are rendered inline as monoline SVGs at the call sites. */
+ *  Icons are rendered inline as monoline SVGs at the call sites.
+ *  Order = picker order — goal/assist first (they're also stat-linked),
+ *  then the highlight-only categories. 'big_play' is intentionally
+ *  hidden from the picker (kept in the type for back-compat rendering
+ *  of pre-2026-09-13 clips). */
 export const MOMENT_TYPES: readonly MomentTypeMeta[] = [
-  { key: 'goal',     label: 'Goal',     short: 'Goal',     hint: 'Back of the net.' },
-  { key: 'assist',   label: 'Assist',   short: 'Assist',   hint: 'The pass that made it.' },
-  { key: 'big_play', label: 'Big play', short: 'Big play', hint: 'Save, tackle, or spark.' },
+  { key: 'goal',    label: 'Goal',    short: 'Goal',    hint: 'Back of the net.' },
+  { key: 'assist',  label: 'Assist',  short: 'Assist',  hint: 'The pass that made it.' },
+  { key: 'save',    label: 'Save',    short: 'Save',    hint: 'The stop that mattered.' },
+  { key: 'defense', label: 'Defense', short: 'Defense', hint: 'Tackle, block, or wall-up.' },
+  { key: 'shot',    label: 'Shot',    short: 'Shot',    hint: 'A chance worth remembering.' },
+  { key: 'skill',   label: 'Skill',   short: 'Skill',   hint: 'A moment of magic.' },
 ] as const;
 
 export interface PlayerMedia {

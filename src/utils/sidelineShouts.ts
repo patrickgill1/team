@@ -204,6 +204,10 @@ function momentBodyForShout(kind: MomentType, playerName?: string): string {
   switch (kind) {
     case 'goal':     return `${name} put one in the net.`;
     case 'assist':   return `${name} set it up.`;
+    case 'save':     return `${name} came up huge in goal.`;
+    case 'defense':  return `${name} shut it down at the back.`;
+    case 'shot':     return `${name} took their chance.`;
+    case 'skill':    return `${name} pulled off something special.`;
     case 'big_play': return `${name} came up big.`;
     default:         return `${name} had a moment.`;
   }

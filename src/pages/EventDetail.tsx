@@ -10,6 +10,8 @@ import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 import EventForm from '../components/calendar/EventForm';
 import CarpoolBoard, { CarpoolPost } from '../components/calendar/CarpoolBoard';
 import EventDiscussion from '../components/calendar/EventDiscussion';
+import EventHighlights from '../components/calendar/EventHighlights';
+import { canManageTeamMedia } from '../utils/helpers';
 import SnackAssignment from '../components/calendar/SnackAssignment';
 import { mapsUrl, osmEmbedUrl } from '../utils/maps';
 import { getShareOrigin } from '../utils/origin';
@@ -1938,6 +1940,18 @@ const EventDetail: React.FC = () => {
           </div>
           <p className="text-sm leading-relaxed text-ink-primary/85 whitespace-pre-wrap">{event.description}</p>
         </section>
+      )}
+
+      {/* HIGHLIGHTS — game events only. Lists clips linked to this
+          game grouped by momentType (goal / assist / save / defense /
+          shot / skill). Silent for parents when empty, coach empty
+          state prompts them to upload. */}
+      {event.type === 'game' && (
+        <EventHighlights
+          eventId={event.id}
+          teamId={event.teamId}
+          canManageMedia={canManageTeamMedia(userData, (teams || []).find((t: any) => t.id === event.teamId) || null)}
+        />
       )}
 
       {/* DISCUSSION — collapsed by default. The disclosure row is

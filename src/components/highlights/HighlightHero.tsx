@@ -22,6 +22,10 @@ interface Props {
 function momentLabel(kind?: string): string | null {
   if (kind === 'goal') return 'Goal';
   if (kind === 'assist') return 'Assist';
+  if (kind === 'save') return 'Save';
+  if (kind === 'defense') return 'Defense';
+  if (kind === 'shot') return 'Shot';
+  if (kind === 'skill') return 'Skill';
   if (kind === 'big_play') return 'Big play';
   return null;
 }

@@ -27,17 +27,48 @@ const DEFAULTS: Record<GameFormat, { x: number; y: number }[]> = {
     // (GK + back + 2 mids). Coaches who play 4 outfielders without a
     // keeper can drag the GK forward — long-press to reposition.
   ],
+  '5v5': [
+    // 1-2-1-1: GK + 1 back + 2 wide mids + 1 forward. Common indoor
+    // / futsal spread for micro-sided youth.
+    { x: 50, y: 88 }, // GK
+    { x: 50, y: 70 }, // 1 back
+    { x: 25, y: 50 }, { x: 75, y: 50 }, // 2 wide mids
+    { x: 50, y: 28 }, // forward
+  ],
+  '6v6': [
+    // 1-2-2-1: GK + 2 backs + 2 mids + 1 forward.
+    { x: 50, y: 88 }, // GK
+    { x: 30, y: 72 }, { x: 70, y: 72 }, // 2 backs
+    { x: 30, y: 48 }, { x: 70, y: 48 }, // 2 mids
+    { x: 50, y: 25 }, // forward
+  ],
   '7v7': [
     { x: 50, y: 88 }, // GK
     { x: 28, y: 70 }, { x: 72, y: 70 }, // 2 backs
     { x: 22, y: 50 }, { x: 50, y: 50 }, { x: 78, y: 50 }, // 3 mids
     { x: 50, y: 25 }, // forward
   ],
+  '8v8': [
+    // 1-3-3-1: GK + 3 backs + 3 mids + 1 forward. Popular US Soccer
+    // 8v8 template for the U11/U12 transitional bracket.
+    { x: 50, y: 90 }, // GK
+    { x: 22, y: 72 }, { x: 50, y: 72 }, { x: 78, y: 72 }, // 3 backs
+    { x: 25, y: 50 }, { x: 50, y: 50 }, { x: 75, y: 50 }, // 3 mids
+    { x: 50, y: 22 }, // forward
+  ],
   '9v9': [
     { x: 50, y: 90 }, // GK
     { x: 20, y: 73 }, { x: 50, y: 73 }, { x: 80, y: 73 }, // 3 backs
     { x: 25, y: 50 }, { x: 50, y: 50 }, { x: 75, y: 50 }, // 3 mids
     { x: 35, y: 22 }, { x: 65, y: 22 }, // 2 forwards
+  ],
+  '10v10': [
+    // 1-3-3-3: GK + 3 backs + 3 mids + 3 forwards. Middle-ground
+    // between 9v9 and 11v11 (some leagues use for U13).
+    { x: 50, y: 91 }, // GK
+    { x: 22, y: 74 }, { x: 50, y: 74 }, { x: 78, y: 74 }, // 3 backs
+    { x: 22, y: 51 }, { x: 50, y: 51 }, { x: 78, y: 51 }, // 3 mids
+    { x: 22, y: 24 }, { x: 50, y: 24 }, { x: 78, y: 24 }, // 3 forwards
   ],
   '11v11': [
     { x: 50, y: 92 }, // GK
@@ -48,10 +79,14 @@ const DEFAULTS: Record<GameFormat, { x: number; y: number }[]> = {
 };
 
 const FIELD_RATIO: Record<GameFormat, string> = {
-  '4v4': '4 / 5',   // nearly square — youth mini-pitch
-  '7v7': '5 / 7',   // shorter, narrower
-  '9v9': '5 / 7.5',
-  '11v11': '2 / 3', // standard
+  '4v4':  '4 / 5',   // nearly square — youth mini-pitch
+  '5v5':  '4 / 5.5',
+  '6v6':  '5 / 6.5',
+  '7v7':  '5 / 7',   // shorter, narrower
+  '8v8':  '5 / 7.25',
+  '9v9':  '5 / 7.5',
+  '10v10':'2 / 3.2',
+  '11v11':'2 / 3',   // standard
 };
 
 /**

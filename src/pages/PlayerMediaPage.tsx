@@ -33,7 +33,7 @@ const ITEMS_PER_PAGE = 20;
 
 /** Monoline SVG icons for each momentType. 2px stroke, currentColor —
  *  matches the existing icon aesthetic throughout the upload modal. */
-const MomentIcon: React.FC<{ kind: 'goal' | 'assist' | 'big_play'; className?: string }> = ({ kind, className = 'w-5 h-5' }) => {
+const MomentIcon: React.FC<{ kind: MomentType; className?: string }> = ({ kind, className = 'w-5 h-5' }) => {
   const stroke = { strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   if (kind === 'goal') {
     // Goal-mouth silhouette: crossbar + posts + a hint of net.
@@ -57,7 +57,43 @@ const MomentIcon: React.FC<{ kind: 'goal' | 'assist' | 'big_play'; className?: s
       </svg>
     );
   }
-  // big_play — lightning bolt.
+  if (kind === 'save') {
+    // Keeper glove — palm + fingers.
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke} aria-hidden>
+        <path d="M7 20V10a2 2 0 0 1 4 0v2" />
+        <path d="M11 10V6a2 2 0 0 1 4 0v6" />
+        <path d="M15 8a2 2 0 0 1 4 0v8a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4v-3" />
+      </svg>
+    );
+  }
+  if (kind === 'defense') {
+    // Shield — the classic defensive symbol.
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke} aria-hidden>
+        <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" />
+      </svg>
+    );
+  }
+  if (kind === 'shot') {
+    // Target — concentric circles + center dot.
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke} aria-hidden>
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="5" />
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (kind === 'skill') {
+    // Star — the moment of magic.
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke} aria-hidden>
+        <path d="M12 3l2.6 5.3 5.9.9-4.3 4.2 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.2 5.9-.9z" />
+      </svg>
+    );
+  }
+  // big_play — legacy, lightning bolt. Renders for pre-2026-09-13 clips.
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke} aria-hidden>
       <path d="M13 3 L 4 14 L 11 14 L 10 21 L 19 10 L 13 10 Z" />
@@ -66,9 +102,13 @@ const MomentIcon: React.FC<{ kind: 'goal' | 'assist' | 'big_play'; className?: s
 };
 
 /** Warm short label for a momentType — used on the pill overlay. */
-function momentLabel(kind: 'goal' | 'assist' | 'big_play'): string {
+function momentLabel(kind: MomentType): string {
   if (kind === 'goal') return 'Goal';
   if (kind === 'assist') return 'Assist';
+  if (kind === 'save') return 'Save';
+  if (kind === 'defense') return 'Defense';
+  if (kind === 'shot') return 'Shot';
+  if (kind === 'skill') return 'Skill';
   return 'Big play';
 }
 

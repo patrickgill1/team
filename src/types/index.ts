@@ -3488,6 +3488,13 @@ export interface FullGame {
   title: string;
   opponent?: string;
   gameDate: Date;
+  /** Optional link to a calendar event (events/{id}, type='game').
+   *  Set via the "Link to game event" dropdown on the Full Games
+   *  form. Preferred join for the Highlights tab's per-game section
+   *  — supersedes the opponent+date fuzzy match when present. Legacy
+   *  full_games without this field still work via the fallback.
+   *  2026-09-13. */
+  eventId?: string | null;
   // Either a YouTube link OR a self-hosted video on R2.
   youtubeUrl?: string;
   youtubeId?: string;

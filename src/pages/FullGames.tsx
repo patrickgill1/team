@@ -62,6 +62,13 @@ const FullGames: React.FC = () => {
   const [formResult, setFormResult] = useState('');
   const [formNotes, setFormNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  // Link to a calendar event (optional). Populated by picking one from
+  // the "Link to game event" dropdown at the top of the form —
+  // auto-fills opponent + date and stamps eventId on the doc so the
+  // Highlights tab's per-game section can join full_games ↔ events
+  // exactly instead of falling back to the opponent+date fuzzy match.
+  const [formEventId, setFormEventId] = useState('');
+  const [gameEvents, setGameEvents] = useState<Array<{ id: string; label: string; opponent: string; date: Date }>>([]);
 
   // Source toggle: upload a file to our site, or paste a YouTube link.
   // Free / addon tier defaults to youtube — the upload option is
@@ -106,6 +113,58 @@ const FullGames: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTeamId]);
 
+  // Load recent game events for the "Link to game event" dropdown.
+  // Scoped 90 days back + 14 days forward so the picker is scannable
+  // (most full-game uploads happen within a couple days of the match).
+  useEffect(() => {
+    if (!selectedTeamId) { setGameEvents([]); return; }
+    (async () => {
+      try {
+        const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const snap = await getDocs(query(
+          collection(db, 'events'),
+          where('teamId', '==', selectedTeamId),
+          where('type', '==', 'game'),
+          orderBy('date', 'desc'),
+        ));
+        const cutoffPast = Date.now() - 90 * 24 * 3600 * 1000;
+        const cutoffFuture = Date.now() + 14 * 24 * 3600 * 1000;
+        const rows = snap.docs
+          .map(d => {
+            const e: any = { id: d.id, ...d.data() };
+            const date: Date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
+            const opponent = String(e.opponent || '').trim();
+            return { id: e.id, opponent, date };
+          })
+          .filter(e => !isNaN(e.date.getTime()) && e.date.getTime() >= cutoffPast && e.date.getTime() <= cutoffFuture)
+          .map(e => ({
+            ...e,
+            label: `${e.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} — vs ${e.opponent || 'Opponent'}`,
+          }));
+        setGameEvents(rows);
+      } catch (err) {
+        console.warn('Could not load game events for full-game linker', err);
+        setGameEvents([]);
+      }
+    })();
+  }, [selectedTeamId]);
+
+  // Picking a calendar event auto-fills opponent + date on the form
+  // so the coach doesn't have to re-type what the schedule already
+  // knows. Stamps eventId on the doc via handleSubmit's payload.
+  const handlePickEvent = (id: string) => {
+    setFormEventId(id);
+    if (!id) return;
+    const ev = gameEvents.find(g => g.id === id);
+    if (!ev) return;
+    if (ev.opponent) setFormOpponent(ev.opponent);
+    setFormDate(ev.date.toISOString().slice(0, 10));
+    // Only overwrite the title when it's blank — respect the coach's
+    // typing so a "Rivalry Game" custom title survives the pick.
+    if (!formTitle.trim()) setFormTitle(`vs ${ev.opponent || 'Opponent'}`);
+  };
+
   // Deep-link support: /full-games?game=<id> auto-opens that game
   // in the viewer once the list has loaded. Lets the Highlights tab's
   // per-game "Full Game" tile land the user directly on the video
@@ -135,6 +194,7 @@ const FullGames: React.FC = () => {
     setFormResult('');
     setFormNotes('');
     setEditingId(null);
+    setFormEventId('');
     // Reset defaults to the tier's default source. Pro teams pick
     // upload naturally; free/addon default to youtube.
     setFormSource(canUploadFiles ? 'upload' : 'youtube');
@@ -154,6 +214,7 @@ const FullGames: React.FC = () => {
 
   const openEditForm = (game: FullGame) => {
     setEditingId(game.id);
+    setFormEventId(((game as any).eventId as string | undefined) || '');
     setFormTitle(game.title);
     setFormOpponent(game.opponent || '');
     const d = game.gameDate instanceof Date ? game.gameDate : (game.gameDate as any)?.toDate?.() || new Date();
@@ -189,6 +250,10 @@ const FullGames: React.FC = () => {
       notes: formNotes.trim() || undefined,
       addedBy: userData.uid,
       addedByName: userData.name || userData.email || 'Coach',
+      // Explicit calendar-event join — supersedes the opponent+date
+      // fuzzy match in HighlightsNetflixTab. Optional (some coaches
+      // upload before the event exists), null-clears on unlink.
+      ...(formEventId ? { eventId: formEventId } : { eventId: null } as any),
     };
 
     if (formSource === 'youtube') {
@@ -487,13 +552,20 @@ const FullGames: React.FC = () => {
       {/* Watch modal */}
       {selectedGame && (
         <div
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 theme-ok"
           onClick={() => setSelectedGame(null)}
         >
+          {/* Close button. 2026-09-13 fix: on iOS the top-4 placement
+              lands the X UNDER the notch / status bar overlay, making
+              it unclickable. Combine with env(safe-area-inset-top) so
+              it always sits below the system chrome. Also bumped
+              z-index to 60 in case the swap-fallback YouTube poster
+              card (z-50 iframes) draws over it. */}
           <button
             type="button"
-            onClick={() => setSelectedGame(null)}
-            className="absolute top-4 right-4 text-white/80 hover:text-white text-3xl w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 z-10"
+            onClick={(e) => { e.stopPropagation(); setSelectedGame(null); }}
+            className="fixed right-4 text-white/90 hover:text-white text-3xl w-10 h-10 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 z-[60] theme-ok"
+            style={{ top: 'max(1rem, calc(env(safe-area-inset-top) + 0.5rem))' }}
             aria-label="Close"
           >
             ×
@@ -598,6 +670,26 @@ const FullGames: React.FC = () => {
               </div>
 
               <div className="space-y-4">
+                {gameEvents.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-ink-primary/85 mb-1">
+                      Link to game event <span className="text-ink-primary/50 font-normal">(optional)</span>
+                    </label>
+                    <select
+                      value={formEventId}
+                      onChange={e => handlePickEvent(e.target.value)}
+                      className="w-full px-3 py-2 bg-surface-input text-ink-primary border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                    >
+                      <option value="">Not linked to a specific event</option>
+                      {gameEvents.map(ev => (
+                        <option key={ev.id} value={ev.id}>{ev.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-ink-primary/50 mt-1 leading-snug">
+                      Auto-fills opponent and date, and connects this recording to that game on the Highlights tab.
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-ink-primary/85 mb-1">Title *</label>
                   <input

@@ -419,17 +419,30 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   const fullGameForEvent = React.useMemo(() => {
     const list = fullGames || [];
     if (list.length === 0) return () => null;
+    // Precompute the exact eventId → fullGame map. Preferred join when
+    // the coach picked "Link to game event" on the Full Games form
+    // (writes eventId on the doc). Fuzzy fallback below covers legacy
+    // full_games written before the eventId field existed.
+    const byEventId = new Map<string, any>();
+    for (const fg of list) {
+      const eid = String((fg as any).eventId || '');
+      if (eid) byEventId.set(eid, fg);
+    }
     return (ev: GameFilterOption | null): any | null => {
       if (!ev) return null;
+      const exact = byEventId.get(ev.gameId);
+      if (exact) return exact;
       const opp = String(ev.opponent || '').trim().toLowerCase();
       const eventMs = ev.date.getTime();
       const DAY_MS = 24 * 60 * 60 * 1000;
       for (const fg of list) {
+        // Skip anything explicitly linked to a DIFFERENT event —
+        // avoids fuzzy-hijacking a coach's explicit pick.
+        if ((fg as any).eventId && (fg as any).eventId !== ev.gameId) continue;
         const fgOpp = String(fg.opponent || '').trim().toLowerCase();
         const fgDate: Date = fg.gameDate instanceof Date ? fg.gameDate : new Date(fg.gameDate);
         if (isNaN(fgDate.getTime())) continue;
         if (!opp && !fgOpp) {
-          // Both blank — match on date only (rare edge case).
           if (Math.abs(fgDate.getTime() - eventMs) < DAY_MS) return fg;
           continue;
         }

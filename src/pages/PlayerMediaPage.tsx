@@ -5,7 +5,8 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { useStorage } from '../hooks/useStorage';
 import { Player, PlayerMedia as PlayerMediaType, MomentType, MOMENT_TYPES } from '../types';
-import { isCoachOfTeam, isStaffOfTeam, canManageTeamMedia, formatDate, ensureYoutubeSafeParams } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam, canManageTeamMedia, formatDate } from '../utils/helpers';
+import YouTubePosterCard from '../components/common/YouTubePosterCard';
 import { isXpSourceEnabled } from '../utils/xpSource';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import { autoPostVideoToWall } from '../utils/autoPostToWall';
@@ -2254,47 +2255,36 @@ const PlayerMediaPage: React.FC = () => {
             </button>
             <div className="max-w-4xl w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
               {selectedMedia.type === 'video' ? (
-                ((selectedMedia as any).source === 'youtube' || (selectedMedia as any).source === 'trace') ? (
-                  // External embed (YouTube / Trace) — drop their iframe
-                  // straight into the lightbox. Both services handle their
-                  // own player chrome + autoplay quirks.
-                  <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))]">
-                    <div className="w-full aspect-video rounded-lg overflow-hidden bg-black theme-ok">
-                      <iframe
-                        key={selectedMedia.id}
-                        src={ensureYoutubeSafeParams((selectedMedia as any).embedUrl || selectedMedia.url)}
+                (selectedMedia as any).source === 'youtube' ? (() => {
+                  // Poster card that opens externally. Avoids YouTube's
+                  // embed player entirely so "Error 153" (which the iOS
+                  // Capacitor WebView triggers even on nocookie + origin=
+                  // URLs) never appears in-app.
+                  const raw = String((selectedMedia as any).embedUrl || selectedMedia.url || '');
+                  const idMatch = raw.match(/\/embed\/([a-zA-Z0-9_-]{11})/) || raw.match(/v=([a-zA-Z0-9_-]{11})/);
+                  const youtubeId = (selectedMedia as any).youtubeId || (idMatch ? idMatch[1] : '');
+                  if (!youtubeId) return null;
+                  return (
+                    <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))]">
+                      <YouTubePosterCard
+                        youtubeId={youtubeId}
                         title={selectedMedia.caption || selectedMedia.playerName}
-                        loading="lazy"
-                        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
-                        allowFullScreen
-                        className="w-full h-full block border-0"
                       />
                     </div>
-                    {/* Fallback exit — the iframe throws Error 153 for
-                        certain videos even after the nocookie/origin
-                        normalization. Always-visible "Open on YouTube"
-                        link below the player so a broken embed is
-                        never a dead end. */}
-                    {(selectedMedia as any).source === 'youtube' && ((selectedMedia as any).embedUrl || selectedMedia.url) && (() => {
-                      const raw = String((selectedMedia as any).embedUrl || selectedMedia.url);
-                      const idMatch = raw.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
-                      const youtubeWatch = idMatch ? `https://www.youtube.com/watch?v=${idMatch[1]}` : raw;
-                      return (
-                        <div className="mt-2 flex justify-end">
-                          <a
-                            href={youtubeWatch}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white/85 bg-black/60 hover:bg-black/80 px-2.5 py-1 rounded-full ring-1 ring-white/20 backdrop-blur-sm theme-ok"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-                              <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8ZM9.6 15.6V8.4L15.8 12l-6.2 3.6Z"/>
-                            </svg>
-                            Open on YouTube
-                          </a>
-                        </div>
-                      );
-                    })()}
+                  );
+                })() : (selectedMedia as any).source === 'trace' ? (
+                  // Trace iframe stays — Trace's player works in the
+                  // WebView and their own iframe handles autoplay/chrome.
+                  <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))] aspect-video rounded-lg overflow-hidden bg-black theme-ok">
+                    <iframe
+                      key={selectedMedia.id}
+                      src={(selectedMedia as any).embedUrl || selectedMedia.url}
+                      title={selectedMedia.caption || selectedMedia.playerName}
+                      loading="lazy"
+                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
+                      allowFullScreen
+                      className="w-full h-full block border-0"
+                    />
                   </div>
                 ) : selectedMedia.streamUid ? (
                   <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))] aspect-video rounded-lg overflow-hidden bg-black">

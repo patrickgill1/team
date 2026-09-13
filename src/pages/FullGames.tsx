@@ -5,7 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { FullGame } from '../types';
-import { canManageTeamMedia, formatDate, ensureYoutubeSafeParams } from '../utils/helpers';
+import { canManageTeamMedia, formatDate } from '../utils/helpers';
+import YouTubePosterCard from '../components/common/YouTubePosterCard';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamThumbnailUrl, checkVideoLimit } from '../utils/streamUpload';
 import { canUploadFullGameFile } from '../utils/videoQuota';
@@ -497,30 +498,12 @@ const FullGames: React.FC = () => {
                   playsInline
                 />
               ) : (
-                <iframe
-                  src={ensureYoutubeSafeParams(`https://www.youtube.com/embed/${selectedGame.youtubeId}?autoplay=1`)}
+                <YouTubePosterCard
+                  youtubeId={selectedGame.youtubeId}
                   title={selectedGame.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  className="w-full h-full"
+                  caption={selectedGame.opponent ? `vs ${selectedGame.opponent}` : undefined}
+                  className="block relative w-full h-full rounded-lg overflow-hidden bg-black ring-1 ring-white/10 group theme-ok"
                 />
-              )}
-              {/* Fallback exit for the "YouTube error 153" case where
-                  the iframe player refuses to play the video in-app
-                  (autoplay+webview handoff, region flakiness, etc).
-                  Always visible so a broken embed is never a dead end. */}
-              {selectedGame.youtubeId && (
-                <a
-                  href={`https://www.youtube.com/watch?v=${selectedGame.youtubeId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-white/70 hover:text-white underline underline-offset-2"
-                >
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8ZM9.6 15.6V8.4L15.8 12l-6.2 3.6Z"/>
-                  </svg>
-                  Open on YouTube
-                </a>
               )}
             </div>
             <div className="mt-3 text-white">

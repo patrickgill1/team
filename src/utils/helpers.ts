@@ -273,12 +273,18 @@ export const isClubAdmin = (userData: any): boolean => {
  *  avoid the "why is this button greyed out" support question. */
 export const canManageTeamMedia = (
   userData: { uid?: string; role?: string; email?: string; isClubAdmin?: boolean } | null | undefined,
-  team: { mediaUploaders?: string[] } | null | undefined,
+  team: { mediaUploaders?: string[]; coachIds?: string[]; managerIds?: string[] } | null | undefined,
 ): boolean => {
   if (!userData) return false;
   if (isOwner(userData)) return true;
   if (isClubAdmin(userData)) return true;
-  if (userData.role && isTeamStaff(userData.role)) return true;
+  // 2026-09-13: was `isTeamStaff(userData.role)` — silently rejected
+  // coaches whose GLOBAL user.role is 'parent' (most coaches are
+  // parents too and signed up as parents first). Symptom: Pride
+  // coach couldn't post to Full Games, Photos, Gallery, or Player
+  // Media. Now checks the per-team roster arrays directly, which is
+  // the authoritative gate that mirrors the Firestore rules.
+  if (isStaffOfTeam(userData, team)) return true;
   const uid = userData.uid;
   if (uid && Array.isArray(team?.mediaUploaders) && team!.mediaUploaders!.includes(uid)) return true;
   return false;

@@ -514,7 +514,7 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                   Show all clips
                 </button>
               </div>
-            ) : shouldGroupByGame && gameGroups && gameGroups.length > 1 ? (
+            ) : shouldGroupByGame && gameGroups && gameGroups.some(g => g.key !== '__other__') ? (
               <div className="space-y-5">
                 {gameGroups.map(group => {
                   const shown = group.clips.slice(0, GAME_GROUP_CAP);

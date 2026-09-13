@@ -17,7 +17,6 @@
 // window message channel.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ensureYoutubeSafeParams } from '../../utils/helpers';
 import YouTubePosterCard from './YouTubePosterCard';
 
 interface Props {
@@ -45,8 +44,9 @@ const FATAL_ERRORS = new Set([2, 5, 100, 101, 150, 153]);
 
 // If the iframe never sends its "onReady" message within this window,
 // treat it as broken and fall back. Handles the Capacitor case where
-// the iframe loads a page that hangs on YouTube's origin check.
-const READY_TIMEOUT_MS = 5000;
+// the iframe loads a page that hangs on YouTube's origin check. 8s
+// accommodates the extra hop through the api.goalkickr.com proxy.
+const READY_TIMEOUT_MS = 8000;
 
 const DEFAULT_ALLOW = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen';
 
@@ -63,8 +63,16 @@ const YouTubeSmartEmbed: React.FC<Props> = ({
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const embedSrc = useMemo(() => {
-    const base = `https://www.youtube.com/embed/${youtubeId}?${autoplay ? 'autoplay=1&' : ''}enablejsapi=1`;
-    return ensureYoutubeSafeParams(base);
+    // Route through the worker proxy at api.goalkickr.com. The proxy
+    // returns an HTML page containing a youtube-nocookie iframe, so
+    // YouTube's origin check sees a real https origin instead of the
+    // app's capacitor://localhost (which triggers Error 153). See
+    // worker/src/ytProxy.ts.
+    const params = new URLSearchParams();
+    if (autoplay) params.set('autoplay', '1');
+    params.set('playsinline', '1');
+    const qs = params.toString();
+    return `https://api.goalkickr.com/yt/${youtubeId}${qs ? `?${qs}` : ''}`;
   }, [youtubeId, autoplay]);
 
   useEffect(() => {
@@ -77,7 +85,12 @@ const YouTubeSmartEmbed: React.FC<Props> = ({
     const onMessage = (e: MessageEvent) => {
       try {
         const origin = e.origin || '';
-        if (!origin.includes('youtube.com') && !origin.includes('youtube-nocookie.com')) return;
+        // Accept messages from YouTube directly OR relayed from our
+        // api.goalkickr.com proxy (which forwards YouTube's iframe
+        // API messages up to us — see worker/src/ytProxy.ts).
+        const isYt = origin.includes('youtube.com') || origin.includes('youtube-nocookie.com');
+        const isProxy = origin.includes('api.goalkickr.com');
+        if (!isYt && !isProxy) return;
         let data: any = e.data;
         if (typeof data === 'string') {
           try { data = JSON.parse(data); } catch { return; }

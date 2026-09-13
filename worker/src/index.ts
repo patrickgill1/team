@@ -243,6 +243,22 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       return json({ ok: true, from: env.FROM_EMAIL }, 200, cors);
     }
 
+    // GET /yt/:videoId — YouTube proxy. Returns an HTML page with a
+    // youtube-nocookie iframe embedded. Purpose: give the iframe a
+    // real https origin (api.goalkickr.com) instead of the app's
+    // capacitor://localhost origin that YouTube rejects with Error 153
+    // on some videos. See src/components/common/YouTubeSmartEmbed.tsx
+    // for the caller side. Anonymous — video IDs are public by nature.
+    if (url.pathname.startsWith('/yt/') && req.method === 'GET') {
+      const { handleYouTubeProxy } = await import('./ytProxy');
+      const res = await handleYouTubeProxy(req, env);
+      const headers = new Headers(res.headers);
+      // Proxy page doesn't need CORS itself (it's iframed, not fetched),
+      // but stamp for consistency with other public routes.
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
     // GET /widget/snapshot is anonymous — the iOS widget extension
     // can't run Firebase Auth. Gated by a long-lived widgetToken on
     // the user doc that the user pastes into the widget config.

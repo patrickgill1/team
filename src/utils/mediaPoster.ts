@@ -9,17 +9,18 @@ import { streamThumbnailUrl } from './streamUpload';
 
 export function posterFor(clip: PlayerMediaType): string | undefined {
   if (clip.streamUid) {
-    // Default to 3s when the coach hasn't picked a specific frame.
-    // Reason: most highlight videos have a 1-3s branded intro card
-    // (from the coach's highlight-editor template — "GOAL / SCORER: X"
-    // title screen). Pulling frame 0 makes every thumbnail identical
-    // and the grid reads as a wall of the same branding instead of a
-    // board of unique moments. 3s lands on actual gameplay for the
-    // typical template. Coach can override via the lightbox picker.
-    // Patrick 2026-09-13.
+    // Default to 5s when the coach hasn't picked a specific frame.
+    // Reason: most highlight videos have a branded intro card (from
+    // the coach's highlight-editor template — "GOAL / SCORER: X"
+    // title screen) that lasts 3-6s. Pulling frame 0 makes every
+    // thumbnail identical and the grid reads as a wall of the same
+    // branding. 5s lands on actual gameplay for the typical template.
+    // Coach can override via the lightbox picker. Bumped from 3s to
+    // 5s 2026-09-13 after Patrick reported the grid still looked the
+    // same at 3s — his editor's intro is longer.
     const time = clip.posterTimeSeconds != null
       ? `${clip.posterTimeSeconds}s`
-      : '3s';
+      : '5s';
     return streamThumbnailUrl(clip.streamUid, {
       height: 1080,
       time,

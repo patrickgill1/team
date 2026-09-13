@@ -107,6 +107,22 @@ export interface StreamUploadContext {
   feature?: 'gametape';
 }
 
+// Cloudflare Stream's single-POST direct upload caps at 200 MB. Above
+// that CF rejects with "Upload too large" and the client sees a
+// generic "Stream upload failed" — which is exactly what Patrick hit
+// on a 330 MB clip. TUS resumable uploads use the SAME direct-upload
+// URL but PATCH in chunks with Upload-Offset headers, so we can go up
+// to CF's 30 GB TUS cap AND survive cellular blips mid-upload.
+//
+// Threshold set well below the 200 MB single-POST cap so we don't
+// have to reason about "was this exactly at the limit" edge cases;
+// 100 MB gives us headroom for CF's multipart overhead.
+const TUS_THRESHOLD_BYTES = 100 * 1024 * 1024; // 100 MB
+// Chunk size used by tus-js-client. 50 MB is a good balance between
+// upload-progress granularity and per-request overhead on flaky
+// cellular; small enough to fit in WebView memory even on iPhone SE.
+const TUS_CHUNK_SIZE = 50 * 1024 * 1024;
+
 export async function uploadToStream(
   file: File,
   ctx: StreamUploadContext = {},
@@ -151,8 +167,31 @@ export async function uploadToStream(
   const { uploadURL, uid } = await presignRes.json();
   if (!uploadURL || !uid) throw new Error('Stream upload URL response missing fields');
 
-  // 2. Upload the file directly to Cloudflare Stream as multipart/form-data
-  //    with progress events via XHR (fetch can't report upload progress).
+  // 2. Upload. Small files ride the fast single-POST path (one round
+  //    trip). Anything ≥ 100 MB uses TUS resumable chunks — required
+  //    for files > 200 MB (CF's single-POST cap) and gives us resume
+  //    on network drops for anything in between too.
+  if (file.size >= TUS_THRESHOLD_BYTES) {
+    await uploadViaTus(file, uploadURL, onProgress);
+  } else {
+    await uploadViaSinglePost(file, uploadURL, onProgress);
+  }
+
+  return {
+    uid,
+    hlsUrl: streamHlsUrl(uid),
+    iframeUrl: streamIframeUrl(uid),
+    thumbnailUrl: streamThumbnailUrl(uid),
+  };
+}
+
+// Legacy single-POST path — retained for small clips because it's one
+// round trip and doesn't require the tus-js-client bundle to load.
+async function uploadViaSinglePost(
+  file: File,
+  uploadURL: string,
+  onProgress?: (percent: number) => void,
+): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', uploadURL);
@@ -170,13 +209,44 @@ export async function uploadToStream(
     form.append('file', file, file.name);
     xhr.send(form);
   });
+}
 
-  return {
-    uid,
-    hlsUrl: streamHlsUrl(uid),
-    iframeUrl: streamIframeUrl(uid),
-    thumbnailUrl: streamThumbnailUrl(uid),
-  };
+// TUS resumable path — chunks the file into 50 MB slices with retry.
+// Same CF direct-upload URL, PATCH requests with Upload-Offset.
+async function uploadViaTus(
+  file: File,
+  uploadURL: string,
+  onProgress?: (percent: number) => void,
+): Promise<void> {
+  const tus = await import('tus-js-client');
+  await new Promise<void>((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      // CF Direct Creator Upload URLs act as both the single-POST
+      // target AND the TUS creation endpoint; passing endpoint here
+      // (rather than uploadUrl) tells tus-js-client to POST once to
+      // create the upload then PATCH-chunk to the returned location.
+      endpoint: uploadURL,
+      chunkSize: TUS_CHUNK_SIZE,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      // Best-effort resume — key on file name+size so an interrupted
+      // upload of the same file resumes from where it stopped even
+      // after a page reload. Cheap insurance on flaky cellular.
+      metadata: {
+        filename: file.name,
+        filetype: file.type,
+      },
+      onError: (err) => {
+        reject(new Error(`Stream upload failed (tus): ${err.message || String(err)}`));
+      },
+      onProgress: (bytesUploaded, bytesTotal) => {
+        if (onProgress && bytesTotal > 0) {
+          onProgress(Math.round((bytesUploaded / bytesTotal) * 100));
+        }
+      },
+      onSuccess: () => resolve(),
+    });
+    upload.start();
+  });
 }
 
 // Cloudflare Stream exposes a universal iframe embed at

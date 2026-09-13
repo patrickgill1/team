@@ -18,6 +18,10 @@ interface Props {
     embedUrl: string;
     source: 'youtube' | 'trace' | 'other';
     caption: string;
+    /** True when the picker selected "Team (whole squad)" — caller
+     *  should stamp teamHighlight:true on the media doc and skip
+     *  per-player notify + stat paths. */
+    teamHighlight?: boolean;
   }) => Promise<void>;
 }
 
@@ -64,21 +68,27 @@ const EmbedMediaModal: React.FC<Props> = ({ isOpen, onClose, players, onSubmit }
   const parsed = useMemo(() => parseUrl(url), [url]);
   const valid = !!parsed && !!playerId;
 
+  const isTeamHighlight = playerId === '__team__';
+
   const handleSubmit = async () => {
     if (!parsed || !playerId) return;
-    const player = players.find(p => p.id === playerId);
-    if (!player) return;
+    const player = isTeamHighlight ? null : players.find(p => p.id === playerId);
+    if (!isTeamHighlight && !player) return;
     setSubmitting(true);
     setErr(null);
     try {
       await onSubmit({
-        playerId,
-        playerName: player.name,
+        // Team compilation: sentinel playerId + teamHighlight flag so
+        // downstream (EventHighlights, badges, stats) can route the
+        // clip correctly. Never touches player.stats.
+        playerId: isTeamHighlight ? 'team' : playerId,
+        playerName: isTeamHighlight ? '' : player!.name,
         url,
         embedUrl: parsed.embedUrl,
         source: parsed.source,
         caption: caption.trim(),
-      });
+        ...(isTeamHighlight ? { teamHighlight: true } : {}),
+      } as any);
       // Reset on success
       setUrl('');
       setCaption('');
@@ -115,6 +125,10 @@ const EmbedMediaModal: React.FC<Props> = ({ isOpen, onClose, players, onSubmit }
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
             >
               <option value="">— Pick a player —</option>
+              {/* Team compilation option — for defense reels, saves
+                  montages, etc. No stats, no XP; just a categorized
+                  clip tied to the whole squad. */}
+              <option value="__team__">Team (whole squad, no stats)</option>
               {players.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>

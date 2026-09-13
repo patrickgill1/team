@@ -3272,6 +3272,14 @@ export interface PlayerMedia {
   playerId: string;
   playerName: string;
   teamId: string;
+  /** True when this clip is a coach-curated team compilation reel
+   *  (defense montage, saves reel, shots reel) rather than an
+   *  individual player highlight. Skips every stats/XP/badge path in
+   *  the upload flow; renders with a "TEAM" badge in EventHighlights.
+   *  playerId is set to the literal 'team' sentinel so downstream
+   *  queries that expect a non-empty playerId still work.
+   *  Patrick 2026-09-13. */
+  teamHighlight?: boolean;
   url: string;
   /** Source of the media — null/'upload' for things we hosted on R2 /
    *  Cloudflare Stream, 'youtube' / 'trace' for externally-hosted links

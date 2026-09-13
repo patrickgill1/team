@@ -601,8 +601,15 @@ const PlayerMediaPage: React.FC = () => {
       return;
     }
 
-    const player = players.find(p => p.id === uploadPlayerId);
-    if (!player) return;
+    // Team-highlight mode: no per-player attribution, no stats. This
+    // is the "curated compilation reel" path (defense montage, saves
+    // reel, etc). Everything below that touches player.stats / XP /
+    // badges is short-circuited by isTeamHighlight below. The clip
+    // still gets teamId + gameId + momentType so it surfaces in the
+    // per-game Highlights section alongside individual clips.
+    const isTeamHighlight = uploadPlayerId === '__team__';
+    const player = isTeamHighlight ? null : players.find(p => p.id === uploadPlayerId);
+    if (!isTeamHighlight && !player) return;
 
     // Stats-accuracy guard: if the clip carries credits (a goal
     // scorer, an assist, or the 'Goal' tag) BUT the user didn't
@@ -610,10 +617,11 @@ const PlayerMediaPage: React.FC = () => {
     // directly with a synthetic gameId — so if the coach also
     // tapped the same goal in Game Day, the player ends up +2.
     // Confirm the tradeoff explicitly. Not a block; just a nudge.
+    // Skipped entirely in team-highlight mode (no stats path).
     const isOwnGoalTag = uploadTags.includes('Own Goal');
     const isGoalTag = uploadTags.includes('Goal') || isOwnGoalTag;
-    const hasScorer = isGoalTag && !isOwnGoalTag && !!(uploadGoalScorerId || uploadPlayerId);
-    const hasAssists = isGoalTag && uploadAssistByIds.length > 0;
+    const hasScorer = !isTeamHighlight && isGoalTag && !isOwnGoalTag && !!(uploadGoalScorerId || uploadPlayerId);
+    const hasAssists = !isTeamHighlight && isGoalTag && uploadAssistByIds.length > 0;
     const hasCredits = hasScorer || hasAssists;
     if (hasCredits && !uploadGameId && recentGames.length > 0) {
       const scorerName = hasScorer
@@ -678,7 +686,7 @@ const PlayerMediaPage: React.FC = () => {
           }
           const result = await uploadToStream(
             file,
-            { name: uploadCaption || file.name, playerId: uploadPlayerId, teamId: selectedTeamId },
+            { name: uploadCaption || file.name, playerId: isTeamHighlight ? 'team' : uploadPlayerId, teamId: selectedTeamId },
             (pct) => {
               const overall = ((i + pct / 100) / totalFiles) * 100;
               setUploadProgress(Math.round(overall));
@@ -693,7 +701,7 @@ const PlayerMediaPage: React.FC = () => {
           // gate on subsequent uploads + the admin Storage page.
           void incrementTeamVideoUsage(selectedTeamId!, videoDurationSec);
         } else {
-          const storagePath = `player_media/${selectedTeamId}/${uploadPlayerId}/${Date.now()}_${file.name}`;
+          const storagePath = `player_media/${selectedTeamId}/${isTeamHighlight ? 'team' : uploadPlayerId}/${Date.now()}_${file.name}`;
           url = await uploadFile(file, storagePath);
         }
 
@@ -706,8 +714,10 @@ const PlayerMediaPage: React.FC = () => {
         // Determine stats credits — 'Goal' tag means we credit a scorer; 'Own Goal'
         // tag means the team scored but no player on our roster gets the goal
         // credit (assists may still apply to the kicker who forced it).
-        const isOwnGoal = uploadTags.includes('Own Goal');
-        const isGoalClip = uploadTags.includes('Goal') || isOwnGoal;
+        // Team highlights never carry credits — the whole point of that path
+        // is a curated compilation reel that doesn't touch stats.
+        const isOwnGoal = !isTeamHighlight && uploadTags.includes('Own Goal');
+        const isGoalClip = !isTeamHighlight && (uploadTags.includes('Goal') || isOwnGoal);
         const scorerId = (isGoalClip && !isOwnGoal) ? (uploadGoalScorerId || uploadPlayerId) : undefined;
         const assistIds = isGoalClip ? uploadAssistByIds.filter(id => id !== scorerId) : [];
 
@@ -728,8 +738,15 @@ const PlayerMediaPage: React.FC = () => {
         // effects (applyStatsDiff / attach / updatePlayerStats / badges) get
         // skipped by the toggle below.
         const mediaPayload: any = {
-          playerId: uploadPlayerId,
-          playerName: player.name,
+          // Team highlights: keep the playerId slot filled with a stable
+          // sentinel so downstream queries that assume the field exists
+          // don't blow up, but flag the doc so consumers can group /
+          // badge it as a team compilation. playerName is left off so
+          // hero UIs (which render playerName as the subject) don't
+          // show "team" as a person.
+          playerId: isTeamHighlight ? 'team' : uploadPlayerId,
+          playerName: isTeamHighlight ? undefined : player!.name,
+          ...(isTeamHighlight ? { teamHighlight: true } : {}),
           teamId: selectedTeamId,
           url,
           type: isVideo ? 'video' : 'photo',
@@ -761,6 +778,10 @@ const PlayerMediaPage: React.FC = () => {
         // inside the helper — too high frequency to make sense pinned.
         // First-file-only to avoid spam when a coach drops in 5 angles.
         if (i === 0 && userData?.uid && stampedMedia.type === 'video') {
+          // Auto-post fires for both per-player and team-highlight
+          // clips. The wall post's playerName is undefined for team
+          // highlights so the copy reads without a specific kid name
+          // (see autoPostToWall for the teamHighlight branch).
           void autoPostVideoToWall(
             { id: newMediaId, ...(stampedMedia as any) },
             { uid: userData.uid, name: userData.name || 'Coach', role: isStaffOfTeam(userData, selectedTeam) ? 'coach' : 'parent' }
@@ -1854,12 +1875,16 @@ const PlayerMediaPage: React.FC = () => {
             // thumbnail URL pattern, so its thumbnails stay placeholder.
             let thumbnailUrl: string | undefined;
             if (payload.source === 'youtube') {
-              const m = payload.embedUrl.match(/youtube\.com\/embed\/([\w-]{11})/);
+              // Match nocookie OR standard host — EmbedMediaModal now
+              // bakes nocookie into new writes.
+              const m = payload.embedUrl.match(/youtube(?:-nocookie)?\.com\/embed\/([\w-]{11})/);
               if (m) thumbnailUrl = `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg`;
             }
+            const isTeamHl = (payload as any).teamHighlight === true;
             const mediaDoc: any = {
               playerId: payload.playerId,
               playerName: payload.playerName,
+              ...(isTeamHl ? { teamHighlight: true } : {}),
               teamId: selectedTeamId,
               url: payload.url,
               embedUrl: payload.embedUrl,
@@ -1873,36 +1898,47 @@ const PlayerMediaPage: React.FC = () => {
               fileName: payload.source === 'youtube' ? 'YouTube link' : payload.source === 'trace' ? 'Trace highlight' : 'External video',
               contentType: 'video/embed',
               tags: ['Highlight'],
-              taggedPlayerIds: [payload.playerId],
+              // Team highlights don't carry a tagged-players list —
+              // the sentinel 'team' id would show up as a broken
+              // avatar chip on downstream cards.
+              ...(isTeamHl ? {} : { taggedPlayerIds: [payload.playerId] }),
             };
             await addPlayerMedia(mediaDoc);
             // Push parents — same template as a real upload so the
             // notification carries the same weight.
-            try {
-              const { getParentEmailsForPlayer, tplClipUploaded, sendEmailBatch, sendPushToPlayerParents } = await import('../utils/notify');
-              const parents = await getParentEmailsForPlayer(payload.playerId, 'clip');
-              if (parents.length > 0) {
-                const { subject, html } = tplClipUploaded({
-                  playerName: payload.playerName,
-                  uploaderName: userData.name || 'Coach',
-                  isVideo: true,
-                  caption: payload.caption,
-                  signature: {
-                    name: userData.name || 'Coach',
-                    role: isUserCoach ? ((userData as any).coachLevel === 'assistant_coach' ? 'Assistant Coach' : 'Coach') : undefined,
-                    teamName: selectedTeam?.name,
-                    email: userData.email,
-                    avatarUrl: (userData as any).photoURL || (userData as any).profilePhotoUrl,
-                  },
-                });
-                sendEmailBatch(parents.map(p => ({ to: p.email, subject, html })));
-              }
-              sendPushToPlayerParents(payload.playerId, {
-                title: `${payload.playerName}: new clip`,
-                body: payload.caption || `Shared by ${userData.name || 'Coach'}`,
-                path: `/player/${payload.playerId}`,
-              }, 'clip');
-            } catch (e) { console.warn('embed notify failed', e); }
+            // Team highlights: skip the per-player parent notification
+            // path. Parents will see the compilation on the game detail
+            // page (EventHighlights) + the team wall auto-post. A push
+            // for every kid's parent on every team-wide reel would be
+            // noise; a general "team highlight posted" broadcast is
+            // future work if needed.
+            if (!isTeamHl) {
+              try {
+                const { getParentEmailsForPlayer, tplClipUploaded, sendEmailBatch, sendPushToPlayerParents } = await import('../utils/notify');
+                const parents = await getParentEmailsForPlayer(payload.playerId, 'clip');
+                if (parents.length > 0) {
+                  const { subject, html } = tplClipUploaded({
+                    playerName: payload.playerName,
+                    uploaderName: userData.name || 'Coach',
+                    isVideo: true,
+                    caption: payload.caption,
+                    signature: {
+                      name: userData.name || 'Coach',
+                      role: isUserCoach ? ((userData as any).coachLevel === 'assistant_coach' ? 'Assistant Coach' : 'Coach') : undefined,
+                      teamName: selectedTeam?.name,
+                      email: userData.email,
+                      avatarUrl: (userData as any).photoURL || (userData as any).profilePhotoUrl,
+                    },
+                  });
+                  sendEmailBatch(parents.map(p => ({ to: p.email, subject, html })));
+                }
+                sendPushToPlayerParents(payload.playerId, {
+                  title: `${payload.playerName}: new clip`,
+                  body: payload.caption || `Shared by ${userData.name || 'Coach'}`,
+                  path: `/player/${payload.playerId}`,
+                }, 'clip');
+              } catch (e) { console.warn('embed notify failed', e); }
+            }
           }}
         />
 
@@ -1921,6 +1957,12 @@ const PlayerMediaPage: React.FC = () => {
                       className="w-full px-3 py-2 bg-surface-input text-ink-primary border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary"
                     >
                       <option value="">Select player...</option>
+                      {/* Team option — for compilation reels (defense
+                          montage, saves reel, etc). No stats, no XP —
+                          just a categorized clip tied to the whole
+                          squad. Kept at the top so it reads as a
+                          first-class option, not a footnote. */}
+                      <option value="__team__">Team (whole squad, no stats)</option>
                       {players.map(p => (
                         <option key={p.id} value={p.id}>{p.name}</option>
                       ))}

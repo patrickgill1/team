@@ -17,6 +17,7 @@ import type { MomentType } from '../../types';
 
 interface Clip {
   id: string;
+  playerId?: string;
   playerName?: string;
   caption?: string;
   momentType?: MomentType;
@@ -24,6 +25,10 @@ interface Clip {
   url?: string;
   source?: string;
   createdAt?: any;
+  /** True when this clip is a curated team compilation reel (defense
+   *  compilation, saves reel, etc) not attributed to a single player.
+   *  Never affects stats — see PlayerMediaPage upload flow. */
+  teamHighlight?: boolean;
 }
 
 interface Props {
@@ -68,10 +73,14 @@ const EventHighlights: React.FC<Props> = ({ eventId, teamId, canManageMedia }) =
       try {
         const { collection, getDocs, query, where } = await import('firebase/firestore');
         const { db } = await import('../../utils/firebase');
+        // Field name on the media doc is gameId (not linkedGameId —
+        // that was my typo shipping 3.9.499). The stats collection
+        // uses gameId too; keeping the names aligned makes the
+        // "clips linked to this game" join implicit.
         const snap = await getDocs(query(
           collection(db, 'player_media'),
           where('teamId', '==', teamId),
-          where('linkedGameId', '==', eventId),
+          where('gameId', '==', eventId),
         ));
         if (cancelled) return;
         const list = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Clip[];
@@ -211,6 +220,15 @@ const EventHighlights: React.FC<Props> = ({ eventId, teamId, canManageMedia }) =
               {clip.momentType && (
                 <span className="absolute left-1 bottom-1 px-1.5 py-0.5 rounded-md bg-black/65 text-white text-[9px] font-black uppercase tracking-wide ring-1 ring-white/15 theme-ok">
                   {shortLabel(clip.momentType)}
+                </span>
+              )}
+              {/* Team-highlight badge top-left — marks curated reels
+                  (defense compilation, saves montage, etc) so parents
+                  distinguish them from individual player clips at a
+                  glance. Overlays the thumbnail bottom-right corner. */}
+              {clip.teamHighlight && (
+                <span className="absolute right-1 bottom-1 px-1.5 py-0.5 rounded-md bg-brand-primary text-white text-[9px] font-black uppercase tracking-wide ring-1 ring-white/25">
+                  Team
                 </span>
               )}
             </Link>

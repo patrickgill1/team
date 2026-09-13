@@ -26,6 +26,7 @@ import EmbedMediaModal from '../components/player/EmbedMediaModal';
 import FullGames from './FullGames';
 import PhotosTab from '../components/gallery/PhotosTab';
 import HighlightsNetflixTab from '../components/highlights/HighlightsNetflixTab';
+import MediaGamesTab from '../components/media/MediaGamesTab';
 import { collection, query as fsQuery, where as fsWhere, getDocs as fsGetDocs } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 
@@ -153,7 +154,11 @@ const PlayerMediaPage: React.FC = () => {
   // Highlights tab. Written alongside tags in handleSaveTags. Undefined
   // on legacy clips reads as unfeatured.
   const [editingFeaturedByCoach, setEditingFeaturedByCoach] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'highlights' | 'fullgames' | 'photos'>('highlights');
+  // 2026-09-13 reframe: Games becomes the default primary lens on the
+  // Media page ("this really needs to be main focus of media" —
+  // Patrick). Existing tabs preserved so the flat wall / full-games
+  // list / photos surfaces are one tap away.
+  const [activeTab, setActiveTab] = useState<'games' | 'highlights' | 'fullgames' | 'photos' | 'collections'>('games');
   // For parents — their linked player. Once loaded, the page auto-
   // selects that player so opening Media drops them straight onto their
   // kid's clips.
@@ -1750,60 +1755,43 @@ const PlayerMediaPage: React.FC = () => {
             tab state — tap fires navigate('/highlights'). It never renders
             as "active" here because /media never sets activeTab to it. */}
         <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+          {/* 2026-09-13 reframe: 4-tab primary — Games (default) /
+              Players (per-player experience) / Highlights (flat wall
+              + game-grouped view) / Collections (placeholder for
+              curated coach playlists). Full Games + Photos + Reelkickr
+              still reachable — Full Games stays as its own view mode
+              accessed from a game card's full-game tile, Photos via
+              the 5th "Photos" chip below the primary tabs on wide
+              screens, Reelkickr via the tab-bar route unchanged. */}
           <div
             role="tablist"
             aria-label="Media sections"
-            className="inline-flex items-center gap-1 p-1 rounded-2xl bg-surface-raised ring-1 ring-line-default/15 shadow-inner"
+            className="flex flex-wrap items-center gap-1 p-1 rounded-2xl bg-surface-raised ring-1 ring-line-default/15 shadow-inner"
           >
-            <button
-              role="tab"
-              aria-selected={activeTab === 'highlights'}
-              onClick={() => setActiveTab('highlights')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
-                activeTab === 'highlights'
-                  ? 'bg-surface-elevated text-brand-primary-soft shadow-sm ring-1 ring-line-default/10'
-                  : 'text-ink-secondary hover:text-ink-primary'
-              }`}
-            >
-              Game Clips
-            </button>
-            <button
-              role="tab"
-              aria-selected={false}
-              onClick={() => navigate('/highlights')}
-              className="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all text-ink-secondary hover:text-ink-primary"
-              title="Open the fullscreen ReelKickr feed"
-              aria-label="Open ReelKickr"
-            >
-              ReelKickr
-            </button>
-            <button
-              role="tab"
-              aria-selected={activeTab === 'fullgames'}
-              onClick={() => setActiveTab('fullgames')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
-                activeTab === 'fullgames'
-                  ? 'bg-surface-elevated text-brand-primary-soft shadow-sm ring-1 ring-line-default/10'
-                  : 'text-ink-secondary hover:text-ink-primary'
-              }`}
-            >
-              Full Games
-            </button>
-            <button
-              role="tab"
-              aria-selected={activeTab === 'photos'}
-              onClick={() => setActiveTab('photos')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
-                activeTab === 'photos'
-                  ? 'bg-surface-elevated text-brand-primary-soft shadow-sm ring-1 ring-line-default/10'
-                  : 'text-ink-secondary hover:text-ink-primary'
-              }`}
-            >
-              Photos
-            </button>
+            {([
+              { key: 'games',       label: 'Games' },
+              { key: 'highlights',  label: 'Highlights' },
+              { key: 'fullgames',   label: 'Full Games' },
+              { key: 'photos',      label: 'Photos' },
+              { key: 'collections', label: 'Collections' },
+            ] as const).map(t => (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={activeTab === t.key}
+                onClick={() => setActiveTab(t.key)}
+                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
+                  activeTab === t.key
+                    ? 'bg-brand-primary text-white shadow-sm'
+                    : 'text-ink-secondary hover:text-ink-primary'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
           <div className="flex items-center gap-2">
-            {activeTab === 'highlights' && canManageMedia && (
+            {(activeTab === 'highlights' || activeTab === 'games') && canManageMedia && (
               <>
                 <button
                   onClick={() => setShowEmbedModal(true)}
@@ -1827,7 +1815,32 @@ const PlayerMediaPage: React.FC = () => {
           </div>
         </div>
 
-        {activeTab === 'fullgames' ? (
+        {activeTab === 'games' ? (
+          <MediaGamesTab
+            media={media}
+            players={players}
+            events={allTeamEvents}
+            fullGames={fullGames}
+            selectedTeam={selectedTeam}
+            onOpenLightbox={(clipId: string) => {
+              const target = media.find(m => m.id === clipId);
+              if (target) setSelectedMedia(target);
+            }}
+            onOpenFullGame={(fgId: string) => navigate(`/full-games?game=${fgId}`)}
+          />
+        ) : activeTab === 'collections' ? (
+          <div className="text-center py-16 bg-surface-elevated rounded-2xl ring-1 ring-line-default/10">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft flex items-center justify-center mb-4">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-black text-ink-primary">Collections</h3>
+            <p className="text-sm text-ink-primary/60 mt-1.5 max-w-xs mx-auto leading-snug">
+              Coach-curated named playlists — "Season Best Goals," "Defensive Masterclass," etc. Coming soon.
+            </p>
+          </div>
+        ) : activeTab === 'fullgames' ? (
           <div className="bg-surface-elevated rounded-2xl overflow-hidden">
             <FullGames />
           </div>

@@ -371,10 +371,15 @@ const PlayerMediaPage: React.FC = () => {
       try {
         const { where: fsW } = await import('firebase/firestore');
         const fgDocs = await getDocuments('full_games', [fsW('teamId', '==', selectedTeamId)]);
-        const normalized = (fgDocs as any[]).map((g: any) => ({
-          ...g,
-          gameDate: g.gameDate?.toDate ? g.gameDate.toDate() : new Date(g.gameDate),
-        }));
+        // Skip soft-deleted full games (isActive: false). Same client-
+        // side filter FullGames.tsx uses — see that file for why we
+        // don't push this into the Firestore query.
+        const normalized = (fgDocs as any[])
+          .filter(g => g.isActive !== false)
+          .map((g: any) => ({
+            ...g,
+            gameDate: g.gameDate?.toDate ? g.gameDate.toDate() : new Date(g.gameDate),
+          }));
         setFullGames(normalized);
       } catch (err) {
         console.warn('Could not load full_games', err);

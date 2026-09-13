@@ -98,7 +98,12 @@ const FullGames: React.FC = () => {
         where('teamId', '==', selectedTeamId),
         orderBy('gameDate', 'desc'),
       ]);
-      setGames(docs as FullGame[]);
+      // Client-side isActive filter (soft-delete pattern) — avoids a
+      // Firestore composite index for (teamId, isActive, gameDate)
+      // that we'd need for a server-side filter. Legacy games missing
+      // the field (never soft-deleted) show as active by default.
+      const active = (docs as FullGame[]).filter(g => (g as any).isActive !== false);
+      setGames(active);
     } catch (err) {
       console.error('Failed to load full games:', err);
       setGames([]);
@@ -366,12 +371,57 @@ const FullGames: React.FC = () => {
   };
 
   const handleDelete = async (game: FullGame) => {
-    const msg = game.videoUrl
-      ? `Delete "${game.title}"? This removes the entry. (The uploaded video file will remain in storage.)`
+    const g = game as any;
+    // Bytes-side warning matters — full games are big and CF Stream
+    // charges by minutes stored. Old copy said "the uploaded video
+    // file will remain in storage" which was BOTH wrong (it stayed,
+    // costing money forever) AND misleading. New copy names what's
+    // actually going away: the entry + the underlying file (or just
+    // the entry, for YouTube links which we don't host).
+    const isHosted = !!g.streamUid || !!game.videoUrl;
+    const msg = isHosted
+      ? `Delete "${game.title}"? The video file will be removed from Cloudflare Stream too — this frees your storage but can't be undone.`
       : `Delete "${game.title}"? This only removes the link, not the YouTube video.`;
     if (!window.confirm(msg)) return;
     try {
-      await deleteDocument('full_games', game.id);
+      // 1) Soft-delete the Firestore doc first — matches the app's
+      //    standing pattern (memory: never hard-delete user-facing
+      //    records, PITR isn't on). Prior shape hard-deleted, which
+      //    made "undo" impossible if the coach mis-tapped.
+      const now = new Date();
+      await updateDocument('full_games', game.id, {
+        isActive: false,
+        deletedAt: now,
+        deletedBy: userData?.uid || null,
+      });
+      // 2) Best-effort delete the underlying blobs. Fire-and-forget so
+      //    a CF API blip doesn't strand the Firestore soft-delete.
+      //    Prior shape skipped this ENTIRELY — every "deleted" full
+      //    game kept eating Cloudflare Stream minutes forever, which
+      //    is exactly why the account hit its 1000-min cap even
+      //    though the app claimed those games were gone.
+      if (g.streamUid) {
+        void (async () => {
+          try {
+            const { deleteStreamVideo } = await import('../utils/streamUpload');
+            const res = await deleteStreamVideo(g.streamUid);
+            if (!res.ok) console.warn('[full-games] Stream delete failed', g.streamUid, res.error);
+          } catch (err) {
+            console.warn('[full-games] Stream delete threw', err);
+          }
+        })();
+      }
+      if (game.videoUrl && /^https?:\/\//i.test(game.videoUrl)) {
+        void (async () => {
+          try {
+            const { deleteR2Object } = await import('../utils/r2Upload');
+            const res = await deleteR2Object(game.videoUrl!);
+            if (!res.ok) console.warn('[full-games] R2 delete failed', game.videoUrl, res.error);
+          } catch (err) {
+            console.warn('[full-games] R2 delete threw', err);
+          }
+        })();
+      }
       await loadGames();
       if (selectedGame?.id === game.id) setSelectedGame(null);
     } catch (err) {

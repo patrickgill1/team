@@ -233,7 +233,16 @@ const EventForm: React.FC<EventFormProps> = ({
 
     if (!formData.date) {
       newErrors.date = 'Date is required';
-    } else {
+    } else if (!editingEvent) {
+      // Past-date guard only applies to NEW events — coaches shouldn't
+      // schedule a practice for yesterday. When editing an existing
+      // event (games/practices that already happened), the date is
+      // legitimately in the past and blocking the save prevents fixing
+      // opponent name, adding a result, correcting metadata, etc.
+      // Patrick 2026-09-13: "i wasn't putting in opponent names on
+      // the events, as it didn't really see it show up anywhere
+      // important. now, i can see why that is important with the new
+      // section. but i can't add it after the fact."
       const selectedDateTime = new Date(`${formData.date}T${formData.time}`);
       const now = new Date();
       if (selectedDateTime < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {

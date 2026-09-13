@@ -77,6 +77,15 @@ const MomentIcon: React.FC<{ kind: MomentType; className?: string }> = ({ kind, 
       </svg>
     );
   }
+  if (kind === 'attack') {
+    // Two forward-arrows — attacking press / team forward move.
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke} aria-hidden>
+        <path d="M6 6l6 6-6 6" />
+        <path d="M13 6l6 6-6 6" />
+      </svg>
+    );
+  }
   if (kind === 'shot') {
     // Target — concentric circles + center dot.
     return (
@@ -109,6 +118,7 @@ function momentLabel(kind: MomentType): string {
   if (kind === 'assist') return 'Assist';
   if (kind === 'save') return 'Save';
   if (kind === 'defense') return 'Defense';
+  if (kind === 'attack') return 'Attack';
   if (kind === 'shot') return 'Shot';
   if (kind === 'skill') return 'Skill';
   return 'Big play';

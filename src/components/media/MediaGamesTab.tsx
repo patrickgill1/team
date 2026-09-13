@@ -40,6 +40,7 @@ const CATEGORY_ORDER: Array<{ key: CategoryKey; label: string; short: string }> 
   { key: 'assist',  label: 'Assists',   short: 'Assists' },
   { key: 'save',    label: 'Saves',     short: 'Saves' },
   { key: 'defense', label: 'Defense',   short: 'Defense' },
+  { key: 'attack',  label: 'Attack',    short: 'Attack' },
   { key: 'shot',    label: 'Shots',     short: 'Shots' },
   { key: 'skill',   label: 'Skill',     short: 'Skill' },
 ];
@@ -68,6 +69,9 @@ function categoryIcon(kind: CategoryKey): React.ReactNode {
   }
   if (kind === 'defense') {
     return <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke}><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/></svg>;
+  }
+  if (kind === 'attack') {
+    return <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke}><path d="M6 6l6 6-6 6"/><path d="M13 6l6 6-6 6"/></svg>;
   }
   if (kind === 'shot') {
     return <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" {...stroke}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>;
@@ -280,6 +284,7 @@ const GameCard: React.FC<GameCardProps> = ({ event, fullGame, clips, team, onOpe
                 : kind === 'assist' ? 'Assist'
                 : kind === 'save' ? 'Save'
                 : kind === 'defense' ? 'Defense'
+                : kind === 'attack' ? 'Attack'
                 : kind === 'shot' ? 'Shot'
                 : kind === 'skill' ? 'Skill'
                 : kind === 'big_play' ? 'Big play'

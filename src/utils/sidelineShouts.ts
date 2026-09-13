@@ -206,6 +206,7 @@ function momentBodyForShout(kind: MomentType, playerName?: string): string {
     case 'assist':   return `${name} set it up.`;
     case 'save':     return `${name} came up huge in goal.`;
     case 'defense':  return `${name} shut it down at the back.`;
+    case 'attack':   return `${name} pushed the attack forward.`;
     case 'shot':     return `${name} took their chance.`;
     case 'skill':    return `${name} pulled off something special.`;
     case 'big_play': return `${name} came up big.`;

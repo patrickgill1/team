@@ -46,6 +46,7 @@ const CATEGORY_ORDER: Array<{ key: MomentType | 'all'; label: string }> = [
   { key: 'assist',  label: 'Assists' },
   { key: 'save',    label: 'Saves' },
   { key: 'defense', label: 'Defense' },
+  { key: 'attack',  label: 'Attack' },
   { key: 'shot',    label: 'Shots' },
   { key: 'skill',   label: 'Skill' },
 ];
@@ -56,6 +57,7 @@ function shortLabel(k?: MomentType): string {
     case 'assist':   return 'Assist';
     case 'save':     return 'Save';
     case 'defense':  return 'Defense';
+    case 'attack':   return 'Attack';
     case 'shot':     return 'Shot';
     case 'skill':    return 'Skill';
     case 'big_play': return 'Big play';

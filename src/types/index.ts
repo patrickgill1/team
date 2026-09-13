@@ -3243,7 +3243,7 @@ export interface ParentWhisper {
 // skill moments) that filter cleanly on the game detail view. Legacy
 // 'big_play' is retained so existing clip data continues to render;
 // new writes come from the expanded picker below.
-export type MomentType = 'goal' | 'assist' | 'save' | 'defense' | 'shot' | 'skill' | 'big_play';
+export type MomentType = 'goal' | 'assist' | 'save' | 'defense' | 'attack' | 'shot' | 'skill' | 'big_play';
 
 export interface MomentTypeMeta {
   key: MomentType;
@@ -3263,6 +3263,7 @@ export const MOMENT_TYPES: readonly MomentTypeMeta[] = [
   { key: 'assist',  label: 'Assist',  short: 'Assist',  hint: 'The pass that made it.' },
   { key: 'save',    label: 'Save',    short: 'Save',    hint: 'The stop that mattered.' },
   { key: 'defense', label: 'Defense', short: 'Defense', hint: 'Tackle, block, or wall-up.' },
+  { key: 'attack',  label: 'Attack',  short: 'Attack',  hint: 'Team attack, buildup, chance.' },
   { key: 'shot',    label: 'Shot',    short: 'Shot',    hint: 'A chance worth remembering.' },
   { key: 'skill',   label: 'Skill',   short: 'Skill',   hint: 'A moment of magic.' },
 ] as const;

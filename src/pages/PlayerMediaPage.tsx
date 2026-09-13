@@ -194,6 +194,11 @@ const PlayerMediaPage: React.FC = () => {
   // "link to event" dropdown + filter. Populated from the same events
   // fetch below so we don't double-query.
   const [allTeamEvents, setAllTeamEvents] = useState<any[]>([]);
+  // Full-game recordings for the team. Piped into HighlightsNetflixTab
+  // so each per-game section can prepend a "Full Game" tile linking to
+  // the recording. Fetched alongside media so we hit Firestore once
+  // per team switch, not per section render. 2026-09-13.
+  const [fullGames, setFullGames] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isUserCoach = isStaffOfTeam(userData, selectedTeam);
@@ -343,6 +348,22 @@ const PlayerMediaPage: React.FC = () => {
       } catch (err) {
         console.warn('Could not load games for dedup link', err);
         setRecentGames([]);
+      }
+
+      // Full-game recordings — fetched once per team switch. Piped
+      // into HighlightsNetflixTab so each per-game section can prepend
+      // a "Full Game" tile that links to the recording.
+      try {
+        const { where: fsW } = await import('firebase/firestore');
+        const fgDocs = await getDocuments('full_games', [fsW('teamId', '==', selectedTeamId)]);
+        const normalized = (fgDocs as any[]).map((g: any) => ({
+          ...g,
+          gameDate: g.gameDate?.toDate ? g.gameDate.toDate() : new Date(g.gameDate),
+        }));
+        setFullGames(normalized);
+      } catch (err) {
+        console.warn('Could not load full_games', err);
+        setFullGames([]);
       }
 
       const formattedMedia = mediaData.map((m: any) => ({
@@ -1822,6 +1843,7 @@ const PlayerMediaPage: React.FC = () => {
             media={media}
             players={players}
             events={allTeamEvents}
+            fullGames={fullGames}
             canManageMedia={canManageMedia}
             isUserCoach={isUserCoach}
             selectedTeam={selectedTeam}

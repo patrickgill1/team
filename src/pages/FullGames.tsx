@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { where, orderBy } from 'firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
@@ -105,6 +105,27 @@ const FullGames: React.FC = () => {
     loadGames();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTeamId]);
+
+  // Deep-link support: /full-games?game=<id> auto-opens that game
+  // in the viewer once the list has loaded. Lets the Highlights tab's
+  // per-game "Full Game" tile land the user directly on the video
+  // instead of a game picker. Consumes the param once so a manual
+  // close doesn't immediately re-open.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkConsumedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const wantId = searchParams.get('game');
+    if (!wantId || loading) return;
+    if (deepLinkConsumedRef.current === wantId) return;
+    const target = games.find(g => g.id === wantId);
+    if (target) {
+      setSelectedGame(target);
+      deepLinkConsumedRef.current = wantId;
+      const next = new URLSearchParams(searchParams);
+      next.delete('game');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, games, loading, setSearchParams]);
 
   const resetForm = () => {
     setFormTitle('');

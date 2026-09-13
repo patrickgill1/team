@@ -33,6 +33,12 @@ interface Props {
   media: PlayerMediaType[];
   players: Player[];
   events: any[];
+  /** Full-game recordings for the team. Rendered as a "Full Game"
+   *  tile prepended to each per-game section whose opponent+date
+   *  matches. Fuzzy match (opponent case-insensitive equal, date
+   *  within 24h) since full_games doesn't carry an explicit
+   *  eventId — a proper join would need a schema migration. */
+  fullGames?: any[];
   canManageMedia: boolean;
   isUserCoach: boolean;
   selectedTeam: Team | null;
@@ -93,6 +99,7 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   media,
   players,
   events,
+  fullGames,
   isUserCoach,
   selectedTeam,
   parentKidPlayerId,
@@ -403,6 +410,37 @@ const HighlightsNetflixTab: React.FC<Props> = ({
   // (EventDetail.tsx renders EventHighlights on type='game' events).
   const GAME_GROUP_CAP = 6;
 
+  // Match a game event to a full-game recording. full_games has
+  // teamId + opponent + gameDate but no explicit eventId, so we
+  // fuzzy-match on opponent (case-insensitive equal) + date within
+  // 24h. Good enough for the common one-recording-per-game case;
+  // false positives would require a coach to have TWO recordings
+  // for the same opponent on the same day. Returns the first match.
+  const fullGameForEvent = React.useMemo(() => {
+    const list = fullGames || [];
+    if (list.length === 0) return () => null;
+    return (ev: GameFilterOption | null): any | null => {
+      if (!ev) return null;
+      const opp = String(ev.opponent || '').trim().toLowerCase();
+      const eventMs = ev.date.getTime();
+      const DAY_MS = 24 * 60 * 60 * 1000;
+      for (const fg of list) {
+        const fgOpp = String(fg.opponent || '').trim().toLowerCase();
+        const fgDate: Date = fg.gameDate instanceof Date ? fg.gameDate : new Date(fg.gameDate);
+        if (isNaN(fgDate.getTime())) continue;
+        if (!opp && !fgOpp) {
+          // Both blank — match on date only (rare edge case).
+          if (Math.abs(fgDate.getTime() - eventMs) < DAY_MS) return fg;
+          continue;
+        }
+        if (opp && fgOpp && opp === fgOpp && Math.abs(fgDate.getTime() - eventMs) < DAY_MS) {
+          return fg;
+        }
+      }
+      return null;
+    };
+  }, [fullGames]);
+
   return (
     <div className="relative">
       {totalClips === 0 ? (
@@ -526,6 +564,16 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                   const opponentLabel = isOther
                     ? 'Other clips'
                     : `vs ${group.meta?.opponent || group.meta?.title || 'Opponent'}`;
+                  // Full-game recording for this section (fuzzy match
+                  // on opponent + date within 24h). Prepended as a
+                  // wider hero-style tile so parents see "the whole
+                  // game" before the individual moments.
+                  const fg = !isOther ? fullGameForEvent(group.meta) : null;
+                  const fgPoster = fg
+                    ? (fg.youtubeId
+                        ? `https://i.ytimg.com/vi/${fg.youtubeId}/hqdefault.jpg`
+                        : (fg.videoUrl && (fg.videoUrl as string).endsWith('.jpg')) ? fg.videoUrl : '')
+                    : '';
                   return (
                     <div key={group.key}>
                       {/* Section header: opponent · date · count. Reads
@@ -540,6 +588,9 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                           <span className="text-[11px] font-bold text-ink-primary/55 tabular-nums">
                             · {group.clips.length} {group.clips.length === 1 ? 'clip' : 'clips'}
                           </span>
+                          {fg?.result && (
+                            <span className="text-[11px] font-black text-brand-primary tabular-nums">· {fg.result}</span>
+                          )}
                         </div>
                         {!isOther && group.meta && overflow > 0 && (
                           <Link
@@ -554,6 +605,48 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                           </Link>
                         )}
                       </div>
+                      {/* Full-game tile: only when we matched a
+                          full_games recording. Bigger + full-width so
+                          it visually anchors the section — parents
+                          see "the whole game" before individual clips. */}
+                      {fg && (
+                        <Link
+                          to={`/full-games?game=${fg.id}`}
+                          className="group block relative w-full aspect-video rounded-xl overflow-hidden bg-black ring-1 ring-brand-primary/40 mb-3 shadow-lg shadow-brand-primary/10 theme-ok"
+                          aria-label={`Play full game vs ${fg.opponent || opponentLabel}`}
+                        >
+                          {fgPoster ? (
+                            <img
+                              src={fgPoster}
+                              alt=""
+                              aria-hidden
+                              loading="lazy"
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-gradient-to-br from-brand-primary-dim to-black theme-ok" />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/40 theme-ok" />
+                          {/* Play glyph */}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-14 h-14 rounded-full bg-brand-primary flex items-center justify-center shadow-2xl ring-4 ring-white/20 group-hover:scale-105 transition theme-ok">
+                              <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <polygon points="7 4 21 12 7 20 7 4" />
+                              </svg>
+                            </div>
+                          </div>
+                          {/* Top-left badge */}
+                          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-brand-primary text-white text-[10px] font-black uppercase tracking-widest ring-1 ring-white/25 theme-ok">
+                            Full Game
+                          </span>
+                          {/* Bottom title */}
+                          <div className="absolute inset-x-0 bottom-0 p-3">
+                            <div className="text-white font-black text-sm truncate drop-shadow theme-ok">
+                              {fg.title || `vs ${fg.opponent || opponentLabel}`}
+                            </div>
+                          </div>
+                        </Link>
+                      )}
                       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                         {shown.map(clip => (
                           <HighlightCardLite

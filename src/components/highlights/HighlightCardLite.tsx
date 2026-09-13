@@ -137,17 +137,42 @@ const HighlightCardLite: React.FC<Props> = ({ clip, players, onOpen, fullWidth, 
           handleFeature/featuring are no-ops until we surface it a
           different way (long-press, kebab menu, etc). */}
 
+      {/* Top-right TEAM badge for team-highlight (compilation reel)
+          clips. Distinguishes coach-curated reels from individual
+          player clips at a glance so parents don't confuse a defense
+          compilation with a single kid's clip. */}
+      {(clip as any).teamHighlight && (
+        <span className="absolute top-1.5 right-1.5 z-10 px-1.5 py-0.5 rounded-md bg-brand-primary text-white text-[9px] font-black uppercase tracking-widest ring-1 ring-white/25 theme-ok">
+          Team
+        </span>
+      )}
+
       {/* Bottom-left label overlay. Avatar + name/secondary column. */}
       <div className="absolute inset-x-0 bottom-0 p-2.5 pt-8 bg-gradient-to-t from-black/80 via-black/50 to-transparent pointer-events-none">
         <div className="flex items-center gap-2 min-w-0">
-          <RosterAvatar
-            name={tagged?.name || name}
-            photoUrl={tagged?.profilePhotoUrl || undefined}
-            size={28}
-            className="ring-1 ring-white/40"
-          />
+          {(clip as any).teamHighlight ? (
+            // Team-reel clips don't have a single player subject.
+            // Show a whistle glyph in the avatar slot instead of a
+            // broken "team" avatar chip.
+            <span className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center ring-1 ring-white/40 shrink-0 theme-ok">
+              <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="10" cy="14" r="6" />
+                <path d="M16 8l4-4" />
+                <path d="M14 4h6v6" />
+              </svg>
+            </span>
+          ) : (
+            <RosterAvatar
+              name={tagged?.name || name}
+              photoUrl={tagged?.profilePhotoUrl || undefined}
+              size={28}
+              className="ring-1 ring-white/40"
+            />
+          )}
           <div className="min-w-0 flex-1">
-            <div className="text-white text-sm font-bold truncate leading-tight">{name}</div>
+            <div className="text-white text-sm font-bold truncate leading-tight">
+              {(clip as any).teamHighlight ? (clip.caption || 'Team compilation') : name}
+            </div>
             {secondary && (
               <div className="text-white/70 text-[11px] font-medium truncate leading-tight mt-0.5">
                 {secondary}

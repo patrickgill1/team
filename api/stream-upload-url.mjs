@@ -91,27 +91,25 @@ export default async function handler(req, res) {
     // in the stream-media-id response header.
     if (useTus) {
       const maxDuration = isGametape ? GAMETAPE_MAX_DURATION_SECONDS : MAX_DURATION_SECONDS;
-      const meta = {
-        name: name || fileName || 'untitled',
-        uploadedBy: userClaims.user_id || userClaims.sub,
-        ...(playerId ? { playerId } : {}),
-        ...(teamId ? { teamId } : {}),
-        ...(isGametape ? { feature: 'gametape' } : {}),
+      // Upload-Metadata is a comma-separated list of key<space>base64(value)
+      // pairs (TUS spec §5.4). CF Stream's metadata keys are camelCase per
+      // their docs (maxDurationSeconds, requireSignedURLs). Keep it minimal —
+      // only include the fields we NEED so we don't trip an unknown-key
+      // rejection. Extras (playerId, teamId) go in a nested JSON blob
+      // under `meta` so the flat TUS metadata stays CF-only fields.
+      const cfMeta = {
+        name: String(name || fileName || 'untitled'),
         maxDurationSeconds: String(maxDuration),
-        expiry: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        allowedOrigins: '*',
-        requiresignedurls: 'false',
       };
-      // Upload-Metadata is comma-separated key value pairs where the
-      // value is base64-encoded. TUS spec §5.4.
-      const encodedMeta = Object.entries(meta)
-        .filter(([, v]) => v != null && v !== '')
-        .map(([k, v]) => `${k} ${Buffer.from(String(v), 'utf8').toString('base64')}`)
+      const encodedMeta = Object.entries(cfMeta)
+        .map(([k, v]) => `${k} ${Buffer.from(v, 'utf8').toString('base64')}`)
         .join(',');
 
-      const cfTusRes = await fetch(
-        `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream?direct_user=true`,
-        {
+      const tusEndpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream?direct_user=true`;
+
+      let cfTusRes;
+      try {
+        cfTusRes = await fetch(tusEndpoint, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${apiToken}`,
@@ -120,24 +118,34 @@ export default async function handler(req, res) {
             'Upload-Metadata': encodedMeta,
             'Upload-Creator': userClaims.user_id || userClaims.sub,
           },
-        },
-      );
+        });
+      } catch (fetchErr) {
+        console.error('Stream TUS fetch threw:', fetchErr);
+        return res.status(502).json({ error: 'Cloudflare Stream unreachable', detail: String(fetchErr?.message || fetchErr) });
+      }
 
-      if (!cfTusRes.ok && cfTusRes.status !== 201) {
+      // CF returns 201 Created on success. Anything else is a failure —
+      // read the body for the actual error message.
+      if (cfTusRes.status !== 201) {
         const text = await cfTusRes.text().catch(() => '');
         console.error('Stream TUS create error:', cfTusRes.status, text);
-        return res.status(502).json({ error: 'Cloudflare Stream rejected the TUS upload', detail: text });
+        return res.status(502).json({
+          error: `Cloudflare Stream returned ${cfTusRes.status}`,
+          detail: text.slice(0, 500),
+        });
       }
 
       const uploadURL = cfTusRes.headers.get('location') || '';
       const uid = cfTusRes.headers.get('stream-media-id') || '';
       if (!uploadURL || !uid) {
-        console.error('Stream TUS response missing headers:', {
-          location: uploadURL,
-          streamMediaId: uid,
-          allHeaders: [...cfTusRes.headers.entries()],
+        const headerDump = [...cfTusRes.headers.entries()]
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(', ');
+        console.error('Stream TUS response missing headers:', headerDump);
+        return res.status(502).json({
+          error: 'Cloudflare Stream TUS response missing Location/stream-media-id',
+          detail: `Got headers: ${headerDump.slice(0, 300)}`,
         });
-        return res.status(502).json({ error: 'Cloudflare Stream TUS response missing Location/stream-media-id' });
       }
 
       return res.status(200).json({ uploadURL, uid, mode: 'tus' });

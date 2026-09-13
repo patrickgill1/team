@@ -962,9 +962,15 @@ const PlayerMediaPage: React.FC = () => {
       resetUploadForm();
       setShowUploadModal(false);
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading media:', error);
-      alert('Failed to upload. Please try again.');
+      // Surface the real error text so we can actually diagnose upload
+      // failures from user-side reports (previously swallowed as a
+      // generic message). Truncate long stacks to keep the alert
+      // readable, but always include SOMETHING actionable.
+      const raw = String(error?.message || error || 'Unknown error');
+      const shown = raw.length > 240 ? raw.slice(0, 240) + '…' : raw;
+      alert(`Upload failed:\n\n${shown}\n\nIf this keeps happening, screenshot this message and send to Patrick.`);
     } finally {
       setUploading(false);
       setUploadProgress(0);

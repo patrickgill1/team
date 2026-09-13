@@ -498,12 +498,29 @@ const FullGames: React.FC = () => {
                 />
               ) : (
                 <iframe
-                  src={`https://www.youtube.com/embed/${selectedGame.youtubeId}?autoplay=1&rel=0`}
+                  src={`https://www.youtube.com/embed/${selectedGame.youtubeId}?autoplay=1&rel=0&playsinline=1&modestbranding=1`}
                   title={selectedGame.title}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                   className="w-full h-full"
                 />
+              )}
+              {/* Fallback exit for the "YouTube error 153" case where
+                  the iframe player refuses to play the video in-app
+                  (autoplay+webview handoff, region flakiness, etc).
+                  Always visible so a broken embed is never a dead end. */}
+              {selectedGame.youtubeId && (
+                <a
+                  href={`https://www.youtube.com/watch?v=${selectedGame.youtubeId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-white/70 hover:text-white underline underline-offset-2"
+                >
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8ZM9.6 15.6V8.4L15.8 12l-6.2 3.6Z"/>
+                  </svg>
+                  Open on YouTube
+                </a>
               )}
             </div>
             <div className="mt-3 text-white">

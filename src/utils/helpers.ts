@@ -91,6 +91,28 @@ export const sortByDate = <T extends { createdAt: Date | Timestamp }>(items: T[]
   });
 };
 
+// Add the params iOS Capacitor WebViews need on a YouTube embed URL:
+//   playsinline=1     — keep playback inside the WebView; without it,
+//                       autoplay hands off to the native YouTube app
+//                       which throws "error 153" on some videos.
+//   modestbranding=1  — hide the big YouTube logo (cosmetic).
+//   rel=0             — don't show unrelated recommended videos at end.
+// Idempotent: if the URL already has any of these, we keep the caller's
+// value. Non-YouTube URLs pass through unchanged.
+export const ensureYoutubeSafeParams = (url: string | null | undefined): string => {
+  if (!url) return '';
+  if (!/youtube\.com\/embed\//.test(url)) return url;
+  try {
+    const u = new URL(url);
+    if (!u.searchParams.has('playsinline')) u.searchParams.set('playsinline', '1');
+    if (!u.searchParams.has('modestbranding')) u.searchParams.set('modestbranding', '1');
+    if (!u.searchParams.has('rel')) u.searchParams.set('rel', '0');
+    return u.toString();
+  } catch {
+    return url;
+  }
+};
+
 export const isCoach = (userRole: string): boolean => {
   return userRole === 'coach';
 };

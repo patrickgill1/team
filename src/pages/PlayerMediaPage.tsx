@@ -5,7 +5,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { useStorage } from '../hooks/useStorage';
 import { Player, PlayerMedia as PlayerMediaType, MomentType, MOMENT_TYPES } from '../types';
-import { isCoachOfTeam, isStaffOfTeam, canManageTeamMedia, formatDate } from '../utils/helpers';
+import { isCoachOfTeam, isStaffOfTeam, canManageTeamMedia, formatDate, ensureYoutubeSafeParams } from '../utils/helpers';
 import { isXpSourceEnabled } from '../utils/xpSource';
 import { useTeamAudience } from '../hooks/useTeamAudience';
 import { autoPostVideoToWall } from '../utils/autoPostToWall';
@@ -2221,7 +2221,7 @@ const PlayerMediaPage: React.FC = () => {
                   <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))] aspect-video rounded-lg overflow-hidden bg-black">
                     <iframe
                       key={selectedMedia.id}
-                      src={(selectedMedia as any).embedUrl || selectedMedia.url}
+                      src={ensureYoutubeSafeParams((selectedMedia as any).embedUrl || selectedMedia.url)}
                       title={selectedMedia.caption || selectedMedia.playerName}
                       loading="lazy"
                       allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"

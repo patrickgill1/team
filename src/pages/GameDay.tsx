@@ -1681,7 +1681,7 @@ const GameDay: React.FC = () => {
                         key={f}
                         onClick={() => patch({ format: f })}
                         className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition ${
-                          active ? 'bg-white text-ink-primary shadow theme-ok' : 'text-ink-primary/70 hover:text-ink-primary'
+                          active ? 'bg-brand-primary text-white shadow' : 'text-ink-primary/70 hover:text-ink-primary'
                         }`}
                       >
                         {f}

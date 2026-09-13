@@ -32,12 +32,12 @@ function parseUrl(raw: string): { embedUrl: string; source: 'youtube' | 'trace' 
     url.match(/youtube\.com\/watch\?.*?v=([\w-]{11})/) ||
     url.match(/youtube\.com\/shorts\/([\w-]{11})/) ||
     url.match(/youtube\.com\/embed\/([\w-]{11})/);
-  // playsinline=1 + modestbranding=1 are load-bearing on iOS Capacitor
-  // WebViews: without them, autoplay routes to the native YouTube app
-  // and hits "error 153" on some videos. Ship these params baked into
-  // the stored embedUrl so every future write is correct; legacy rows
-  // are patched at render time in PlayerMediaPage via ensureYoutubeSafeParams.
-  if (yt) return { embedUrl: `https://www.youtube.com/embed/${yt[1]}?playsinline=1&modestbranding=1&rel=0`, source: 'youtube' };
+  // youtube-nocookie.com host + playsinline are load-bearing on iOS
+  // Capacitor WebViews (origin is capacitor://localhost, which the
+  // standard youtube.com embed player rejects — throws Error 153 mid-
+  // play). Legacy rows written with youtube.com also get rewritten at
+  // render time via ensureYoutubeSafeParams in PlayerMediaPage.
+  if (yt) return { embedUrl: `https://www.youtube-nocookie.com/embed/${yt[1]}?playsinline=1&modestbranding=1&rel=0`, source: 'youtube' };
 
   // Trace — accept share/highlight/video URLs. The public-share form
   // is iframe-embeddable as-is; we keep the original URL since Trace

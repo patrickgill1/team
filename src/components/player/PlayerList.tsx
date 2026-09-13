@@ -271,7 +271,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 className={`px-2 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-md border ${
                   sortBy === key
                     ? 'bg-brand-primary-soft text-brand-primary border-brand-primary-soft'
-                    : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary theme-ok'
+                    : 'bg-white text-slate-700 border-slate-200 hover:text-slate-900 theme-ok'
                 }`}
               >
                 {label}
@@ -291,7 +291,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 className={`px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-md border ${
                   showGuests
                     ? 'bg-brand-primary-soft/20 text-brand-primary border-brand-primary-soft/40'
-                    : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary theme-ok'
+                    : 'bg-white text-slate-700 border-slate-200 hover:text-slate-900 theme-ok'
                 }`}
                 title={showGuests ? 'Hide guest players from this view' : 'Show guest players in this view'}
               >
@@ -303,7 +303,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
               className={`px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-md border ${
                 showInactive
                   ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                  : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary theme-ok'
+                  : 'bg-white text-slate-700 border-slate-200 hover:text-slate-900 theme-ok'
               }`}
               title="Show inactive (returning) players"
             >

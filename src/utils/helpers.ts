@@ -91,19 +91,32 @@ export const sortByDate = <T extends { createdAt: Date | Timestamp }>(items: T[]
   });
 };
 
-// Add the params iOS Capacitor WebViews need on a YouTube embed URL:
-//   playsinline=1     — keep playback inside the WebView; without it,
-//                       autoplay hands off to the native YouTube app
-//                       which throws "error 153" on some videos.
-//   modestbranding=1  — hide the big YouTube logo (cosmetic).
-//   rel=0             — don't show unrelated recommended videos at end.
-// Idempotent: if the URL already has any of these, we keep the caller's
-// value. Non-YouTube URLs pass through unchanged.
+// Rewrite a YouTube embed URL for reliable playback inside the iOS
+// Capacitor WebView (origin = capacitor://localhost — youtube.com's
+// standard embed player refuses to serve to non-http(s) origins and
+// throws "Video player configuration error / Error 153" mid-play).
+//   1. Swap host to youtube-nocookie.com — Google's privacy-enhanced
+//      embed has permissive origin handling and is Google's own
+//      recommended fix for WebView embed failures.
+//   2. Force playsinline=1 so autoplay doesn't hand off to the native
+//      YouTube app (also 153-prone).
+//   3. modestbranding=1 hides the big YouTube logo (cosmetic).
+//   4. rel=0 suppresses the "recommended" grid at end of playback.
+// Idempotent: if the URL already carries any of these, keep the
+// caller's value. Non-YouTube URLs pass through unchanged. Legacy
+// player_media rows written before 2026-09-13 also benefit at render
+// time because PlayerMediaPage pipes stored embedUrls through this.
 export const ensureYoutubeSafeParams = (url: string | null | undefined): string => {
   if (!url) return '';
-  if (!/youtube\.com\/embed\//.test(url)) return url;
+  if (!/youtube(-nocookie)?\.com\/embed\//.test(url)) return url;
   try {
     const u = new URL(url);
+    // Force nocookie host — even for URLs that already point at
+    // youtube.com/embed. This is the load-bearing change; the query
+    // params below are belt-and-suspenders.
+    if (u.hostname === 'www.youtube.com' || u.hostname === 'youtube.com') {
+      u.hostname = 'www.youtube-nocookie.com';
+    }
     if (!u.searchParams.has('playsinline')) u.searchParams.set('playsinline', '1');
     if (!u.searchParams.has('modestbranding')) u.searchParams.set('modestbranding', '1');
     if (!u.searchParams.has('rel')) u.searchParams.set('rel', '0');

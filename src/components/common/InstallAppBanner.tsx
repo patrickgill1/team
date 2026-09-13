@@ -132,7 +132,7 @@ const InstallAppBanner: React.FC = () => {
             target="_blank"
             rel="noopener noreferrer"
             onClick={onPrimary}
-            className="shrink-0 inline-flex items-center gap-1.5 bg-white text-ink-primary text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition theme-ok"
+            className="shrink-0 inline-flex items-center gap-1.5 bg-white text-slate-900 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition theme-ok"
           >
             <span>{ctaButtonLabel}</span>
           </a>
@@ -140,7 +140,7 @@ const InstallAppBanner: React.FC = () => {
           <button
             type="button"
             onClick={onPrimary}
-            className="shrink-0 inline-flex items-center gap-1.5 bg-white text-ink-primary text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition theme-ok"
+            className="shrink-0 inline-flex items-center gap-1.5 bg-white text-slate-900 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition theme-ok"
           >
             <span>{ctaButtonLabel}</span>
           </button>

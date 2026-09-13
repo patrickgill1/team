@@ -484,7 +484,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           <div className="mt-auto pt-4 flex flex-wrap gap-2 items-center">
             <Link
               to={`/player/${player.id}`}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-ink-primary font-bold text-sm shadow hover:scale-105 transition theme-ok"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-primary text-white font-bold text-sm shadow hover:scale-105 transition"
             >
               View Profile →
             </Link>

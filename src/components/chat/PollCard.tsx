@@ -110,7 +110,7 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
           onClick={() => setVotersOpen(false)}
         >
           <div
-            className="bg-white text-ink-primary w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden theme-ok"
+            className="bg-white text-slate-900 w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden theme-ok"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">

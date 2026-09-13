@@ -6,6 +6,7 @@ import { FullGame } from '../types';
 import { downloadFile } from '../utils/downloadFile';
 import { getStreamDownloadUrl } from '../utils/streamUpload';
 import StreamPlayer from '../components/common/StreamPlayer';
+import { ensureYoutubeSafeParams } from '../utils/helpers';
 
 const PublicGame: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -143,7 +144,7 @@ const PublicGame: React.FC = () => {
             />
           ) : game.youtubeId ? (
             <iframe
-              src={`https://www.youtube.com/embed/${game.youtubeId}?autoplay=1&rel=0&playsinline=1&modestbranding=1`}
+              src={ensureYoutubeSafeParams(`https://www.youtube.com/embed/${game.youtubeId}?autoplay=1`)}
               title={game.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen

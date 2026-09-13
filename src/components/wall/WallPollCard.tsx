@@ -99,7 +99,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
               className={`relative w-full text-left rounded-xl px-3 py-2 ring-1 transition overflow-hidden ${
                 mine
                   ? 'bg-surface-elevated text-ink-primary ring-brand-primary-soft'
-                  : 'bg-white text-ink-primary ring-slate-200 hover:bg-slate-50 theme-ok'
+                  : 'bg-white text-slate-900 ring-slate-200 hover:bg-slate-50 theme-ok'
               }`}
             >
               {/* Fill bar — represents this option's share of total votes. */}

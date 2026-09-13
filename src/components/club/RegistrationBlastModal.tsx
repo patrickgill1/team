@@ -216,7 +216,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
                           className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${
                             on
                               ? 'bg-brand-primary text-white ring-brand-primary'
-                              : 'bg-white text-ink-primary/80 ring-slate-200 hover:ring-brand-primary-soft theme-ok'
+                              : 'bg-white text-slate-800 ring-slate-200 hover:ring-brand-primary-soft theme-ok'
                           }`}
                         >
                           {ag}

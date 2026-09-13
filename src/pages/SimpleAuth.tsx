@@ -376,7 +376,7 @@ const SimpleAuth: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setMode('register'); setJoinFlow(true); setShowLanding(false); }}
-                className="w-full py-3.5 rounded-full bg-white text-ink-primary font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition theme-ok"
+                className="w-full py-3.5 rounded-full bg-white text-slate-900 font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition theme-ok"
               >
                 Join a team with a code
               </button>
@@ -449,7 +449,7 @@ const SimpleAuth: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setMode('register'); setJoinFlow(true); setShowLanding(false); }}
-                className="w-full py-3.5 rounded-full bg-white text-ink-primary font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition theme-ok"
+                className="w-full py-3.5 rounded-full bg-white text-slate-900 font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition theme-ok"
               >
                 Join a team with a code
               </button>

@@ -360,7 +360,7 @@ const Highlights: React.FC = () => {
                             className="absolute right-full mr-2 top-1/2 -translate-y-1/2 pointer-events-none animate-fade-in whitespace-nowrap"
                             aria-live="polite"
                           >
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-ink-primary shadow-lg text-xs font-bold theme-ok">
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-slate-900 shadow-lg text-xs font-bold theme-ok">
                               Loved it? Tap the heart
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden>
                                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -389,7 +389,7 @@ const Highlights: React.FC = () => {
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                           </svg>
                           {(clip.likeCount || 0) > 0 && (
-                            <span className="absolute -bottom-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-ink-primary text-[10px] font-black flex items-center justify-center ring-2 ring-black/70 theme-ok">
+                            <span className="absolute -bottom-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-slate-900 text-[10px] font-black flex items-center justify-center ring-2 ring-black/70 theme-ok">
                               {(clip.likeCount || 0) > 99 ? '99+' : clip.likeCount}
                             </span>
                           )}

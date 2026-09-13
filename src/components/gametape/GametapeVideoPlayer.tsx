@@ -10,6 +10,7 @@
 import React, { useMemo } from 'react';
 import CloudflareStreamIframe from '../common/CloudflareStreamIframe';
 import type { PlayerClip } from '../../types';
+import { ensureYoutubeSafeParams } from '../../utils/helpers';
 
 interface Props {
   clip: PlayerClip;
@@ -37,21 +38,25 @@ function safeParseUrl(raw: string | null | undefined): URL | null {
  *  the source is unrecognizable so the caller can render a fallback. */
 function toYoutubeEmbed(clip: PlayerClip): string | null {
   const explicit = clip.embedUrl || '';
-  if (/youtube\.com\/embed\//i.test(explicit)) return explicit;
+  // Every return path is piped through ensureYoutubeSafeParams so we
+  // hit youtube-nocookie.com uniformly — youtube.com's embed player
+  // throws "Error 153" in the iOS Capacitor WebView (origin is
+  // capacitor://localhost, which the standard player rejects).
+  if (/youtube\.com\/embed\//i.test(explicit)) return ensureYoutubeSafeParams(explicit);
   const id = clip.externalVideoId;
-  if (id) return `https://www.youtube.com/embed/${encodeURIComponent(id)}?rel=0&modestbranding=1&playsinline=1`;
+  if (id) return ensureYoutubeSafeParams(`https://www.youtube.com/embed/${encodeURIComponent(id)}`);
   const u = safeParseUrl(explicit);
   if (!u) return null;
   if (u.hostname === 'youtu.be') {
     const shortId = u.pathname.replace(/^\//, '').split('/')[0];
-    if (shortId) return `https://www.youtube.com/embed/${encodeURIComponent(shortId)}?rel=0&modestbranding=1&playsinline=1`;
+    if (shortId) return ensureYoutubeSafeParams(`https://www.youtube.com/embed/${encodeURIComponent(shortId)}`);
   }
   if (YOUTUBE_HOSTS.has(u.hostname)) {
     const v = u.searchParams.get('v');
-    if (v) return `https://www.youtube.com/embed/${encodeURIComponent(v)}?rel=0&modestbranding=1&playsinline=1`;
+    if (v) return ensureYoutubeSafeParams(`https://www.youtube.com/embed/${encodeURIComponent(v)}`);
     const parts = u.pathname.split('/').filter(Boolean);
-    if (parts[0] === 'shorts' && parts[1]) return `https://www.youtube.com/embed/${encodeURIComponent(parts[1])}?rel=0&modestbranding=1&playsinline=1`;
-    if (parts[0] === 'embed' && parts[1]) return `https://www.youtube.com/embed/${encodeURIComponent(parts[1])}?rel=0&modestbranding=1&playsinline=1`;
+    if (parts[0] === 'shorts' && parts[1]) return ensureYoutubeSafeParams(`https://www.youtube.com/embed/${encodeURIComponent(parts[1])}`);
+    if (parts[0] === 'embed' && parts[1]) return ensureYoutubeSafeParams(`https://www.youtube.com/embed/${encodeURIComponent(parts[1])}`);
   }
   return null;
 }

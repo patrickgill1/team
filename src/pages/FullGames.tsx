@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { FullGame } from '../types';
-import { canManageTeamMedia, formatDate } from '../utils/helpers';
+import { canManageTeamMedia, formatDate, ensureYoutubeSafeParams } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamThumbnailUrl, checkVideoLimit } from '../utils/streamUpload';
 import { canUploadFullGameFile } from '../utils/videoQuota';
@@ -498,7 +498,7 @@ const FullGames: React.FC = () => {
                 />
               ) : (
                 <iframe
-                  src={`https://www.youtube.com/embed/${selectedGame.youtubeId}?autoplay=1&rel=0&playsinline=1&modestbranding=1`}
+                  src={ensureYoutubeSafeParams(`https://www.youtube.com/embed/${selectedGame.youtubeId}?autoplay=1`)}
                   title={selectedGame.title}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen

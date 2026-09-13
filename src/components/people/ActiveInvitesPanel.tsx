@@ -151,7 +151,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
               className={`px-3 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 filter === k
                   ? 'bg-brand-primary-soft text-brand-primary border-brand-primary-soft'
-                  : 'bg-white text-ink-primary/65 border-slate-200 hover:text-ink-primary theme-ok'
+                  : 'bg-white text-slate-700 border-slate-200 hover:text-slate-900 theme-ok'
               }`}
             >
               {k === 'active' ? `Active ${counts.active}` : `All ${counts.all}`}
@@ -204,7 +204,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
                           <button
                             onClick={() => handleCopy(r.id)}
                             disabled={busyId === r.id}
-                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-ink-primary/90 border-slate-200 hover:bg-slate-50 disabled:opacity-50 theme-ok"
+                            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-slate-900 border-slate-200 hover:bg-slate-50 disabled:opacity-50 theme-ok"
                           >
                             Copy link
                           </button>

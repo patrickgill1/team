@@ -45,7 +45,7 @@ const FullGames: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
   const navigate = useNavigate();
-  const { getDocuments, addDocument, updateDocument, deleteDocument } = useFirestore();
+  const { getDocuments, addDocument, updateDocument, deleteDocument, getEventsByTeam } = useFirestore();
 
   const [games, setGames] = useState<FullGame[]>([]);
   const [quotaBlocked, setQuotaBlocked] = useState<QuotaCheck | null>(null);
@@ -114,30 +114,27 @@ const FullGames: React.FC = () => {
   }, [selectedTeamId]);
 
   // Load recent game events for the "Link to game event" dropdown.
-  // Scoped 90 days back + 14 days forward so the picker is scannable
-  // (most full-game uploads happen within a couple days of the match).
+  // Uses the same cached helper as the rest of the app so we don't
+  // trip the missing-composite-index case (previous shape queried
+  // (teamId, type, date) directly and silently returned nothing when
+  // the index wasn't provisioned). Scoped 180 days back + 30 days
+  // forward so the picker is scannable but covers a full season.
   useEffect(() => {
     if (!selectedTeamId) { setGameEvents([]); return; }
     (async () => {
       try {
-        const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
-        const { db } = await import('../utils/firebase');
-        const snap = await getDocs(query(
-          collection(db, 'events'),
-          where('teamId', '==', selectedTeamId),
-          where('type', '==', 'game'),
-          orderBy('date', 'desc'),
-        ));
-        const cutoffPast = Date.now() - 90 * 24 * 3600 * 1000;
-        const cutoffFuture = Date.now() + 14 * 24 * 3600 * 1000;
-        const rows = snap.docs
-          .map(d => {
-            const e: any = { id: d.id, ...d.data() };
+        const all = await getEventsByTeam(selectedTeamId);
+        const cutoffPast = Date.now() - 180 * 24 * 3600 * 1000;
+        const cutoffFuture = Date.now() + 30 * 24 * 3600 * 1000;
+        const rows = (all as any[])
+          .filter(e => e.type === 'game')
+          .map(e => {
             const date: Date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
             const opponent = String(e.opponent || '').trim();
             return { id: e.id, opponent, date };
           })
           .filter(e => !isNaN(e.date.getTime()) && e.date.getTime() >= cutoffPast && e.date.getTime() <= cutoffFuture)
+          .sort((a, b) => b.date.getTime() - a.date.getTime())
           .map(e => ({
             ...e,
             label: `${e.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} — vs ${e.opponent || 'Opponent'}`,
@@ -148,7 +145,7 @@ const FullGames: React.FC = () => {
         setGameEvents([]);
       }
     })();
-  }, [selectedTeamId]);
+  }, [selectedTeamId, getEventsByTeam]);
 
   // Picking a calendar event auto-fills opponent + date on the form
   // so the coach doesn't have to re-type what the schedule already
@@ -702,7 +699,12 @@ const FullGames: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                {/* Stack on mobile — grid-cols-2 at 375px crammed the
+                    Opponent input into ~160px and the native iOS date
+                    picker rendered taller, so the two fields looked
+                    mismatched. Full-width single column on phone
+                    reads cleaner; sm+ still gets the two-up layout. */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-ink-primary/85 mb-1">Date *</label>
                     <input

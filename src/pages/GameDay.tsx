@@ -1628,7 +1628,7 @@ const GameDay: React.FC = () => {
               </div>
               {isUserCoach && (
                 <Link
-                  to={`/event/${eventId}`}
+                  to={`/events/${eventId}`}
                   className="text-[11px] font-extrabold uppercase tracking-widest text-brand-primary-soft hover:text-ink-primary"
                 >
                   Adjust

@@ -130,7 +130,7 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
     return lines.join('\n');
   }, [teamName, ourScore, oppScore, opponent, result, scorers, mvp]);
 
-  const shareUrl = event?.id ? `${getShareOrigin()}/event/${event.id}` : getShareOrigin();
+  const shareUrl = event?.id ? `${getShareOrigin()}/events/${event.id}` : getShareOrigin();
 
   const handleShare = async () => {
     const data = { title: `${teamName} vs ${opponent}`, text: shareText, url: shareUrl };

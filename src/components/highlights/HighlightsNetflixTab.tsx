@@ -607,7 +607,7 @@ const HighlightsNetflixTab: React.FC<Props> = ({
                         </div>
                         {!isOther && group.meta && overflow > 0 && (
                           <Link
-                            to={`/event/${group.key}`}
+                            to={`/events/${group.key}`}
                             className="shrink-0 inline-flex items-center gap-0.5 text-[11px] font-black text-brand-primary hover:brightness-110 whitespace-nowrap"
                             aria-label={`See all ${group.clips.length} clips from ${opponentLabel}`}
                           >

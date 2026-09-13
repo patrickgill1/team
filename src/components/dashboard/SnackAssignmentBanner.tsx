@@ -115,7 +115,7 @@ const SnackAssignmentBanner: React.FC<Props> = ({ events, myPlayerIds }) => {
 
   return (
     <Link
-      to={`/event/${event.id}`}
+      to={`/events/${event.id}`}
       className="relative flex items-center gap-3 rounded-xl bg-amber-500/[0.10] ring-1 ring-amber-400/30 px-3 py-2.5 hover:bg-amber-500/[0.15] transition shadow-sm shadow-black/5"
     >
       <span

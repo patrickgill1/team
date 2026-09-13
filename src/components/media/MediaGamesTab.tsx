@@ -148,7 +148,7 @@ const GameCard: React.FC<GameCardProps> = ({ event, fullGame, clips, team, onOpe
             </h3>
           </div>
           <Link
-            to={`/event/${event.id}`}
+            to={`/events/${event.id}`}
             className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-ink-primary/60 hover:text-ink-primary hover:bg-line-default/[0.08] transition"
             aria-label="Open game page"
           >
@@ -327,7 +327,7 @@ const GameCard: React.FC<GameCardProps> = ({ event, fullGame, clips, team, onOpe
           {filtered.length > 0 && (
             <div className="px-4 mt-3">
               <Link
-                to={`/event/${event.id}`}
+                to={`/events/${event.id}`}
                 className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-surface-raised ring-1 ring-line-default/15 text-sm font-black text-ink-primary hover:bg-line-default/[0.08] transition"
               >
                 <svg className="w-4 h-4 text-brand-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>

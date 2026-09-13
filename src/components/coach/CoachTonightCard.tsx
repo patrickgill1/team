@@ -145,7 +145,7 @@ const CoachTonightCard: React.FC = () => {
     ? { label: 'Open Game Day mode', href: `/game-day/${event.id}` }
     : isPractice
       ? { label: 'Open practice plan', href: '/practice-plan' }
-      : { label: 'Open event', href: `/event/${event.id}` };
+      : { label: 'Open event', href: `/events/${event.id}` };
 
   return (
     <article className="relative rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 overflow-hidden animate-fade-in">
@@ -178,7 +178,7 @@ const CoachTonightCard: React.FC = () => {
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
           </Link>
           <Link
-            to={`/event/${event.id}`}
+            to={`/events/${event.id}`}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-ink-primary/85 hover:text-ink-primary font-semibold rounded-md text-[12px] tracking-wide ring-1 ring-line-default/15 hover:ring-bone/40 hover:bg-line-default/5 transition-colors"
           >
             View RSVPs

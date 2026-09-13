@@ -210,7 +210,7 @@ const CoachAccordionBar: React.FC = () => {
             priority: 'amber',
             label: 'Today',
             detail: `${data.title || 'Event'} · ${dt.toLocaleString(undefined, { hour: 'numeric', minute: '2-digit' })}`,
-            href: `/event/${today.id}`,
+            href: `/events/${today.id}`,
           });
         }
 

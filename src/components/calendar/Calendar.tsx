@@ -1010,7 +1010,7 @@ const EventCard: React.FC<EventCardProps> = ({
   const timeLabel = dt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
   const handleShare = async () => {
-    const url = `${getShareOrigin()}/event/${event.id}`;
+    const url = `${getShareOrigin()}/events/${event.id}`;
     try {
       if (typeof navigator !== 'undefined' && (navigator as any).share) {
         await (navigator as any).share({ url });

@@ -2258,16 +2258,43 @@ const PlayerMediaPage: React.FC = () => {
                   // External embed (YouTube / Trace) — drop their iframe
                   // straight into the lightbox. Both services handle their
                   // own player chrome + autoplay quirks.
-                  <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))] aspect-video rounded-lg overflow-hidden bg-black">
-                    <iframe
-                      key={selectedMedia.id}
-                      src={ensureYoutubeSafeParams((selectedMedia as any).embedUrl || selectedMedia.url)}
-                      title={selectedMedia.caption || selectedMedia.playerName}
-                      loading="lazy"
-                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
-                      allowFullScreen
-                      className="w-full h-full block border-0"
-                    />
+                  <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))]">
+                    <div className="w-full aspect-video rounded-lg overflow-hidden bg-black theme-ok">
+                      <iframe
+                        key={selectedMedia.id}
+                        src={ensureYoutubeSafeParams((selectedMedia as any).embedUrl || selectedMedia.url)}
+                        title={selectedMedia.caption || selectedMedia.playerName}
+                        loading="lazy"
+                        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
+                        allowFullScreen
+                        className="w-full h-full block border-0"
+                      />
+                    </div>
+                    {/* Fallback exit — the iframe throws Error 153 for
+                        certain videos even after the nocookie/origin
+                        normalization. Always-visible "Open on YouTube"
+                        link below the player so a broken embed is
+                        never a dead end. */}
+                    {(selectedMedia as any).source === 'youtube' && ((selectedMedia as any).embedUrl || selectedMedia.url) && (() => {
+                      const raw = String((selectedMedia as any).embedUrl || selectedMedia.url);
+                      const idMatch = raw.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+                      const youtubeWatch = idMatch ? `https://www.youtube.com/watch?v=${idMatch[1]}` : raw;
+                      return (
+                        <div className="mt-2 flex justify-end">
+                          <a
+                            href={youtubeWatch}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white/85 bg-black/60 hover:bg-black/80 px-2.5 py-1 rounded-full ring-1 ring-white/20 backdrop-blur-sm theme-ok"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8ZM9.6 15.6V8.4L15.8 12l-6.2 3.6Z"/>
+                            </svg>
+                            Open on YouTube
+                          </a>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : selectedMedia.streamUid ? (
                   <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))] aspect-video rounded-lg overflow-hidden bg-black">

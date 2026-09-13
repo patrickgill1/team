@@ -120,6 +120,12 @@ export const ensureYoutubeSafeParams = (url: string | null | undefined): string 
     if (!u.searchParams.has('playsinline')) u.searchParams.set('playsinline', '1');
     if (!u.searchParams.has('modestbranding')) u.searchParams.set('modestbranding', '1');
     if (!u.searchParams.has('rel')) u.searchParams.set('rel', '0');
+    // Explicit origin — YouTube's postMessage security check validates
+    // this against the caller. In Capacitor iOS WebViews the real
+    // origin (capacitor://localhost) fails that check; passing the
+    // app's public hostname is the standard workaround per Google's
+    // iframe API docs.
+    if (!u.searchParams.has('origin')) u.searchParams.set('origin', 'https://app.goalkickr.com');
     return u.toString();
   } catch {
     return url;

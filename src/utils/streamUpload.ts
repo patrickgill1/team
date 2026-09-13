@@ -132,12 +132,15 @@ export async function uploadToStream(
   if (!user) throw new Error('Not signed in');
   const idToken = await user.getIdToken();
 
-  // 1. Ask our server for a one-time direct-upload URL.
+  // 1. Ask our server for a one-time direct-upload URL. Files ≥ 100 MB
+  //    request useTus:true so the server creates a TUS-compatible
+  //    upload via CF's /stream?direct_user=true endpoint (returns a
+  //    Location header pointing at a resumable URL). Smaller files
+  //    keep the simpler direct_upload (single-POST) path.
   //    Use the absolute origin so the call works on the Capacitor
   //    iOS / Android shell, where window.location.origin is
   //    capacitor://localhost and a relative path 404s on the WebView.
-  //    On web, getShareOrigin returns the current origin so dev /
-  //    Vercel both keep working.
+  const wantsTus = file.size >= TUS_THRESHOLD_BYTES;
   const { getShareOrigin } = await import('./origin');
   const presignRes = await fetch(`${getShareOrigin()}/api/stream-upload-url`, {
     method: 'POST',
@@ -152,6 +155,7 @@ export async function uploadToStream(
       playerId: ctx.playerId,
       teamId: ctx.teamId,
       ...(ctx.feature ? { feature: ctx.feature } : {}),
+      ...(wantsTus ? { useTus: true } : {}),
     }),
   });
 
@@ -167,12 +171,12 @@ export async function uploadToStream(
   const { uploadURL, uid } = await presignRes.json();
   if (!uploadURL || !uid) throw new Error('Stream upload URL response missing fields');
 
-  // 2. Upload. Small files ride the fast single-POST path (one round
-  //    trip). Anything ≥ 100 MB uses TUS resumable chunks — required
-  //    for files > 200 MB (CF's single-POST cap) and gives us resume
-  //    on network drops for anything in between too.
-  if (file.size >= TUS_THRESHOLD_BYTES) {
-    await uploadViaTus(file, uploadURL, onProgress);
+  // 2. Upload. When the server returned a TUS URL (useTus branch),
+  //    tus-js-client PATCHes chunks to it in `uploadUrl` mode (upload
+  //    already exists server-side, no creation POST needed). Small
+  //    files ride the fast single-POST XHR path.
+  if (wantsTus) {
+    await uploadViaTusResume(file, uploadURL, onProgress);
   } else {
     await uploadViaSinglePost(file, uploadURL, onProgress);
   }
@@ -212,8 +216,12 @@ async function uploadViaSinglePost(
 }
 
 // TUS resumable path — chunks the file into 50 MB slices with retry.
-// Same CF direct-upload URL, PATCH requests with Upload-Offset.
-async function uploadViaTus(
+// The server has already created the upload on Cloudflare Stream via
+// POST /stream?direct_user=true with Upload-Length + Upload-Metadata,
+// and returned the Location header as `uploadURL`. We pass that as
+// tus-js-client's `uploadUrl` (not `endpoint`) so it PATCHes chunks
+// directly without a redundant creation POST.
+async function uploadViaTusResume(
   file: File,
   uploadURL: string,
   onProgress?: (percent: number) => void,
@@ -221,20 +229,9 @@ async function uploadViaTus(
   const tus = await import('tus-js-client');
   await new Promise<void>((resolve, reject) => {
     const upload = new tus.Upload(file, {
-      // CF Direct Creator Upload URLs act as both the single-POST
-      // target AND the TUS creation endpoint; passing endpoint here
-      // (rather than uploadUrl) tells tus-js-client to POST once to
-      // create the upload then PATCH-chunk to the returned location.
-      endpoint: uploadURL,
+      uploadUrl: uploadURL,
       chunkSize: TUS_CHUNK_SIZE,
       retryDelays: [0, 3000, 5000, 10000, 20000],
-      // Best-effort resume — key on file name+size so an interrupted
-      // upload of the same file resumes from where it stopped even
-      // after a page reload. Cheap insurance on flaky cellular.
-      metadata: {
-        filename: file.name,
-        filetype: file.type,
-      },
       onError: (err) => {
         reject(new Error(`Stream upload failed (tus): ${err.message || String(err)}`));
       },

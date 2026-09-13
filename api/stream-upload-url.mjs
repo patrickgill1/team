@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     }
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-    const { fileName, size, name, playerId, teamId, feature } = body;
+    const { fileName, size, name, playerId, teamId, feature, useTus } = body;
 
     const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
     const apiToken = process.env.CLOUDFLARE_STREAM_API_TOKEN;
@@ -80,6 +80,67 @@ export default async function handler(req, res) {
         console.error('paid-coach check failed:', e);
         return res.status(500).json({ error: 'subscription_check_failed', detail: e.message });
       }
+    }
+
+    // TUS branch — for files > 200 MB the single-POST direct_upload
+    // endpoint rejects with "Upload too large." TUS uses a different
+    // CF endpoint (POST /stream?direct_user=true) with Tus-Resumable
+    // + Upload-Length + Upload-Metadata headers. CF responds with a
+    // Location: header pointing at the resumable URL the browser
+    // then PATCHes chunks to (via tus-js-client). Same uid comes back
+    // in the stream-media-id response header.
+    if (useTus) {
+      const maxDuration = isGametape ? GAMETAPE_MAX_DURATION_SECONDS : MAX_DURATION_SECONDS;
+      const meta = {
+        name: name || fileName || 'untitled',
+        uploadedBy: userClaims.user_id || userClaims.sub,
+        ...(playerId ? { playerId } : {}),
+        ...(teamId ? { teamId } : {}),
+        ...(isGametape ? { feature: 'gametape' } : {}),
+        maxDurationSeconds: String(maxDuration),
+        expiry: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        allowedOrigins: '*',
+        requiresignedurls: 'false',
+      };
+      // Upload-Metadata is comma-separated key value pairs where the
+      // value is base64-encoded. TUS spec §5.4.
+      const encodedMeta = Object.entries(meta)
+        .filter(([, v]) => v != null && v !== '')
+        .map(([k, v]) => `${k} ${Buffer.from(String(v), 'utf8').toString('base64')}`)
+        .join(',');
+
+      const cfTusRes = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream?direct_user=true`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiToken}`,
+            'Tus-Resumable': '1.0.0',
+            'Upload-Length': String(size || 0),
+            'Upload-Metadata': encodedMeta,
+            'Upload-Creator': userClaims.user_id || userClaims.sub,
+          },
+        },
+      );
+
+      if (!cfTusRes.ok && cfTusRes.status !== 201) {
+        const text = await cfTusRes.text().catch(() => '');
+        console.error('Stream TUS create error:', cfTusRes.status, text);
+        return res.status(502).json({ error: 'Cloudflare Stream rejected the TUS upload', detail: text });
+      }
+
+      const uploadURL = cfTusRes.headers.get('location') || '';
+      const uid = cfTusRes.headers.get('stream-media-id') || '';
+      if (!uploadURL || !uid) {
+        console.error('Stream TUS response missing headers:', {
+          location: uploadURL,
+          streamMediaId: uid,
+          allHeaders: [...cfTusRes.headers.entries()],
+        });
+        return res.status(502).json({ error: 'Cloudflare Stream TUS response missing Location/stream-media-id' });
+      }
+
+      return res.status(200).json({ uploadURL, uid, mode: 'tus' });
     }
 
     // Stream expects "Upload-Length" + "Upload-Metadata" for TUS, but for the
@@ -137,6 +198,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       uploadURL: cfJson.result.uploadURL,
       uid: cfJson.result.uid,
+      mode: 'single',
     });
   } catch (err) {
     console.error('stream-upload-url error:', err);

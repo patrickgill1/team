@@ -1803,24 +1803,30 @@ const PlayerMediaPage: React.FC = () => {
               accessed from a game card's full-game tile, Photos via
               the 5th "Photos" chip below the primary tabs on wide
               screens, Reelkickr via the tab-bar route unchanged. */}
+          {/* Tab row — Patrick 2026-09-14: "clean up the pills so it
+              shows all across the top." At 375px the wrapped 2-row
+              layout was ugly; now single-row via smaller padding +
+              tighter font + trimmed labels ("Full Games" → "Full"),
+              with an overflow-x-auto safety valve for edge cases
+              (400% zoom, older iPhone SE at ~320px). */}
           <div
             role="tablist"
             aria-label="Media sections"
-            className="flex flex-wrap items-center gap-1 p-1 rounded-2xl bg-surface-raised ring-1 ring-line-default/15 shadow-inner"
+            className="flex items-center gap-0.5 p-1 rounded-2xl bg-surface-raised ring-1 ring-line-default/15 shadow-inner overflow-x-auto scrollbar-hide"
           >
             {([
               { key: 'games',       label: 'Games' },
-              { key: 'highlights',  label: 'Highlights' },
-              { key: 'fullgames',   label: 'Full Games' },
+              { key: 'highlights',  label: 'Reels' },
+              { key: 'fullgames',   label: 'Full' },
               { key: 'photos',      label: 'Photos' },
-              { key: 'collections', label: 'Collections' },
+              { key: 'collections', label: 'Sets' },
             ] as const).map(t => (
               <button
                 key={t.key}
                 role="tab"
                 aria-selected={activeTab === t.key}
                 onClick={() => setActiveTab(t.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all ${
+                className={`shrink-0 px-2.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all ${
                   activeTab === t.key
                     ? 'bg-brand-primary text-white shadow-sm'
                     : 'text-ink-secondary hover:text-ink-primary'
@@ -1830,22 +1836,21 @@ const PlayerMediaPage: React.FC = () => {
               </button>
             ))}
             {/* ReelKickr — navigates to the fullscreen TikTok-style
-                feed at /highlights. Kept in the tab row per user
-                request ("you got rid of reelkickr, i know people use
-                that") but visually distinct so it reads as a launch
-                point rather than an in-page section. */}
+                feed at /highlights. Distinct tint so it reads as a
+                launch point rather than an in-page section. Play
+                glyph reinforces "opens another surface." */}
             <button
               role="tab"
               aria-selected={false}
               onClick={() => navigate('/highlights')}
-              className="ml-auto sm:ml-1 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 flex items-center gap-1"
+              className="shrink-0 ml-auto px-2.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 flex items-center gap-1"
               title="Open the fullscreen ReelKickr feed"
               aria-label="Open ReelKickr"
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <polygon points="6 4 20 12 6 20 6 4" />
               </svg>
-              ReelKickr
+              Reel
             </button>
           </div>
           <div className="flex items-center gap-2">

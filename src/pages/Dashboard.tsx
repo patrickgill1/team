@@ -876,11 +876,21 @@ const Dashboard: React.FC = () => {
   // before the query flipped it to gold, which read as broken.
   const [isPotmThisWeek, setIsPotmThisWeek] = useState<boolean | null>(null);
   useEffect(() => {
+    // Reset to unknown on every deps change so a stale `false` from a
+    // previous team switch (or the pre-myPlayer render) doesn't leak
+    // into the "waiting for query" window. The render gate hides the
+    // hero card while null — atomic swap when the query resolves.
+    setIsPotmThisWeek(null);
     if (!selectedTeamId) { setIsPotmThisWeek(false); return; }
-    // Coach view (no myPlayer) never gets the gold treatment; resolve
-    // to false immediately so the render gate doesn't wait on a query
-    // whose result we're going to ignore.
-    if (!myPlayer) { setIsPotmThisWeek(false); return; }
+    // Parent-mode: myPlayer resolves asynchronously (parent-child
+    // linking + team roster join). If it hasn't arrived yet, DON'T
+    // set false — that was the 3.9.517 regression that reintroduced
+    // the normal-→-gold flash. Stay null; the effect re-runs when
+    // myPlayer.id becomes available (via the dep array below) and
+    // fires the query. Coach view never renders MyPlayerCard, so
+    // isPotmThisWeek staying null on that branch is harmless — the
+    // AdultHeroCard / no-linked-kid paths don't read it.
+    if (!myPlayer) return;
     let cancelled = false;
     (async () => {
       try {

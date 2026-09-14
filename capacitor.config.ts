@@ -33,6 +33,40 @@ const config: CapacitorConfig = {
     // from capacitor://localhost. Setting hostname to a real domain causes
     // WKWebView to attempt fetching from that domain instead of local files.
     androidScheme: 'https',
+    // 2026-09-14 Patrick: "i don't ever want to accept anything that is
+    // ugly and unprofessional." iosScheme was implicitly 'capacitor' —
+    // WebView origin was capacitor://localhost, which triggered:
+    //   1. iOS's fullscreen video overlay showing that URL (looked
+    //      like an error to users)
+    //   2. YouTube's embed player rejecting videos with Error 153
+    //      (required us to ship a worker-side proxy at /yt/:id)
+    //   3. Some auth flows working differently
+    // Switching to 'https' makes the WebView serve from
+    // https://localhost. Standard-looking origin, YouTube accepts it
+    // directly (proxy can eventually go away), fullscreen overlay
+    // reads as a normal https URL.
+    //
+    // REQUIRES A NATIVE REBUILD + APP STORE SUBMIT. Steps:
+    //   1. Bump native APP_VERSION in ios/App/App.xcodeproj
+    //   2. npx cap sync ios
+    //   3. Xcode → Product → Archive → distribute to TestFlight
+    //   4. Test in TestFlight (see release checklist below)
+    //   5. Submit to App Store review
+    //
+    // TESTFLIGHT CHECKLIST (things that could regress with https):
+    //   [ ] Sign in with Apple + Google (auth redirect origin)
+    //   [ ] Sign out + back in (session persistence)
+    //   [ ] Deep-link from a push notification (path routing)
+    //   [ ] Share sheet opens app for /events/:id, /media?clip=, etc.
+    //   [ ] Firestore reads (offline persistence stores keyed on origin)
+    //   [ ] YouTube video plays inline (should work directly now — no
+    //       proxy involvement even if the proxy code is still present)
+    //   [ ] Video upload (330+ MB) via TUS on cellular
+    //   [ ] Push notification receipt while app is backgrounded
+    //   [ ] Fullscreen video — iOS overlay should now read
+    //       "https://localhost/..." not "capacitor://..."
+    //   [ ] Registration Stripe redirect returns cleanly
+    iosScheme: 'https',
     // For local development you can flip this to your dev box and live-reload
     // the React app inside the iOS simulator. Leave commented for releases.
     // url: 'http://192.168.1.50:3000',

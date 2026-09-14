@@ -757,9 +757,15 @@ const PlayerMediaPage: React.FC = () => {
           // `m.url` still work (Safari will play HLS natively, and we render
           // the Stream iframe explicitly when streamUid is present).
           url = result.hlsUrl;
-          // Bump the team's video usage counters. Drives the quota
-          // gate on subsequent uploads + the admin Storage page.
-          void incrementTeamVideoUsage(selectedTeamId!, videoDurationSec);
+          // Counter bump moved to AFTER addPlayerMedia below. Prior
+          // shape fired incrementTeamVideoUsage here (right after
+          // Stream upload succeeded) which was wrong: if the
+          // subsequent Firestore player_media create was rejected
+          // (Jeff Rudinsky's case — hasActiveSub tripped on his null
+          // subscriptionExpiresAt, every retry incremented the counter
+          // AND orphaned a CF Stream video), the counter drifted
+          // higher than the actual doc count forever. Now the counter
+          // only increments when we know the doc landed.
         } else {
           const storagePath = `player_media/${selectedTeamId}/${isTeamHighlight ? 'team' : uploadPlayerId}/${Date.now()}_${file.name}`;
           url = await uploadFile(file, storagePath);
@@ -833,6 +839,16 @@ const PlayerMediaPage: React.FC = () => {
         const stampedMedia = await withSeasonId(mediaPayload);
 
         const newMediaId = await addPlayerMedia(stampedMedia);
+
+        // NOW bump the team's video usage counters — only reached
+        // if addPlayerMedia succeeded (no rules rejection, no network
+        // error). Moved here from immediately after Stream upload so
+        // failed writes don't leak the counter (see comment above the
+        // uploadToStream call for the full history). Video only —
+        // photo uploads don't touch these counters.
+        if (isVideo && streamUid) {
+          void incrementTeamVideoUsage(selectedTeamId!, videoDurationSec);
+        }
 
         // Auto-post videos to the team wall. Photos skipped silently
         // inside the helper — too high frequency to make sense pinned.

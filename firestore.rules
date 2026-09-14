@@ -108,7 +108,18 @@ service cloud.firestore {
       return isAuthed()
         && userDoc().subscriptionActive == true
         && (
+          // Field missing → indefinite active (Stripe webhook didn't
+          // stamp an expiry). Field explicitly null → same treatment;
+          // some webhook paths write null instead of omitting. The
+          // `null > request.time` comparison evaluates to false, so
+          // without this branch a null-not-missing expiry silently
+          // denied every write for coaches whose sub was flagged
+          // active indefinitely. Real user: Jeff Rudinsky
+          // (subscriptionActive:true, subscriptionExpiresAt:null) —
+          // uploads hit "Missing or insufficient permissions" for
+          // months while the team counter leaked on every retry.
           !('subscriptionExpiresAt' in userDoc())
+          || userDoc().subscriptionExpiresAt == null
           || userDoc().subscriptionExpiresAt > request.time
         );
     }
@@ -1284,40 +1295,46 @@ service cloud.firestore {
       // authed + team-scoped so nobody can walk the collection.
       // Supersedes the 2026-07-15 "no public share" note.
       allow get: if true;
-      // list + write gates now accept user.teamIds mirror OR the
-      // authoritative team.coachIds/managerIds arrays. The mirror can
-      // drift (a coach added by another coach might not have their
-      // user.teamIds back-populated by applyMembership), which meant
-      // the client-side canManageTeamMedia gate passed (it reads
-      // team.coachIds directly since 3.9.497) but Firestore rejected
-      // the write with "Missing or insufficient permissions" —
-      // exactly what the CLCF coach hit on an 11 MB upload.
-      // Extra get() cost on write is fine (rare vs. reads); the
-      // authoritative team-doc check plugs the mirror-drift gap.
+      // Team-membership gate that mirrors client canManageTeamMedia
+      // exactly, so any user the app UI lets attempt an upload can
+      // actually complete it. Historical failure mode: onTeam() reads
+      // userDoc().teamIds which drifts out of sync with the
+      // authoritative team.coachIds/managerIds arrays, so a coach
+      // added by another coach hits "Missing or insufficient
+      // permissions" at 100% upload even though the UI let them try.
+      //
+      // Accept paths (any one satisfies):
+      //  1. user.teamIds mirror (fast path, no team-doc get)
+      //  2. team.coachIds contains uid (isTeamCoach — authoritative)
+      //  3. team.managerIds contains uid (isTeamManager)
+      //  4. team.mediaUploaders contains uid — inline check since
+      //     there's no helper. This is the per-team override the
+      //     tracking-cam parent uses on Fire FC and CLCF's team-mom
+      //     seems to use too.
+      function _canWriteMediaForTeam(teamId) {
+        return isAuthed() && (
+          onTeam(teamId)
+          || isTeamCoach(teamId)
+          || isTeamManager(teamId)
+          || (
+            teamId is string
+            && exists(/databases/$(database)/documents/teams/$(teamId))
+            && 'mediaUploaders' in get(/databases/$(database)/documents/teams/$(teamId)).data
+            && get(/databases/$(database)/documents/teams/$(teamId)).data.mediaUploaders is list
+            && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.mediaUploaders
+          )
+        );
+      }
       allow list: if isPlatformAdmin()
-        || (resource != null && (
-             onTeam(resource.data.teamId)
-             || isTeamCoach(resource.data.teamId)
-             || isTeamManager(resource.data.teamId)
-           ));
-      allow create: if isAuthed()
-        && (
-             onTeam(request.resource.data.teamId)
-             || isTeamCoach(request.resource.data.teamId)
-             || isTeamManager(request.resource.data.teamId)
-           )
+        || (resource != null && _canWriteMediaForTeam(resource.data.teamId));
+      allow create: if _canWriteMediaForTeam(request.resource.data.teamId)
         && (
           // External-link path: any signed-in coach-on-team, no trial wall.
           request.resource.data.source in ['youtube', 'vimeo', 'trace']
           // Native-upload path: keep trial wall for platform-paid features.
           || canCoachWrite()
         );
-      allow update, delete: if isAuthed()
-        && (
-             onTeam(resource.data.teamId)
-             || isTeamCoach(resource.data.teamId)
-             || isTeamManager(resource.data.teamId)
-           );
+      allow update, delete: if _canWriteMediaForTeam(resource.data.teamId);
     }
 
     // Team gallery photos — same pattern as player_media, EXCEPT

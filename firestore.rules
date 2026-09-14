@@ -1284,16 +1284,40 @@ service cloud.firestore {
       // authed + team-scoped so nobody can walk the collection.
       // Supersedes the 2026-07-15 "no public share" note.
       allow get: if true;
-      allow list: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      // list + write gates now accept user.teamIds mirror OR the
+      // authoritative team.coachIds/managerIds arrays. The mirror can
+      // drift (a coach added by another coach might not have their
+      // user.teamIds back-populated by applyMembership), which meant
+      // the client-side canManageTeamMedia gate passed (it reads
+      // team.coachIds directly since 3.9.497) but Firestore rejected
+      // the write with "Missing or insufficient permissions" —
+      // exactly what the CLCF coach hit on an 11 MB upload.
+      // Extra get() cost on write is fine (rare vs. reads); the
+      // authoritative team-doc check plugs the mirror-drift gap.
+      allow list: if isPlatformAdmin()
+        || (resource != null && (
+             onTeam(resource.data.teamId)
+             || isTeamCoach(resource.data.teamId)
+             || isTeamManager(resource.data.teamId)
+           ));
       allow create: if isAuthed()
-        && onTeam(request.resource.data.teamId)
+        && (
+             onTeam(request.resource.data.teamId)
+             || isTeamCoach(request.resource.data.teamId)
+             || isTeamManager(request.resource.data.teamId)
+           )
         && (
           // External-link path: any signed-in coach-on-team, no trial wall.
           request.resource.data.source in ['youtube', 'vimeo', 'trace']
           // Native-upload path: keep trial wall for platform-paid features.
           || canCoachWrite()
         );
-      allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
+      allow update, delete: if isAuthed()
+        && (
+             onTeam(resource.data.teamId)
+             || isTeamCoach(resource.data.teamId)
+             || isTeamManager(resource.data.teamId)
+           );
     }
 
     // Team gallery photos — same pattern as player_media, EXCEPT

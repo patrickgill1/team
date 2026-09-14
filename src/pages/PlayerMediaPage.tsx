@@ -214,6 +214,11 @@ const PlayerMediaPage: React.FC = () => {
   // the recording. Fetched alongside media so we hit Firestore once
   // per team switch, not per section render. 2026-09-13.
   const [fullGames, setFullGames] = useState<any[]>([]);
+  // Match-of-the-match votings for the team. Piped into MediaGamesTab
+  // so each per-game card can render the POTM winner as a hero moment
+  // instead of the redundant "View All Clips" CTA (the clip strip is
+  // already scrollable inline). Keyed on gameId (calendar event id).
+  const [matchVotings, setMatchVotings] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isUserCoach = isStaffOfTeam(userData, selectedTeam);
@@ -384,6 +389,20 @@ const PlayerMediaPage: React.FC = () => {
       } catch (err) {
         console.warn('Could not load full_games', err);
         setFullGames([]);
+      }
+
+      // Match-of-the-match votings — one query, filtered to closed
+      // (has a winner) client-side. Keyed on gameId for the join in
+      // MediaGamesTab. Skips soft-deleted votings.
+      try {
+        const { where: fsW } = await import('firebase/firestore');
+        const mvDocs = await getDocuments('match_votings', [fsW('teamId', '==', selectedTeamId)]);
+        const closedWithWinner = (mvDocs as any[])
+          .filter(v => v.isActive === false && (v.winner || (Array.isArray(v.winners) && v.winners.length > 0)));
+        setMatchVotings(closedWithWinner);
+      } catch (err) {
+        console.warn('Could not load match_votings', err);
+        setMatchVotings([]);
       }
 
       const formattedMedia = mediaData.map((m: any) => ({
@@ -1810,6 +1829,24 @@ const PlayerMediaPage: React.FC = () => {
                 {t.label}
               </button>
             ))}
+            {/* ReelKickr — navigates to the fullscreen TikTok-style
+                feed at /highlights. Kept in the tab row per user
+                request ("you got rid of reelkickr, i know people use
+                that") but visually distinct so it reads as a launch
+                point rather than an in-page section. */}
+            <button
+              role="tab"
+              aria-selected={false}
+              onClick={() => navigate('/highlights')}
+              className="ml-auto sm:ml-1 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 flex items-center gap-1"
+              title="Open the fullscreen ReelKickr feed"
+              aria-label="Open ReelKickr"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <polygon points="6 4 20 12 6 20 6 4" />
+              </svg>
+              ReelKickr
+            </button>
           </div>
           <div className="flex items-center gap-2">
             {(activeTab === 'highlights' || activeTab === 'games') && canManageMedia && (
@@ -1842,6 +1879,7 @@ const PlayerMediaPage: React.FC = () => {
             players={players}
             events={allTeamEvents}
             fullGames={fullGames}
+            matchVotings={matchVotings}
             selectedTeam={selectedTeam}
             onOpenLightbox={(clipId: string) => {
               const target = media.find(m => m.id === clipId);

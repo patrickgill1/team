@@ -27,6 +27,12 @@ interface Props {
   players: Player[];
   events: any[];
   fullGames: any[];
+  /** Closed match_votings for the team (winner or winners set). Keyed
+   *  on gameId (which equals the calendar event id — see
+   *  worker/potmAutoCreate.ts:166). Used to render Player of the
+   *  Match on each game card instead of a "View All Clips" CTA
+   *  (which was redundant with the inline scroll strip). */
+  matchVotings?: any[];
   selectedTeam: Team | null;
   onOpenLightbox: (clipId: string) => void;
   onOpenFullGame?: (fullGameId: string) => void;
@@ -88,11 +94,13 @@ interface GameCardProps {
   fullGame: any | null;
   clips: PlayerMediaType[];
   team: Team | null;
+  players: Player[];
+  potm: any | null;
   onOpenLightbox: (clipId: string) => void;
   onOpenFullGame?: (fullGameId: string) => void;
 }
 
-const GameCard: React.FC<GameCardProps> = ({ event, fullGame, clips, team, onOpenLightbox, onOpenFullGame }) => {
+const GameCard: React.FC<GameCardProps> = ({ event, fullGame, clips, team, players, potm, onOpenLightbox, onOpenFullGame }) => {
   const [category, setCategory] = useState<CategoryKey>('all');
   const date = toDate(event.date);
   const opponent = String(event.opponent || 'Opponent').trim();
@@ -328,22 +336,84 @@ const GameCard: React.FC<GameCardProps> = ({ event, fullGame, clips, team, onOpe
             })}
           </div>
 
-          {/* View all → game detail page (EventDetail's Highlights section). */}
-          {filtered.length > 0 && (
-            <div className="px-4 mt-3">
-              <Link
-                to={`/events/${event.id}`}
-                className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-surface-raised ring-1 ring-line-default/15 text-sm font-black text-ink-primary hover:bg-line-default/[0.08] transition"
-              >
-                <svg className="w-4 h-4 text-brand-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
-                </svg>
-                View All {filtered.length} {filtered.length === 1 ? 'Clip' : 'Clips'}
-              </Link>
-            </div>
-          )}
         </div>
       )}
+      {/* Player of the Match — replaces the old "View All N Clips"
+          CTA (redundant since the clip strip is scrollable inline).
+          Reads match_votings joined on gameId. Handles single winner
+          + tied co-winners. Gold-accent treatment matches the POTM
+          theme used on the Dashboard hero. Silent-hides when no
+          POTM has been closed for this game yet. */}
+      {potm && (() => {
+        const winners: Array<{ playerId: string; playerName: string; voteCount: number }> =
+          Array.isArray(potm.winners) && potm.winners.length > 0
+            ? potm.winners
+            : (potm.winner ? [potm.winner] : []);
+        if (winners.length === 0) return null;
+        const isCoWin = winners.length > 1;
+        // Featured comment — first non-empty vote reason for a winner.
+        // Rotates naturally across game cards since votes are ordered
+        // by cast time; the "why" adds texture to what would otherwise
+        // be just a name.
+        const winnerIds = new Set(winners.map(w => w.playerId));
+        const featuredReason = (potm.votes || [])
+          .find((v: any) => winnerIds.has(v.playerId) && String(v.reason || '').trim().length > 0);
+        return (
+          <div className="mx-4 mb-4 mt-1">
+            <div className="rounded-xl bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-transparent ring-1 ring-amber-500/40 p-3 sm:p-4">
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-2">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M8 21h8" />
+                  <path d="M12 17v4" />
+                  <path d="M7 4h10v4a5 5 0 0 1-10 0V4z" />
+                  <path d="M17 6h2a2 2 0 0 1 0 4h-2.5" />
+                  <path d="M7 6H5a2 2 0 0 0 0 4h2.5" />
+                </svg>
+                {isCoWin ? 'Co-Players of the Match' : 'Player of the Match'}
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                {winners.map(w => {
+                  const p = players.find(pl => pl.id === w.playerId);
+                  const jersey = (p as any)?.jerseyNumber;
+                  const photo = (p as any)?.profilePhotoUrl || (p as any)?.photoUrl;
+                  return (
+                    <Link
+                      key={w.playerId}
+                      to={`/player/${w.playerId}`}
+                      className="group flex items-center gap-2.5 rounded-full pr-3 pl-1 py-1 bg-surface-raised ring-1 ring-amber-500/30 hover:ring-amber-500/60 transition"
+                    >
+                      {photo ? (
+                        <img loading="lazy" decoding="async" src={photo} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-400/60" />
+                      ) : (
+                        <span className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white text-sm font-black ring-2 ring-amber-400/60 theme-ok">
+                          {(w.playerName || '?').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <div className="text-sm font-black text-ink-primary leading-tight truncate">{w.playerName}</div>
+                        <div className="text-[10px] font-bold text-ink-primary/60 leading-tight tabular-nums">
+                          {jersey != null && jersey !== '' ? `#${jersey} · ` : ''}
+                          {w.voteCount} {w.voteCount === 1 ? 'vote' : 'votes'}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+              {featuredReason?.reason && (
+                <blockquote className="mt-3 pl-3 border-l-2 border-amber-500/50 text-[13px] italic text-ink-primary/85 leading-snug">
+                  "{String(featuredReason.reason).trim()}"
+                  {featuredReason.voterName && (
+                    <span className="not-italic text-[11px] text-ink-primary/55 font-semibold ml-1">
+                      — {featuredReason.voterName}
+                    </span>
+                  )}
+                </blockquote>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </article>
   );
 };
@@ -357,10 +427,23 @@ const MediaGamesTab: React.FC<Props> = ({
   players,
   events,
   fullGames,
+  matchVotings,
   selectedTeam,
   onOpenLightbox,
   onOpenFullGame,
 }) => {
+  // Precomputed eventId → POTM voting map. Uses gameId (which
+  // potmAutoCreate.ts stamps as the calendar event id), so the join
+  // to game events is exact — no fuzzy match. Falls back to
+  // calendarEventId for legacy docs that used that field name.
+  const potmByEventId = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const v of matchVotings || []) {
+      const key = String(v.gameId || v.calendarEventId || '');
+      if (key) map.set(key, v);
+    }
+    return map;
+  }, [matchVotings]);
   // Group clips by gameId. Only clips with a real gameId end up in a
   // section — unlinked clips don't have a game to belong to and would
   // just noise up an "Other" section. Coach can link retroactively
@@ -446,6 +529,8 @@ const MediaGamesTab: React.FC<Props> = ({
           fullGame={g.fullGame}
           clips={g.clips}
           team={selectedTeam}
+          players={players}
+          potm={potmByEventId.get(g.event.id) || null}
           onOpenLightbox={onOpenLightbox}
           onOpenFullGame={onOpenFullGame}
         />

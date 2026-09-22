@@ -44,14 +44,14 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
     ? poll.options.reduce((s, o) => s + o.voters.length, 0)
     : totalVoters.size;
 
-  const labelColor = ownTheme ? 'text-white/85' : 'text-ink-primary/65';
+  const labelColor = ownTheme ? 'text-white/85 theme-ok' : 'text-slate-600';
   const bgInactive = ownTheme ? 'bg-line-default/10 ring-line-default/20 theme-ok' : 'bg-gray-50 ring-gray-200';
   const bgActive = ownTheme ? 'bg-white text-brand-primary-dim ring-white theme-ok' : 'bg-brand-primary-soft ring-brand-primary-soft text-brand-primary-dim';
   const fillInactive = ownTheme ? 'bg-line-default/15' : 'bg-brand-primary-soft/60';
   const fillActive = ownTheme ? 'bg-line-default/35' : 'bg-brand-primary-soft/80';
 
   return (
-    <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${ownTheme ? 'bg-brand-primary text-white theme-ok' : 'bg-gray-100 text-ink-primary'}`}>
+    <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${ownTheme ? 'bg-brand-primary text-white theme-ok' : 'bg-gray-100 text-slate-900 theme-ok'}`}>
       <div className="flex items-center gap-1.5 mb-2">
         <span className="text-base">📊</span>
         <span className={`text-[10px] font-bold uppercase tracking-wider ${labelColor}`}>Poll</span>
@@ -114,10 +114,10 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-              <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/80">Voters</div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-slate-700 theme-ok">Voters</div>
               <button
                 onClick={() => setVotersOpen(false)}
-                className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 hover:text-ink-primary/90"
+                className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 hover:text-slate-800 theme-ok"
               >
                 Done
               </button>
@@ -126,17 +126,17 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
               {poll.options.map(opt => (
                 <div key={opt.id} className="border-b border-slate-100 last:border-b-0">
                   <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-                    <span className="text-sm font-bold text-ink-primary truncate">{opt.text}</span>
-                    <span className="text-[11px] font-bold tabular-nums text-ink-primary/65 flex-shrink-0 ml-2">
+                    <span className="text-sm font-bold text-slate-900 truncate theme-ok">{opt.text}</span>
+                    <span className="text-[11px] font-bold tabular-nums text-slate-600 flex-shrink-0 ml-2 theme-ok">
                       {opt.voters.length}
                     </span>
                   </div>
                   {opt.voters.length === 0 ? (
-                    <div className="px-4 py-2 text-[12px] text-ink-primary/55 italic">No votes yet.</div>
+                    <div className="px-4 py-2 text-[12px] text-slate-500 italic theme-ok">No votes yet.</div>
                   ) : (
                     <ul className="pb-2">
                       {opt.voters.map(uid => (
-                        <li key={uid} className="px-4 py-1 text-sm text-ink-primary/90">
+                        <li key={uid} className="px-4 py-1 text-sm text-slate-800 theme-ok">
                           {(getUserName ? getUserName(uid) : null) || 'Member'}
                           {uid === currentUserId && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-primary">You</span>}
                         </li>

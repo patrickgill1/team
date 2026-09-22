@@ -60,9 +60,9 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
         <div className="px-5 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated">
           <div>
             <h3 className="text-lg font-bold text-ink-primary">📊 New poll</h3>
-            <p className="text-xs text-ink-primary/65">Ask the thread a quick question.</p>
+            <p className="text-xs text-slate-600 theme-ok">Ask the thread a quick question.</p>
           </div>
-          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 text-ink-primary/65 theme-ok" aria-label="Close">
+          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 text-slate-600 theme-ok" aria-label="Close">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -71,7 +71,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
 
         <div className="p-5 space-y-4 overflow-y-auto">
           <div>
-            <label className="block text-sm font-medium text-ink-primary/90 mb-1">Question</label>
+            <label className="block text-sm font-medium text-slate-800 mb-1 theme-ok">Question</label>
             <input
               type="text"
               autoFocus
@@ -85,7 +85,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-ink-primary/90 mb-1">Options</label>
+            <label className="block text-sm font-medium text-slate-800 mb-1 theme-ok">Options</label>
             <div className="space-y-2">
               {options.map((o, i) => (
                 <div key={i} className="flex items-center gap-2">
@@ -101,7 +101,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
                   {options.length > 2 && (
                     <button
                       onClick={() => removeOption(i)}
-                      className="text-ink-primary/55 hover:text-rose-600 p-1"
+                      className="text-slate-500 hover:text-rose-600 p-1 theme-ok"
                       aria-label="Remove option"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -122,7 +122,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-ink-primary/90">
+          <label className="flex items-center gap-2 text-sm text-slate-800 theme-ok">
             <input
               type="checkbox"
               checked={multi}
@@ -134,7 +134,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
         </div>
 
         <div className="border-t border-gray-100 p-4 flex items-center justify-end gap-2 bg-gray-50 theme-ok">
-          <button onClick={handleClose} className="px-4 py-2 text-sm font-semibold text-ink-primary/90 hover:text-ink-primary">
+          <button onClick={handleClose} className="px-4 py-2 text-sm font-semibold text-slate-800 hover:text-slate-900 theme-ok">
             Cancel
           </button>
           <button

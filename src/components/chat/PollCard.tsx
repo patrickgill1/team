@@ -53,7 +53,14 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
   return (
     <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${ownTheme ? 'bg-brand-primary text-white theme-ok' : 'bg-gray-100 text-slate-900 theme-ok'}`}>
       <div className="flex items-center gap-1.5 mb-2">
-        <span className="text-base">📊</span>
+        {/* Ascending-bars glyph — matches the New poll modal header
+            (feedback_no_emojis: replace 📊). Inherits currentColor
+            from labelColor so it flips theme with the bubble. */}
+        <svg className={`w-3.5 h-3.5 ${labelColor}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <line x1="7"  y1="20" x2="7"  y2="14" />
+          <line x1="12" y1="20" x2="12" y2="9" />
+          <line x1="17" y1="20" x2="17" y2="4" />
+        </svg>
         <span className={`text-[10px] font-bold uppercase tracking-wider ${labelColor}`}>Poll</span>
       </div>
       <p className="font-bold text-[15px] leading-snug mb-2.5">{poll.question}</p>

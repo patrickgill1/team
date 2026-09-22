@@ -57,14 +57,33 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
         className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-full flex flex-col theme-ok"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated">
-          <div>
-            <h3 className="text-lg font-bold text-ink-primary">📊 New poll</h3>
-            <p className="text-xs text-slate-600 theme-ok">Ask the thread a quick question.</p>
+        <div className="relative px-5 py-4 border-b border-line-default/10 flex items-center justify-between bg-surface-elevated overflow-hidden">
+          {/* Subtle brand wash behind the icon — anchors the header
+              without shouting. Sits behind the icon column only. */}
+          <div aria-hidden className="absolute -left-8 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-brand-primary/15 blur-2xl pointer-events-none" />
+          <div className="relative flex items-center gap-3 min-w-0">
+            {/* Ascending-bars glyph, rounded strokes, brand color.
+                Replaces the shipped 📊 per feedback_no_emojis. */}
+            <span className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-brand-primary/15 ring-1 ring-brand-primary/25 text-brand-primary">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <line x1="7"  y1="20" x2="7"  y2="14" />
+                <line x1="12" y1="20" x2="12" y2="9" />
+                <line x1="17" y1="20" x2="17" y2="4" />
+              </svg>
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-base font-black tracking-tight text-ink-primary leading-tight">New poll</h3>
+              <p className="text-[11px] font-semibold text-ink-secondary leading-tight mt-0.5">Ask the thread a quick question.</p>
+            </div>
           </div>
-          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 text-slate-600 theme-ok" aria-label="Close">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <button
+            onClick={handleClose}
+            className="relative shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-ink-primary/60 hover:text-ink-primary hover:bg-line-default/[0.08] transition"
+            aria-label="Close"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>

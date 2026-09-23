@@ -110,7 +110,7 @@ const NotificationPreferences: React.FC = () => {
     try {
       if (Capacitor.isNativePlatform()) {
         await registerPushNotifications(async (token: string) => {
-          await updateDoc(doc(db, 'users', userData.uid), { fcmTokens: arrayUnion(token) });
+          await updateDoc(doc(db, 'users', userData.uid), { fcmTokens: [token] /* overwrite; see utils/push.ts */ });
         });
         setPermState(await getPushPermissionState());
       } else {

@@ -732,7 +732,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     import('../utils/nativeShell').then(({ registerPushNotifications }) => {
       registerPushNotifications(async (token: string) => {
         try {
-          await updateDoc(doc(db, 'users', userId), { fcmTokens: arrayUnion(token) });
+          await updateDoc(doc(db, 'users', userId), { fcmTokens: [token] /* overwrite; see utils/push.ts */ });
         } catch (err) {
           debugWarn('Failed to save fcmToken:', err);
         }

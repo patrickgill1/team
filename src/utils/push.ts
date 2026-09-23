@@ -73,8 +73,19 @@ export async function enablePushForUser(userId) {
   if (!token) return { ok: false, error: 'no-token' };
 
   try {
+    // Overwrite the whole array instead of arrayUnion. Prior shape
+    // accumulated stale tokens across every install / OS token
+    // rotation / reinstall — Patrick's own account had 10 tokens,
+    // 2+ of which still routed to his current device, causing DM
+    // pushes to fire twice with jitter delay. Overwriting on every
+    // fresh registration keeps exactly ONE live token per uid.
+    // Trade-off: coaches with GoalKickr on multiple devices only get
+    // push on the most-recently-opened device. Multi-device is a
+    // corner case in youth soccer parent land; simplicity wins.
+    // If we ever need multi-device push, migrate fcmTokens to
+    // Array<{token, lastSeenAt, deviceHint}> with 30d prune.
     await updateDoc(doc(db, 'users', userId), {
-      fcmTokens: arrayUnion(token),
+      fcmTokens: [token],
       pushEnabledAt: new Date(),
     });
   } catch (e) {

@@ -50,7 +50,7 @@ const NotificationsBanner: React.FC = () => {
           // Granted but no token — re-register so the listener writes one.
           try {
             await registerPushNotifications(async (token: string) => {
-              await updateDoc(doc(db, 'users', userData.uid), { fcmTokens: arrayUnion(token) });
+              await updateDoc(doc(db, 'users', userData.uid), { fcmTokens: [token] /* overwrite; see utils/push.ts */ });
             });
             setState('hidden');
           } catch {
@@ -76,7 +76,7 @@ const NotificationsBanner: React.FC = () => {
     try {
       if (Capacitor.isNativePlatform()) {
         await registerPushNotifications(async (token: string) => {
-          await updateDoc(doc(db, 'users', userData.uid), { fcmTokens: arrayUnion(token) });
+          await updateDoc(doc(db, 'users', userData.uid), { fcmTokens: [token] /* overwrite; see utils/push.ts */ });
         });
         // Re-check — if still denied, surface the settings help.
         const perm = await getPushPermissionState();

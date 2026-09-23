@@ -383,7 +383,7 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
                       setUploadingVideo(false);
                     }
                   }}
-                  className="block w-full text-xs text-ink-primary/80 file:mr-2 file:px-3 file:py-1.5 file:rounded file:ring-1 file:ring-slate-200 file:bg-white file:text-ink-primary/90 file:font-bold file:hover:bg-slate-50 file:cursor-pointer theme-ok"
+                  className="block w-full text-xs text-slate-700 file:mr-2 file:px-3 file:py-1.5 file:rounded file:ring-1 file:ring-slate-200 file:bg-white file:text-slate-800 file:font-bold file:hover:bg-slate-50 file:cursor-pointer theme-ok"
                 />
                 <p className="text-[10px] text-ink-primary/65 mt-1">A short clip from you welcoming the player. Renders on the offer page they open from the email.</p>
               </label>

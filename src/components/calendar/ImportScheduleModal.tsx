@@ -374,7 +374,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
                       style={{ colorScheme: 'light' }}
-                      className="w-full px-3 py-2 text-sm text-ink-primary border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40 bg-white theme-ok"
+                      className="w-full px-3 py-2 text-sm text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40 bg-white theme-ok"
                     />
                   </div>
                 </div>

@@ -132,7 +132,7 @@ const NotificationsBanner: React.FC = () => {
           </p>
 
           {showSettingsHelp && state === 'denied' && (
-            <div className="mt-2 bg-white border border-slate-200 rounded-lg p-2.5 text-[11px] text-ink-primary/90 leading-relaxed theme-ok">
+            <div className="mt-2 bg-white border border-slate-200 rounded-lg p-2.5 text-[11px] text-slate-800 leading-relaxed theme-ok">
               {platform === 'ios' ? (
                 <>
                   <b>iOS:</b> Settings → Notifications → GoalKickr → toggle <b>Allow Notifications</b> on.

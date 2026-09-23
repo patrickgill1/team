@@ -1180,7 +1180,7 @@ const Navigation: React.FC = () => {
               <button
                 onClick={() => setShowDeleteAccount(false)}
                 disabled={deletingAccount}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-ink-primary/90 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 theme-ok"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-800 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 theme-ok"
               >
                 Cancel
               </button>

@@ -317,7 +317,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                   />
                   <label
                     htmlFor="add-more-photos"
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-ink-primary/90 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer theme-ok"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-slate-800 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer theme-ok"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

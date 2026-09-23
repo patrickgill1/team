@@ -2727,7 +2727,7 @@ const TeamChat: React.FC = () => {
             value={dmSearch}
             onChange={e => setDmSearch(e.target.value)}
             placeholder="Search by name or player..."
-            className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 text-base"
+            className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 text-base theme-ok"
             style={{ fontSize: '16px' }}
             autoFocus
           />

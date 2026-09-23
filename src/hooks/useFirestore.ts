@@ -777,46 +777,92 @@ const getUserData = useCallback(async (uid: string) => {
   const subscribeToChatThreads = useCallback((teamIdOrIds: string | string[], callback: (threads: ChatThread[]) => void) => {
     const ids = Array.isArray(teamIdOrIds) ? teamIdOrIds : [teamIdOrIds];
     const cleanIds = ids.filter(Boolean).slice(0, 30); // Firestore in-query max
-    if (cleanIds.length === 0) { callback([]); return () => {}; }
-    const q = query(
-      collection(db, 'chat_threads'),
-      where('teamId', 'in', cleanIds),
-      orderBy('isPinned', 'desc'),
-      orderBy('lastActivity', 'desc')
-    );
+    // Team-scoped query — channels, coaches chats, admin threads.
+    // DMs are handled SEPARATELY below because their teamId reflects
+    // the creator's team-at-create, which may not be in the current
+    // user's teamIds (cross-team DM, coach removed from a team, DM
+    // predates schema). Filtering DMs by teamId dropped them from
+    // the inbox even though the thread still existed and both parts
+    // were in participants[]. Real user hit: Patrick DM'd a CLCF
+    // coach; thread vanished from inbox but was still findable via
+    // getOrCreateDMThread. 2026-09-23.
+    const emit = (teamThreads: ChatThread[], dmThreads: ChatThread[]) => {
+      // De-dup by id (a DM created via legacy path could match both
+      // queries when its teamId is in cleanIds). DM subscription wins
+      // because its snapshot is authoritative for DM shape.
+      const byId = new Map<string, ChatThread>();
+      for (const t of teamThreads) byId.set(t.id, t);
+      for (const t of dmThreads) byId.set(t.id, t);
+      callback(Array.from(byId.values()));
+    };
+    let lastTeamThreads: ChatThread[] = [];
+    let lastDmThreads: ChatThread[] = [];
 
-    return onSnapshot(q, (querySnapshot) => {
-      const threads = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        // Same ordering as subscribeToChatMessages: spread raw `data`
-        // FIRST so the explicit Firestore-Timestamp→Date conversions
-        // win and the threads' dates aren't reverted to raw Timestamps.
-        return {
-          ...data,
-          id: doc.id,
-          title: data.title || '',
-          description: data.description || '',
-          teamId: data.teamId || '',
-          createdBy: data.createdBy || '',
-          createdByName: data.createdByName || '',
-          createdAt: data.createdAt?.toDate?.() || new Date(),
-          lastActivity: data.lastActivity?.toDate?.() || new Date(),
-          isPinned: data.isPinned || false,
-          isPrivate: data.isPrivate || false,
-          messageCount: data.messageCount || 0,
-          participants: data.participants || [],
-          tags: data.tags || [],
-        } as ChatThread;
-      });
-      callback(threads);
-    }, (error) => {
-      const code = (error as any)?.code;
+    const decode = (doc: any): ChatThread => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        title: data.title || '',
+        description: data.description || '',
+        teamId: data.teamId || '',
+        createdBy: data.createdBy || '',
+        createdByName: data.createdByName || '',
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        lastActivity: data.lastActivity?.toDate?.() || new Date(),
+        isPinned: data.isPinned || false,
+        isPrivate: data.isPrivate || false,
+        messageCount: data.messageCount || 0,
+        participants: data.participants || [],
+        tags: data.tags || [],
+      } as ChatThread;
+    };
+    const handleError = (label: string) => (error: any) => {
+      const code = error?.code;
       if (code === 'permission-denied' || code === 'unauthenticated') {
-        debugWarn('Threads subscription denied (auth transition):', error);
+        debugWarn(`${label} subscription denied (auth transition):`, error);
       } else {
-        console.error('Error in threads subscription:', error);
+        console.error(`Error in ${label} subscription:`, error);
       }
-    });
+    };
+
+    const meUid = auth.currentUser?.uid;
+
+    // DM subscription — every DM I'm a participant in, regardless of
+    // what teamId got stamped on it at create.
+    let unsubDm: (() => void) | null = null;
+    if (meUid) {
+      const dmQ = query(
+        collection(db, 'chat_threads'),
+        where('isDM', '==', true),
+        where('participants', 'array-contains', meUid),
+      );
+      unsubDm = onSnapshot(dmQ, (snap) => {
+        lastDmThreads = snap.docs.map(decode);
+        emit(lastTeamThreads, lastDmThreads);
+      }, handleError('DM threads'));
+    }
+
+    // Team subscription — everything else (channels, coaches, admins).
+    let unsubTeam: (() => void) | null = null;
+    if (cleanIds.length > 0) {
+      const teamQ = query(
+        collection(db, 'chat_threads'),
+        where('teamId', 'in', cleanIds),
+        orderBy('isPinned', 'desc'),
+        orderBy('lastActivity', 'desc'),
+      );
+      unsubTeam = onSnapshot(teamQ, (snap) => {
+        lastTeamThreads = snap.docs.map(decode);
+        emit(lastTeamThreads, lastDmThreads);
+      }, handleError('team threads'));
+    } else {
+      // No team memberships → fire an immediate empty team list so the
+      // DM subscription can still deliver.
+      emit([], lastDmThreads);
+    }
+
+    return () => { unsubDm?.(); unsubTeam?.(); };
   }, []);
 
   /**

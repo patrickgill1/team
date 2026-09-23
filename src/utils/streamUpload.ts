@@ -6,6 +6,7 @@
 // ready depending on length. The UI should treat `streamReady` as eventually
 // true and fall back to a "Processing…" state until then.
 
+import * as Sentry from '@sentry/react';
 import { auth } from './firebase';
 
 // -----------------------------------------------------------------------------
@@ -123,14 +124,100 @@ const TUS_THRESHOLD_BYTES = 100 * 1024 * 1024; // 100 MB
 // cellular; small enough to fit in WebView memory even on iPhone SE.
 const TUS_CHUNK_SIZE = 50 * 1024 * 1024;
 
+// Single-POST attempts before giving up on a network-level failure. Each
+// retry asks for a FRESH direct-upload URL (they're one-time use), so a
+// half-consumed URL from the failed attempt can't poison the retry. The
+// abandoned URL expires server-side after 1h with zero bytes stored.
+const SINGLE_POST_ATTEMPTS = 3;
+const SINGLE_POST_RETRY_DELAYS_MS = [2000, 5000];
+
+// Android WebView (Chromium) records a picked file's size + modified time
+// when <input type="file"> hands it to JS, then re-checks both when the
+// request body is read. Content-URI-backed files (Google Photos, Gallery,
+// cloud-synced clips) routinely fail that check, so Chromium aborts with
+// net::ERR_UPLOAD_FILE_CHANGED before a single byte leaves the phone. JS
+// only sees a bare XHR "network error" at 0%, and every retry fails the
+// same way. Nick Barker hit this 5/5 times on 2026-09-22 (five
+// pendingupload videos in CF, all 0 bytes). Uploading an in-memory copy
+// has no disk file behind it, so there is nothing to re-check.
+//
+// Single-POST files are < TUS_THRESHOLD_BYTES (100 MB), and TUS reads one
+// TUS_CHUNK_SIZE (50 MB) slice at a time, so peak memory stays bounded.
+class FileReadError extends Error {}
+
+async function readIntoMemory(blob: Blob): Promise<Blob> {
+  try {
+    const buf = await blob.arrayBuffer();
+    return new Blob([buf], { type: blob.type });
+  } catch (err: any) {
+    throw new FileReadError(
+      "We couldn't open that video on this phone. Try picking it again. " +
+      'If it lives in Google Photos or iCloud, save it to the phone first. ' +
+      `(read-failed: ${err?.name || err?.message || 'unknown'})`
+    );
+  }
+}
+
+class StreamNetworkError extends Error {
+  constructor(public bytesSent: number) {
+    super('Stream upload network error');
+  }
+}
+
+function networkFailureMessage(attempts: number): string {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return "Looks like you're offline. Check your connection and try again. (offline)";
+  }
+  return (
+    `We couldn't reach the video server after ${attempts} tries. ` +
+    'Check your Wi-Fi or cell signal and try again. (network)'
+  );
+}
+
 export async function uploadToStream(
   file: File,
   ctx: StreamUploadContext = {},
   onProgress?: (percent: number) => void
 ): Promise<StreamUploadResult> {
+  const wantsTus = file.size >= TUS_THRESHOLD_BYTES;
+  try {
+    return await uploadToStreamInner(file, ctx, wantsTus, onProgress);
+  } catch (err: any) {
+    // Every video upload surface funnels through here, so this is the one
+    // place that reports failures with enough context to diagnose from
+    // Sentry instead of from a coach's screenshot.
+    Sentry.captureException(err, {
+      tags: {
+        area: 'stream-upload',
+        mode: wantsTus ? 'tus' : 'single',
+        kind: err instanceof FileReadError ? 'read' : err instanceof StreamNetworkError ? 'network' : 'other',
+      },
+      extra: {
+        size: file.size,
+        type: file.type,
+        name: file.name,
+        feature: ctx.feature,
+        teamId: ctx.teamId,
+        online: typeof navigator !== 'undefined' ? navigator.onLine : undefined,
+        bytesSent: err instanceof StreamNetworkError ? err.bytesSent : undefined,
+      },
+    });
+    throw err;
+  }
+}
+
+async function uploadToStreamInner(
+  file: File,
+  ctx: StreamUploadContext,
+  wantsTus: boolean,
+  onProgress?: (percent: number) => void
+): Promise<StreamUploadResult> {
   const user = auth.currentUser;
   if (!user) throw new Error('Not signed in');
-  const idToken = await user.getIdToken();
+
+  // Pull small files into memory BEFORE asking for an upload URL so a
+  // read failure never burns a CF direct-upload slot. See readIntoMemory.
+  const body = wantsTus ? null : await readIntoMemory(file);
 
   // 1. Ask our server for a one-time direct-upload URL. Files ≥ 100 MB
   //    request useTus:true so the server creates a TUS-compatible
@@ -140,45 +227,68 @@ export async function uploadToStream(
   //    Use the absolute origin so the call works on the Capacitor
   //    iOS / Android shell, where window.location.origin is
   //    capacitor://localhost and a relative path 404s on the WebView.
-  const wantsTus = file.size >= TUS_THRESHOLD_BYTES;
   const { getShareOrigin } = await import('./origin');
-  const presignRes = await fetch(`${getShareOrigin()}/api/stream-upload-url`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({
-      fileName: file.name,
-      name: ctx.name || file.name,
-      size: file.size,
-      playerId: ctx.playerId,
-      teamId: ctx.teamId,
-      ...(ctx.feature ? { feature: ctx.feature } : {}),
-      ...(wantsTus ? { useTus: true } : {}),
-    }),
-  });
+  const requestUploadUrl = async (): Promise<{ uploadURL: string; uid: string }> => {
+    const idToken = await user.getIdToken();
+    const presignRes = await fetch(`${getShareOrigin()}/api/stream-upload-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        name: ctx.name || file.name,
+        size: file.size,
+        playerId: ctx.playerId,
+        teamId: ctx.teamId,
+        ...(ctx.feature ? { feature: ctx.feature } : {}),
+        ...(wantsTus ? { useTus: true } : {}),
+      }),
+    });
 
-  if (!presignRes.ok) {
-    const text = await presignRes.text();
-    // Preserve the HTTP status so upstream callers (e.g. the Gametape
-    // compose flow) can distinguish 402 paid-coach-required from a
-    // generic upload failure and swap the surfaced copy.
-    const err: any = new Error(`Stream upload URL request failed (${presignRes.status}): ${text}`);
-    err.status = presignRes.status;
-    throw err;
-  }
-  const { uploadURL, uid } = await presignRes.json();
-  if (!uploadURL || !uid) throw new Error('Stream upload URL response missing fields');
+    if (!presignRes.ok) {
+      const text = await presignRes.text();
+      // Preserve the HTTP status so upstream callers (e.g. the Gametape
+      // compose flow) can distinguish 402 paid-coach-required from a
+      // generic upload failure and swap the surfaced copy.
+      const err: any = new Error(`Stream upload URL request failed (${presignRes.status}): ${text}`);
+      err.status = presignRes.status;
+      throw err;
+    }
+    const { uploadURL, uid } = await presignRes.json();
+    if (!uploadURL || !uid) throw new Error('Stream upload URL response missing fields');
+    return { uploadURL, uid };
+  };
 
   // 2. Upload. When the server returned a TUS URL (useTus branch),
   //    tus-js-client PATCHes chunks to it in `uploadUrl` mode (upload
-  //    already exists server-side, no creation POST needed). Small
-  //    files ride the fast single-POST XHR path.
+  //    already exists server-side, no creation POST needed) and handles
+  //    its own retries. Small files ride the fast single-POST XHR path,
+  //    retried here with a fresh URL on network-level failures.
+  let uid: string;
   if (wantsTus) {
-    await uploadViaTusResume(file, uploadURL, onProgress);
+    const presign = await requestUploadUrl();
+    uid = presign.uid;
+    await uploadViaTusResume(file, presign.uploadURL, onProgress);
   } else {
-    await uploadViaSinglePost(file, uploadURL, onProgress);
+    for (let attempt = 1; ; attempt++) {
+      const presign = await requestUploadUrl();
+      try {
+        await uploadViaSinglePost(body!, file.name, presign.uploadURL, onProgress);
+        uid = presign.uid;
+        break;
+      } catch (err) {
+        if (!(err instanceof StreamNetworkError)) throw err;
+        if (attempt >= SINGLE_POST_ATTEMPTS) {
+          const final: any = new StreamNetworkError(err.bytesSent);
+          final.message = networkFailureMessage(attempt);
+          throw final;
+        }
+        onProgress?.(0);
+        await new Promise(r => setTimeout(r, SINGLE_POST_RETRY_DELAYS_MS[attempt - 1] ?? 5000));
+      }
+    }
   }
 
   return {
@@ -191,29 +301,50 @@ export async function uploadToStream(
 
 // Legacy single-POST path — retained for small clips because it's one
 // round trip and doesn't require the tus-js-client bundle to load.
+// `body` must be an in-memory Blob (see readIntoMemory), never the
+// picked File itself.
 async function uploadViaSinglePost(
-  file: File,
+  body: Blob,
+  fileName: string,
   uploadURL: string,
   onProgress?: (percent: number) => void,
 ): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    let bytesSent = 0;
     xhr.open('POST', uploadURL);
-    if (onProgress) {
-      xhr.upload.onprogress = e => {
-        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
-      };
-    }
+    xhr.upload.onprogress = e => {
+      bytesSent = e.loaded;
+      if (onProgress && e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve();
       else reject(new Error(`Stream upload failed (${xhr.status}): ${xhr.responseText}`));
     };
-    xhr.onerror = () => reject(new Error('Stream upload network error'));
+    xhr.onerror = () => reject(new StreamNetworkError(bytesSent));
+    xhr.ontimeout = () => reject(new StreamNetworkError(bytesSent));
     const form = new FormData();
-    form.append('file', file, file.name);
+    form.append('file', body, fileName);
     xhr.send(form);
   });
 }
+
+// tus-js-client reads chunks with file.slice(), which on Android is still
+// backed by the picked file and trips the same ERR_UPLOAD_FILE_CHANGED
+// check as the single POST. This reader copies each chunk into memory
+// first. Shape matches tus-js-client's FileReader / FileSource interfaces.
+const inMemoryChunkReader = {
+  async openFile(input: Blob) {
+    return {
+      size: input.size,
+      async slice(start: number, end: number) {
+        const value = await readIntoMemory(input.slice(start, end));
+        return { value, done: end >= input.size };
+      },
+      close() {},
+    };
+  },
+};
 
 // TUS resumable path — chunks the file into 50 MB slices with retry.
 // The server has already created the upload on Cloudflare Stream via
@@ -231,9 +362,12 @@ async function uploadViaTusResume(
     const upload = new tus.Upload(file, {
       uploadUrl: uploadURL,
       chunkSize: TUS_CHUNK_SIZE,
+      fileReader: inMemoryChunkReader,
       retryDelays: [0, 3000, 5000, 10000, 20000],
       onError: (err) => {
-        reject(new Error(`Stream upload failed (tus): ${err.message || String(err)}`));
+        // Surface the friendly read-failed copy as-is; wrap everything else.
+        if (err instanceof FileReadError) reject(err);
+        else reject(new Error(`Stream upload failed (tus): ${err.message || String(err)}`));
       },
       onProgress: (bytesUploaded, bytesTotal) => {
         if (onProgress && bytesTotal > 0) {

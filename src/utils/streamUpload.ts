@@ -160,9 +160,17 @@ async function readIntoMemory(blob: Blob): Promise<Blob> {
     const buf = await blob.arrayBuffer();
     return new Blob([buf], { type: blob.type });
   } catch (err: any) {
+    // 2026-09-23: prior copy assumed cloud-only files. Real cause is
+    // usually Google Photos handing back a
+    // content://com.google.android.apps.photos.contentprovider/ URI
+    // that Android WebView cannot read, even when the file is local
+    // (coach saw "Delete from device" in Photos, confirmed local, but
+    // read still failed). Directing them to the Files or Gallery app
+    // gives a normal file:// URI that reads fine.
     throw new FileReadError(
-      "We couldn't open that video on this phone. Try picking it again. " +
-      'If it lives in Google Photos or iCloud, save it to the phone first. ' +
+      "We couldn't open that video from where it lives. " +
+      'When the picker opens, tap the menu (top-left) and choose Files, Gallery, or Downloads instead of Photos, ' +
+      'then pick the video from there. ' +
       `(read-failed: ${err?.name || err?.message || 'unknown'})`
     );
   }

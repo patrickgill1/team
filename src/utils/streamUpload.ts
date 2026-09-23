@@ -115,10 +115,20 @@ export interface StreamUploadContext {
 // URL but PATCH in chunks with Upload-Offset headers, so we can go up
 // to CF's 30 GB TUS cap AND survive cellular blips mid-upload.
 //
-// Threshold set well below the 200 MB single-POST cap so we don't
-// have to reason about "was this exactly at the limit" edge cases;
-// 100 MB gives us headroom for CF's multipart overhead.
-const TUS_THRESHOLD_BYTES = 100 * 1024 * 1024; // 100 MB
+// TUS is now the default for ALL uploads. Threshold was 100 MB (small
+// files → single-POST XHR, large → TUS) but the single-POST path kept
+// failing at 0% on Android WebView with "Stream upload network error"
+// even after the in-memory-blob + retry fixes. Root cause was
+// intermittent CORS / connection-establishment failure with CF's
+// upload.videodelivery.net endpoint from https://localhost origin —
+// hard to reproduce, coach reports of "0/17 tagged, 0%, upload
+// failed" kept arriving. TUS uses fetch() internally with its own
+// retry backoff, works over the same connection semantics that
+// succeed for 330 MB uploads, and eliminates the whole failure
+// surface for one code path. Trade-off: small clips do 2 round trips
+// (create + PATCH) instead of 1 — imperceptible on any modern
+// connection, worth it for the reliability. 2026-09-23.
+const TUS_THRESHOLD_BYTES = 0; // Always use TUS.
 // Chunk size used by tus-js-client. 50 MB is a good balance between
 // upload-progress granularity and per-request overhead on flaky
 // cellular; small enough to fit in WebView memory even on iPhone SE.

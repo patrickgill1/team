@@ -17,7 +17,7 @@ import {
   QueryConstraint,
   limit
 } from 'firebase/firestore';
-import { db } from '../utils/firebase';
+import { db, auth } from '../utils/firebase';
 import { Player, GameStat, CalendarEvent, GalleryPhoto, User, ChatThread, ChatMessage, DevelopmentPlan, PlayerMedia, CoachInvite, Team } from '../types';
 import { cleanFirestoreData } from '../utils/helpers';
 import { debug, debugWarn } from '../utils/debug';

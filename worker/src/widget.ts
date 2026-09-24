@@ -181,7 +181,12 @@ async function buildSnapshot(
   // events from whichever team Firestore returned first. Patrick
   // caught this when his widget only showed Sat Skills events and
   // missed his main team entirely.
-  let primaryId: string | null = user?.selfPlayerId || user?.widgetPlayerId || null;
+  // widgetPlayerId (explicit user pick from Settings) wins over
+  // selfPlayerId (implicit adult-player identity). Previously reversed,
+  // which meant an adult who plays themselves (Patrick's Saturday
+  // pickup team) could never pin the widget to their kid — the
+  // set-widget-player endpoint wrote the doc but this line ignored it.
+  let primaryId: string | null = user?.widgetPlayerId || user?.selfPlayerId || null;
   let linked: Array<{ id: string; data: any }> = [];
 
   if (primaryId) {

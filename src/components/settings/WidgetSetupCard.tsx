@@ -1,10 +1,11 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import WidgetBridge, { syncWidgetTokenToNative } from '../../utils/widgetBridge';
 import { isOwner } from '../../utils/helpers';
+import { workerFetch } from '../../utils/workerFetch';
 
 /**
  * Widget setup card. Generates and displays a long-lived widget
@@ -165,6 +166,8 @@ const WidgetSetupCard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <WidgetPlayerPicker />
 
       {!token ? (
         <div className="p-4 space-y-3">
@@ -327,6 +330,117 @@ const WidgetBridgeDiagnostics: React.FC<{ token: string | null }> = ({ token }) 
         Group. If they fail with an error, the JS-to-native call isn't
         landing — usually means the Capacitor plugin isn't registered.
       </p>
+    </div>
+  );
+};
+
+// Picker for WHICH player the widget shows. Renders whenever the
+// user has more than one candidate: their linked children (players
+// where parentIds includes uid) plus their adult-self player (if
+// selfPlayerId is set). Writes users/{uid}.widgetPlayerId via the
+// worker (client-side users writes can't touch this field per rules).
+//
+// Companion to widget.ts precedence: widgetPlayerId wins over
+// selfPlayerId, so an adult who plays themselves (pickup team) can
+// still pin the widget to their kid.
+const WidgetPlayerPicker: React.FC = () => {
+  const { userData } = useAuth();
+  const uid = userData?.uid;
+  const [candidates, setCandidates] = useState<Array<{ id: string; name: string; isSelf: boolean }>>([]);
+  const [selected, setSelected] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string>('');
+
+  useEffect(() => {
+    if (!uid) { setLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        // Kids (parentIds includes me).
+        const kidsSnap = await getDocs(query(collection(db, 'players'), where('parentIds', 'array-contains', uid)));
+        const kids: Array<{ id: string; name: string; isSelf: boolean }> = [];
+        kidsSnap.forEach((d) => {
+          const data: any = d.data() || {};
+          kids.push({ id: d.id, name: data.name || 'Player', isSelf: false });
+        });
+        // Adult-self player (if any).
+        const selfId: string | null = (userData as any)?.selfPlayerId || null;
+        if (selfId && !kids.some((k) => k.id === selfId)) {
+          try {
+            const selfDoc = await getDoc(doc(db, 'players', selfId));
+            if (selfDoc.exists()) {
+              const data: any = selfDoc.data() || {};
+              kids.push({ id: selfId, name: `Me (${data.name || 'self'})`, isSelf: true });
+            }
+          } catch { /* ignore */ }
+        } else if (selfId) {
+          // selfId is also a kid record (parent-of-self). Just relabel.
+          const idx = kids.findIndex((k) => k.id === selfId);
+          if (idx >= 0) kids[idx] = { ...kids[idx], name: `Me (${kids[idx].name})`, isSelf: true };
+        }
+        if (cancelled) return;
+        setCandidates(kids);
+        // Current selection: widgetPlayerId if set, else selfPlayerId,
+        // else the first kid (matches worker precedence after this ship).
+        const current = (userData as any)?.widgetPlayerId || selfId || (kids[0]?.id || '');
+        setSelected(current);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [uid, (userData as any)?.widgetPlayerId, (userData as any)?.selfPlayerId]);
+
+  const onPick = async (playerId: string) => {
+    if (!playerId || playerId === selected || busy) return;
+    setBusy(true);
+    setStatus('Saving…');
+    const prev = selected;
+    setSelected(playerId); // optimistic
+    try {
+      const res = await workerFetch('/users/set-widget-player', {
+        method: 'POST',
+        body: JSON.stringify({ playerId }),
+      });
+      const j: any = await res.json().catch(() => ({}));
+      if (!res.ok || !j?.ok) {
+        setSelected(prev);
+        setStatus(`Failed: ${j?.error || `HTTP ${res.status}`}`);
+        return;
+      }
+      const picked = candidates.find((c) => c.id === playerId);
+      setStatus(`Widget will show ${picked?.name || 'this player'} on next refresh.`);
+    } catch (err: any) {
+      setSelected(prev);
+      setStatus(`Failed: ${String(err?.message || err)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading) return null;
+  if (candidates.length < 2) return null; // nothing to choose between
+
+  return (
+    <div className="p-4 border-b border-line-default/5 space-y-2">
+      <label htmlFor="widget-player-picker" className="block text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/45">
+        Widget shows
+      </label>
+      <select
+        id="widget-player-picker"
+        value={selected}
+        onChange={(e) => onPick(e.target.value)}
+        disabled={busy}
+        className="w-full bg-surface-base border border-line-default/15 rounded-lg px-3 py-2.5 text-sm text-ink-primary disabled:opacity-60"
+      >
+        {candidates.map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+      {status && (
+        <p className="text-[11px] text-ink-primary/60 leading-snug">{status}</p>
+      )}
     </div>
   );
 };

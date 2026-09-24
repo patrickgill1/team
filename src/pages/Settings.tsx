@@ -707,18 +707,16 @@ const Settings: React.FC = () => {
               label={`GoalKickr v${APP_VERSION}`}
               hint={
                 bundleVersion && bundleVersion !== APP_VERSION
-                  ? `New update ready · restart the app to apply`
-                  : bundleVersion
-                    ? `You're up to date`
-                    : `Build ${APP_BUILD}`
+                  ? `Live update v${bundleVersion} applied`
+                  : `Build ${APP_BUILD}`
               }
               onClick={() =>
                 alert(
                   `GoalKickr v${APP_VERSION} (build ${APP_BUILD})` +
                   (bundleVersion && bundleVersion !== APP_VERSION
-                    ? `\n\nNew live update ready: v${bundleVersion}\nClose and reopen the app to apply.`
+                    ? `\n\nLive bundle: v${bundleVersion}`
                     : bundleVersion
-                      ? `\n\nYou're on the latest live update.`
+                      ? `\n\nLive bundle: v${bundleVersion} (matches binary)`
                       : '') +
                   `\n\nBuilt by Patrick Gill for the GoalKickr community.`
                 )

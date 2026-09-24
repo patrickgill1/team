@@ -171,23 +171,21 @@ export async function restorePushAfterKidMode(uid: string): Promise<void> {
   } catch { /* ignore */ }
 
   try {
-    const [{ registerPushNotifications }, { doc, updateDoc, arrayUnion, arrayRemove }, { db }] = await Promise.all([
+    const [{ registerPushNotifications }, { doc, updateDoc }, { db }] = await Promise.all([
       import('./nativeShell'),
       import('firebase/firestore'),
       import('./firebase'),
     ]);
-    // Belt-and-suspenders: if the stale cached token somehow
-    // reappeared on the doc (e.g. race with a mid-suppression
-    // registration), scrub it again. arrayRemove of a token that
-    // isn't there is a no-op.
-    if (cachedToken) {
-      try { await updateDoc(doc(db, 'users', uid), { fcmTokens: arrayRemove(cachedToken) }); } catch { /* ignore */ }
-    }
     // Fresh FCM registration + save the new token onto the doc.
+    // OVERWRITE the array instead of arrayUnion — same reasoning as
+    // utils/push.ts: arrayUnion accumulated stale tokens across
+    // installs / OS rotations and caused DM double-push. On restore
+    // we want ONE live token for this device, not tokens plus the
+    // pre-suppression cached token plus anything else that snuck in.
     await registerPushNotifications(async (freshToken: string) => {
       try {
         await updateDoc(doc(db, 'users', uid), {
-          fcmTokens: arrayUnion(freshToken),
+          fcmTokens: [freshToken] /* overwrite; see utils/push.ts */,
           pushEnabledAt: new Date(),
         });
       } catch (err) {

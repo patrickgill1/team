@@ -1671,48 +1671,14 @@ const TeamChat: React.FC = () => {
       // from registering as unread when the thread doc updates.
       markThreadVisited(selectedThread.id);
 
-      // Push to everyone in the thread except the sender. Fires on every new
-      // message — including DMs (where participants is just the two of them).
-      // No prefKey filter for now (any chat opt-out can come later).
-      try {
-        // Use effective participants so a team-wide chat reaches
-        // everyone on the team, not just the people who've previously
-        // posted (which is what `selectedThread.participants` captures).
-        const mutedSet = new Set<string>(((selectedThread as any).mutedByUids || []) as string[]);
-        const recipients = effectiveParticipants(selectedThread)
-          .filter(uid => uid && uid !== userData.uid && !mutedSet.has(uid));
-        if (recipients.length > 0) {
-          const { sendPushToUsers } = await import('../utils/notify');
-          const isDM = (selectedThread as any).isDM === true;
-          const pushBody = content
-            ? (content.length > 140 ? `${content.slice(0, 137)}…` : content)
-            : (attachments.length > 0 ? `📷 sent ${attachments.length} photo${attachments.length > 1 ? 's' : ''}` : 'New message');
-          const pushTitle = isDM
-            ? `${userData.name} (DM)`
-            : `${userData.name} in ${selectedThread.title}`;
-          // Fire-and-forget — never block the send on push delivery.
-          // Deep-link to the EXACT message so a tap on the notification
-          // banner doesn't dump the recipient at the top of a long thread.
-          const deepLink = newMessageId
-            ? `${getShareOrigin()}/chat?thread=${selectedThread.id}&message=${newMessageId}`
-            : `${getShareOrigin()}/chat?thread=${selectedThread.id}`;
-          void sendPushToUsers(recipients, {
-            title: pushTitle,
-            body: pushBody,
-            url: deepLink,
-            // Icon badge intentionally OFF until the next native
-            // binary ships @capawesome/capacitor-badge — the
-            // currently-shipped Capacitor plugins have no reliable
-            // way to CLEAR the badge, so setting it to 1 leaves it
-            // stuck at 1 forever after the first chat push. Turn
-            // back on the day the badge plugin lands natively.
-            // (feedback_no_badge_until_plugin_ships)
-            // badge: 1,
-          }, { pushPrefKey: 'chat', fromUid: userData.uid });
-        }
-      } catch (err) {
-        console.warn('[chat] push notify failed', err);
-      }
+      // Chat push is fanned out server-side by the onChatMessageCreate
+      // Cloud Function (functions/src/index.ts). We used to also fire
+      // sendPushToUsers here as a client-side safety net; keeping both
+      // meant every DM produced two identical push notifications on
+      // the recipient's device. Patrick's active pain 2026-09-23. The
+      // CF has been reliable since ship — it triggers on the message
+      // doc write regardless of sender foreground/background state,
+      // which is why we added it in the first place. Trust it.
 
       // Email mentioned users (best-effort, dynamic import)
       if (content) {

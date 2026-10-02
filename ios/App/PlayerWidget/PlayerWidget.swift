@@ -87,12 +87,15 @@ private let WIDGET_ENDPOINT = "https://api.goalkickr.com/widget/snapshot"
 private let APP_GROUP_ID = "group.com.goalkickr.widget"
 private let WIDGET_TOKEN_KEY = "global_token"
 
-private func widgetRequest(setupCode: String, includeTokenQuery: Bool) -> URLRequest {
+private func widgetRequest(setupCode: String, playerId: String?, includeTokenQuery: Bool) -> URLRequest {
     let nonce = Int(Date().timeIntervalSince1970)
     var components = URLComponents(string: WIDGET_ENDPOINT)!
     var queryItems = [URLQueryItem(name: "t", value: String(nonce))]
     if includeTokenQuery {
         queryItems.append(URLQueryItem(name: "token", value: setupCode))
+    }
+    if let playerId = playerId, !playerId.isEmpty {
+        queryItems.append(URLQueryItem(name: "playerId", value: playerId))
     }
     components.queryItems = queryItems
     var req = URLRequest(url: components.url!)
@@ -115,7 +118,7 @@ private func resolveSetupCode(intent: ConfigurationAppIntent) -> String {
     return shared?.string(forKey: WIDGET_TOKEN_KEY) ?? ""
 }
 
-private func fetchSnapshot(setupCode: String) async -> (PlayerSnapshot?, String?) {
+private func fetchSnapshot(setupCode: String, playerId: String?) async -> (PlayerSnapshot?, String?) {
     guard !setupCode.isEmpty else { return (nil, "needs-setup") }
     // Cache-bust: append a per-second nonce AND set URLSession to
     // skip the local cache. Two layers of defense because iOS
@@ -123,12 +126,12 @@ private func fetchSnapshot(setupCode: String) async -> (PlayerSnapshot?, String?
     // save battery, and a stale 'no events' payload can hang
     // around for hours otherwise.
     do {
-        var (data, resp) = try await URLSession.shared.data(for: widgetRequest(setupCode: setupCode, includeTokenQuery: false))
+        var (data, resp) = try await URLSession.shared.data(for: widgetRequest(setupCode: setupCode, playerId: playerId, includeTokenQuery: false))
         var status = (resp as? HTTPURLResponse)?.statusCode ?? 0
         var serverError = (try? JSONDecoder().decode(SnapshotErrorResponse.self, from: data).error) ?? ""
 
         if status == 401 && serverError == "missing-token" {
-            (data, resp) = try await URLSession.shared.data(for: widgetRequest(setupCode: setupCode, includeTokenQuery: true))
+            (data, resp) = try await URLSession.shared.data(for: widgetRequest(setupCode: setupCode, playerId: playerId, includeTokenQuery: true))
             status = (resp as? HTTPURLResponse)?.statusCode ?? 0
             serverError = (try? JSONDecoder().decode(SnapshotErrorResponse.self, from: data).error) ?? ""
         }
@@ -206,14 +209,14 @@ struct Provider: AppIntentTimelineProvider {
             return PlayerEntry(date: Date(), snapshot: PlayerSnapshot.placeholder, photo: nil, errorCode: nil, configuration: configuration)
         }
         let code = resolveSetupCode(intent: configuration)
-        let (snap, err) = await fetchSnapshot(setupCode: code)
+        let (snap, err) = await fetchSnapshot(setupCode: code, playerId: configuration.player?.id)
         let img = await fetchImage(urlString: snap?.photoUrl)
         return PlayerEntry(date: Date(), snapshot: snap, photo: img, errorCode: err, configuration: configuration)
     }
 
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<PlayerEntry> {
         let code = resolveSetupCode(intent: configuration)
-        let (snap, err) = await fetchSnapshot(setupCode: code)
+        let (snap, err) = await fetchSnapshot(setupCode: code, playerId: configuration.player?.id)
         let img = await fetchImage(urlString: snap?.photoUrl)
         let now = Date()
         let entry = PlayerEntry(date: now, snapshot: snap, photo: img, errorCode: err, configuration: configuration)

@@ -259,10 +259,12 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       return new Response(res.body, { status: res.status, headers });
     }
 
-    // GET /widget/snapshot is anonymous — the iOS widget extension
-    // can't run Firebase Auth. Gated by a long-lived widgetToken on
-    // the user doc that the user pastes into the widget config.
-    if (url.pathname === '/widget/snapshot' && req.method === 'GET') {
+    // GET /widget/snapshot + /widget/candidates are anonymous — the
+    // iOS widget extension can't run Firebase Auth. Both gated by
+    // the long-lived widgetToken on the user doc that the user
+    // pastes into the widget config. /candidates powers the Tesla-
+    // style per-widget player picker in the AppIntent.
+    if ((url.pathname === '/widget/snapshot' || url.pathname === '/widget/candidates') && req.method === 'GET') {
       const res = await handleWidgetRequest(req, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);

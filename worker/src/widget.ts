@@ -169,26 +169,49 @@ async function buildSnapshot(
   sa: ServiceAccount,
   uid: string,
   user: any,
+  overridePlayerId?: string | null,
 ): Promise<WidgetSnapshot | null> {
-  // Resolve which player(s) we're working with.
-  //   1. user.selfPlayerId — adult player path (they ARE the player)
-  //   2. user.widgetPlayerId — user explicitly picked which kid
-  //   3. otherwise: every player linked via player.parentIds
+  // Resolve which player(s) we're working with. Precedence:
+  //   1. overridePlayerId — per-widget pick from the Tesla-style
+  //      native WidgetKit AppIntent. Must be authorized (user is
+  //      parent-of, or player IS self). One widget per player
+  //      lets Patrick stack a widget for each kid on the home
+  //      screen.
+  //   2. user.widgetPlayerId — in-app Settings picker fallback for
+  //      users whose iOS doesn't support the per-widget config, or
+  //      who prefer a single default across every widget instance.
+  //   3. user.selfPlayerId — implicit adult-player identity (they
+  //      ARE the player).
+  //   4. otherwise: every player linked via player.parentIds, pick
+  //      the first (legacy auto-pick).
   //
-  // For #3 we intentionally pull the whole set (not just the first)
-  // because a kid can have multiple player documents — one per
-  // team. Without aggregating, the widget would only ever see
+  // For case 4 we intentionally pull the whole set (not just the
+  // first) because a kid can have multiple player documents — one
+  // per team. Without aggregating, the widget would only ever see
   // events from whichever team Firestore returned first. Patrick
   // caught this when his widget only showed Sat Skills events and
   // missed his main team entirely.
-  // widgetPlayerId (explicit user pick from Settings) wins over
-  // selfPlayerId (implicit adult-player identity). Previously reversed,
-  // which meant an adult who plays themselves (Patrick's Saturday
-  // pickup team) could never pin the widget to their kid — the
-  // set-widget-player endpoint wrote the doc but this line ignored it.
-  let primaryId: string | null = user?.widgetPlayerId || user?.selfPlayerId || null;
-  let linked: Array<{ id: string; data: any }> = [];
+  let primaryId: string | null = null;
+  if (overridePlayerId) {
+    // Authorize: user must be a parent of this player OR the
+    // player IS their self-identity. Prevents a leaked widget
+    // token from being used to snoop another family's kid.
+    const check = await getDocument(pid, `players/${overridePlayerId}`, sa).catch(() => null);
+    const data: any = check?.data || null;
+    const parentIds: string[] = Array.isArray(data?.parentIds) ? data.parentIds : [];
+    const isSelf = user?.selfPlayerId === overridePlayerId;
+    if (data && (parentIds.includes(uid) || isSelf)) {
+      primaryId = overridePlayerId;
+    }
+    // If override failed authorization, fall through to the normal
+    // precedence rather than returning no-player — avoids a dead
+    // widget on a token mismatch during migration.
+  }
+  if (!primaryId) {
+    primaryId = user?.widgetPlayerId || user?.selfPlayerId || null;
+  }
 
+  let linked: Array<{ id: string; data: any }> = [];
   if (primaryId) {
     const single = await getDocument(pid, `players/${primaryId}`, sa).catch(() => null);
     if (single) linked = [{ id: primaryId, data: single.data || {} }];
@@ -398,7 +421,12 @@ async function buildSnapshot(
     playerId,
     playerName: p.name || 'Player',
     jerseyNumber: typeof p.jerseyNumber === 'number' ? p.jerseyNumber : null,
-    photoUrl: p.profilePhotoUrl || null,
+    // Photo fallback chain: player doc first (its own profilePhotoUrl),
+    // then the parent/self user's photoURL. Adult self-player docs
+    // frequently have an empty profilePhotoUrl even though the user
+    // has a photoURL set — Patrick saw his widget render with no
+    // avatar even though his auth photo was set.
+    photoUrl: p.profilePhotoUrl || user?.photoURL || null,
     teamName,
     streakDays: typeof p.currentStreakDays === 'number' ? p.currentStreakDays : 0,
     potmCount: typeof p.potmCount === 'number' ? p.potmCount : 0,
@@ -423,9 +451,53 @@ async function buildSnapshot(
   };
 }
 
+// Pickable-player list for the native WidgetKit AppIntent's
+// DynamicOptionsProvider. The widget's edit screen shows this list
+// so the user can pick which player each widget instance shows
+// (Tesla-style per-widget config). Shape intentionally minimal —
+// id/name/photo — to render fast as a native option row.
+async function buildCandidates(
+  pid: string,
+  sa: ServiceAccount,
+  uid: string,
+  user: any,
+): Promise<Array<{ id: string; name: string; photoUrl: string | null; isSelf: boolean }>> {
+  const kids = await findLinkedPlayers(pid, sa, uid);
+  const out: Array<{ id: string; name: string; photoUrl: string | null; isSelf: boolean }> = [];
+  const seen = new Set<string>();
+  for (const row of kids) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    out.push({
+      id: row.id,
+      name: row.data?.name || 'Player',
+      photoUrl: row.data?.profilePhotoUrl || null,
+      isSelf: user?.selfPlayerId === row.id,
+    });
+  }
+  // Adult self-player that isn't in the linked set (parent-of-self
+  // isn't guaranteed). Append as a distinct "Me" row.
+  const selfId: string | null = user?.selfPlayerId || null;
+  if (selfId && !seen.has(selfId)) {
+    const selfDoc = await getDocument(pid, `players/${selfId}`, sa).catch(() => null);
+    const data: any = selfDoc?.data || null;
+    if (data) {
+      out.push({
+        id: selfId,
+        name: data.name || 'Me',
+        photoUrl: data.profilePhotoUrl || user?.photoURL || null,
+        isSelf: true,
+      });
+    }
+  }
+  return out;
+}
+
 export async function handleWidgetRequest(request: Request, env: WidgetEnv): Promise<Response> {
   const url = new URL(request.url);
-  if (url.pathname !== '/widget/snapshot') return json({ ok: false, error: 'not-found' }, 404);
+  const isSnapshot = url.pathname === '/widget/snapshot';
+  const isCandidates = url.pathname === '/widget/candidates';
+  if (!isSnapshot && !isCandidates) return json({ ok: false, error: 'not-found' }, 404);
 
   // Token from Authorization: Bearer <token> or ?token=
   let token = '';
@@ -443,7 +515,17 @@ export async function handleWidgetRequest(request: Request, env: WidgetEnv): Pro
   const stored = String(hit.user?.widgetToken || '');
   if (!safeEqual(stored, token)) return json({ ok: false, error: 'invalid-token' }, 401);
 
-  const snapshot = await buildSnapshot(pid, sa, hit.uid, hit.user);
+  if (isCandidates) {
+    const candidates = await buildCandidates(pid, sa, hit.uid, hit.user);
+    return json({ ok: true, candidates });
+  }
+
+  // Optional per-widget player override (Tesla-style). Validated
+  // inside buildSnapshot — a bad or unauthorized id falls through
+  // to the normal precedence instead of hard-failing.
+  const overridePlayerId = url.searchParams.get('playerId') || null;
+
+  const snapshot = await buildSnapshot(pid, sa, hit.uid, hit.user, overridePlayerId);
   if (!snapshot) return json({ ok: false, error: 'no-player' }, 404);
   return json({ ok: true, snapshot });
 }

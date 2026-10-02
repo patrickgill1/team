@@ -180,7 +180,12 @@ const EventDetail: React.FC = () => {
   // EventDiscussion's own listener (no duplicate subscribe); when it's
   // 0 the whole section renders nothing so a fresh event doesn't leave
   // a stray "No comments yet" prompt sitting under the hero.
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  // Discussion defaults to OPEN. Prior shape (default-closed + hidden
+  // entirely when count was 0) hid the composer behind a chevron that
+  // did not exist on fresh events, so there was no way to start a
+  // conversation. Patrick's complaint 2026-10-02. Collapse remains
+  // available via the chevron for long threads.
+  const [commentsOpen, setCommentsOpen] = useState(true);
   const [commentCount, setCommentCount] = useState(0);
 
   // 2026-09-08: widened from isCoachOfTeam so team managers get the
@@ -1954,38 +1959,29 @@ const EventDetail: React.FC = () => {
         />
       )}
 
-      {/* DISCUSSION — collapsed by default. The disclosure row is
-          hidden entirely when count is zero (no "No comments yet"
-          prompt sitting under the hero). Once someone posts, the
-          chevron row "Discussion (N)" appears and expands the full
-          thread on tap.
-
-          Single EventDiscussion mount always present. Visibility is
-          controlled via inline display so React never unmounts it —
-          that keeps the Firestore count listener alive whether the
-          disclosure is open, closed, or the count is zero. Prior
-          shape used a separate hidden mount that unmounted the
-          moment count went 0 → 1, leaving the badge frozen at 1
-          until the user manually expanded. */}
-      <section className={commentCount > 0
-        ? 'bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 overflow-hidden'
-        : 'sr-only'}>
-        {commentCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setCommentsOpen(o => !o)}
-            className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-line-default/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 focus-visible:ring-inset text-left"
-            aria-expanded={commentsOpen}
-          >
-            <div className="flex items-center gap-1.5 min-w-0">
-              <svg className="w-3 h-3 text-brand-primary shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70">Discussion</span>
+      {/* DISCUSSION — always visible. The section renders on every
+          event regardless of count so there's always a composer and
+          an empty-state prompt ("First word's yours.") on fresh
+          events. The chevron row still toggles collapse for long
+          threads; defaults to open so comments are visible without
+          a tap. */}
+      <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setCommentsOpen(o => !o)}
+          className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-line-default/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 focus-visible:ring-inset text-left"
+          aria-expanded={commentsOpen}
+        >
+          <div className="flex items-center gap-1.5 min-w-0">
+            <svg className="w-3 h-3 text-brand-primary shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70">Discussion</span>
+            {commentCount > 0 && (
               <span className="text-[11px] text-ink-primary/45 font-bold ml-1">({commentCount})</span>
-            </div>
-            <svg className={`w-4 h-4 text-ink-primary/50 shrink-0 transition-transform ${commentsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-        )}
-        <div style={{ display: commentCount > 0 && commentsOpen ? 'block' : 'none' }} className="px-4 sm:px-6 pb-4">
+            )}
+          </div>
+          <svg className={`w-4 h-4 text-ink-primary/50 shrink-0 transition-transform ${commentsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div style={{ display: commentsOpen ? 'block' : 'none' }} className="px-4 sm:px-6 pb-4">
           <EventDiscussion
             eventId={event.id}
             teamId={event.teamId}

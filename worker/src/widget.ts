@@ -208,7 +208,8 @@ async function buildSnapshot(
     // widget on a token mismatch during migration.
   }
   if (!primaryId) {
-    primaryId = user?.widgetPlayerId || user?.selfPlayerId || null;
+    // Explicit picks always win.
+    primaryId = user?.widgetPlayerId || null;
   }
 
   let linked: Array<{ id: string; data: any }> = [];
@@ -216,8 +217,35 @@ async function buildSnapshot(
     const single = await getDocument(pid, `players/${primaryId}`, sa).catch(() => null);
     if (single) linked = [{ id: primaryId, data: single.data || {} }];
   } else {
+    // Smart default when the user hasn't picked. Prefer a KID over
+    // the parent's own self-player — a parent is overwhelmingly
+    // more likely to want their child on the widget than themselves
+    // (Patrick: "why the crap does it default to me and not Hunter?").
+    // Only fall back to selfPlayerId when there are no linked kids
+    // (childless adult player — e.g. Saturday pickup team only).
     linked = await findLinkedPlayers(pid, sa, uid);
-    if (linked.length > 0) primaryId = linked[0].id;
+    // Exclude self-player from "kid" fallback so an adult who
+    // claimed themselves as a player (parentIds includes uid) still
+    // sees their kids first.
+    const selfId: string | null = user?.selfPlayerId || null;
+    const kids = linked.filter(r => r.id !== selfId);
+    if (kids.length > 0) {
+      primaryId = kids[0].id;
+      // Pull ONLY the kid's rows into linked so the display identity
+      // ranking and team aggregation don't blend self + kid data.
+      linked = kids;
+    } else if (selfId) {
+      // No kids: fall back to the adult self-player.
+      const selfDoc = await getDocument(pid, `players/${selfId}`, sa).catch(() => null);
+      if (selfDoc) {
+        primaryId = selfId;
+        linked = [{ id: selfId, data: selfDoc.data || {} }];
+      }
+    } else if (linked.length > 0) {
+      // Last-resort: whatever came back (shouldn't happen since kids
+      // was empty and selfId was null, but keep for safety).
+      primaryId = linked[0].id;
+    }
   }
   if (!primaryId || linked.length === 0) return null;
 
@@ -421,12 +449,18 @@ async function buildSnapshot(
     playerId,
     playerName: p.name || 'Player',
     jerseyNumber: typeof p.jerseyNumber === 'number' ? p.jerseyNumber : null,
-    // Photo fallback chain: player doc first (its own profilePhotoUrl),
-    // then the parent/self user's photoURL. Adult self-player docs
-    // frequently have an empty profilePhotoUrl even though the user
-    // has a photoURL set — Patrick saw his widget render with no
-    // avatar even though his auth photo was set.
-    photoUrl: p.profilePhotoUrl || user?.photoURL || null,
+    // Photo fallback chain:
+    //   player.profilePhotoUrl       (team-roster photo)
+    //   → user.photoURL              (explicit upload via /users/set-photo)
+    //   → user.profilePhotoUrl       (OAuth mirror written by AuthContext)
+    //   → null                       (empty circle)
+    // User docs carry BOTH photoURL and profilePhotoUrl depending on
+    // write path — the client's AuthContext writes profilePhotoUrl
+    // from OAuth signin, and /users/set-photo writes photoURL. Chain
+    // handles both so a parent whose auth has a Google avatar but
+    // whose kid's player doc has none still gets an avatar on the
+    // widget.
+    photoUrl: p.profilePhotoUrl || user?.photoURL || user?.profilePhotoUrl || null,
     teamName,
     streakDays: typeof p.currentStreakDays === 'number' ? p.currentStreakDays : 0,
     potmCount: typeof p.potmCount === 'number' ? p.potmCount : 0,
@@ -485,7 +519,7 @@ async function buildCandidates(
       out.push({
         id: selfId,
         name: data.name || 'Me',
-        photoUrl: data.profilePhotoUrl || user?.photoURL || null,
+        photoUrl: data.profilePhotoUrl || user?.photoURL || user?.profilePhotoUrl || null,
         isSelf: true,
       });
     }

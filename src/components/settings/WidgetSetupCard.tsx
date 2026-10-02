@@ -380,10 +380,21 @@ const WidgetPlayerPicker: React.FC = () => {
           if (idx >= 0) kids[idx] = { ...kids[idx], name: `Me (${kids[idx].name})`, isSelf: true };
         }
         if (cancelled) return;
-        setCandidates(kids);
-        // Current selection: widgetPlayerId if set, else selfPlayerId,
-        // else the first kid (matches worker precedence after this ship).
-        const current = (userData as any)?.widgetPlayerId || selfId || (kids[0]?.id || '');
+        // Order the dropdown so KIDS come first, then self. Matches
+        // the server's smart default (kid before selfPlayerId when no
+        // explicit widgetPlayerId is set). Previously showed "Me"
+        // first + pre-selected, so a parent saw the picker already
+        // on themselves and didn't realize there was a choice.
+        const kidsOnly = kids.filter(k => !k.isSelf);
+        const selfOnly = kids.filter(k => k.isSelf);
+        const ordered = [...kidsOnly, ...selfOnly];
+        setCandidates(ordered);
+        // Current selection: widgetPlayerId if set, else first kid,
+        // else self. Matches worker precedence.
+        const current = (userData as any)?.widgetPlayerId
+          || kidsOnly[0]?.id
+          || selfId
+          || (ordered[0]?.id || '');
         setSelected(current);
       } finally {
         if (!cancelled) setLoading(false);

@@ -104,6 +104,7 @@ scripts/demo-service-account.json
 # macOS Finder metadata
 .DS_Store
 **/.DS_Store
+*/.DS_Store
 
 # wrangler files
 .wrangler

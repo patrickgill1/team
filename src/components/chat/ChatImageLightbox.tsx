@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useToast } from '../common/ToastProvider';
 
 // Full-screen image lightbox for chat. Telegram-style:
 // - Tap any image in a thread → opens here with all thread images
@@ -23,7 +24,24 @@ interface Props {
   onClose: () => void;
 }
 
+// Capacitor Filesystem's writeFile expects base64 (strip the data:
+// prefix). FileReader.readAsDataURL is the one API that works in a
+// Capacitor WebView without extra plugins.
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      const comma = result.indexOf(',');
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error || new Error('blob-read-failed'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => {
+  const toast = useToast();
   const [index, setIndex] = useState(Math.max(0, Math.min(startIndex, images.length - 1)));
   // Swipe / drag-to-dismiss state.
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
@@ -72,10 +90,25 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
 
   const current = images[index];
 
-  // Save the current image. On iOS/Android Capacitor WebView + modern
-  // mobile browsers, navigator.share(files) opens the system share
-  // sheet — user picks "Save Image" to land it in Photos. On desktop
-  // where share-files isn't supported, fall back to a download link.
+  // Save the current image. Three paths, picked by platform:
+  //
+  //   NATIVE (iOS / Android Capacitor): write the blob to the app's
+  //     cache directory via @capacitor/filesystem, then open the
+  //     system share sheet with the file URI via @capacitor/share.
+  //     iOS share sheet shows "Save Image" -> Photos. Android share
+  //     sheet shows "Save to…" with Google Photos / Files / Drive.
+  //     Both work in Capacitor WebView — the Web Share API alone
+  //     does not (Android WebView rejects canShare({files}), which
+  //     is why Patrick's Android users saw a dead button + an ugly
+  //     alert pointing them at long-press).
+  //
+  //   WEB SHARE (mobile browsers that support canShare({files})):
+  //     fall through to the Web Share API when @capacitor/share
+  //     isn't available (plain mobile Safari, Chrome Android).
+  //
+  //   DESKTOP: anchor download — the only real option on a mouse.
+  //
+  // Failures surface via toast, not alert().
   const saveCurrent = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!current || saving) return;
@@ -88,39 +121,82 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
       // Firebase Storage URLs end with a query string, so strip that.
       const urlPath = current.url.split('?')[0];
       const inferred = urlPath.split('/').pop() || '';
+      const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
       const filename = inferred && /\.(jpe?g|png|webp|heic|gif)$/i.test(inferred)
         ? inferred
-        : `photo-${Date.now()}.${(blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')}`;
+        : `photo-${Date.now()}.${ext}`;
+
+      // Native branch — Capacitor WebView.
+      // Guarded with isPluginAvailable because Filesystem only lands
+      // with native build 28+. On older binaries (build 26 ships to
+      // the App Store today) the plugin isn't registered; falling
+      // through to the Web Share API below keeps iOS users working
+      // via the share-sheet "Save Image" path they had before.
+      const Capacitor = (window as any).Capacitor;
+      const canUseFs = Capacitor?.isNativePlatform?.()
+        && Capacitor?.isPluginAvailable?.('Filesystem')
+        && Capacitor?.isPluginAvailable?.('Share');
+      if (canUseFs) {
+        const [{ Filesystem, Directory }, { Share }] = await Promise.all([
+          import('@capacitor/filesystem'),
+          import('@capacitor/share'),
+        ]);
+        const base64 = await blobToBase64(blob);
+        // Cache directory, not Documents — these are throwaway share
+        // temp files. iOS auto-prunes when disk pressure spikes.
+        const written = await Filesystem.writeFile({
+          path: filename,
+          data: base64,
+          directory: Directory.Cache,
+        });
+        try {
+          await Share.share({
+            title: current.caption || 'Photo',
+            url: written.uri,
+            dialogTitle: 'Save photo',
+          });
+        } catch (err: any) {
+          // User-cancel is not an error on either platform.
+          const msg = String(err?.message || err || '');
+          if (/cancel|dismiss/i.test(msg)) return;
+          throw err;
+        }
+        setSavedFlash(true);
+        setTimeout(() => setSavedFlash(false), 1600);
+        return;
+      }
+
+      // Web Share API path — mobile browsers.
       const file = typeof File !== 'undefined'
         ? new File([blob], filename, { type: blob.type || 'image/jpeg' })
         : null;
-      // Prefer the system share sheet — it's the only path that offers
-      // "Save Image" -> Photos on iOS without a native plugin.
       const nav = navigator as any;
       if (file && nav.share && nav.canShare?.({ files: [file] })) {
         try {
           await nav.share({ files: [file], title: current.caption || 'Photo' });
+          setSavedFlash(true);
+          setTimeout(() => setSavedFlash(false), 1600);
+          return;
         } catch (err: any) {
-          // User canceled the share sheet — not an error we surface.
           if (err?.name === 'AbortError') return;
           throw err;
         }
-      } else {
-        // Desktop / older browsers: trigger a download.
-        const objectUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objectUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
       }
+
+      // Desktop fallback — anchor download.
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 1600);
     } catch (err) {
       console.warn('[chat-lightbox] save failed', err);
-      alert('Could not save the photo. Try again or long-press the image and use your browser\'s save option.');
+      toast.error("Couldn't save the photo. Try again.");
     } finally {
       setSaving(false);
     }

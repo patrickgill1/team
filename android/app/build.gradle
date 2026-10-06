@@ -24,7 +24,7 @@ android {
         // 3.9.403 → 39403. Guarantees monotonic bumps as long as
         // versionName monotonically increases, which capgo:versioning
         // already requires.
-        versionCode 40000
+        versionCode 40001
         versionName "4.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

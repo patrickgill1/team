@@ -14,6 +14,9 @@ PODS:
   - CapacitorCamera (7.0.5):
     - Capacitor
   - CapacitorCordova (7.6.2)
+  - CapacitorFilesystem (8.1.4):
+    - Capacitor
+    - IONFilesystemLib (~> 2.0.0)
   - CapacitorFirebaseAuthentication (5.4.1):
     - Capacitor
     - CapacitorFirebaseAuthentication/Lite (= 5.4.1)
@@ -111,6 +114,7 @@ PODS:
     - AppAuth/Core (~> 1.7)
     - GTMSessionFetcher/Core (< 4.0, >= 3.3)
   - GTMSessionFetcher/Core (3.5.0)
+  - IONFilesystemLib (2.0.0)
   - nanopb (2.30910.0):
     - nanopb/decode (= 2.30910.0)
     - nanopb/encode (= 2.30910.0)
@@ -126,6 +130,7 @@ DEPENDENCIES:
   - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorCamera (from `../../node_modules/@capacitor/camera`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorFilesystem (from `../../node_modules/@capacitor/filesystem`)"
   - "CapacitorFirebaseAuthentication (from `../../node_modules/@capacitor-firebase/authentication`)"
   - "CapacitorFirebaseAuthentication/Google (from `../../node_modules/@capacitor-firebase/authentication`)"
   - "CapacitorFirebaseMessaging (from `../../node_modules/@capacitor-firebase/messaging`)"
@@ -154,6 +159,7 @@ SPEC REPOS:
     - GoogleUtilities
     - GTMAppAuth
     - GTMSessionFetcher
+    - IONFilesystemLib
     - nanopb
     - PromisesObjC
     - RecaptchaInterop
@@ -169,6 +175,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/camera"
   CapacitorCordova:
     :path: "../../node_modules/@capacitor/ios"
+  CapacitorFilesystem:
+    :path: "../../node_modules/@capacitor/filesystem"
   CapacitorFirebaseAuthentication:
     :path: "../../node_modules/@capacitor-firebase/authentication"
   CapacitorFirebaseMessaging:
@@ -196,6 +204,7 @@ SPEC CHECKSUMS:
   CapacitorApp: f01a913211780e0718dae9750442c3e23f96e106
   CapacitorCamera: 9e952270be355797f769aa835bb7643a96c871fe
   CapacitorCordova: 8214697bed435f6e7c5e3ed86d1632a8c42f7d77
+  CapacitorFilesystem: 17ee1862a45ef2e5012311a87e18de1d45a6811b
   CapacitorFirebaseAuthentication: 1068a16d8ef3952a6bd4dd396557b03d26ddd8ce
   CapacitorFirebaseMessaging: ee2a6f40389a0615262c3c20c62663170d6f85e3
   CapacitorHaptics: 1b145fa83c622e5383a3bac04ea81e2514f0b0f5
@@ -216,12 +225,13 @@ SPEC CHECKSUMS:
   GoogleUtilities: ea963c370a38a8069cc5f7ba4ca849a60b6d7d15
   GTMAppAuth: f69bd07d68cd3b766125f7e072c45d7340dea0de
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
+  IONFilesystemLib: 0a001124dedc317c03032d138aaefbf4c18adb09
   nanopb: 438bc412db1928dac798aa6fd75726007be04262
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 7d1a4a01a6b2cb1610a47ef3f85f0c411434cb21
   Version: de5907f2c5d0f3cf21708db7801d1d5401139486
   ZIPFoundation: dfd3d681c4053ff7e2f7350bc4e53b5dba3f5351
 
-PODFILE CHECKSUM: dc7068cb511786963ed62c2bb387eaac63a5b8c7
+PODFILE CHECKSUM: 39196dc52ee3216ae19ff6ecdacb8d50f2903021
 
 COCOAPODS: 1.16.2

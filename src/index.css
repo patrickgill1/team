@@ -69,11 +69,14 @@
 
   --line-default: 255 255 255;
   --line-strong:  255 255 255;
+
+  color-scheme: dark;
 }
 
 /* Light mode — swaps the semantic tokens. Components that still use
    literal dark classes stay dark until migrated. */
 html[data-theme="light"] {
+  color-scheme: light;
   --surface-base:     255 255 255;
   --surface-elevated: 248 250 252;
   --surface-input:    241 245 249;
@@ -206,6 +209,32 @@ body.platform-android {
   input, textarea, select {
     font-size: 16px !important;
   }
+}
+
+/* Global default surface + text for ALL form controls. Without this,
+   iOS/Android WebView renders text inputs with a user-agent WHITE
+   background in dark mode — which collides with any component whose
+   text uses the theme-adaptive text-ink-primary token (near-white in
+   dark mode) and produces invisible white-on-white text. Patrick kept
+   catching this in Surveys / POTM voting / event forms every time he
+   opened a new input.
+   Specificity stays tag-level (0,0,1) so Tailwind utilities like
+   `bg-white` or `text-slate-900` on individual inputs still win when
+   a component intentionally wants a theme-invariant surface. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]),
+textarea,
+select {
+  background-color: rgb(var(--surface-input));
+  color: rgb(var(--ink-primary));
+}
+
+/* Placeholder color defaults to the muted ink token so it's always
+   visible on the input's surface, regardless of theme. Component-
+   level `placeholder:text-*` utilities still override via higher
+   specificity. */
+input::placeholder,
+textarea::placeholder {
+  color: rgb(var(--ink-primary) / 0.45);
 }
 
 /* Line clamp utilities */

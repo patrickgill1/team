@@ -134,6 +134,43 @@ const SimpleAuth: React.FC = () => {
     }
   }, []);
 
+  // Debounced email probe. Mirrors the onBlur handler on the email
+  // input, but fires 500ms after the user stops typing — regardless
+  // of whether the field has blurred. Mobile users often tap Submit
+  // without ever blurring the email input, which meant the on-blur
+  // mode-flip never had a chance to fire for returning parents
+  // (Patrick 2026-10-12: Yahoo mom kept submitting the register form
+  // against her existing account because she never tapped away from
+  // the email field before hitting Continue).
+  useEffect(() => {
+    const email = (formData.email || '').trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailProbe('idle');
+      return;
+    }
+    if (emailProbeRef.current === email) return;
+    const t = window.setTimeout(async () => {
+      emailProbeRef.current = email;
+      setEmailProbe('probing');
+      try {
+        const methods = await fetchSignInMethodsForEmail(getAuth(), email);
+        if (emailProbeRef.current !== email) return; // raced
+        if (methods && methods.length > 0) {
+          setEmailProbe('known');
+          setMode('login');
+        } else {
+          setEmailProbe('unknown');
+          // Only auto-flip to register when the user hasn't explicitly
+          // chosen login — preserves intent for someone who tapped
+          // "Sign In" at the top but hasn't typed their email yet.
+        }
+      } catch {
+        setEmailProbe('idle');
+      }
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [formData.email]);
+
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 

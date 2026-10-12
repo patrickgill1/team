@@ -7,6 +7,7 @@ import {
   signInWithPopup,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  fetchSignInMethodsForEmail,
   User as FbUser,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -63,11 +64,47 @@ const InviteJoin: React.FC = () => {
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // Set when a typed email already has an account. Drives the auto-
+  // flip from sign-up → sign-in BEFORE the parent submits, so returning
+  // parents (Patrick 2026-10-12: Yahoo mom with existing account) stop
+  // submitting the sign-up form over and over against their existing
+  // account.
+  const [knownAccount, setKnownAccount] = useState(false);
 
   // Watch auth state — auto-skip the form if already signed in.
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => setCurrentUser(u));
   }, []);
+
+  // Debounced existing-account probe. As soon as the parent finishes
+  // typing an email that matches an existing account, flip to Sign In
+  // mode and surface a friendly "welcome back" hint. Firebase's
+  // fetchSignInMethodsForEmail returns [] when email enumeration
+  // protection is enabled on the project — in that case this is a
+  // silent no-op and the on-submit auto-flip (handleAuthSubmit catch
+  // block) is the fallback. Low-risk — pure read, no writes.
+  useEffect(() => {
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setKnownAccount(false);
+      return;
+    }
+    const t = window.setTimeout(async () => {
+      try {
+        const methods = await fetchSignInMethodsForEmail(auth, trimmed);
+        if (methods && methods.length > 0) {
+          setKnownAccount(true);
+          setMode('sign-in');
+        } else {
+          setKnownAccount(false);
+        }
+      } catch {
+        // Firebase may rate-limit or block (enumeration protection).
+        // Silent — on-submit path still handles the collision.
+      }
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [email]);
 
   useEffect(() => {
     let cancelled = false;
@@ -499,7 +536,7 @@ const InviteJoin: React.FC = () => {
           <div className="flex gap-2 mb-2">
             <button
               type="button"
-              onClick={() => setMode('sign-up')}
+              onClick={() => { setMode('sign-up'); setKnownAccount(false); }}
               className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${mode === 'sign-up' ? 'bg-brand-primary text-white' : 'bg-line-default/10 text-ink-primary/70'}`}
             >
               Create account
@@ -512,6 +549,12 @@ const InviteJoin: React.FC = () => {
               I already have one
             </button>
           </div>
+
+          {knownAccount && mode === 'sign-in' && (
+            <div className="rounded-lg bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 px-3 py-2 text-xs text-brand-primary-soft">
+              <span className="font-bold">Welcome back.</span> We found your account on this email — just enter your password below.
+            </div>
+          )}
 
           {mode === 'sign-up' && (
             <input

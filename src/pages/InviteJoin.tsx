@@ -6,6 +6,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   User as FbUser,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -277,9 +278,23 @@ const InviteJoin: React.FC = () => {
       await handleConsume(uid);
     } catch (err: any) {
       const code = err?.code as string | undefined;
+      // Returning parent on an invite link: default mode is sign-up,
+      // they type their existing email, Firebase returns "already in
+      // use." Previously we just showed a text error asking them to
+      // tap a different button; parents on Yahoo / mobile missed it
+      // and bounced (Patrick 2026-10-12). Auto-flip to sign-in mode,
+      // keep their email + password typed, and prompt them to confirm
+      // the password — if it matches they're one tap from done; if
+      // not, the clearer "wrong password / reset" path takes over.
+      if (code === 'auth/email-already-in-use') {
+        setMode('sign-in');
+        setError('Looks like you already have an account on this email. We filled it in — enter your password and tap Sign In, or tap Forgot password below.');
+        setSubmitting(false);
+        return;
+      }
       const msg =
-        code === 'auth/email-already-in-use' ? 'That email already has an account — switch to "I already have an account" below.' :
-        code === 'auth/wrong-password' || code === 'auth/invalid-credential' ? 'Wrong password. Try again or reset.' :
+        code === 'auth/wrong-password' || code === 'auth/invalid-credential' ? 'Wrong password. Try again or tap Forgot password below.' :
+        code === 'auth/user-not-found' ? "We don't see an account with this email yet. Switch to Create account below." :
         code === 'auth/weak-password' ? 'Password should be at least 6 characters.' :
         err?.message || 'Sign-in failed.';
       setError(msg);
@@ -536,6 +551,31 @@ const InviteJoin: React.FC = () => {
           >
             {submitting ? 'Working...' : mode === 'sign-up' ? 'Create account & join' : 'Sign in & join'}
           </button>
+
+          {mode === 'sign-in' && (
+            <button
+              type="button"
+              disabled={!email.trim() || submitting}
+              onClick={async () => {
+                try {
+                  await sendPasswordResetEmail(auth, email.trim());
+                  setError(`Reset link sent to ${email.trim()}. Check your inbox (and spam folder — Yahoo filters aggressively).`);
+                } catch (err: any) {
+                  const code = err?.code;
+                  setError(
+                    code === 'auth/user-not-found'
+                      ? "We don't see an account with that email."
+                      : code === 'auth/invalid-email'
+                        ? 'That email doesn\'t look right.'
+                        : 'Could not send reset. Try again in a moment.'
+                  );
+                }
+              }}
+              className="w-full text-ink-primary/60 hover:text-ink-primary text-xs font-semibold underline disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Forgot password? Send me a reset link
+            </button>
+          )}
 
           <p className="text-ink-primary/45 text-[11px] text-center leading-snug">
             Nothing to install. You'll be inside your team hub in this browser the moment this finishes.

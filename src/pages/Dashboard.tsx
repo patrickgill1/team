@@ -1736,6 +1736,19 @@ const Dashboard: React.FC = () => {
             mounts when the viewer has linked kids so the Firestore
             subscription isn't spun up for nothing.
             See DESIGN.clientFiles: GametapeSection. */}
+        {/* Team activation funnel — read-only visibility for coaches.
+            Patrick 2026-10-21 audit (M2): the five-stage funnel
+            (tryouts → team_selected → all_registered → coaches_certified
+            → activated) only existed in /admin/teams (B1-gated), so
+            head coaches had no visibility into their own team's
+            activation progress. Shows a slim progress bar + the next
+            pending stage. Admin still owns marking stages at
+            /admin/teams; this widget is read-only. Hidden once the
+            team is activated — nothing to nag about. */}
+        {selectedTeam && isCoachMode && isUserCoach && !((selectedTeam as any)?.funnelProgress?.activated?.completedAt) && (
+          <ActivationFunnelCard team={selectedTeam} />
+        )}
+
         {selectedTeamId && !isAdminMode && (isCoachMode || myPlayers.length > 0) && (
           <GametapeSection
             teamId={selectedTeamId}
@@ -3148,6 +3161,66 @@ const PlayerCircleTile: React.FC<{ player: any; teamId: string }> = ({ player, t
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
       </button>
+    </div>
+  );
+};
+
+// Read-only slim card showing the team's activation funnel progress.
+// Mirrors the five stages in TeamFunnelStepper so the coach sees the
+// same ladder their club admin uses. Admin owns marking stages at
+// /admin/teams; coach view intentionally has no mark/undo buttons.
+const ACTIVATION_STAGES: Array<{ key: string; short: string }> = [
+  { key: 'tryouts', short: 'Tryouts' },
+  { key: 'team_selected', short: 'Selected' },
+  { key: 'all_registered', short: 'Registered' },
+  { key: 'coaches_certified', short: 'Certified' },
+  { key: 'activated', short: 'Activated' },
+];
+
+const ActivationFunnelCard: React.FC<{ team: any }> = ({ team }) => {
+  const progress = team?.funnelProgress || {};
+  const doneCount = ACTIVATION_STAGES.filter((s) => !!progress?.[s.key]?.completedAt).length;
+  const nextPending = ACTIVATION_STAGES.find((s) => !progress?.[s.key]?.completedAt);
+  const pct = Math.round((doneCount / ACTIVATION_STAGES.length) * 100);
+
+  return (
+    <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-4 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="min-w-0">
+          <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Team activation</div>
+          <div className="text-sm font-bold text-ink-primary mt-0.5">
+            {doneCount} of {ACTIVATION_STAGES.length} stages done
+          </div>
+        </div>
+        <div className="text-xs text-ink-primary/55 tabular-nums shrink-0">{pct}%</div>
+      </div>
+      <div className="h-2 rounded-full bg-surface-base overflow-hidden">
+        <div className="h-full bg-brand-primary transition-all" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1 flex-wrap">
+          {ACTIVATION_STAGES.map((s) => {
+            const done = !!progress?.[s.key]?.completedAt;
+            return (
+              <span
+                key={s.key}
+                className={`text-[10px] font-extrabold tracking-wide uppercase px-1.5 py-0.5 rounded ring-1 ${
+                  done
+                    ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30'
+                    : 'bg-line-default/5 text-ink-primary/55 ring-line-default/10'
+                }`}
+              >
+                {s.short}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+      {nextPending && (
+        <p className="text-[11px] text-ink-primary/55 mt-2 leading-snug">
+          Up next: <span className="text-ink-primary font-semibold">{nextPending.short}</span>. Your club admin tracks activation at /admin/teams.
+        </p>
+      )}
     </div>
   );
 };

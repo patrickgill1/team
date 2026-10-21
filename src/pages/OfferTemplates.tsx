@@ -59,9 +59,10 @@ const OfferTemplates: React.FC = () => {
           <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-ink-primary/50 hover:text-ink-primary/85">← Club</Link>
           <div className="mt-1 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-2xl font-black text-ink-primary">Offer templates</h1>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Club level</div>
+              <h1 className="text-2xl font-black text-ink-primary mt-0.5">Offer templates</h1>
               <p className="text-sm text-ink-primary/65 mt-1 max-w-prose">
-                Reusable message bodies for the Send Offer flow. Scope by team + position so the right templates surface for the right candidates.
+                Reusable message bodies for the Send Offer flow. Scope by team + position so the right templates surface for the right candidates. Templates here apply across every team in the club.
               </p>
             </div>
             <button

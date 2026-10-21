@@ -107,6 +107,13 @@ const SeasonWizard: React.FC = () => {
   const [tryouts, setTryouts] = useState<SeasonTryoutDate[]>([]);
   const [savingTryouts, setSavingTryouts] = useState(false);
 
+  // Step 5 — marketing. Admin fires a one-tap "Email tryout dates to
+  // current families" broadcast. Audience is parents in this club.
+  // Logs to season.broadcastsSent for the audit trail that drives the
+  // "step is done" check.
+  const [marketingSending, setMarketingSending] = useState(false);
+  const [marketingResult, setMarketingResult] = useState<string | null>(null);
+
   // Step 4 — registration. Pool of FormDefinition docs available in
   // the club, admin picks which are required for this season, sets
   // fee + close date, and flips registration open.
@@ -585,8 +592,119 @@ const SeasonWizard: React.FC = () => {
       return !!(season as any).registrationOpen
         || (!!(season as any).registrationCloseDate && !!(season as any).registrationOpenedAt);
     }
-    // Step 5 not implemented yet; treat as never done.
+    if (key === 'marketing') {
+      // Done = at least one broadcast has been logged on the season.
+      const broadcasts = (season as any).broadcastsSent;
+      return Array.isArray(broadcasts) && broadcasts.length > 0;
+    }
     return false;
+  };
+
+  // Fire the tryout-dates email to all parents in the club. Builds a
+  // readable per-age-group schedule from the stored tryouts, batches
+  // via the notify worker's /send-batch endpoint, logs a
+  // SeasonBroadcastRecord to the season doc on success.
+  const sendTryoutDatesBroadcast = async () => {
+    if (!seasonId || marketingSending) return;
+    if (tryouts.length === 0) {
+      alert('Add tryouts in Step 3 before emailing families.');
+      return;
+    }
+    const resolvedClubId = (season as any)?.clubId
+      || (userData as any)?.clubId
+      || ((userData as any)?.clubIds?.[0]);
+    if (!resolvedClubId) {
+      alert('Could not resolve club. Try reloading.');
+      return;
+    }
+    setMarketingSending(true);
+    setMarketingResult(null);
+    try {
+      const { sendEmailBatch } = await import('../utils/notify');
+      // Query parents in this club. clubIds array-contains + role
+      // filter catches the standard parent hydrate path. For MVP we
+      // trust the club-side user doc denorm; a worker-side audience
+      // builder is a future tightening.
+      const uSnap = await getDocs(query(
+        collection(db, 'users'),
+        where('clubIds', 'array-contains', resolvedClubId),
+      ));
+      const parents: Array<{ email: string; name: string }> = [];
+      uSnap.forEach((d) => {
+        const u = d.data() as any;
+        if (!u.email) return;
+        if (u.isActive === false) return;
+        // Honor per-user email prefs — broadcast key gates club blasts.
+        const prefs = u.emailPreferences || {};
+        if (prefs.broadcast === false) return;
+        // Include parents + coaches (coaches often have their own kids
+        // tryout-aged); skip club_admin-only roles who are typically
+        // the sender.
+        const role = u.role || 'parent';
+        if (role !== 'parent' && role !== 'coach') return;
+        parents.push({ email: String(u.email).trim(), name: u.name || 'Parent' });
+      });
+      if (parents.length === 0) {
+        setMarketingResult('No parents with email on file in this club yet.');
+        return;
+      }
+      // Compose the per-age-group schedule block.
+      const ageGroups: string[] = ((season as any).ageGroups || []);
+      const scheduleBlocks = ageGroups.map(ag => {
+        const slots = tryouts.filter(t => t.ageGroup === ag);
+        if (slots.length === 0) return null;
+        const lines = slots.map(s => {
+          const when = s.date.toLocaleString(undefined, {
+            weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+          });
+          const loc = s.location ? ` · ${s.location}` : '';
+          const dur = s.durationMinutes ? ` (${s.durationMinutes} min)` : '';
+          return `<li style="margin:4px 0;">${escapeHtml(when)}${escapeHtml(loc)}${escapeHtml(dur)}</li>`;
+        }).join('');
+        return `<div style="margin-top:16px;"><div style="font-weight:700;color:#0f172a;">${escapeHtml(ag)}</div><ul style="margin:4px 0 0 0;padding-left:18px;color:#374151;">${lines}</ul></div>`;
+      }).filter(Boolean).join('');
+
+      const subject = `${(season as any).name || 'Season'} tryouts — dates and locations`;
+      const html = `<div style="font-family:-apple-system,sans-serif;color:#111827;line-height:1.55;max-width:520px;">
+        <p style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin:0 0 8px;">Tryout dates</p>
+        <h2 style="margin:0 0 12px 0;color:#0f172a;">${escapeHtml((season as any).name || 'Season')} tryouts</h2>
+        <p style="margin:0 0 8px 0;color:#374151;">Here are the tryout dates and locations for this season. Bring both colors, cleats, and water.</p>
+        ${scheduleBlocks || '<p style="color:#6b7280;">No tryouts scheduled yet.</p>'}
+        <p style="margin:20px 0 0 0;color:#9ca3af;font-size:12px;">— Sent by ${escapeHtml((userData as any)?.name || 'Club admin')}</p>
+      </div>`;
+
+      const ok = await sendEmailBatch(parents.map(p => ({
+        to: p.email,
+        subject,
+        html,
+      })));
+
+      if (!ok) {
+        setMarketingResult(`Email worker rejected the batch. Check Vercel logs.`);
+        return;
+      }
+
+      // Log the broadcast to season.broadcastsSent.
+      const existing = Array.isArray((season as any).broadcastsSent) ? (season as any).broadcastsSent : [];
+      const record = {
+        id: `tryout_${Date.now().toString(36)}`,
+        kind: 'family_email' as const,
+        sentAt: new Date(),
+        sentBy: (userData as any)?.uid || '',
+        recipientCount: parents.length,
+        summary: `Tryout dates email · ${parents.length} families`,
+      };
+      await updateDoc(doc(db, 'seasons', seasonId), {
+        broadcastsSent: [...existing, record],
+      });
+      setSeason(prev => prev ? ({ ...prev, broadcastsSent: [...existing, record] } as Season) : prev);
+      setMarketingResult(`Sent to ${parents.length} famil${parents.length === 1 ? 'y' : 'ies'}.`);
+    } catch (err: any) {
+      console.warn('[season-wizard] marketing send failed', err);
+      setMarketingResult(`Failed: ${err?.message || 'try again'}`);
+    } finally {
+      setMarketingSending(false);
+    }
   };
 
   return (
@@ -612,8 +730,9 @@ const SeasonWizard: React.FC = () => {
           {STEPS.map((step, i) => {
             const done = stepIsDone(step.key);
             const isActive = activeStep === step.key;
-            // Plan, coaches, tryouts, registration are implemented. Marketing still a stub.
-            const isStub = step.key === 'marketing';
+            // All five steps implemented. Keep the variable + flag plumbing in
+            // place so adding/removing a step in the future flips one boolean.
+            const isStub = false;
             const blockedByPlan = step.key !== 'plan' && !stepIsDone('plan');
             return (
               <li
@@ -1077,11 +1196,71 @@ const SeasonWizard: React.FC = () => {
                   </div>
                 )}
 
-                {isActive && isStub && (
-                  <div className="px-4 pb-4 pt-1 border-t border-line-default/5 animate-fade-in">
-                    <div className="text-[12.5px] text-ink-primary/60 italic">
-                      Marketing (Step 5) is the next build. For now, broadcast tryout dates to current families via /club → Broadcast; the Season Wizard will take this over end-to-end soon.
-                    </div>
+                {isActive && step.key === 'marketing' && (
+                  <div className="px-4 pb-4 pt-1 border-t border-line-default/5 animate-fade-in space-y-3">
+                    {tryouts.length === 0 ? (
+                      <p className="text-sm text-ink-primary/55">Add tryouts in Step 3 before emailing families.</p>
+                    ) : (
+                      <>
+                        <div className="rounded-lg bg-surface-base ring-1 ring-line-default/10 p-3 text-sm text-ink-primary/85">
+                          <div className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5">Email preview</div>
+                          <div className="font-bold text-ink-primary mb-2">{(season as any)?.name || 'Season'} tryouts — dates and locations</div>
+                          {((season as any).ageGroups || []).map((ag: string) => {
+                            const slots = tryouts.filter(t => t.ageGroup === ag);
+                            if (slots.length === 0) return null;
+                            return (
+                              <div key={ag} className="mt-2">
+                                <div className="text-sm font-bold text-ink-primary">{ag}</div>
+                                <ul className="list-disc pl-5 text-xs text-ink-primary/70">
+                                  {slots.map(s => (
+                                    <li key={s.id}>
+                                      {s.date.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                      {s.location ? ` · ${s.location}` : ''}
+                                      {s.durationMinutes ? ` (${s.durationMinutes} min)` : ''}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={sendTryoutDatesBroadcast}
+                          disabled={marketingSending}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary text-brand-primary-fg font-bold rounded-md ring-1 ring-brand-primary-soft/30 text-sm disabled:opacity-50"
+                        >
+                          {marketingSending ? 'Sending…' : 'Email tryout dates to current families'}
+                        </button>
+                        {marketingResult && (
+                          <p className={`text-sm font-semibold ${marketingResult.startsWith('Failed') || marketingResult.startsWith('No') ? 'text-rose-300' : 'text-emerald-300'}`}>
+                            {marketingResult}
+                          </p>
+                        )}
+
+                        {Array.isArray((season as any)?.broadcastsSent) && (season as any).broadcastsSent.length > 0 && (
+                          <div className="rounded-lg bg-surface-base ring-1 ring-line-default/10 p-3">
+                            <div className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5">Sent</div>
+                            <ul className="space-y-1">
+                              {((season as any).broadcastsSent || []).map((b: any) => {
+                                const when = b.sentAt?.toDate ? b.sentAt.toDate() : new Date(b.sentAt);
+                                return (
+                                  <li key={b.id} className="text-xs text-ink-primary/75 flex items-center justify-between gap-2">
+                                    <span>{b.summary || b.kind}</span>
+                                    <span className="text-ink-primary/50">{when.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        )}
+
+                        <p className="text-[11px] text-ink-primary/45">
+                          Email goes to all parents + coaches in this club who haven't opted out of broadcast email. Auto-creating tryout events on the calendar + social-post + Mailchimp hooks are future ships.
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
               </li>
@@ -1092,6 +1271,15 @@ const SeasonWizard: React.FC = () => {
     </div>
   );
 };
+
+function escapeHtml(s: string): string {
+  return (s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 function toISODate(d: Date | undefined | null): string {
   if (!d) return '';

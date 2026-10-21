@@ -513,13 +513,13 @@ const ClubOverview: React.FC = () => {
             <div className="text-[10px] text-ink-primary/50 mt-0.5">Tap a player → full profile</div>
           </button>
           <button
-            onClick={() => navigate('/teams')}
+            onClick={() => navigate('/admin/teams')}
             className="bg-surface-elevated border border-line-default/10 rounded-xl px-3 py-3 text-left hover:border-brand-primary-soft transition group"
-            title="Create a new team, edit team details, or end the season"
+            title="Activation funnel per team — tryouts to active"
           >
             <svg className="w-5 h-5 text-brand-primary mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
             <div className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/85">Teams</div>
-            <div className="text-[10px] text-ink-primary/50 mt-0.5">Edit, archive, roles</div>
+            <div className="text-[10px] text-ink-primary/50 mt-0.5">Activation funnel</div>
           </button>
           <button
             onClick={() => setBroadcastOpen(true)}

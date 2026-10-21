@@ -45,7 +45,6 @@ import DashboardDigestSheet, { DigestItem } from '../components/dashboard/Dashbo
 import { useDashboardActivity } from '../hooks/useDashboardActivity';
 import { useTeamSeasonStats } from '../hooks/useTeamSeasonStats';
 import { useViewMode } from '../contexts/ViewModeContext';
-import AdminCockpit from '../components/admin/AdminCockpit';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 import WeatherIcon from '../components/common/WeatherIcon';
 import { isEventPast } from '../utils/eventTiming';
@@ -1814,16 +1813,29 @@ const Dashboard: React.FC = () => {
             TodaysDevelopmentCard) — matches the approved mockup
             order: MyPlayerCard → Today's Development → This Week. */}
 
-        {/* Admin cockpit returns to the dashboard when the user is
-            in 'admin' view mode (Patrick 2026-06-21: 'shouldn't admin
-            be the same option? when they login... it has to be club
-            related things'). It still lives on /club as well; this is
-            the dashboard-surface mirror that activates when admin is
-            the user's selected view. Parent + coach modes hide it.
-            Pure admins land here by default (their only available
-            mode), so the dashboard immediately shows their pending
-            registrations, payments, and team activation count. */}
-        {isAdminMode && <AdminCockpit />}
+        {/* Admin viewMode no longer renders the full AdminCockpit here.
+            Patrick 2026-10-21 audit (M1): three competing cockpits
+            (/dashboard, /club, /admin/teams) with duplicate chips going
+            to different pages caused new admins to bounce between
+            surfaces. One source of truth lives at /club; the dashboard
+            now shows a slim nudge in admin mode so the admin can one-
+            tap into the full cockpit without losing the dashboard-
+            as-coach/parent surface this page is primarily built for. */}
+        {isAdminMode && (
+          <Link
+            to="/club"
+            className="block rounded-xl bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 hover:bg-brand-primary/15 transition px-4 py-3"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Club admin</div>
+                <div className="text-sm font-semibold text-ink-primary mt-0.5">Open the admin cockpit on /club</div>
+                <div className="text-[11px] text-ink-primary/55 mt-0.5 leading-snug">Season wizard, pending registrations, payments, teams to activate, broadcasts, reports.</div>
+              </div>
+              <svg className="w-5 h-5 text-brand-primary-soft shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
+            </div>
+          </Link>
+        )}
 
         {/* Ambient cues right under the greeting — birthday pill only.
             Season countdown ("20 weeks left in Fall 2026") was removed

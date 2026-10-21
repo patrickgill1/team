@@ -6,13 +6,22 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   serverTimestamp,
   updateDoc,
+  where,
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { isClubAdmin as checkIsClubAdmin } from '../utils/helpers';
-import type { Season, SeasonLifecycle } from '../types';
+import type {
+  Season,
+  SeasonLifecycle,
+  SeasonTryoutDate,
+  CoachCommitment,
+  CoachCommitmentStatus,
+} from '../types';
 
 /**
  * Season Wizard — single guided entry point for an admin starting a new
@@ -33,11 +42,13 @@ import type { Season, SeasonLifecycle } from '../types';
  * clicking new form and just staring at a text box wondering how it
  * all works.'
  *
- * THIS COMMIT scope: Step 1 is fully functional (creates the season
- * doc, writes name + dates + ageGroups). Steps 2-5 render in the
- * timeline as 'Coming next' placeholders so the structure is visible
- * but doesn't pretend to work yet. Each follow-up commit fills in one
- * step end-to-end.
+ * 2026-10-21 (Patrick audit B2): Steps 2 (Coaches) and 3 (Tryouts)
+ * are now functional. Step 4 (Registration) and Step 5 (Marketing)
+ * still render as stubs. Lifecycle progression:
+ *   plan done        → coach_commit
+ *   coaches done     → tryout_prep
+ *   tryouts done     → tryout_prep (same bucket; registration step
+ *                      flips to registration_open when fired)
  *
  * Per the registrations-test-only memory, no migration is needed for
  * existing season docs — we can require new fields without backfill.
@@ -80,6 +91,22 @@ const SeasonWizard: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>([]);
 
+  // Step 2 — coach commitments. One doc per coach × season in the
+  // coach_commitments collection. State:
+  //   coachPool: candidate coaches to assign (users with role 'coach'
+  //              on any team in this club).
+  //   commitments: existing coach_commitments docs for this season,
+  //                keyed by proposedAgeGroup for fast per-row lookup.
+  const [coachPool, setCoachPool] = useState<Array<{ uid: string; name: string; email?: string }>>([]);
+  const [commitments, setCommitments] = useState<CoachCommitment[]>([]);
+  const [savingCoach, setSavingCoach] = useState<string | null>(null); // ageGroup being saved
+
+  // Step 3 — tryouts. Stored as season.tryoutDates (array on the
+  // season doc, not a subcollection — admin typically picks a handful
+  // of dates per age group, not hundreds).
+  const [tryouts, setTryouts] = useState<SeasonTryoutDate[]>([]);
+  const [savingTryouts, setSavingTryouts] = useState(false);
+
   // Standard US youth soccer age-group ladder. U6 → U18 is wide
   // enough to cover micro / academy programs at the bottom and high-
   // school-age club at the top. Some clubs add U4 (toddler clinics) or
@@ -116,9 +143,39 @@ const SeasonWizard: React.FC = () => {
           setStartDate(toISODate(s.startDate));
           setEndDate(toISODate(s.endDate));
           setSelectedAgeGroups(((s as any).ageGroups || []) as string[]);
+          // Hydrate tryouts from the season doc (step 3 state).
+          const rawTryouts = Array.isArray(data.tryoutDates) ? data.tryoutDates : [];
+          setTryouts(rawTryouts.map((t: any) => ({
+            id: t.id,
+            ageGroup: t.ageGroup,
+            date: t.date?.toDate?.() || new Date(t.date),
+            durationMinutes: t.durationMinutes,
+            location: t.location,
+            notes: t.notes,
+          })));
+          // Load coach_commitments for this season (step 2 state).
+          try {
+            const cmSnap = await getDocs(query(
+              collection(db, 'coach_commitments'),
+              where('seasonId', '==', snap.id),
+            ));
+            if (!cancelled) {
+              setCommitments(cmSnap.docs.map((d) => {
+                const cd = d.data() as any;
+                return {
+                  id: d.id,
+                  ...cd,
+                  invitedAt: cd.invitedAt?.toDate?.() || new Date(cd.invitedAt),
+                  respondedAt: cd.respondedAt?.toDate?.() || undefined,
+                } as CoachCommitment;
+              }));
+            }
+          } catch (err) {
+            console.warn('[season-wizard] load commitments failed', err);
+          }
           // Auto-advance to the next un-completed step so admin lands
           // where the work is.
-          setActiveStep(deriveActiveStep(s));
+          setActiveStep(deriveActiveStep(s, rawTryouts));
         }
       } catch (err) {
         console.warn('[season-wizard] load failed', err);
@@ -143,6 +200,55 @@ const SeasonWizard: React.FC = () => {
       </div>
     );
   }
+
+  // Load the pool of coaches available to assign — any user with role
+  // 'coach' who is on a team in this club. For a brand-new "I'm not a
+  // coach" admin running their first season, this will often be empty;
+  // the admin can still invite by email (future enhancement). For MVP
+  // we show the pool as a picker and let the admin pick existing team
+  // coaches. clubId is sourced from the season doc if present, else
+  // from userData.clubId / clubIds[0].
+  useEffect(() => {
+    if (!userData) return;
+    const resolvedClubId = (season as any)?.clubId
+      || (userData as any)?.clubId
+      || ((userData as any)?.clubIds?.[0]);
+    if (!resolvedClubId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        // Find teams in this club → union coachIds → fetch user docs.
+        const teamsSnap = await getDocs(query(
+          collection(db, 'teams'),
+          where('clubId', '==', resolvedClubId),
+        ));
+        const coachUids = new Set<string>();
+        teamsSnap.forEach((t) => {
+          const td = t.data() as any;
+          (td.coachIds || []).forEach((uid: string) => coachUids.add(uid));
+        });
+        if (coachUids.size === 0) { if (!cancelled) setCoachPool([]); return; }
+        // Fetch user docs in chunks of 30 (Firestore in-query cap).
+        const uids = Array.from(coachUids);
+        const chunks: string[][] = [];
+        for (let i = 0; i < uids.length; i += 30) chunks.push(uids.slice(i, i + 30));
+        const { documentId } = await import('firebase/firestore');
+        const snaps = await Promise.all(chunks.map((chunk) =>
+          getDocs(query(collection(db, 'users'), where(documentId(), 'in', chunk)))
+        ));
+        const pool: Array<{ uid: string; name: string; email?: string }> = [];
+        snaps.forEach((snap) => snap.forEach((u) => {
+          const ud = u.data() as any;
+          pool.push({ uid: u.id, name: ud.name || ud.displayName || 'Coach', email: ud.email });
+        }));
+        pool.sort((a, b) => a.name.localeCompare(b.name));
+        if (!cancelled) setCoachPool(pool);
+      } catch (err) {
+        console.warn('[season-wizard] load coach pool failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userData, (season as any)?.clubId]);
 
   // Save Step 1. If creating, addDoc + redirect to the resume URL.
   // If editing, updateDoc in place.
@@ -198,12 +304,136 @@ const SeasonWizard: React.FC = () => {
     }
   };
 
+  // Assign a coach to an age group — creates a coach_commitments doc
+  // with status 'invited'. Admin can mark the response manually (Mark
+  // committed / Mark declined buttons on the row). Future: fire an
+  // email/push via worker so the coach can tap Yes/No/Let's talk from
+  // their phone; for MVP the admin updates the doc directly.
+  const assignCoach = async (ageGroup: string, coach: { uid: string; name: string }) => {
+    if (!seasonId || savingCoach === ageGroup) return;
+    setSavingCoach(ageGroup);
+    try {
+      const existing = commitments.find(c => c.proposedAgeGroup === ageGroup);
+      if (existing) {
+        // Replace the existing assignment: cancel the prior, create a
+        // new one. Keeps the history auditable rather than mutating in
+        // place.
+        if (existing.coachUid !== coach.uid) {
+          await updateDoc(doc(db, 'coach_commitments', existing.id), {
+            status: 'cancelled' as CoachCommitmentStatus,
+          });
+        } else {
+          setSavingCoach(null);
+          return; // same coach, no-op
+        }
+      }
+      const payload: any = {
+        seasonId,
+        coachUid: coach.uid,
+        coachName: coach.name,
+        proposedAgeGroup: ageGroup,
+        status: 'invited' as CoachCommitmentStatus,
+        invitedAt: serverTimestamp(),
+        invitedBy: (userData as any)?.uid,
+      };
+      const ref = await addDoc(collection(db, 'coach_commitments'), payload);
+      const freshRows = commitments.filter(c => !(c.proposedAgeGroup === ageGroup && c.status !== 'declined' && c.status !== 'cancelled'));
+      setCommitments([
+        ...freshRows,
+        { ...payload, id: ref.id, invitedAt: new Date() } as CoachCommitment,
+      ]);
+    } catch (err) {
+      console.warn('[season-wizard] assign coach failed', err);
+      alert('Could not assign coach. Try again.');
+    } finally {
+      setSavingCoach(null);
+    }
+  };
+
+  const markCoachStatus = async (commitmentId: string, status: CoachCommitmentStatus) => {
+    try {
+      await updateDoc(doc(db, 'coach_commitments', commitmentId), {
+        status,
+        respondedAt: serverTimestamp(),
+      });
+      setCommitments(prev => prev.map(c =>
+        c.id === commitmentId ? { ...c, status, respondedAt: new Date() } : c
+      ));
+    } catch (err) {
+      console.warn('[season-wizard] update commitment failed', err);
+      alert('Could not update status.');
+    }
+  };
+
+  // Step 3 — tryouts. The admin adds any number of tryout slots per
+  // age group. Saved as season.tryoutDates on the season doc (array).
+  // Doesn't yet auto-create a corresponding events/{eventId} — that
+  // happens at Step 4 (Registration) or Step 5 (Marketing) depending
+  // on when the admin wants invites to fire. For now the slots are
+  // just the schedule record.
+  const addTryout = (ageGroup: string) => {
+    const id = `${ageGroup}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    setTryouts(prev => [...prev, {
+      id,
+      ageGroup,
+      date: new Date(),
+      location: '',
+    }]);
+  };
+
+  const updateTryout = (id: string, patch: Partial<SeasonTryoutDate>) => {
+    setTryouts(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
+  };
+
+  const removeTryout = (id: string) => {
+    setTryouts(prev => prev.filter(t => t.id !== id));
+  };
+
+  const saveTryouts = async () => {
+    if (!seasonId || savingTryouts) return;
+    // Validate: every tryout needs a date; location can be blank for
+    // "TBD" cases but we warn before save.
+    const missingDate = tryouts.find(t => !t.date || isNaN(t.date.getTime()));
+    if (missingDate) { alert('One of your tryouts is missing a date.'); return; }
+    setSavingTryouts(true);
+    try {
+      await updateDoc(doc(db, 'seasons', seasonId), {
+        tryoutDates: tryouts.map(t => ({
+          id: t.id,
+          ageGroup: t.ageGroup,
+          date: t.date,
+          durationMinutes: t.durationMinutes || null,
+          location: t.location || null,
+          notes: t.notes || null,
+        })),
+      });
+    } catch (err) {
+      console.warn('[season-wizard] save tryouts failed', err);
+      alert('Could not save tryouts. Try again.');
+    } finally {
+      setSavingTryouts(false);
+    }
+  };
+
   const stepIsDone = (key: WizardStepKey): boolean => {
     if (!season) return false;
     if (key === 'plan') {
       return !!(season.name && (season as any).ageGroups?.length);
     }
-    // Steps 2-5 not implemented yet; treat as never done.
+    const ageGroups: string[] = ((season as any).ageGroups || []);
+    if (key === 'coaches') {
+      // Every age group has at least one committed coach assignment.
+      if (ageGroups.length === 0) return false;
+      return ageGroups.every(ag =>
+        commitments.some(c => c.proposedAgeGroup === ag && c.status === 'committed')
+      );
+    }
+    if (key === 'tryouts') {
+      // Every age group has at least one scheduled tryout.
+      if (ageGroups.length === 0) return false;
+      return ageGroups.every(ag => tryouts.some(t => t.ageGroup === ag));
+    }
+    // Steps 4-5 not implemented yet; treat as never done.
     return false;
   };
 
@@ -230,7 +460,8 @@ const SeasonWizard: React.FC = () => {
           {STEPS.map((step, i) => {
             const done = stepIsDone(step.key);
             const isActive = activeStep === step.key;
-            const isStub = step.key !== 'plan';  // only plan is implemented in this commit
+            // Plan, coaches, tryouts are implemented. Registration + Marketing still stubs.
+            const isStub = step.key === 'registration' || step.key === 'marketing';
             const blockedByPlan = step.key !== 'plan' && !stepIsDone('plan');
             return (
               <li
@@ -367,7 +598,197 @@ const SeasonWizard: React.FC = () => {
                   </div>
                 )}
 
-                {isActive && step.key !== 'plan' && (
+                {isActive && step.key === 'coaches' && (
+                  <div className="px-4 pb-4 pt-1 border-t border-line-default/5 animate-fade-in">
+                    {(((season as any)?.ageGroups) || []).length === 0 ? (
+                      <p className="text-sm text-ink-primary/55">Finish Step 1 first — pick your age groups.</p>
+                    ) : coachPool.length === 0 ? (
+                      <div className="text-sm text-ink-primary/70 space-y-2">
+                        <p><span className="font-semibold text-ink-primary">No coaches in your club yet.</span></p>
+                        <p className="text-ink-primary/55 text-xs leading-relaxed">
+                          Add a team with coaches first, then come back. (Email-invite flow for coaches not yet in the club is a future enhancement — for now, assign existing team coaches.)
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {((season as any).ageGroups || []).map((ag: string) => {
+                          const current = commitments
+                            .filter(c => c.proposedAgeGroup === ag && c.status !== 'cancelled')
+                            .sort((a, b) => (b.invitedAt?.getTime?.() || 0) - (a.invitedAt?.getTime?.() || 0))[0];
+                          const assigned = current ? coachPool.find(c => c.uid === current.coachUid) : null;
+                          const statusTone =
+                            current?.status === 'committed' ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30' :
+                            current?.status === 'declined' ? 'bg-rose-500/15 text-rose-300 ring-rose-400/30' :
+                            current?.status === 'lets_talk' ? 'bg-amber-500/15 text-amber-300 ring-amber-400/30' :
+                            'bg-brand-primary/15 text-brand-primary-soft ring-brand-primary-soft/30';
+                          const statusLabel =
+                            current?.status === 'committed' ? 'Committed' :
+                            current?.status === 'declined' ? 'Declined' :
+                            current?.status === 'lets_talk' ? "Let's talk" :
+                            current?.status === 'invited' ? 'Invited' :
+                            'Not assigned';
+                          return (
+                            <div key={ag} className="rounded-lg bg-surface-base ring-1 ring-line-default/10 p-3">
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <span className="text-sm font-black text-ink-primary">{ag}</span>
+                                <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded ring-1 ${statusTone}`}>{statusLabel}</span>
+                              </div>
+                              <select
+                                value={current?.coachUid || ''}
+                                onChange={(e) => {
+                                  const uid = e.target.value;
+                                  if (!uid) return;
+                                  const coach = coachPool.find(c => c.uid === uid);
+                                  if (coach) void assignCoach(ag, coach);
+                                }}
+                                disabled={savingCoach === ag}
+                                className="w-full px-3 py-2 rounded-md text-sm ring-1 ring-line-default/10 disabled:opacity-60"
+                              >
+                                <option value="">Pick a coach…</option>
+                                {coachPool.map(c => (
+                                  <option key={c.uid} value={c.uid}>{c.name}{c.email ? ` · ${c.email}` : ''}</option>
+                                ))}
+                              </select>
+                              {current && assigned && (
+                                <div className="flex items-center gap-1.5 mt-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => markCoachStatus(current.id, 'committed')}
+                                    disabled={current.status === 'committed'}
+                                    className="text-[11px] font-bold px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30 disabled:opacity-40"
+                                  >
+                                    Mark committed
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => markCoachStatus(current.id, 'declined')}
+                                    disabled={current.status === 'declined'}
+                                    className="text-[11px] font-bold px-2 py-1 rounded bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/30 disabled:opacity-40"
+                                  >
+                                    Mark declined
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => markCoachStatus(current.id, 'lets_talk')}
+                                    disabled={current.status === 'lets_talk'}
+                                    className="text-[11px] font-bold px-2 py-1 rounded bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30 disabled:opacity-40"
+                                  >
+                                    Let's talk
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        <p className="text-[11px] text-ink-primary/45 pt-1">
+                          Assign a coach to each age group. Mark the response after the coach confirms. Email-invite dispatch is coming — for now, update manually.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {isActive && step.key === 'tryouts' && (
+                  <div className="px-4 pb-4 pt-1 border-t border-line-default/5 animate-fade-in">
+                    {(((season as any)?.ageGroups) || []).length === 0 ? (
+                      <p className="text-sm text-ink-primary/55">Finish Step 1 first — pick your age groups.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {((season as any).ageGroups || []).map((ag: string) => {
+                          const ageTryouts = tryouts.filter(t => t.ageGroup === ag);
+                          return (
+                            <div key={ag} className="rounded-lg bg-surface-base ring-1 ring-line-default/10 p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-black text-ink-primary">{ag}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => addTryout(ag)}
+                                  className="text-[11px] font-bold px-2 py-1 rounded bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30"
+                                >
+                                  + Add tryout
+                                </button>
+                              </div>
+                              {ageTryouts.length === 0 ? (
+                                <p className="text-xs text-ink-primary/50 italic">No tryouts scheduled yet.</p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {ageTryouts.map(t => (
+                                    <div key={t.id} className="rounded ring-1 ring-line-default/10 p-2 space-y-2">
+                                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <div>
+                                          <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-0.5">Date & time</label>
+                                          <input
+                                            type="datetime-local"
+                                            value={toDateTimeLocal(t.date)}
+                                            onChange={(e) => updateTryout(t.id, { date: fromDateTimeLocal(e.target.value) })}
+                                            className="w-full max-w-full text-xs px-2 py-1.5 rounded ring-1 ring-line-default/10"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-0.5">Location</label>
+                                          <input
+                                            type="text"
+                                            value={t.location || ''}
+                                            onChange={(e) => updateTryout(t.id, { location: e.target.value })}
+                                            placeholder="West Field"
+                                            className="w-full text-xs px-2 py-1.5 rounded ring-1 ring-line-default/10"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-0.5">Minutes</label>
+                                          <input
+                                            type="number"
+                                            min={15}
+                                            max={240}
+                                            value={t.durationMinutes || ''}
+                                            onChange={(e) => updateTryout(t.id, { durationMinutes: e.target.value ? Number(e.target.value) : undefined })}
+                                            placeholder="90"
+                                            className="w-full text-xs px-2 py-1.5 rounded ring-1 ring-line-default/10"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex items-start gap-2">
+                                        <input
+                                          type="text"
+                                          value={t.notes || ''}
+                                          onChange={(e) => updateTryout(t.id, { notes: e.target.value })}
+                                          placeholder="Notes (optional) — e.g. bring both colors"
+                                          className="flex-1 text-xs px-2 py-1.5 rounded ring-1 ring-line-default/10"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => removeTryout(t.id)}
+                                          className="text-[11px] font-bold px-2 py-1 rounded text-rose-300 hover:bg-rose-500/10"
+                                        >
+                                          Remove
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={saveTryouts}
+                            disabled={savingTryouts}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary text-white font-bold rounded-md ring-1 ring-brand-primary-soft/30 transition-colors text-sm disabled:opacity-50"
+                          >
+                            {savingTryouts ? 'Saving…' : 'Save tryouts'}
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-ink-primary/45">
+                          Family-facing tryout invites + event creation on the calendar happen downstream (Marketing step).
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {isActive && isStub && (
                   <div className="px-4 pb-4 pt-1 border-t border-line-default/5 animate-fade-in">
                     <div className="text-[12.5px] text-ink-primary/60 italic">
                       Coming in the next batch. The data model for this step is already defined; the UI is being built next.
@@ -386,17 +807,50 @@ const SeasonWizard: React.FC = () => {
 function toISODate(d: Date | undefined | null): string {
   if (!d) return '';
   try {
-    return d.toISOString().slice(0, 10);
+    // Local date (not UTC) — same reasoning as the EventForm fix:
+    // toISOString converts to UTC, which bumps the day for evening
+    // local times west of UTC.
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   } catch {
     return '';
   }
 }
 
-function deriveActiveStep(s: Season): WizardStepKey {
-  // Resume the wizard at the first un-completed step. Simple heuristic
-  // for v1; gets smarter as more steps are wired.
+function toDateTimeLocal(d: Date | undefined | null): string {
+  if (!d || isNaN(d.getTime())) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+}
+
+function fromDateTimeLocal(v: string): Date {
+  // `datetime-local` returns 'YYYY-MM-DDTHH:MM' interpreted as the
+  // user's local timezone. `new Date(v)` does exactly that in all
+  // modern browsers.
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+
+function deriveActiveStep(s: Season, rawTryouts: any[] = []): WizardStepKey {
+  // Resume the wizard at the first un-completed step. Walks the full
+  // chain now that Steps 2 and 3 are implemented.
   if (!s.name || !(s as any).ageGroups?.length) return 'plan';
-  return 'coaches';
+  // We can't tell from the Season doc alone whether all coaches are
+  // committed (that lives in coach_commitments). The caller re-sets
+  // activeStep after loading commitments; this heuristic just gets
+  // the admin close to the right place on first paint.
+  const ageGroups: string[] = ((s as any).ageGroups || []);
+  if (ageGroups.length > 0) {
+    const covered = ageGroups.every(ag => rawTryouts.some((t: any) => t.ageGroup === ag));
+    if (!covered) return 'coaches'; // nudge admin to finish upstream first
+  }
+  return 'tryouts';
 }
 
 export default SeasonWizard;

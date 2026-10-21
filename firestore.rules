@@ -1711,6 +1711,32 @@ service cloud.firestore {
       );
     }
 
+    // Coach commitments — written by the Season Wizard (step 2) when
+    // an admin assigns a coach to an age group. One doc per
+    // coach × season. Admin creates and manages status; the assigned
+    // coach can also read + mark their own status (committed /
+    // declined / lets_talk) once the coach-side response UI ships.
+    //
+    // Reads: open to any signed-in user whose uid is on the doc as
+    // either the invitedBy admin OR the coachUid being asked. Reduces
+    // the need for a complex club-scope lookup; a leaked list of
+    // uids is low-risk.
+    //
+    // Writes: platform admin, or any user who can edit the parent
+    // season doc (same clubId / teamId gate as seasons above), or the
+    // assigned coach updating ONLY their own status fields.
+    match /coach_commitments/{commitmentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.invitedBy == request.auth.uid
+        && request.resource.data.seasonId is string;
+      allow update, delete: if request.auth != null && (
+        userDoc().isClubAdmin == true
+        || resource.data.invitedBy == request.auth.uid
+        || resource.data.coachUid == request.auth.uid
+      );
+    }
+
     // Registrations — parent phone/email/DOB/medical/waiver answers.
     // Pre-2026-07-10 was `allow read, update, delete: if request.auth
     // != null` which meant any signed-in user could list every family's

@@ -154,10 +154,21 @@ const EventForm: React.FC<EventFormProps> = ({
       const ec = (editingEvent as any).locationCoords;
       setPickedCoords(ec && typeof ec.lat === 'number' ? { lat: ec.lat, lon: ec.lon } : null);
       setPickedAddress((editingEvent as any).locationAddress || '');
+      // Serialize dates using LOCAL components (not toISOString, which
+      // converts to UTC). A Saturday 7pm MDT event = Sunday 01:00 UTC —
+      // toISOString().split('T')[0] returned the UTC date, which is
+      // the NEXT day in Mountain Time. Patrick kept catching edits
+      // that had silently moved by a day. 2026-10-21.
+      const toLocalDateInput = (d: Date) => {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      };
       setFormData({
         title: editingEvent.title,
         description: editingEvent.description,
-        date: eventDate.toISOString().split('T')[0],
+        date: toLocalDateInput(eventDate),
         time: eventDate.toTimeString().slice(0, 5),
         location: editingEvent.location,
         fieldNumber: (editingEvent as any).fieldNumber || '',
@@ -168,7 +179,7 @@ const EventForm: React.FC<EventFormProps> = ({
         createVolunteerOpps: false,
         volunteerTypes: [],
         recurrence: (editingEvent as any).recurrence || 'none',
-        recurrenceUntil: untilDate ? untilDate.toISOString().split('T')[0] : '',
+        recurrenceUntil: untilDate ? toLocalDateInput(untilDate) : '',
         arriveOffsetMinutes: (editingEvent as any).arriveOffsetMinutes || 0,
         rsvpCap: typeof (editingEvent as any).rsvpCap === 'number' && (editingEvent as any).rsvpCap > 0
           ? String((editingEvent as any).rsvpCap) : '',
@@ -193,10 +204,16 @@ const EventForm: React.FC<EventFormProps> = ({
       const defaultDate = selectedDate || new Date();
       setPickedCoords(null);
       setPickedAddress('');
+      // Local date components (not UTC) — same reasoning as the
+      // edit-mode toLocalDateInput helper above. Keeps the picker
+      // on the day the user is actually looking at.
+      const yyyy = defaultDate.getFullYear();
+      const mm = String(defaultDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(defaultDate.getDate()).padStart(2, '0');
       setFormData({
         title: '',
         description: '',
-        date: defaultDate.toISOString().split('T')[0],
+        date: `${yyyy}-${mm}-${dd}`,
         time: '10:00',
         location: '',
         fieldNumber: '',

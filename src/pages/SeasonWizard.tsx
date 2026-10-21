@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
+import { isClubAdmin as checkIsClubAdmin } from '../utils/helpers';
 import type { Season, SeasonLifecycle } from '../types';
 
 /**
@@ -128,8 +129,12 @@ const SeasonWizard: React.FC = () => {
     return () => { cancelled = true; };
   }, [isNew, seasonIdFromUrl]);
 
-  const isClubAdmin = (userData as any)?.isClubAdmin === true;
-  if (!isClubAdmin) {
+  // Use the helper (not the raw flag). The flag is reserved for
+  // platform owners; a fresh "Start a club, I'm not a coach" admin
+  // has role:'club_admin' but no raw flag, and was being locked out
+  // of their own primary CTA. Patrick 2026-10-21 audit (B1).
+  const isAdmin = checkIsClubAdmin(userData);
+  if (!isAdmin) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 text-center">
         <p className="text-ink-primary/85 font-semibold mb-1">Admin only</p>

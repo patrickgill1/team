@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, doc, getDoc, getDocs, limit, query } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,10 +10,19 @@ import { useAuth } from '../contexts/AuthContext';
 //
 // Resolution order:
 //   1. userData.clubId (canonical when present)
-//   2. clubId on the user's first team
-//   3. Any single club doc in the project (single-tenant Fire FC
-//      reality). When goalkickr ships multi-club this needs a proper
-//      picker; until then this fallback keeps admin pages working.
+//   2. userData.clubIds[0] (every admin page already hardcodes this
+//      pattern; centralizing it so the eventual multi-club picker
+//      swaps in one place instead of 10 files)
+//   3. clubId on the user's first team
+//   4. undefined — call sites must handle "no club resolved" with
+//      a real empty state. Previously fell through to loading ANY
+//      single club doc in the project and returning its id, which
+//      silently cross-leaked between tenants: user A with a stale
+//      user doc could land on user B's club on first paint. Patrick
+//      2026-10-21 audit (B4): fixed before any second real club
+//      signs up. Multi-club picker remains TODO but is strictly
+//      additive — the picker will set userData.clubId explicitly
+//      and this hook will return it from branch (1).
 //
 // Returns { clubId, loading } so call sites can disable Save buttons
 // while resolution is in-flight + surface "could not resolve" with a
@@ -22,11 +31,16 @@ import { useAuth } from '../contexts/AuthContext';
 export function useClubId(): { clubId: string | undefined; loading: boolean } {
   const { userData } = useAuth();
   const seeded = (userData as any)?.clubId as string | undefined;
-  const [clubId, setClubId] = useState<string | undefined>(seeded);
-  const [loading, setLoading] = useState(!seeded);
+  const firstFromArray: string | undefined = (() => {
+    const arr = (userData as any)?.clubIds;
+    return Array.isArray(arr) && arr.length > 0 ? arr[0] : undefined;
+  })();
+  const initial = seeded || firstFromArray;
+  const [clubId, setClubId] = useState<string | undefined>(initial);
+  const [loading, setLoading] = useState(!initial);
 
   useEffect(() => {
-    if (seeded) { setClubId(seeded); setLoading(false); return; }
+    if (initial) { setClubId(initial); setLoading(false); return; }
     if (!userData) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
@@ -37,8 +51,9 @@ export function useClubId(): { clubId: string | undefined; loading: boolean } {
           const tClubId = tSnap.exists() ? (tSnap.data() as any)?.clubId : null;
           if (tClubId && !cancelled) { setClubId(tClubId); return; }
         }
-        const clubsSnap = await getDocs(query(collection(db, 'clubs'), limit(1)));
-        if (!clubsSnap.empty && !cancelled) setClubId(clubsSnap.docs[0].id);
+        // No arbitrary-club fallback. If we got here, the user has no
+        // club relationship on their user doc or any of their teams —
+        // return undefined and let the UI render "no club" state.
       } catch (err) {
         console.warn('useClubId resolve failed', err);
       } finally {
@@ -46,7 +61,7 @@ export function useClubId(): { clubId: string | undefined; loading: boolean } {
       }
     })();
     return () => { cancelled = true; };
-  }, [seeded, userData]);
+  }, [initial, userData]);
 
   return { clubId, loading };
 }

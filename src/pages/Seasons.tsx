@@ -99,7 +99,13 @@ const Seasons: React.FC = () => {
           <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-sm text-ink-primary/50">Loading…</div>
         ) : seasons.length === 0 ? (
           <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-8 text-center text-sm text-ink-primary/50">
-            No seasons exist yet. Create one from the Team management page.
+            <p className="mb-3">No seasons exist yet.</p>
+            <Link
+              to="/admin/seasons/new"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand-primary text-brand-primary-fg text-xs font-bold"
+            >
+              Start a season
+            </Link>
           </div>
         ) : (
           <ul className="space-y-3">

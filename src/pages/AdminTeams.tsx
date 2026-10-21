@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
+import { isClubAdmin as checkIsClubAdmin } from '../utils/helpers';
 import TeamFunnelStepper from '../components/team/TeamFunnelStepper';
 import type { Team, TeamFunnelStageKey } from '../types';
 
@@ -86,9 +87,14 @@ const AdminTeams: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const isClubAdmin = (userData as any)?.isClubAdmin === true;
+  // Use the helper (not the raw flag). See SeasonWizard for the full
+  // reason — tl;dr: the flag is reserved for platform owners, so a
+  // "Start a club, I'm not a coach" admin gets role:'club_admin' but
+  // no raw flag and was bounced from their own cockpit CTA. Patrick
+  // 2026-10-21 audit (B1).
+  const isAdmin = checkIsClubAdmin(userData);
 
-  if (!isClubAdmin) {
+  if (!isAdmin) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 text-center">
         <p className="text-ink-primary/85 font-semibold mb-1">Admin only</p>

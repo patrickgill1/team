@@ -1227,11 +1227,18 @@ const PaymentsTab: React.FC = () => {
               </div>
               {/* Read-only platform fee disclosure for the club.
                   Settable only by the platform owner at /platform/clubs
-                  — surfaced here so the club always knows their rate. */}
+                  — surfaced here so the club always knows their rate.
+                  Audit note (2026-10-21 M8): when the fee is 0 we
+                  render "Service fee" + "waived" so a sales demo
+                  doesn't invite the "wait, so you can raise this?"
+                  question. The row only disappears entirely when
+                  there's no fee doc, not when it's zero. */}
               <div className="flex items-center justify-between pt-2 mt-1 border-t border-line-default/5">
-                <span>GoalKickr platform fee</span>
+                <span>Service fee</span>
                 <span className="font-bold text-ink-primary">
-                  {((club.platformFeeBps ?? 0) / 100).toFixed(2)}%
+                  {!club.platformFeeBps
+                    ? 'Waived'
+                    : `${((club.platformFeeBps) / 100).toFixed(2)}%`}
                 </span>
               </div>
               <p className="text-[10px] text-ink-primary/50">
@@ -1278,26 +1285,14 @@ const PaymentsTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Invoices list — empty for now; lights up when the worker
-          can actually create Checkout Sessions. */}
-      <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
-        <div className="px-5 py-3 border-b border-line-default/5 flex items-center justify-between">
-          <h2 className="font-bold text-ink-primary">Invoices</h2>
-          <button
-            type="button"
-            disabled={!chargesEnabled}
-            onClick={() => alert('Available once payments are turned on.')}
-            className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            + Create
-          </button>
-        </div>
-        <div className="p-8 text-center text-sm text-ink-primary/50">
-          {connected
-            ? 'No invoices yet — create one to see it here.'
-            : 'Connect Stripe above to start creating invoices.'}
-        </div>
-      </div>
+      {/* Invoices list — hidden entirely until invoice creation lands.
+          Previous shape rendered an empty card with a "+ Create" button
+          that always alerted "Available once payments are turned on."
+          even when charges were already enabled. Audit note B3: the
+          button lied; removing both the button and the card so clubs
+          don't form expectations around a feature that doesn't exist
+          yet. Re-add when the worker can actually mint Checkout
+          Sessions for ad-hoc invoices. */}
     </div>
   );
 };

@@ -26,27 +26,78 @@ const Reports: React.FC = () => {
   const [seasons, setSeasons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [teams, setTeams] = useState<any[]>([]);
+  const [rosterPlayers, setRosterPlayers] = useState<any[]>([]);
+
   useEffect(() => {
     if (!allowed || !clubId) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {
         setLoading(true);
-        const [rSnap, oSnap, sSnap] = await Promise.all([
+        const [rSnap, oSnap, sSnap, tSnap] = await Promise.all([
           getDocs(query(collection(db, 'registrations'), where('clubId', '==', clubId), orderBy('createdAt', 'desc'))),
           getDocs(query(collection(db, 'offers'), where('clubId', '==', clubId), orderBy('createdAt', 'desc'))),
           getDocs(query(collection(db, 'seasons'), where('clubId', '==', clubId), orderBy('createdAt', 'desc'))),
+          getDocs(query(collection(db, 'teams'), where('clubId', '==', clubId))),
         ]);
         if (cancelled) return;
         setRegistrations(rSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }) as Registration));
         setOffers(oSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }) as OfferLetter));
         setSeasons(sSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) })));
+        const teamDocs = tSnap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter(t => t.isActive !== false);
+        setTeams(teamDocs);
+        // Roster report: load active players for each team in the club.
+        // Chunked to Firestore's 30-id `in` cap. Audit M4 — roster
+        // report was called out as "you cannot hand this to a board"
+        // because Reports only had registration-funnel data.
+        const teamIds = teamDocs.map(t => t.id);
+        if (teamIds.length === 0) { setRosterPlayers([]); return; }
+        const chunks: string[][] = [];
+        for (let i = 0; i < teamIds.length; i += 30) chunks.push(teamIds.slice(i, i + 30));
+        const pSnaps = await Promise.all(chunks.map(chunk =>
+          getDocs(query(collection(db, 'players'), where('teamId', 'in', chunk)))
+        ));
+        if (cancelled) return;
+        const playerDocs: any[] = [];
+        pSnaps.forEach(snap => snap.forEach(d => {
+          const data = d.data() as any;
+          if (data.isActive === false) return;
+          playerDocs.push({ id: d.id, ...data });
+        }));
+        setRosterPlayers(playerDocs);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
   }, [allowed, clubId]);
+
+  // Roster aggregation — teams keyed by id with player count + age
+  // group. Honors the season filter when selected (team.seasonId match)
+  // so a director filtering to Fall 2026 sees only Fall 2026 teams.
+  const rosterByTeam = useMemo(() => {
+    const filteredTeams = seasonFilter === 'all'
+      ? teams
+      : teams.filter(t => (t as any).seasonId === seasonFilter);
+    return filteredTeams
+      .map(t => ({
+        id: t.id,
+        name: t.name || 'Team',
+        ageGroup: (t as any).ageGroup || 'Unspecified',
+        playerCount: rosterPlayers.filter(p => p.teamId === t.id).length,
+      }))
+      .sort((a, b) => a.ageGroup.localeCompare(b.ageGroup) || a.name.localeCompare(b.name));
+  }, [teams, rosterPlayers, seasonFilter]);
+
+  const rosterTotals = useMemo(() => {
+    const totalPlayers = rosterByTeam.reduce((sum, t) => sum + t.playerCount, 0);
+    const teamsWithRoster = rosterByTeam.filter(t => t.playerCount > 0).length;
+    const emptyTeams = rosterByTeam.length - teamsWithRoster;
+    return { totalPlayers, teamsWithRoster, emptyTeams };
+  }, [rosterByTeam]);
 
   const filteredRegs = useMemo(() => {
     if (seasonFilter === 'all') return registrations;
@@ -203,6 +254,70 @@ const Reports: React.FC = () => {
                 <Tile label="Owed" value={fmtCents(fees.owed)} />
                 <Tile label="Processing fees" value={fmtCents(fees.surcharge)} />
               </div>
+            </Section>
+
+            {/* Roster report — teams in club with per-team player count,
+                grouped by age group. Hand to a board for "how many
+                kids by age do we actually have on real rosters right
+                now." Separate from the registration funnel (which
+                counts applications, not placed players). */}
+            <Section title="Roster">
+              {rosterByTeam.length === 0 ? (
+                <Empty text="No teams in this club yet." />
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <Tile label="Players rostered" value={String(rosterTotals.totalPlayers)} />
+                    <Tile label="Teams with roster" value={String(rosterTotals.teamsWithRoster)} />
+                    <Tile label="Empty teams" value={String(rosterTotals.emptyTeams)} />
+                  </div>
+                  <div className="divide-y divide-line-default/5">
+                    {rosterByTeam.map(t => (
+                      <div key={t.id} className="flex items-center justify-between py-2 text-sm">
+                        <div className="min-w-0">
+                          <div className="font-bold text-ink-primary truncate">{t.name}</div>
+                          <div className="text-[11px] text-ink-primary/55">{t.ageGroup}</div>
+                        </div>
+                        <div className="tabular-nums text-ink-primary/85 shrink-0 ml-3">
+                          {t.playerCount} <span className="text-ink-primary/40 text-xs">{t.playerCount === 1 ? 'player' : 'players'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </Section>
+
+            {/* Roster report — teams in club with per-team player count,
+                grouped by age group. Hand to a board for "how many
+                kids by age do we actually have on real rosters right
+                now." Separate from the registration funnel (which
+                counts applications, not placed players). */}
+            <Section title="Roster">
+              {rosterByTeam.length === 0 ? (
+                <Empty text="No teams in this club yet." />
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <Tile label="Players rostered" value={String(rosterTotals.totalPlayers)} />
+                    <Tile label="Teams with roster" value={String(rosterTotals.teamsWithRoster)} />
+                    <Tile label="Empty teams" value={String(rosterTotals.emptyTeams)} />
+                  </div>
+                  <div className="divide-y divide-line-default/5">
+                    {rosterByTeam.map(t => (
+                      <div key={t.id} className="flex items-center justify-between py-2 text-sm">
+                        <div className="min-w-0">
+                          <div className="font-bold text-ink-primary truncate">{t.name}</div>
+                          <div className="text-[11px] text-ink-primary/55">{t.ageGroup}</div>
+                        </div>
+                        <div className="tabular-nums text-ink-primary/85 shrink-0 ml-3">
+                          {t.playerCount} <span className="text-ink-primary/40 text-xs">{t.playerCount === 1 ? 'player' : 'players'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </Section>
 
             {/* Coupon usage */}

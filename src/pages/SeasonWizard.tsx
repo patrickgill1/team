@@ -15,6 +15,7 @@ import {
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { isClubAdmin as checkIsClubAdmin } from '../utils/helpers';
+import { useClubId as useClubIdHook } from '../hooks/useClubId';
 import type {
   Season,
   SeasonLifecycle,
@@ -73,6 +74,7 @@ const STEPS: WizardStepDef[] = [
 
 const SeasonWizard: React.FC = () => {
   const { userData } = useAuth();
+  const { clubId: activeClubId } = useClubIdHook();
   const navigate = useNavigate();
   const { id: seasonIdFromUrl } = useParams<{ id?: string }>();
 
@@ -236,7 +238,7 @@ const SeasonWizard: React.FC = () => {
     if (!userData) return;
     const resolvedClubId = (season as any)?.clubId
       || (userData as any)?.clubId
-      || ((userData as any)?.clubIds?.[0]);
+      || activeClubId;
     if (!resolvedClubId) return;
     let cancelled = false;
     (async () => {
@@ -272,7 +274,7 @@ const SeasonWizard: React.FC = () => {
     if (!userData) return;
     const resolvedClubId = (season as any)?.clubId
       || (userData as any)?.clubId
-      || ((userData as any)?.clubIds?.[0]);
+      || activeClubId;
     if (!resolvedClubId) return;
     let cancelled = false;
     (async () => {
@@ -612,7 +614,7 @@ const SeasonWizard: React.FC = () => {
     }
     const resolvedClubId = (season as any)?.clubId
       || (userData as any)?.clubId
-      || ((userData as any)?.clubIds?.[0]);
+      || activeClubId;
     if (!resolvedClubId) {
       alert('Could not resolve club. Try reloading.');
       return;

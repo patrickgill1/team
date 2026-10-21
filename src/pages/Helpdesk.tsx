@@ -9,6 +9,7 @@ import Header from '../components/common/Header';
 import DataGate from '../components/common/DataGate';
 import { EmptyState } from '../components/ui';
 import { useAuth } from '../hooks/useAuth';
+import { useClubId as useClubIdHook } from '../hooks/useClubId';
 import { useClubScopes } from '../hooks/useClubScopes';
 import { useTeam } from '../contexts/TeamContext';
 import { sendPushToUsers } from '../utils/notify';
@@ -84,7 +85,10 @@ const Helpdesk: React.FC = () => {
   const [teamFilter, setTeamFilter] = useState<string>('all');
   const [newOpen, setNewOpen] = useState(false);
 
-  const userClubId = (userData as any)?.clubIds?.[0] || (userData as any)?.clubId || null;
+  // Audit M6: respect the shared active-club picker when the admin
+  // has multiple clubs. Falls back to the canonical clubId then first-
+  // of-array via the hook.
+  const { clubId: userClubId } = useClubIdHook();
   const { has: hasClubScope } = useClubScopes(userClubId);
   // 'tickets' scope takes precedence, else legacy isClubAdmin.
   const isAdmin = hasClubScope('tickets') || !!(userData as any)?.isClubAdmin;

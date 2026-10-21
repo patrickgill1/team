@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { collection, getCountFromServer, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useClubId as useClubIdHook } from '../../hooks/useClubId';
 
 // Admin cockpit strip — renders at the top of the Dashboard when the
 // current user is a club admin. Patrick 2026-06-21: 'what about the
@@ -36,10 +37,11 @@ const ZERO: Counts = { pendingRegistrations: 0, outstandingPayments: 0, teamsToA
 
 const AdminCockpit: React.FC = () => {
   const { userData } = useAuth();
-  // 2026-07-14: registrations LIST + count queries now require clubId
-  // scope. Pull caller's first clubId; parent-org admins fall back
-  // to 0 counts (component is admin-only anyway).
-  const clubId: string | null = (userData as any)?.clubIds?.[0] || null;
+  // 2026-10-21 audit M6: use the shared useClubId hook so a multi-
+  // club admin's picker choice drives counts here too. Prior read of
+  // userData.clubIds[0] always locked this cockpit to their first club.
+  const { clubId: resolved } = useClubIdHook();
+  const clubId: string | null = resolved || null;
   const [counts, setCounts] = useState<Counts>(ZERO);
   const [loaded, setLoaded] = useState(false);
   const [showProgress, setShowProgress] = useState(false);

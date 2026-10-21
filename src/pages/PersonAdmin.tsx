@@ -16,6 +16,7 @@ import {
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useClubScopes } from '../hooks/useClubScopes';
+import { useClubId as useClubIdHook } from '../hooks/useClubId';
 import { useTeam } from '../contexts/TeamContext';
 import { isClubAdmin, isCoach } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
@@ -66,7 +67,8 @@ const PersonAdmin: React.FC = () => {
   // Resolve club scope for gating the Payments tab + refund modal.
   // Reads the user's first clubId (player's clubId is more accurate
   // but Payments is club-wide anyway).
-  const userClubId = (userData as any)?.clubIds?.[0] || (userData as any)?.clubId || null;
+  // Audit M6: shared useClubId respects the multi-club picker.
+  const { clubId: userClubId } = useClubIdHook();
   const { has: hasClubScopeCheck } = useClubScopes(userClubId);
   const canSeeFinancials = hasClubScopeCheck('financials');
   // TeamContext gives us the full list of teams the current user has

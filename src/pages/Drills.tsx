@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
+import { useClubId as useClubIdHook } from '../hooks/useClubId';
 import { Drill } from '../types';
 import { isCoachOfTeam, isStaffOfTeam } from '../utils/helpers';
 import { uploadToStream, streamThumbnailUrl, checkVideoLimit, getStreamDownloadUrl } from '../utils/streamUpload';
@@ -116,6 +117,7 @@ function eagerEnableStreamDownload(drillId: string, streamUid: string, opts: { s
 
 const Drills: React.FC = () => {
   const { userData } = useAuth();
+  const { clubId: activeClubId } = useClubIdHook();
   const { selectedTeamId, selectedTeam } = useTeam();
   const { getDocuments, addDocument, updateDocument } = useFirestore();
   const allowed = isStaffOfTeam(userData, selectedTeam);
@@ -241,7 +243,10 @@ const Drills: React.FC = () => {
     setSaveTarget({ drill, busy: true });
     try {
       const target: { clubId?: string; teamId?: string } = {};
-      const userClubId = (userData as any).clubIds?.[0] || (userData as any).clubId;
+      // Audit M6: use the shared active-club pick so a multi-club
+      // admin's picker drives drill scoping too. The hook is at
+      // component scope (above); this closure reads its memoized value.
+      const userClubId = activeClubId;
       if (userClubId) target.clubId = userClubId;
       else if (selectedTeamId) target.teamId = selectedTeamId;
       else throw new Error('No team or club to save into');

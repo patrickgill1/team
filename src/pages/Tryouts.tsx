@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { collection, doc, getDocs, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useClubId as useClubIdHook } from '../hooks/useClubId';
 import { isCoach, isClubAdmin } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
 import type { Activity, Registration, RegistrationCoachState } from '../types';
@@ -43,7 +44,10 @@ const Tryouts: React.FC = () => {
   const [offerFor, setOfferFor] = useState<Registration | null>(null);
 
   // 2026-07-14: registrations LIST rule now requires clubId scope.
-  const clubId: string | null = (userData as any)?.clubIds?.[0] || null;
+  // Audit M6: shared useClubId hook so a multi-club admin's picker
+  // choice drives the Tryouts page too.
+  const { clubId: resolved } = useClubIdHook();
+  const clubId: string | null = resolved || null;
 
   const reload = async () => {
     if (!clubId) { setLoading(false); return; }

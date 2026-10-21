@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useClubId as useClubIdHook } from '../hooks/useClubId';
 import { isClubAdmin } from '../utils/helpers';
 import HouseholdLinkModal from '../components/club/HouseholdLinkModal';
 import type { Activity, Household, OfferLetter, Registration } from '../types';
@@ -24,10 +25,12 @@ interface FamilyData {
   activities: Activity[];
 }
 
+// Audit M6: respect the shared active-club picker.
 const FamilyTimeline: React.FC = () => {
   const { email: rawEmail } = useParams<{ email: string }>();
   const email = decodeURIComponent(rawEmail || '').toLowerCase();
   const { userData } = useAuth();
+  const { clubId: activeClubId } = useClubIdHook();
   const allowed = isClubAdmin(userData);
 
   const [data, setData] = useState<FamilyData | null>(null);
@@ -63,7 +66,7 @@ const FamilyTimeline: React.FC = () => {
         // 2. Registrations — match by ANY household email.
         // 2026-07-14: LIST rule requires clubId scope. Pull the caller's
         // clubId from userData; skip if missing (page 403s cleanly).
-        const callerClubId: string | null = (userData as any)?.clubIds?.[0] || (userData as any)?.clubId || null;
+        const callerClubId: string | null = activeClubId || null;
         const regsSnap = callerClubId
           ? await getDocs(query(collection(db, 'registrations'), where('clubId', '==', callerClubId), orderBy('createdAt', 'desc')))
           : { docs: [] as any[] };

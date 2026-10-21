@@ -4,6 +4,7 @@ import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin } from '../utils/helpers';
+import { useClubId } from '../hooks/useClubId';
 import type { OfferLetter, Registration } from '../types';
 
 // Admin dashboard with the metrics clubs actually want to see at a
@@ -15,10 +16,10 @@ import type { OfferLetter, Registration } from '../types';
 const Reports: React.FC = () => {
   const { userData } = useAuth();
   const allowed = isClubAdmin(userData);
-  // 2026-07-14: registrations LIST rule now requires clubId scope.
-  // Pull the caller's first clubId from userData; club admins are
-  // scoped to one club today (multi-club admin is a future config).
-  const clubId: string | null = (userData as any)?.clubIds?.[0] || null;
+  // 2026-10-21 audit M6: active club comes from the shared hook so
+  // the picker in /club flips Reports too.
+  const { clubId: resolved } = useClubId();
+  const clubId: string | null = resolved || null;
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [offers, setOffers] = useState<OfferLetter[]>([]);
   const [seasonFilter, setSeasonFilter] = useState<string>('all');

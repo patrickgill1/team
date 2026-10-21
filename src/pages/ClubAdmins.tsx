@@ -7,6 +7,7 @@ import {
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useClubScopes } from '../hooks/useClubScopes';
+import { useClubId as useClubIdHook } from '../hooks/useClubId';
 import { useTeam } from '../contexts/TeamContext';
 import {
   ALL_CLUB_SCOPES,
@@ -43,7 +44,11 @@ const ClubAdmins: React.FC = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
   const { selectedTeam } = useTeam();
-  const clubId = (selectedTeam as any)?.clubId || (userData as any)?.clubIds?.[0] || null;
+  // Prefer the team-scoped clubId when the admin opened this via a
+  // team-admin surface; fall back to the user's active club pick
+  // (audit M6 — useClubId respects the multi-club picker in /club).
+  const { clubId: activeClub } = useClubIdHook();
+  const clubId = (selectedTeam as any)?.clubId || activeClub || null;
   const { club, isOwner, has } = useClubScopes(clubId);
   const canManage = isOwner || has('admins');
 

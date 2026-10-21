@@ -348,12 +348,14 @@ const ClubOverview: React.FC = () => {
       setTeams(teamDocs);
 
       // Load the club doc itself for the setup checklist (stripeAccountId,
-      // brandColor, logoUrl, admin counts). Use the first clubId only —
-      // a user owning multiple clubs is rare and the checklist is
-      // primarily a first-launch tool for fresh admins.
-      if (clubIds.length > 0) {
+      // brandColor, logoUrl, admin counts). Prefers the shared active-
+      // club pick (audit M6) over the first-of-array fallback so a
+      // multi-club admin's picker choice drives which club this page
+      // actually shows.
+      const clubToLoad = (scopedClubId && clubIds.includes(scopedClubId)) ? scopedClubId : clubIds[0];
+      if (clubToLoad) {
         try {
-          const clubSnap = await getDoc(doc(db, 'clubs', clubIds[0]));
+          const clubSnap = await getDoc(doc(db, 'clubs', clubToLoad));
           if (clubSnap.exists()) setClubDoc({ id: clubSnap.id, ...(clubSnap.data() as any) });
         } catch (err) {
           console.warn('[club] club doc load failed', err);
@@ -518,6 +520,8 @@ const ClubOverview: React.FC = () => {
       />
       {connectStatusBanner}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-3">
+        <ClubPickerBar />
+
         {/* Setup checklist — first-launch coaching for fresh club
             admins who land here right after the OnboardingGate
             "Start a club" flow. Surfaces the four things they need
@@ -1460,6 +1464,54 @@ const ClubSetupChecklist: React.FC<{
           </li>
         ))}
       </ul>
+    </div>
+  );
+};
+
+// Multi-club picker. Only renders when the signed-in admin belongs to
+// 2+ clubs. Audit M6: before this shipped every admin page silently
+// locked to clubIds[0] and a director with multiple clubs could not
+// switch between them. Setter writes to localStorage via useClubId and
+// broadcasts a same-tab custom event so every mounted useClubId reader
+// (Reports / AdminCockpit / SeasonWizard / Tryouts / Helpdesk / etc.)
+// re-renders with the new scope.
+const ClubPickerBar: React.FC = () => {
+  const { clubId, availableClubIds, setActiveClubId } = useClubId();
+  const [names, setNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (availableClubIds.length < 2) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const entries: Array<[string, string]> = [];
+        for (const id of availableClubIds) {
+          const snap = await getDoc(doc(db, 'clubs', id));
+          if (snap.exists()) entries.push([id, (snap.data() as any)?.name || id]);
+          else entries.push([id, id]);
+        }
+        if (!cancelled) setNames(Object.fromEntries(entries));
+      } catch (err) {
+        console.warn('[club-picker] name resolve failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [availableClubIds]);
+
+  if (availableClubIds.length < 2) return null;
+
+  return (
+    <div className="bg-surface-elevated rounded-xl ring-1 ring-line-default/10 px-3 py-2 flex items-center gap-2">
+      <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 shrink-0">Active club</span>
+      <select
+        value={clubId || ''}
+        onChange={(e) => setActiveClubId(e.target.value)}
+        className="flex-1 bg-surface-base ring-1 ring-line-default/10 rounded-md px-2 py-1.5 text-sm text-ink-primary"
+      >
+        {availableClubIds.map((id) => (
+          <option key={id} value={id}>{names[id] || id}</option>
+        ))}
+      </select>
     </div>
   );
 };

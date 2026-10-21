@@ -107,6 +107,17 @@ const SeasonWizard: React.FC = () => {
   const [tryouts, setTryouts] = useState<SeasonTryoutDate[]>([]);
   const [savingTryouts, setSavingTryouts] = useState(false);
 
+  // Step 4 — registration. Pool of FormDefinition docs available in
+  // the club, admin picks which are required for this season, sets
+  // fee + close date, and flips registration open.
+  const [formsPool, setFormsPool] = useState<Array<{ id: string; name: string; required?: boolean }>>([]);
+  const [requiredFormIds, setRequiredFormIds] = useState<string[]>([]);
+  const [feeDollars, setFeeDollars] = useState('');
+  const [earlyBirdDollars, setEarlyBirdDollars] = useState('');
+  const [earlyBirdDeadlineStr, setEarlyBirdDeadlineStr] = useState('');
+  const [closeDateStr, setCloseDateStr] = useState('');
+  const [savingRegistration, setSavingRegistration] = useState(false);
+
   // Standard US youth soccer age-group ladder. U6 → U18 is wide
   // enough to cover micro / academy programs at the bottom and high-
   // school-age club at the top. Some clubs add U4 (toddler clinics) or
@@ -153,6 +164,16 @@ const SeasonWizard: React.FC = () => {
             location: t.location,
             notes: t.notes,
           })));
+          // Hydrate step 4 state from the season doc.
+          setRequiredFormIds(Array.isArray(data.formsRequiredIds) ? data.formsRequiredIds : []);
+          setFeeDollars(typeof data.registrationFeeCents === 'number' && data.registrationFeeCents > 0
+            ? (data.registrationFeeCents / 100).toFixed(2) : '');
+          setEarlyBirdDollars(typeof data.earlyBirdDiscountCents === 'number' && data.earlyBirdDiscountCents > 0
+            ? (data.earlyBirdDiscountCents / 100).toFixed(2) : '');
+          const ebDeadline = data.earlyBirdDeadline?.toDate?.() || (data.earlyBirdDeadline ? new Date(data.earlyBirdDeadline) : null);
+          setEarlyBirdDeadlineStr(ebDeadline ? toISODate(ebDeadline) : '');
+          const closeDate = data.registrationCloseDate?.toDate?.() || (data.registrationCloseDate ? new Date(data.registrationCloseDate) : null);
+          setCloseDateStr(closeDate ? toISODate(closeDate) : '');
           // Load coach_commitments for this season (step 2 state).
           try {
             const cmSnap = await getDocs(query(
@@ -200,6 +221,38 @@ const SeasonWizard: React.FC = () => {
       </div>
     );
   }
+
+  // Load the forms pool for this club. Step 4 picker lets the admin
+  // select which required forms this season needs. clubId is sourced
+  // the same way the coach pool resolves it.
+  useEffect(() => {
+    if (!userData) return;
+    const resolvedClubId = (season as any)?.clubId
+      || (userData as any)?.clubId
+      || ((userData as any)?.clubIds?.[0]);
+    if (!resolvedClubId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'form_definitions'),
+          where('clubId', '==', resolvedClubId),
+        ));
+        if (cancelled) return;
+        const pool: Array<{ id: string; name: string; required?: boolean }> = [];
+        snap.forEach((d) => {
+          const dd = d.data() as any;
+          if (dd.isActive === false) return;
+          pool.push({ id: d.id, name: dd.name || 'Form', required: dd.required });
+        });
+        pool.sort((a, b) => a.name.localeCompare(b.name));
+        if (!cancelled) setFormsPool(pool);
+      } catch (err) {
+        console.warn('[season-wizard] load forms pool failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userData, (season as any)?.clubId]);
 
   // Load the pool of coaches available to assign — any user with role
   // 'coach' who is on a team in this club. For a brand-new "I'm not a
@@ -415,6 +468,100 @@ const SeasonWizard: React.FC = () => {
     }
   };
 
+  // Step 4 — save the registration settings (forms, fee, close date,
+  // early bird). Separate from the "Open registration" action so the
+  // admin can save a draft and come back before flipping the switch.
+  const saveRegistrationDraft = async () => {
+    if (!seasonId || savingRegistration) return;
+    const feeCents = feeDollars ? Math.round(parseFloat(feeDollars) * 100) : 0;
+    if (feeDollars && (!Number.isFinite(feeCents) || feeCents < 0)) {
+      alert('Fee must be a positive number.');
+      return;
+    }
+    const earlyBirdCents = earlyBirdDollars ? Math.round(parseFloat(earlyBirdDollars) * 100) : 0;
+    if (earlyBirdDollars && (!Number.isFinite(earlyBirdCents) || earlyBirdCents < 0)) {
+      alert('Early-bird discount must be a positive number.');
+      return;
+    }
+    if (earlyBirdCents > 0 && !earlyBirdDeadlineStr) {
+      alert('Early-bird deadline required when a discount is set.');
+      return;
+    }
+    setSavingRegistration(true);
+    try {
+      const patch: any = {
+        formsRequiredIds: requiredFormIds,
+        registrationFeeCents: feeCents,
+        earlyBirdDiscountCents: earlyBirdCents || null,
+        earlyBirdDeadline: earlyBirdDeadlineStr ? new Date(earlyBirdDeadlineStr) : null,
+        registrationCloseDate: closeDateStr ? new Date(closeDateStr) : null,
+      };
+      await updateDoc(doc(db, 'seasons', seasonId), patch);
+    } catch (err) {
+      console.warn('[season-wizard] save registration failed', err);
+      alert('Could not save. Try again.');
+    } finally {
+      setSavingRegistration(false);
+    }
+  };
+
+  // Open the public /register door. Saves the current draft and flips
+  // the gate in one write. Lifecycle advances to 'registration_open'
+  // so any surface filtering by lifecycle (e.g. the public /register
+  // form, admin dashboards) sees the state change.
+  const openRegistration = async () => {
+    if (!seasonId || savingRegistration) return;
+    if (!closeDateStr) {
+      alert('Set a registration close date before opening.');
+      return;
+    }
+    const confirm = window.confirm(
+      'Open registration?\n\nParents will be able to register on the public form starting now. You can close it again from this step at any point.'
+    );
+    if (!confirm) return;
+    setSavingRegistration(true);
+    try {
+      const feeCents = feeDollars ? Math.round(parseFloat(feeDollars) * 100) : 0;
+      const earlyBirdCents = earlyBirdDollars ? Math.round(parseFloat(earlyBirdDollars) * 100) : 0;
+      const patch: any = {
+        formsRequiredIds: requiredFormIds,
+        registrationFeeCents: feeCents,
+        earlyBirdDiscountCents: earlyBirdCents || null,
+        earlyBirdDeadline: earlyBirdDeadlineStr ? new Date(earlyBirdDeadlineStr) : null,
+        registrationCloseDate: new Date(closeDateStr),
+        registrationOpen: true,
+        registrationOpenedAt: serverTimestamp(),
+        lifecycle: 'registration_open' as SeasonLifecycle,
+      };
+      await updateDoc(doc(db, 'seasons', seasonId), patch);
+      setSeason(prev => prev ? ({ ...prev, ...patch, registrationOpenedAt: new Date() } as Season) : prev);
+    } catch (err) {
+      console.warn('[season-wizard] open registration failed', err);
+      alert('Could not open registration. Try again.');
+    } finally {
+      setSavingRegistration(false);
+    }
+  };
+
+  const closeRegistration = async () => {
+    if (!seasonId || savingRegistration) return;
+    const confirm = window.confirm('Close registration?\n\nParents will no longer be able to register until you reopen it.');
+    if (!confirm) return;
+    setSavingRegistration(true);
+    try {
+      await updateDoc(doc(db, 'seasons', seasonId), {
+        registrationOpen: false,
+        lifecycle: 'tryout_prep' as SeasonLifecycle,
+      });
+      setSeason(prev => prev ? ({ ...prev, registrationOpen: false, lifecycle: 'tryout_prep' } as Season) : prev);
+    } catch (err) {
+      console.warn('[season-wizard] close registration failed', err);
+      alert('Could not close registration.');
+    } finally {
+      setSavingRegistration(false);
+    }
+  };
+
   const stepIsDone = (key: WizardStepKey): boolean => {
     if (!season) return false;
     if (key === 'plan') {
@@ -433,7 +580,12 @@ const SeasonWizard: React.FC = () => {
       if (ageGroups.length === 0) return false;
       return ageGroups.every(ag => tryouts.some(t => t.ageGroup === ag));
     }
-    // Steps 4-5 not implemented yet; treat as never done.
+    if (key === 'registration') {
+      // Done = registration is open OR has closed with a saved config.
+      return !!(season as any).registrationOpen
+        || (!!(season as any).registrationCloseDate && !!(season as any).registrationOpenedAt);
+    }
+    // Step 5 not implemented yet; treat as never done.
     return false;
   };
 
@@ -460,8 +612,8 @@ const SeasonWizard: React.FC = () => {
           {STEPS.map((step, i) => {
             const done = stepIsDone(step.key);
             const isActive = activeStep === step.key;
-            // Plan, coaches, tryouts are implemented. Registration + Marketing still stubs.
-            const isStub = step.key === 'registration' || step.key === 'marketing';
+            // Plan, coaches, tryouts, registration are implemented. Marketing still a stub.
+            const isStub = step.key === 'marketing';
             const blockedByPlan = step.key !== 'plan' && !stepIsDone('plan');
             return (
               <li
@@ -788,10 +940,147 @@ const SeasonWizard: React.FC = () => {
                   </div>
                 )}
 
+                {isActive && step.key === 'registration' && (
+                  <div className="px-4 pb-4 pt-1 border-t border-line-default/5 animate-fade-in space-y-4">
+                    {/* Required forms */}
+                    <div>
+                      <label className="block text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5">Required forms</label>
+                      {formsPool.length === 0 ? (
+                        <div className="rounded-lg bg-surface-base ring-1 ring-line-default/10 p-3 text-xs text-ink-primary/55">
+                          No forms yet in this club.{' '}
+                          <Link to="/club/forms" className="text-brand-primary-soft font-semibold hover:underline">Create one</Link>
+                          {' '}and come back — the picker will pop them in automatically.
+                        </div>
+                      ) : (
+                        <div className="rounded-lg bg-surface-base ring-1 ring-line-default/10 p-3 space-y-1.5">
+                          {formsPool.map(f => {
+                            const on = requiredFormIds.includes(f.id);
+                            return (
+                              <label key={f.id} className="flex items-center gap-2 text-sm text-ink-primary cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={on}
+                                  onChange={() => setRequiredFormIds(prev => on
+                                    ? prev.filter(x => x !== f.id)
+                                    : [...prev, f.id])}
+                                  className="w-4 h-4 rounded ring-1 ring-line-default/15"
+                                />
+                                <span className="flex-1">{f.name}</span>
+                                {f.required && (
+                                  <span className="text-[10px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30">Always required</span>
+                                )}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Window + pricing */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="min-w-0">
+                        <label className="block text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1">Registration close date</label>
+                        <input
+                          type="date"
+                          value={closeDateStr}
+                          onChange={(e) => setCloseDateStr(e.target.value)}
+                          className="block w-full max-w-full ring-1 ring-line-default/10 rounded-lg px-3 py-2.5 text-sm"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <label className="block text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1">Fee per player (USD)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={feeDollars}
+                          onChange={(e) => setFeeDollars(e.target.value)}
+                          placeholder="0.00"
+                          className="block w-full max-w-full ring-1 ring-line-default/10 rounded-lg px-3 py-2.5 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="min-w-0">
+                        <label className="block text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1">Early-bird discount (USD, optional)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={earlyBirdDollars}
+                          onChange={(e) => setEarlyBirdDollars(e.target.value)}
+                          placeholder="0.00"
+                          className="block w-full max-w-full ring-1 ring-line-default/10 rounded-lg px-3 py-2.5 text-sm"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <label className="block text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1">Early-bird deadline</label>
+                        <input
+                          type="date"
+                          value={earlyBirdDeadlineStr}
+                          onChange={(e) => setEarlyBirdDeadlineStr(e.target.value)}
+                          disabled={!earlyBirdDollars}
+                          className="block w-full max-w-full ring-1 ring-line-default/10 rounded-lg px-3 py-2.5 text-sm disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Open / Close actions */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {(season as any)?.registrationOpen ? (
+                        <>
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Registration open
+                          </span>
+                          <button
+                            type="button"
+                            onClick={saveRegistrationDraft}
+                            disabled={savingRegistration}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-line-default/10 hover:bg-line-default/15 text-ink-primary font-bold rounded-md text-sm disabled:opacity-50"
+                          >
+                            {savingRegistration ? 'Saving…' : 'Save changes'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={closeRegistration}
+                            disabled={savingRegistration}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/30 hover:bg-rose-500/25 font-bold rounded-md text-sm disabled:opacity-50"
+                          >
+                            Close registration
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={saveRegistrationDraft}
+                            disabled={savingRegistration}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-line-default/10 hover:bg-line-default/15 text-ink-primary font-bold rounded-md text-sm disabled:opacity-50"
+                          >
+                            {savingRegistration ? 'Saving…' : 'Save draft'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={openRegistration}
+                            disabled={savingRegistration}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary text-brand-primary-fg font-bold rounded-md ring-1 ring-brand-primary-soft/30 text-sm disabled:opacity-50"
+                          >
+                            Open registration
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-ink-primary/45">
+                      When open, parents hit the public /register form and can submit for any age group listed in Step 1.
+                    </p>
+                  </div>
+                )}
+
                 {isActive && isStub && (
                   <div className="px-4 pb-4 pt-1 border-t border-line-default/5 animate-fade-in">
                     <div className="text-[12.5px] text-ink-primary/60 italic">
-                      Coming in the next batch. The data model for this step is already defined; the UI is being built next.
+                      Marketing (Step 5) is the next build. For now, broadcast tryout dates to current families via /club → Broadcast; the Season Wizard will take this over end-to-end soon.
                     </div>
                   </div>
                 )}

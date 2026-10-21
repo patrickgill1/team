@@ -430,8 +430,40 @@ const ClubOverview: React.FC = () => {
     return out;
   }, [teams, players, events]);
 
-  // Members (with team-resolved teamIds) for broadcast recipients.
+  // Members (with team-resolved teamIds + age groups) for broadcast
+  // recipients. ageGroups is the union of:
+  //   - any player.ageGroup (or player.team.ageGroup) for a player
+  //     whose parentIds include this uid (parent side)
+  //   - any team.ageGroup for teams this uid coaches (coach side)
+  // Powers the age-group filter chips in BroadcastModal — "U10 parents"
+  // is the single most-asked club-admin segment per the 2026-10-21
+  // audit (M3).
   const members = useMemo(() => {
+    const uidToAges = new Map<string, Set<string>>();
+    const teamAgeById = new Map<string, string>();
+    for (const t of teams) {
+      if ((t as any).ageGroup) teamAgeById.set(t.id, (t as any).ageGroup);
+    }
+    for (const p of players) {
+      const parentIds: string[] = Array.isArray((p as any).parentIds)
+        ? (p as any).parentIds
+        : ((p as any).parentId ? [(p as any).parentId] : []);
+      const ag = (p as any).ageGroup || teamAgeById.get((p as any).teamId) || '';
+      if (!ag) continue;
+      for (const pid of parentIds) {
+        if (!uidToAges.has(pid)) uidToAges.set(pid, new Set());
+        uidToAges.get(pid)!.add(ag);
+      }
+    }
+    for (const t of teams) {
+      const coachIds: string[] = Array.isArray((t as any).coachIds) ? (t as any).coachIds : [];
+      const ag = (t as any).ageGroup;
+      if (!ag) continue;
+      for (const uid of coachIds) {
+        if (!uidToAges.has(uid)) uidToAges.set(uid, new Set());
+        uidToAges.get(uid)!.add(ag);
+      }
+    }
     return users
       .map((u: any) => {
         const uid = u.uid || u.id;
@@ -445,10 +477,11 @@ const ClubOverview: React.FC = () => {
           email: (u.email || '').trim() || undefined,
           role: u.role,
           teamIds,
+          ageGroups: Array.from(uidToAges.get(uid) || []),
         };
       })
       .filter(Boolean) as any[];
-  }, [users]);
+  }, [users, players, teams]);
 
   const goToTeam = (id: string) => {
     setSelectedTeamId(id);

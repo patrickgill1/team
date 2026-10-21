@@ -7,7 +7,7 @@ import { Sheet, Button, FormField, fieldInputClass } from '../ui';
 import { useConfirm } from '../common/ConfirmDialog';
 
 interface TeamOption { id: string; name: string }
-interface MemberOption { uid: string; name: string; email?: string; role?: string; teamIds: string[] }
+interface MemberOption { uid: string; name: string; email?: string; role?: string; teamIds: string[]; ageGroups?: string[] }
 
 interface Props {
   isOpen: boolean;
@@ -23,17 +23,34 @@ interface Props {
  * Recipient resolution happens client-side from the loaded member list
  * (already filtered to club users). For pushes we send to UIDs; for
  * emails we batch through the existing notify worker.
+ *
+ * 2026-10-21 (audit M3): added age-group filter chips. "U10 parents"
+ * was the single most-asked segment and the existing scope-only picker
+ * (Everyone / Parents / Coaches / Specific teams) couldn't express it.
+ * The chip strip AND's with scope — e.g. scope=Parents + U10+U12
+ * selected → only U10 & U12 parents.
  */
 const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) => {
   const { userData } = useAuth();
   const confirm = useConfirm();
   const [scope, setScope] = useState<'all' | 'parents' | 'coaches' | 'teams'>('all');
   const [pickedTeamIds, setPickedTeamIds] = useState<Set<string>>(new Set());
+  const [pickedAgeGroups, setPickedAgeGroups] = useState<Set<string>>(new Set());
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [sendPush, setSendPush] = useState(true);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+
+  // Available age groups computed from the member set so the chips
+  // reflect what the club actually has, not a hardcoded ladder.
+  const availableAgeGroups = useMemo(() => {
+    const s = new Set<string>();
+    for (const m of members) {
+      (m.ageGroups || []).forEach(ag => s.add(ag));
+    }
+    return Array.from(s).sort();
+  }, [members]);
 
   const recipients = useMemo(() => {
     let list = members.slice();
@@ -43,9 +60,15 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
       if (pickedTeamIds.size === 0) return [] as MemberOption[];
       list = list.filter((m) => m.teamIds.some((t) => pickedTeamIds.has(t)));
     }
+    // Age-group filter — AND with the scope filter. Empty set = no
+    // age filter (default). A member matches if ANY of their age
+    // groups is in the picked set.
+    if (pickedAgeGroups.size > 0) {
+      list = list.filter((m) => (m.ageGroups || []).some(ag => pickedAgeGroups.has(ag)));
+    }
     if (userData?.uid) list = list.filter((m) => m.uid !== userData.uid);
     return list;
-  }, [members, scope, pickedTeamIds, userData?.uid]);
+  }, [members, scope, pickedTeamIds, pickedAgeGroups, userData?.uid]);
 
   if (!isOpen) return null;
 
@@ -173,6 +196,48 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
               })}
             </div>
           )}
+
+          {/* Age-group filter chips. Only renders when the club has age-
+              group data to filter against. AND's with the scope above —
+              empty selection means no age filter (default). */}
+          {availableAgeGroups.length > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/55">Narrow by age group</p>
+                {pickedAgeGroups.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPickedAgeGroups(new Set())}
+                    className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-brand-primary"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {availableAgeGroups.map((ag) => {
+                  const active = pickedAgeGroups.has(ag);
+                  return (
+                    <button
+                      key={ag}
+                      type="button"
+                      onClick={() => setPickedAgeGroups((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(ag)) next.delete(ag); else next.add(ag);
+                        return next;
+                      })}
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ring-1 transition ${
+                        active ? 'bg-brand-primary text-brand-primary-fg ring-brand-primary' : 'bg-surface-base text-ink-primary/70 ring-line-default/10 hover:bg-line-default/5'
+                      }`}
+                    >
+                      {ag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-ink-primary/55 mt-2">
             Will reach <span className="font-bold text-ink-primary">{recipients.length}</span> {recipients.length === 1 ? 'person' : 'people'}.
           </p>

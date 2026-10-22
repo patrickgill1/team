@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
+import { useClubId as useClubIdHook } from '../hooks/useClubId';
 import { isClubAdmin as checkIsClubAdmin } from '../utils/helpers';
 import TeamFunnelStepper from '../components/team/TeamFunnelStepper';
 import type { Team, TeamFunnelStageKey } from '../types';
@@ -47,26 +48,27 @@ const AdminTeams: React.FC = () => {
     return () => window.clearTimeout(t);
   }, [loaded]);
 
+  // Union of canonical userData.clubId + userData.clubIds array +
+  // active-club pick from useClubId. 2026-10-22 fix: previously
+  // read userData.clubIds only — when a legacy admin's doc had
+  // clubIds: [] but clubId: 'fire-fc', this page rendered empty
+  // while AdminCockpit (which uses useClubId) correctly counted the
+  // team. That mismatch had Patrick: "it says I have one team for
+  // activation, but when I go there, nothing shows."
+  const { availableClubIds } = useClubIdHook();
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        // Multi-tenant lock (2026-06-23): only load teams in clubs
-        // this admin actually administers. Previously this fetched
-        // EVERY active team in the database. If the user has no
-        // clubIds on their doc, render nothing — better than leaking
-        // every club's teams into one admin's view.
-        const clubIds: string[] = Array.isArray((userData as any)?.clubIds)
-          ? (userData as any).clubIds
-          : (userData as any)?.clubId ? [(userData as any).clubId] : [];
-        if (clubIds.length === 0) {
-          if (!cancelled) setRows([]);
+        if (availableClubIds.length === 0) {
+          if (!cancelled) { setTeams([]); setLoaded(true); }
           return;
         }
         const snap = await getDocs(query(
           collection(db, 'teams'),
           where('isActive', '==', true),
-          where('clubId', 'in', clubIds.slice(0, 30)),
+          where('clubId', 'in', availableClubIds.slice(0, 30)),
         ));
         if (cancelled) return;
         const list: Team[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
@@ -85,7 +87,7 @@ const AdminTeams: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [availableClubIds.join('|')]);
 
   // Use the helper (not the raw flag). See SeasonWizard for the full
   // reason — tl;dr: the flag is reserved for platform owners, so a
@@ -106,12 +108,21 @@ const AdminTeams: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 relative">
-      <div className="mb-5 sm:mb-7">
-        <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Club admin</p>
-        <h1 className="font-display text-2xl sm:text-3xl font-black text-ink-primary mt-1">Team activation</h1>
-        <p className="text-sm text-ink-primary/65 mt-1.5">
-          Drive every team through the five activation stages. Stamp manually until the Sports Affinity API is wired; some stages auto-fill from existing data.
-        </p>
+      <div className="mb-5 sm:mb-7 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Club admin</p>
+          <h1 className="font-display text-2xl sm:text-3xl font-black text-ink-primary mt-1">Team activation</h1>
+          <p className="text-sm text-ink-primary/65 mt-1.5">
+            Drive every team through the five activation stages. Stamp manually until the Sports Affinity API is wired; some stages auto-fill from existing data.
+          </p>
+        </div>
+        <Link
+          to="/teams"
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary text-brand-primary-fg text-sm font-bold shadow-md"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+          <span className="hidden sm:inline">New team</span>
+        </Link>
       </div>
 
       {showProgress && !loaded && (
@@ -124,7 +135,14 @@ const AdminTeams: React.FC = () => {
         {teams.length === 0 && loaded ? (
           <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 p-10 text-center">
             <p className="text-ink-primary/85 font-semibold mb-1">No active teams yet</p>
-            <p className="text-ink-primary/50 text-sm">Teams appear here once you create them in the club tools.</p>
+            <p className="text-ink-primary/50 text-sm mb-4">Create your first team to start driving it through the activation funnel.</p>
+            <Link
+              to="/teams"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary text-brand-primary-fg text-sm font-bold"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              New team
+            </Link>
           </div>
         ) : (
           <ul className="space-y-3 animate-fade-in">

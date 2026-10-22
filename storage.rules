@@ -34,9 +34,24 @@ service firebase.storage {
 
     // Profile photos and per-user uploads. Path shape:
     //   profiles/{type}/{userId}/{fileName}
-    // where type is one of 'parents', 'coaches', 'players'. Only the
-    // owner (auth.uid === userId) can write here; anyone signed in
-    // can read (avatars are visible in chat, roster, etc.).
+    // where type is one of 'parents', 'coaches', 'players'.
+    //
+    // 'players' is special: kids don't have accounts (userId here is
+    // the Firestore playerId, not an auth uid). The uploader is the
+    // parent. 2026-10-22 fix after Patrick: "when i went into the app
+    // it had the cool setup, but it wouldn't let me upload a photo.
+    // it said to try a different one, but each one did not work."
+    // That was the pre-fix rule rejecting every parent upload because
+    // auth.uid != playerId. New rule for 'players' path: allow when
+    // the caller is on the player's parentIds (Firestore.get lookup).
+    // Everything else (parents/coaches) stays owner-only.
+    match /profiles/players/{playerId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.uid == playerId
+        || request.auth.uid in firestore.get(/databases/(default)/documents/players/$(playerId)).data.parentIds
+      );
+    }
     match /profiles/{type}/{userId}/{fileName} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;

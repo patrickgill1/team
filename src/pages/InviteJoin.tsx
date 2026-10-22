@@ -625,31 +625,40 @@ const InviteJoin: React.FC = () => {
                 {error && <p className="text-rose-300 text-sm">{error}</p>}
               </div>
             ) : (
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  required
-                  value={youthName}
-                  onChange={(e) => setYouthName(e.target.value)}
-                  placeholder="Kid's full name"
-                  className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
-                />
-                <input
-                  type="date"
-                  required
-                  value={youthDob}
-                  onChange={(e) => setYouthDob(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  max={999}
-                  value={youthJersey}
-                  onChange={(e) => setYouthJersey(e.target.value)}
-                  placeholder="Jersey number (optional)"
-                  className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
-                />
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Full name</span>
+                  <input
+                    type="text"
+                    required
+                    value={youthName}
+                    onChange={(e) => setYouthName(e.target.value)}
+                    placeholder="e.g. Oliver Gill"
+                    className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+                  />
+                </label>
+                <label className="block">
+                  <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Date of birth</span>
+                  <input
+                    type="date"
+                    required
+                    value={youthDob}
+                    onChange={(e) => setYouthDob(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+                  />
+                </label>
+                <label className="block">
+                  <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/60 mb-1">Jersey number (optional)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={999}
+                    value={youthJersey}
+                    onChange={(e) => setYouthJersey(e.target.value)}
+                    placeholder="10"
+                    className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+                  />
+                </label>
                 {error && <p className="text-rose-300 text-sm">{error}</p>}
                 <button
                   onClick={submitYouthForm}

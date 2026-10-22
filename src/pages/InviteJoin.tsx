@@ -273,13 +273,24 @@ const InviteJoin: React.FC = () => {
     if (existing.exists()) return;
     // Route the first-time create through /users/bootstrap so the
     // sensitive fields (role, teamIds, approved) come from the guarded
-    // path. Role here is a placeholder — /claim/invite overwrites it
-    // based on the invite's actual type on the next step.
+    // path. Role here matters: a fresh brand-new user doc with
+    // role='coach' + no teams triggers OnboardingGate ("Set up a team
+    // / Join a team") BEFORE handleConsume opens the invite claim
+    // form. Patrick 2026-10-22: parent used email+password on a youth
+    // self-serve invite, got dumped on "create a team" screen instead
+    // of the Add Kid form. Google worked only because existing Google
+    // users already had role='parent' doc on prior visits so the
+    // auth-state watcher didn't redirect.
+    // Fix: stamp role='parent' for all parent-side invite shapes
+    // (player, team_self_serve_adult, team_self_serve_youth). /claim/
+    // invite still corrects downstream, but the correct starting role
+    // avoids the mid-flight OnboardingGate redirect.
+    const parentInviteTypes = ['player', 'team_self_serve_adult', 'team_self_serve_youth'];
     const { workerFetch } = await import('../utils/workerFetch');
     await workerFetch('/users/bootstrap', {
       method: 'POST',
       body: JSON.stringify({
-        role: invite.type === 'player' ? 'parent' : 'coach',
+        role: parentInviteTypes.includes(invite.type) ? 'parent' : 'coach',
         name: fallbackName,
         email: fallbackEmail.toLowerCase(),
         authProvider: 'email',
@@ -347,6 +358,12 @@ const InviteJoin: React.FC = () => {
     try {
       let uid: string;
       const { workerFetch } = await import('../utils/workerFetch');
+      // Same reasoning as ensureUserDocFor above — role on bootstrap
+      // matters because a stale 'coach' + no teams triggers
+      // OnboardingGate before the invite consume completes. Patrick
+      // 2026-10-22 bug.
+      const parentInviteTypes = ['player', 'team_self_serve_adult', 'team_self_serve_youth'];
+      const bootstrapRole = parentInviteTypes.includes(invite.type) ? 'parent' : 'coach';
       if (mode === 'sign-up') {
         if (!name.trim()) { setError('Your name is required for new accounts.'); setSubmitting(false); return; }
         const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -354,7 +371,7 @@ const InviteJoin: React.FC = () => {
         await workerFetch('/users/bootstrap', {
           method: 'POST',
           body: JSON.stringify({
-            role: invite.type === 'player' ? 'parent' : 'coach',
+            role: bootstrapRole,
             name: name.trim(),
             email: email.trim().toLowerCase(),
             authProvider: 'email',
@@ -369,7 +386,7 @@ const InviteJoin: React.FC = () => {
           await workerFetch('/users/bootstrap', {
             method: 'POST',
             body: JSON.stringify({
-              role: invite.type === 'player' ? 'parent' : 'coach',
+              role: bootstrapRole,
               name: cred.user.displayName || email.trim().split('@')[0],
               email: email.trim().toLowerCase(),
               authProvider: 'email',

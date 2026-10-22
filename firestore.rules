@@ -577,6 +577,18 @@ service cloud.firestore {
                 'subscriptionStatus', 'subscriptionTier',
               ])
         )
+        // Club admin updating activation-funnel progress on teams in
+        // their club. 2026-10-22: Patrick (club admin, not on this
+        // team's coachIds) couldn't mark funnel stages done from
+        // /admin/teams. Scoped tight: ONLY funnelProgress (+ an
+        // optional updatedAt tag) may change via this branch, so
+        // membership + Stripe fields stay worker-only.
+        || (
+          resource.data.clubId is string
+          && resource.data.clubId in userDoc().get('clubIds', [])
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['funnelProgress', 'updatedAt'])
+        )
       );
       allow delete: if isAuthed() && (
         isPlatformAdmin()

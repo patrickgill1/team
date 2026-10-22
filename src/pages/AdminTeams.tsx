@@ -41,6 +41,10 @@ const AdminTeams: React.FC = () => {
   const [loaded, setLoaded] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
+  // Bump counter to trigger a re-fetch after TeamFunnelStepper marks
+  // or undoes a stage. Keeps the activation chips in sync without a
+  // full page refresh.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (loaded) { setShowProgress(false); return; }
@@ -122,7 +126,7 @@ const AdminTeams: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [availableClubIds.join('|'), directTeamIds.join('|')]);
+  }, [availableClubIds.join('|'), directTeamIds.join('|'), reloadKey]);
 
   // Use the helper (not the raw flag). See SeasonWizard for the full
   // reason — tl;dr: the flag is reserved for platform owners, so a
@@ -216,6 +220,7 @@ const AdminTeams: React.FC = () => {
                   {isExpanded && (
                     <div className="px-3 pb-4 pt-1 border-t border-line-default/5 animate-fade-in">
                       <TeamFunnelStepper
+                        onChange={() => setReloadKey((k) => k + 1)}
                         teamId={team.id}
                         progress={(team as any).funnelProgress}
                         canEdit

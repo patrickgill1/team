@@ -56,6 +56,9 @@ interface Props {
   canEdit?: boolean;
   /** UID stamped on manual writes. Falls back to 'manual'. */
   actorUid?: string;
+  /** Called after a successful mark/undo so the parent can re-fetch
+   *  team data and reflect the change without a page refresh. */
+  onChange?: () => void;
 }
 
 function toDate(v: unknown): Date | null {
@@ -68,7 +71,7 @@ function toDate(v: unknown): Date | null {
   return null;
 }
 
-const TeamFunnelStepper: React.FC<Props> = ({ teamId, progress, canEdit = false, actorUid }) => {
+const TeamFunnelStepper: React.FC<Props> = ({ teamId, progress, canEdit = false, actorUid, onChange }) => {
   const [openStage, setOpenStage] = useState<TeamFunnelStageKey | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -91,8 +94,10 @@ const TeamFunnelStepper: React.FC<Props> = ({ teamId, progress, canEdit = false,
         },
       });
       setOpenStage(null);
+      onChange?.();
     } catch (err) {
       console.warn('[team-funnel] mark done failed', err);
+      alert('Could not mark the stage done. You may not have permission on this team.');
     } finally {
       setSaving(false);
     }
@@ -106,8 +111,10 @@ const TeamFunnelStepper: React.FC<Props> = ({ teamId, progress, canEdit = false,
         [`funnelProgress.${key}`]: deleteField(),
       });
       setOpenStage(null);
+      onChange?.();
     } catch (err) {
       console.warn('[team-funnel] undo failed', err);
+      alert('Could not undo. You may not have permission on this team.');
     } finally {
       setSaving(false);
     }

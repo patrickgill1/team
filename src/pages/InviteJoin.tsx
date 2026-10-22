@@ -182,8 +182,47 @@ const InviteJoin: React.FC = () => {
   const [youthName, setYouthName] = useState('');
   const [youthDob, setYouthDob] = useState('');
   const [youthJersey, setYouthJersey] = useState('');
+  // Existing kids this parent already has — loaded on youth-form open
+  // so a returning parent can PICK a kid instead of accidentally
+  // creating Hunter #2. Patrick 2026-10-22: "I have a son that is on
+  // this new team that isn't on my other teams. Will I have an
+  // issue?" — yes, this prevents it.
+  const [existingKids, setExistingKids] = useState<Array<{ id: string; name: string; teamIds: string[] }>>([]);
+  const [picking, setPicking] = useState<'existing' | 'new' | null>(null);
 
-  const handleConsume = async (uid: string, youthChildOverride?: { childName: string; childDob: string; jerseyNumber?: number }) => {
+  useEffect(() => {
+    if (!youthFormOpen || !currentUser || invite?.type !== 'team_self_serve_youth') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection: c, getDocs: gd, query: q, where: w } = await import('firebase/firestore');
+        const { db: d } = await import('../utils/firebase');
+        const snap = await gd(q(c(d, 'players'), w('parentIds', 'array-contains', currentUser.uid)));
+        if (cancelled) return;
+        const kids: Array<{ id: string; name: string; teamIds: string[] }> = [];
+        snap.forEach((doc) => {
+          const data = doc.data() as any;
+          if (data.isActive === false) return;
+          if (data.isAdultPlayer === true) return; // adult self-players shouldn't appear as "my kids"
+          kids.push({
+            id: doc.id,
+            name: data.name || 'Player',
+            teamIds: Array.isArray(data.teamIds) ? data.teamIds : (data.teamId ? [data.teamId] : []),
+          });
+        });
+        // Hide any that are already on this exact team — nothing to add.
+        setExistingKids(kids.filter((k) => !k.teamIds.includes(invite?.teamId || '')));
+        // Default picker: if any existing kids, show the picker; else go straight to "new".
+        setPicking(kids.length > 0 ? 'existing' : 'new');
+      } catch (err) {
+        console.warn('[invite-youth] existing-kids query failed', err);
+        setPicking('new');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [youthFormOpen, currentUser, invite?.type, invite?.teamId]);
+
+  const handleConsume = async (uid: string, youthChildOverride?: { existingPlayerId?: string; childName?: string; childDob?: string; jerseyNumber?: number }) => {
     if (!inviteId) return;
     // Youth self-serve: if we don't have kid details yet, open the
     // form instead of consuming. On submit, we re-enter with the
@@ -529,41 +568,99 @@ const InviteJoin: React.FC = () => {
           <div className="p-6 space-y-3">
             <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">About your kid</p>
             <p className="text-sm text-ink-primary/85">
-              Signed in as <b>{currentUser.email}</b>. Fill out your kid's details to add them to the roster.
+              Signed in as <b>{currentUser.email}</b>.
             </p>
-            <div className="space-y-2">
-              <input
-                type="text"
-                required
-                value={youthName}
-                onChange={(e) => setYouthName(e.target.value)}
-                placeholder="Kid's full name"
-                className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
-              />
-              <input
-                type="date"
-                required
-                value={youthDob}
-                onChange={(e) => setYouthDob(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
-              />
-              <input
-                type="number"
-                min={0}
-                max={999}
-                value={youthJersey}
-                onChange={(e) => setYouthJersey(e.target.value)}
-                placeholder="Jersey number (optional)"
-                className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
-              />
-            </div>
-            {error && <p className="text-rose-300 text-sm">{error}</p>}
-            <button
-              onClick={submitYouthForm}
-              className="w-full py-3 rounded-xl bg-brand-primary hover:bg-brand-primary text-white font-bold text-sm transition"
-            >
-              Add kid to {teamName || 'the team'}
-            </button>
+
+            {existingKids.length > 0 && (
+              <>
+                <div className="rounded-lg bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 px-3 py-2 text-xs text-brand-primary-soft">
+                  <b>We found {existingKids.length} kid{existingKids.length === 1 ? '' : 's'} on your account.</b> Pick one to add to {teamName || 'this team'}, or add a brand-new kid.
+                </div>
+                <div className="flex gap-2 text-[11px] font-extrabold tracking-widest uppercase">
+                  <button
+                    type="button"
+                    onClick={() => setPicking('existing')}
+                    className={`flex-1 py-2 rounded-lg transition ${picking === 'existing' ? 'bg-brand-primary text-brand-primary-fg' : 'bg-line-default/10 text-ink-primary/70'}`}
+                  >
+                    Pick a kid
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPicking('new')}
+                    className={`flex-1 py-2 rounded-lg transition ${picking === 'new' ? 'bg-brand-primary text-brand-primary-fg' : 'bg-line-default/10 text-ink-primary/70'}`}
+                  >
+                    Add new kid
+                  </button>
+                </div>
+              </>
+            )}
+
+            {picking === 'existing' && existingKids.length > 0 ? (
+              <div className="space-y-2">
+                {existingKids.map((k) => (
+                  <button
+                    key={k.id}
+                    type="button"
+                    disabled={submitting}
+                    onClick={async () => {
+                      setError(null);
+                      setSubmitting(true);
+                      try {
+                        await handleConsume(currentUser.uid, { existingPlayerId: k.id });
+                      } finally {
+                        setSubmitting(false);
+                      }
+                    }}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-line-default/5 hover:bg-line-default/10 ring-1 ring-line-default/15 text-left disabled:opacity-50"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-ink-primary truncate">{k.name}</div>
+                      <div className="text-[11px] text-ink-primary/55">
+                        {k.teamIds.length === 0 ? 'No current teams' : `On ${k.teamIds.length} team${k.teamIds.length === 1 ? '' : 's'}`}
+                      </div>
+                    </div>
+                    <svg className="w-4 h-4 text-ink-primary/50 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
+                  </button>
+                ))}
+                {error && <p className="text-rose-300 text-sm">{error}</p>}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  required
+                  value={youthName}
+                  onChange={(e) => setYouthName(e.target.value)}
+                  placeholder="Kid's full name"
+                  className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+                />
+                <input
+                  type="date"
+                  required
+                  value={youthDob}
+                  onChange={(e) => setYouthDob(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={999}
+                  value={youthJersey}
+                  onChange={(e) => setYouthJersey(e.target.value)}
+                  placeholder="Jersey number (optional)"
+                  className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+                />
+                {error && <p className="text-rose-300 text-sm">{error}</p>}
+                <button
+                  onClick={submitYouthForm}
+                  disabled={submitting}
+                  className="w-full py-3 rounded-xl bg-brand-primary hover:bg-brand-primary text-white font-bold text-sm transition disabled:opacity-50"
+                >
+                  Add kid to {teamName || 'the team'}
+                </button>
+              </div>
+            )}
+
             <button
               onClick={() => { setYouthFormOpen(false); setError(null); }}
               className="w-full py-2 text-xs font-semibold text-ink-primary/60 hover:text-ink-primary"

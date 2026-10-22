@@ -709,9 +709,17 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
     }
   }
   // Youth self-serve: the inverse check. Must NOT be an adult team.
-  // Also requires a youthChild payload (childName + childDob) so the
-  // worker has what it needs to mint the player doc.
-  let youthChildPayload: { childName: string; childDob: string; jerseyNumber?: number } | null = null;
+  // Requires youthChild payload with EITHER existingPlayerId (pick
+  // an existing kid of this parent to add to the new team) OR
+  // childName + childDob (mint a fresh player). Dedup via
+  // existingPlayerId prevents duplicate Hunter docs when the same
+  // kid is already on another team — Patrick 2026-10-22 question.
+  let youthChildPayload: {
+    existingPlayerId?: string;
+    childName?: string;
+    childDob?: string;
+    jerseyNumber?: number;
+  } | null = null;
   if (inviteType === 'team_self_serve_youth') {
     const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
     const audience = teamDoc?.data?.audienceType;
@@ -719,15 +727,20 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
       return json({ ok: false, error: 'team_not_youth' }, 400);
     }
     const raw = (payload as any)?.youthChild || {};
-    const childName = String(raw.childName || '').trim();
-    const childDob = String(raw.childDob || '').trim();
-    if (!childName) return json({ ok: false, error: 'child_name_required' }, 400);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(childDob)) {
-      return json({ ok: false, error: 'child_dob_required_iso' }, 400);
+    const existingPlayerId = String(raw.existingPlayerId || '').trim();
+    if (existingPlayerId) {
+      youthChildPayload = { existingPlayerId };
+    } else {
+      const childName = String(raw.childName || '').trim();
+      const childDob = String(raw.childDob || '').trim();
+      if (!childName) return json({ ok: false, error: 'child_name_required' }, 400);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(childDob)) {
+        return json({ ok: false, error: 'child_dob_required_iso' }, 400);
+      }
+      const jerseyNumber = typeof raw.jerseyNumber === 'number' && raw.jerseyNumber >= 0 && raw.jerseyNumber <= 999
+        ? raw.jerseyNumber : undefined;
+      youthChildPayload = { childName, childDob, jerseyNumber };
     }
-    const jerseyNumber = typeof raw.jerseyNumber === 'number' && raw.jerseyNumber >= 0 && raw.jerseyNumber <= 999
-      ? raw.jerseyNumber : undefined;
-    youthChildPayload = { childName, childDob, jerseyNumber };
   }
 
   const usedBy: string[] = Array.isArray(invite.usedBy) ? invite.usedBy : [];
@@ -843,31 +856,55 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
     // managerIds branch when role === 'team_manager'.
     op.attachToTeamCoachIds = teamId;
   } else if (inviteType === 'team_self_serve_youth') {
-    // team_self_serve_youth: parent is adding their kid to a youth
-    // team. Worker mints a fresh player doc with the kid's details
-    // and the parent on parentIds. 2026-10-22 ship — a parent can
-    // only claim once per invite (usedBy short-circuit upstream);
-    // if a family has multiple kids on the team, admin adds the
-    // second manually or we extend to a sibling-flow later.
-    const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
-    const clubId = teamDoc?.data?.clubId ? String(teamDoc.data.clubId) : '';
-    const ageGroup = (teamDoc?.data as any)?.ageGroup || '';
-    const newPlayerFields: Record<string, any> = {
-      name: youthChildPayload!.childName,
-      dob: youthChildPayload!.childDob,
-      teamId,
-      teamIds: [teamId],
-      parentIds: [claims.uid],
-      isActive: true,
-      createdAt: new Date(),
-      createdBy: claims.uid,
-    };
-    if (clubId) newPlayerFields.clubId = clubId;
-    if (ageGroup) newPlayerFields.ageGroup = ageGroup;
-    if (typeof youthChildPayload!.jerseyNumber === 'number') {
-      newPlayerFields.jerseyNumber = youthChildPayload!.jerseyNumber;
+    // team_self_serve_youth. Two sub-paths:
+    //   (a) existingPlayerId provided → parent picked a kid they
+    //       already have in another team. Union the new teamId onto
+    //       that player; applyMembership adds parent to parentIds +
+    //       user.children. No duplicate doc.
+    //   (b) childName + childDob → brand-new player. Mint it.
+    //
+    // Guard on (a): the picked player MUST have parentIds containing
+    // claims.uid. Prevents a parent from pulling someone else's kid
+    // onto their roster via a forged request. 2026-10-22.
+    if (youthChildPayload!.existingPlayerId) {
+      const existingId = youthChildPayload!.existingPlayerId;
+      const pDoc = await getDocument(pid, `players/${existingId}`, sa).catch(() => null);
+      const pData: any = pDoc?.data || null;
+      if (!pData) return json({ ok: false, error: 'player_not_found' }, 404);
+      const parentIds: string[] = Array.isArray(pData.parentIds) ? pData.parentIds : [];
+      if (!parentIds.includes(claims.uid)) {
+        return json({ ok: false, error: 'not_your_player' }, 403);
+      }
+      // Union the new teamId onto the player's teamIds.
+      await commitDocumentTransforms(
+        pid,
+        `players/${existingId}`,
+        [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId }],
+        null,
+        sa,
+      );
+      playerId = existingId;
+    } else {
+      const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+      const clubId = teamDoc?.data?.clubId ? String(teamDoc.data.clubId) : '';
+      const ageGroup = (teamDoc?.data as any)?.ageGroup || '';
+      const newPlayerFields: Record<string, any> = {
+        name: youthChildPayload!.childName,
+        dob: youthChildPayload!.childDob,
+        teamId,
+        teamIds: [teamId],
+        parentIds: [claims.uid],
+        isActive: true,
+        createdAt: new Date(),
+        createdBy: claims.uid,
+      };
+      if (clubId) newPlayerFields.clubId = clubId;
+      if (ageGroup) newPlayerFields.ageGroup = ageGroup;
+      if (typeof youthChildPayload!.jerseyNumber === 'number') {
+        newPlayerFields.jerseyNumber = youthChildPayload!.jerseyNumber;
+      }
+      playerId = await createDocument(pid, 'players', newPlayerFields, sa);
     }
-    playerId = await createDocument(pid, 'players', newPlayerFields, sa);
     // Parent role is correct for a youth self-serve claim — they are
     // the parent, not the player. Mirror the player onto the user via
     // playerLink so applyMembership attaches them to the kid.

@@ -236,8 +236,12 @@ export async function fetchInvite(id: string): Promise<FetchedInvite | null> {
  * link them to the team/player and bump the counter.
  */
 export interface YouthChildPayload {
-  childName: string;
-  childDob: string; // ISO yyyy-mm-dd
+  /** Pick an existing player this parent already has — union the
+   *  team onto that player instead of minting a duplicate. One of
+   *  existingPlayerId OR (childName + childDob) is required. */
+  existingPlayerId?: string;
+  childName?: string;
+  childDob?: string; // ISO yyyy-mm-dd
   jerseyNumber?: number;
 }
 

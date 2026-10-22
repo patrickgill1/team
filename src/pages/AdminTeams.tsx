@@ -218,7 +218,65 @@ const AdminTeams: React.FC = () => {
                     </svg>
                   </button>
                   {isExpanded && (
-                    <div className="px-3 pb-4 pt-1 border-t border-line-default/5 animate-fade-in">
+                    <div className="px-3 pb-4 pt-1 border-t border-line-default/5 animate-fade-in space-y-3">
+                      {/* Share-the-sign-up-link affordance on the admin
+                          surface too — Patrick 2026-10-22: "still not
+                          seeing where to get the link to share with
+                          parents to get them to join." Mirror of the
+                          /teams team-card button so admins can grab the
+                          link from wherever they're working. */}
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!(userData as any)?.uid) return;
+                          try {
+                            const isAdult = (team as any).audienceType === 'adult';
+                            const { createTeamSelfServeAdultInvite, createTeamSelfServeYouthInvite } = await import('../utils/invites');
+                            const { getShareOrigin } = await import('../utils/origin');
+                            const inv = isAdult
+                              ? await createTeamSelfServeAdultInvite({
+                                  teamId: team.id,
+                                  createdBy: (userData as any).uid,
+                                  note: `Team join link for ${team.name}`,
+                                })
+                              : await createTeamSelfServeYouthInvite({
+                                  teamId: team.id,
+                                  createdBy: (userData as any).uid,
+                                  note: `Team sign-up link for ${team.name}`,
+                                });
+                            const url = `${getShareOrigin()}/join/${inv.id}`;
+                            try {
+                              if ((navigator as any).share) {
+                                await (navigator as any).share({
+                                  title: isAdult ? `${team.name} — team join link` : `${team.name} — sign up`,
+                                  text: isAdult
+                                    ? `Join ${team.name} on GoalKickr:`
+                                    : `Add your player to ${team.name} on GoalKickr:`,
+                                  url,
+                                });
+                              } else {
+                                await navigator.clipboard.writeText(url);
+                                alert(`Copied — share this with ${isAdult ? 'anyone joining' : 'every parent joining'} ${team.name}:\n\n${url}`);
+                              }
+                            } catch {
+                              await navigator.clipboard.writeText(url);
+                              alert(`Copied:\n\n${url}`);
+                            }
+                          } catch (err) {
+                            console.error('[admin-teams share-link] failed', err);
+                            alert('Could not generate the link. Try again.');
+                          }
+                        }}
+                        className="w-full inline-flex items-center justify-center gap-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 ring-1 ring-emerald-400/40 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
+                        title={(team as any).audienceType === 'adult'
+                          ? 'Reusable link for anyone joining this adult team'
+                          : 'Reusable link — parents sign in and add their kid to this team'}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                        {(team as any).audienceType === 'adult' ? 'Get team join link' : 'Get team sign-up link'}
+                      </button>
+
                       <TeamFunnelStepper
                         onChange={() => setReloadKey((k) => k + 1)}
                         teamId={team.id}

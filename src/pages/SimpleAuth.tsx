@@ -842,19 +842,41 @@ const SimpleAuth: React.FC = () => {
                   filled (URL-driven ?invite=... path). */}
               {mode === 'register' && joinFlow && !formData.inviteCode && (
                 <div className="rounded-xl p-4 bg-brand-primary/10 ring-1 ring-brand-primary/30">
-                  <label className="block text-sm font-bold text-white mb-2">Team code from your coach</label>
+                  <label className="block text-sm font-bold text-white mb-2">Code or sign-up link from your coach</label>
                   <input
                     type="text"
                     value={formData.inviteCode}
-                    onChange={(e) => setFormData(prev => ({ ...prev, inviteCode: e.target.value.trim().toUpperCase() }))}
-                    placeholder="e.g. UF-841422"
+                    onChange={(e) => {
+                      const raw = e.target.value.trim();
+                      // Smart-parse: if the parent pasted a FULL invite URL
+                      // (/join/<slug>), route straight to the invite claim
+                      // page instead of trying to use it as a legacy team
+                      // code. Patrick 2026-10-22: a parent saw this field
+                      // after tapping "Join a team with a code" and asked
+                      // for a code they didn't have — because their coach
+                      // actually sent them a sign-up LINK, not an old-
+                      // style code.
+                      const urlMatch = raw.match(/\/join\/([A-Z0-9]{8,32})/i);
+                      if (urlMatch) {
+                        navigate(`/join/${urlMatch[1]}`);
+                        return;
+                      }
+                      // Also handle a bare 12-char invite slug paste (new
+                      // slug format — all-caps alphanumeric, no dashes).
+                      if (/^[A-Z0-9]{12}$/.test(raw.toUpperCase()) && !raw.includes('-')) {
+                        navigate(`/join/${raw.toUpperCase()}`);
+                        return;
+                      }
+                      setFormData(prev => ({ ...prev, inviteCode: raw.toUpperCase() }));
+                    }}
+                    placeholder="UF-841422 or paste a sign-up link"
                     className="w-full px-3 py-2.5 rounded-lg bg-black/40 ring-1 ring-white/15 text-white font-mono tracking-wider placeholder-white/30 focus:ring-brand-primary-soft/60 focus:outline-none theme-ok"
                     autoCapitalize="characters"
                     autoCorrect="off"
                     spellCheck={false}
                   />
                   <p className="mt-2 text-[11px] text-white/55">
-                    Paste the code your coach shared. You'll join their team the moment you finish signing up.
+                    Paste the code OR the full sign-up link your coach shared. Either one works — if it's a link, we'll route you straight to the team's claim page.
                   </p>
                 </div>
               )}

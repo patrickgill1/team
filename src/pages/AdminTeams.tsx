@@ -48,30 +48,65 @@ const AdminTeams: React.FC = () => {
     return () => window.clearTimeout(t);
   }, [loaded]);
 
-  // Union of canonical userData.clubId + userData.clubIds array +
-  // active-club pick from useClubId. 2026-10-22 fix: previously
-  // read userData.clubIds only — when a legacy admin's doc had
-  // clubIds: [] but clubId: 'fire-fc', this page rendered empty
-  // while AdminCockpit (which uses useClubId) correctly counted the
-  // team. That mismatch had Patrick: "it says I have one team for
-  // activation, but when I go there, nothing shows."
+  // Load every team the admin should see:
+  //   (a) teams in any club they're a member of (availableClubIds)
+  //   (b) teams they're directly on (userData.teamIds) — covers the
+  //       case where a team was created without a clubId or belongs
+  //       to a club not on the user doc yet.
+  // Merged + deduped by id. Patrick 2026-10-22: /admin/teams was
+  // only showing one team ("STG Liverpool Depends") because the
+  // sibling team's clubId wasn't in availableClubIds. Direct-team
+  // branch closes that gap without needing every team doc to carry
+  // a perfect clubId backfill.
   const { availableClubIds } = useClubIdHook();
+  const directTeamIds: string[] = Array.isArray((userData as any)?.teamIds)
+    ? (userData as any).teamIds.filter(Boolean)
+    : (userData as any)?.teamId ? [(userData as any).teamId] : [];
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        if (availableClubIds.length === 0) {
-          if (!cancelled) { setTeams([]); setLoaded(true); }
-          return;
+        const seen = new Map<string, Team>();
+
+        // (a) By clubId. Chunked to Firestore's 30-id in-cap.
+        if (availableClubIds.length > 0) {
+          const chunks: string[][] = [];
+          for (let i = 0; i < availableClubIds.length; i += 30) {
+            chunks.push(availableClubIds.slice(i, i + 30));
+          }
+          const snaps = await Promise.all(chunks.map((chunk) => getDocs(query(
+            collection(db, 'teams'),
+            where('isActive', '==', true),
+            where('clubId', 'in', chunk),
+          ))));
+          snaps.forEach((snap) => snap.forEach((d) => {
+            seen.set(d.id, { id: d.id, ...(d.data() as any) } as Team);
+          }));
         }
-        const snap = await getDocs(query(
-          collection(db, 'teams'),
-          where('isActive', '==', true),
-          where('clubId', 'in', availableClubIds.slice(0, 30)),
-        ));
+
+        // (b) By direct teamIds — catches teams without a clubId or
+        //     teams in a club the user doc hasn't yet denormalized.
+        if (directTeamIds.length > 0) {
+          const { documentId } = await import('firebase/firestore');
+          const chunks: string[][] = [];
+          for (let i = 0; i < directTeamIds.length; i += 30) {
+            chunks.push(directTeamIds.slice(i, i + 30));
+          }
+          const snaps = await Promise.all(chunks.map((chunk) => getDocs(query(
+            collection(db, 'teams'),
+            where(documentId(), 'in', chunk),
+          ))));
+          snaps.forEach((snap) => snap.forEach((d) => {
+            if (seen.has(d.id)) return;
+            const data = d.data() as any;
+            if (data.isActive === false) return;
+            seen.set(d.id, { id: d.id, ...data } as Team);
+          }));
+        }
+
         if (cancelled) return;
-        const list: Team[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+        const list: Team[] = Array.from(seen.values());
         // Sort: un-activated first (most actionable), then by name.
         list.sort((a, b) => {
           const aDone = !!(a as any).funnelProgress?.activated?.completedAt;
@@ -87,7 +122,7 @@ const AdminTeams: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [availableClubIds.join('|')]);
+  }, [availableClubIds.join('|'), directTeamIds.join('|')]);
 
   // Use the helper (not the raw flag). See SeasonWizard for the full
   // reason — tl;dr: the flag is reserved for platform owners, so a

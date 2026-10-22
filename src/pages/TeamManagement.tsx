@@ -818,12 +818,46 @@ const TeamManagement: React.FC = () => {
                         Get team join link
                       </button>
                     ) : (
-                      <div
-                        className="w-full inline-flex items-center justify-center gap-2 bg-line-default/[0.05] text-ink-primary/45 ring-1 ring-line-default/10 px-3 py-2 rounded-lg text-[11px] font-semibold text-center"
-                        title="Youth teams need a kid-details step on the recipient side. Coming soon."
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!userData) return;
+                          try {
+                            const { createTeamSelfServeYouthInvite } = await import('../utils/invites');
+                            const { getShareOrigin } = await import('../utils/origin');
+                            const inv = await createTeamSelfServeYouthInvite({
+                              teamId: team.id,
+                              createdBy: userData.uid,
+                              note: `Team sign-up link for ${team.name}`,
+                            });
+                            const url = `${getShareOrigin()}/join/${inv.id}`;
+                            try {
+                              if ((navigator as any).share) {
+                                await (navigator as any).share({
+                                  title: `${team.name} — sign up`,
+                                  text: `Add your player to ${team.name} on GoalKickr:`,
+                                  url,
+                                });
+                              } else {
+                                await navigator.clipboard.writeText(url);
+                                alert(`Copied — share this with every parent joining ${team.name}:\n\n${url}`);
+                              }
+                            } catch {
+                              await navigator.clipboard.writeText(url);
+                              alert(`Copied:\n\n${url}`);
+                            }
+                          } catch (err) {
+                            console.error('[self-serve youth invite] create failed', err);
+                            alert('Could not generate the sign-up link. Try again.');
+                          }
+                        }}
+                        className="w-full inline-flex items-center justify-center gap-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 ring-1 ring-emerald-400/40 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
+                        title="Reusable link — parents sign in and add their kid to this team"
                       >
-                        Self-serve team link: youth coming soon
-                      </div>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                        Get team sign-up link
+                      </button>
                     )}
                   </div>
                 )}

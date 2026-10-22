@@ -150,6 +150,48 @@ export async function createTeamSelfServeAdultInvite(
   return { ...inv, createdAt: new Date() } as Invite;
 }
 
+// 2026-10-22: team-level self-serve invite for YOUTH teams. One link
+// the coach shares in a group text; each parent signs in with their
+// own account, fills in their kid's name + DOB + jersey#, and the
+// worker creates the player doc attached to them as parent. Mirror
+// of the adult pattern but creates a child player instead of making
+// the signer the player.
+//
+// MVP (Patrick 2026-10-22 question): one claim per parent uid. If a
+// family has 2+ kids on the team, the second needs admin-side add
+// or a future sibling-flow extension. (The adult dedup pattern
+// doesn't translate — a parent can legitimately have multiple kids
+// on the same team, so we can't collapse by uid+teamId match.)
+interface CreateTeamSelfServeYouthInviteOpts {
+  teamId: string;
+  createdBy: string;
+  ttlDays?: number;
+  maxUses?: number | null;
+  note?: string;
+}
+
+export async function createTeamSelfServeYouthInvite(
+  opts: CreateTeamSelfServeYouthInviteOpts,
+): Promise<Invite> {
+  const id = newSlug();
+  const ttl = opts.ttlDays ?? 90;
+  const expiresAt = new Date(Date.now() + ttl * 24 * 3600 * 1000);
+  const inv: any = {
+    id,
+    type: 'team_self_serve_youth',
+    teamId: opts.teamId,
+    createdBy: opts.createdBy,
+    createdAt: serverTimestamp(),
+    expiresAt,
+    maxUses: opts.maxUses === undefined ? null : opts.maxUses,
+    usedCount: 0,
+    usedBy: [],
+  };
+  if (opts.note) inv.note = opts.note;
+  await setDoc(doc(db, COLL, id), inv);
+  return { ...inv, createdAt: new Date() } as Invite;
+}
+
 export interface FetchedInvite extends Invite {
   expired: boolean;
   exhausted: boolean;
@@ -193,23 +235,37 @@ export async function fetchInvite(id: string): Promise<FetchedInvite | null> {
  * Caller is responsible for first creating/signing-in the user. We just
  * link them to the team/player and bump the counter.
  */
-export async function consumeInvite(inviteId: string, uid: string): Promise<{ ok: true; type: Invite['type']; teamId: string; playerId?: string } | { ok: false; reason: string }> {
+export interface YouthChildPayload {
+  childName: string;
+  childDob: string; // ISO yyyy-mm-dd
+  jerseyNumber?: number;
+}
+
+export async function consumeInvite(
+  inviteId: string,
+  uid: string,
+  extras?: { youthChild?: YouthChildPayload },
+): Promise<{ ok: true; type: Invite['type']; teamId: string; playerId?: string } | { ok: false; reason: string }> {
   if (!inviteId || !uid) return { ok: false, reason: 'missing-args' };
 
   // The full read-verify-mutate-write cascade lives on the worker.
   // Client just posts the invite id; server checks the token, applies
   // side-effects (player.parentIds, user.role/teamIds, invite.usedBy,
   // coverageSource for club-covered coaches) with the service account,
-  // and returns the result.
+  // and returns the result. Youth self-serve passes the child details
+  // (name/DOB/jersey) in the same payload — worker uses them to mint
+  // the player doc on the parent's behalf.
   //
   // Rejection reasons are mapped back to the legacy client string
   // codes ('not-found', 'expired', 'exhausted', etc.) so InviteJoin's
   // error copy doesn't need to change.
   try {
     const { workerFetch } = await import('./workerFetch');
+    const body: any = { inviteId };
+    if (extras?.youthChild) body.youthChild = extras.youthChild;
     const res = await workerFetch('/claim/invite', {
       method: 'POST',
-      body: JSON.stringify({ inviteId }),
+      body: JSON.stringify(body),
     });
     const data: any = await res.json().catch(() => ({}));
     if (!res.ok || !data?.ok) {

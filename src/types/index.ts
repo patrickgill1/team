@@ -1721,7 +1721,7 @@ export interface Invite {
    *     teams. Consumer signs in, worker CREATES a player doc for
    *     them (name from user profile), stamps user.selfPlayerId,
    *     adds to team.playerIds. No coach setup per person. */
-  type: 'player' | 'coach' | 'team_manager' | 'team_self_serve_adult';
+  type: 'player' | 'coach' | 'team_manager' | 'team_self_serve_adult' | 'team_self_serve_youth';
   teamId: string;
   playerId?: string;        // type === 'player'
   role?: 'assistant_coach' | 'head_coach' | 'team_manager'; // type !== 'player'

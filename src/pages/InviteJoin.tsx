@@ -174,31 +174,57 @@ const InviteJoin: React.FC = () => {
     return () => { cancelled = true; };
   }, [inviteId]);
 
-  const handleConsume = async (uid: string) => {
+  // Youth self-serve draft — parent fills kid details after signing
+  // in. Kept separate so the pattern stays visible: on team_self_serve_youth
+  // we gate handleConsume behind this form; everything else goes
+  // straight to consume.
+  const [youthFormOpen, setYouthFormOpen] = useState(false);
+  const [youthName, setYouthName] = useState('');
+  const [youthDob, setYouthDob] = useState('');
+  const [youthJersey, setYouthJersey] = useState('');
+
+  const handleConsume = async (uid: string, youthChildOverride?: { childName: string; childDob: string; jerseyNumber?: number }) => {
     if (!inviteId) return;
-    const result: any = await consumeInvite(inviteId, uid);
+    // Youth self-serve: if we don't have kid details yet, open the
+    // form instead of consuming. On submit, we re-enter with the
+    // override argument carrying the draft.
+    if (invite?.type === 'team_self_serve_youth' && !youthChildOverride) {
+      setYouthFormOpen(true);
+      return;
+    }
+    const result: any = await consumeInvite(inviteId, uid, youthChildOverride ? { youthChild: youthChildOverride } : undefined);
     if (!result?.ok) {
       setError(`Couldn't link your account: ${result?.reason || 'unknown'}. Ask the coach for a new invite.`);
       return;
     }
     setDone(true);
     setTimeout(() => {
-      // team_self_serve_adult also lands on a player doc (the worker
-      // just created one for this user); route to it same as the
-      // player-invite path so the new adult player lands on their own
-      // profile with the "welcome / rsvp for saturday" affordance.
+      // team_self_serve_adult + team_self_serve_youth both land on a
+      // player doc the worker just created. Route to that player so
+      // the new entry lands on their own profile with the welcome
+      // affordance.
       const landOnPlayer =
-        (result.type === 'player' || result.type === 'team_self_serve_adult')
+        (result.type === 'player'
+          || result.type === 'team_self_serve_adult'
+          || result.type === 'team_self_serve_youth')
         && result.playerId;
       if (landOnPlayer) {
-        // Self-serve joiners get a fresh empty player doc — pop the
-        // welcome wizard on landing so it doesn't read as broken.
-        // The player-invite path stays quiet (they're joining someone
-        // else's circle, not their own profile).
-        const q = result.type === 'team_self_serve_adult' ? '?welcome=self-serve' : '';
+        const q = (result.type === 'team_self_serve_adult' || result.type === 'team_self_serve_youth')
+          ? '?welcome=self-serve' : '';
         navigate(`/player/${result.playerId}${q}`);
       } else navigate('/dashboard');
     }, 1200);
+  };
+
+  const submitYouthForm = async () => {
+    if (!currentUser) { setError('Sign in first.'); return; }
+    const name = youthName.trim();
+    if (!name) { setError("Your kid's name is required."); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(youthDob)) { setError("Date of birth is required."); return; }
+    const jerseyNum = youthJersey.trim() ? Number(youthJersey.trim()) : NaN;
+    const jerseyPayload = Number.isFinite(jerseyNum) && jerseyNum >= 0 && jerseyNum <= 999 ? jerseyNum : undefined;
+    setError(null);
+    await handleConsume(currentUser.uid, { childName: name, childDob: youthDob, jerseyNumber: jerseyPayload });
   };
 
   const ensureUserDocFor = async (uid: string, fallbackEmail: string, fallbackName: string) => {
@@ -438,6 +464,14 @@ const InviteJoin: React.FC = () => {
         Sign in below and you're on the roster. RSVPs, chat, and team updates land on your device.
       </p>
     </>
+  ) : invite?.type === 'team_self_serve_youth' ? (
+    <>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-ink-primary/60 mb-2">Team sign-up link</p>
+      <h1 className="text-2xl font-black mb-2">Add your kid to {teamName || 'the team'}</h1>
+      <p className="text-ink-primary/80 text-sm">
+        Sign in or create your parent account, then enter your kid's name and date of birth. Their player profile lands on your dashboard immediately.
+      </p>
+    </>
   ) : (
     <p className="text-ink-primary/70 text-sm">Loading invite details…</p>
   );
@@ -491,24 +525,75 @@ const InviteJoin: React.FC = () => {
 
       {/* Already signed in shortcut */}
       {currentUser ? (
-        <div className="p-6 space-y-3">
-          <p className="text-sm text-ink-primary/85">
-            Signed in as <b>{currentUser.email}</b>. Tap below to link this account to {invite?.type === 'player' && player ? player.name : teamName}.
-          </p>
-          {error && <p className="text-rose-300 text-sm">{error}</p>}
-          <button
-            onClick={() => handleConsume(currentUser.uid)}
-            className="w-full py-3 rounded-xl bg-brand-primary hover:bg-brand-primary text-white font-bold text-sm transition"
-          >
-            Yes, link this account
-          </button>
-          <button
-            onClick={async () => { await auth.signOut(); }}
-            className="w-full py-2 text-xs font-semibold text-ink-primary/60 hover:text-ink-primary"
-          >
-            Use a different account
-          </button>
-        </div>
+        youthFormOpen && invite?.type === 'team_self_serve_youth' ? (
+          <div className="p-6 space-y-3">
+            <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">About your kid</p>
+            <p className="text-sm text-ink-primary/85">
+              Signed in as <b>{currentUser.email}</b>. Fill out your kid's details to add them to the roster.
+            </p>
+            <div className="space-y-2">
+              <input
+                type="text"
+                required
+                value={youthName}
+                onChange={(e) => setYouthName(e.target.value)}
+                placeholder="Kid's full name"
+                className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+              />
+              <input
+                type="date"
+                required
+                value={youthDob}
+                onChange={(e) => setYouthDob(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+              />
+              <input
+                type="number"
+                min={0}
+                max={999}
+                value={youthJersey}
+                onChange={(e) => setYouthJersey(e.target.value)}
+                placeholder="Jersey number (optional)"
+                className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary placeholder-ink-primary/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+              />
+            </div>
+            {error && <p className="text-rose-300 text-sm">{error}</p>}
+            <button
+              onClick={submitYouthForm}
+              className="w-full py-3 rounded-xl bg-brand-primary hover:bg-brand-primary text-white font-bold text-sm transition"
+            >
+              Add kid to {teamName || 'the team'}
+            </button>
+            <button
+              onClick={() => { setYouthFormOpen(false); setError(null); }}
+              className="w-full py-2 text-xs font-semibold text-ink-primary/60 hover:text-ink-primary"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="p-6 space-y-3">
+            <p className="text-sm text-ink-primary/85">
+              Signed in as <b>{currentUser.email}</b>.
+              {invite?.type === 'team_self_serve_youth'
+                ? ` Next: enter your kid's details to add them to ${teamName || 'the team'}.`
+                : ` Tap below to link this account to ${invite?.type === 'player' && player ? player.name : teamName}.`}
+            </p>
+            {error && <p className="text-rose-300 text-sm">{error}</p>}
+            <button
+              onClick={() => handleConsume(currentUser.uid)}
+              className="w-full py-3 rounded-xl bg-brand-primary hover:bg-brand-primary text-white font-bold text-sm transition"
+            >
+              {invite?.type === 'team_self_serve_youth' ? "Add my kid" : 'Yes, link this account'}
+            </button>
+            <button
+              onClick={async () => { await auth.signOut(); }}
+              className="w-full py-2 text-xs font-semibold text-ink-primary/60 hover:text-ink-primary"
+            >
+              Use a different account
+            </button>
+          </div>
+        )
       ) : (
         <form onSubmit={handleAuthSubmit} className="p-6 space-y-4">
           {/* One-tap Google sign-in (works for both new + existing accounts) */}

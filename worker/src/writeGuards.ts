@@ -685,7 +685,7 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
   const inviteType = String(invite.type || '');
   if (
     inviteType !== 'player' && inviteType !== 'coach' && inviteType !== 'team_manager'
-    && inviteType !== 'team_self_serve_adult'
+    && inviteType !== 'team_self_serve_adult' && inviteType !== 'team_self_serve_youth'
   ) {
     return json({ ok: false, error: 'unknown_invite_type' }, 400);
   }
@@ -707,6 +707,27 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
     if (audience !== 'adult') {
       return json({ ok: false, error: 'team_not_adult' }, 400);
     }
+  }
+  // Youth self-serve: the inverse check. Must NOT be an adult team.
+  // Also requires a youthChild payload (childName + childDob) so the
+  // worker has what it needs to mint the player doc.
+  let youthChildPayload: { childName: string; childDob: string; jerseyNumber?: number } | null = null;
+  if (inviteType === 'team_self_serve_youth') {
+    const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+    const audience = teamDoc?.data?.audienceType;
+    if (audience === 'adult') {
+      return json({ ok: false, error: 'team_not_youth' }, 400);
+    }
+    const raw = (payload as any)?.youthChild || {};
+    const childName = String(raw.childName || '').trim();
+    const childDob = String(raw.childDob || '').trim();
+    if (!childName) return json({ ok: false, error: 'child_name_required' }, 400);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(childDob)) {
+      return json({ ok: false, error: 'child_dob_required_iso' }, 400);
+    }
+    const jerseyNumber = typeof raw.jerseyNumber === 'number' && raw.jerseyNumber >= 0 && raw.jerseyNumber <= 999
+      ? raw.jerseyNumber : undefined;
+    youthChildPayload = { childName, childDob, jerseyNumber };
   }
 
   const usedBy: string[] = Array.isArray(invite.usedBy) ? invite.usedBy : [];
@@ -821,6 +842,37 @@ async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<
     // applyMembership routes attachToTeamCoachIds through the
     // managerIds branch when role === 'team_manager'.
     op.attachToTeamCoachIds = teamId;
+  } else if (inviteType === 'team_self_serve_youth') {
+    // team_self_serve_youth: parent is adding their kid to a youth
+    // team. Worker mints a fresh player doc with the kid's details
+    // and the parent on parentIds. 2026-10-22 ship — a parent can
+    // only claim once per invite (usedBy short-circuit upstream);
+    // if a family has multiple kids on the team, admin adds the
+    // second manually or we extend to a sibling-flow later.
+    const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+    const clubId = teamDoc?.data?.clubId ? String(teamDoc.data.clubId) : '';
+    const ageGroup = (teamDoc?.data as any)?.ageGroup || '';
+    const newPlayerFields: Record<string, any> = {
+      name: youthChildPayload!.childName,
+      dob: youthChildPayload!.childDob,
+      teamId,
+      teamIds: [teamId],
+      parentIds: [claims.uid],
+      isActive: true,
+      createdAt: new Date(),
+      createdBy: claims.uid,
+    };
+    if (clubId) newPlayerFields.clubId = clubId;
+    if (ageGroup) newPlayerFields.ageGroup = ageGroup;
+    if (typeof youthChildPayload!.jerseyNumber === 'number') {
+      newPlayerFields.jerseyNumber = youthChildPayload!.jerseyNumber;
+    }
+    playerId = await createDocument(pid, 'players', newPlayerFields, sa);
+    // Parent role is correct for a youth self-serve claim — they are
+    // the parent, not the player. Mirror the player onto the user via
+    // playerLink so applyMembership attaches them to the kid.
+    op.role = 'parent';
+    op.playerLink = { playerId };
   } else {
     // team_self_serve_adult: reuse-or-mint the player doc. Dedup is
     // critical here — Patrick 2026-09-03: a recipient consumed a

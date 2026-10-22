@@ -113,7 +113,7 @@ const AdminTeams: React.FC = () => {
           <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Club admin</p>
           <h1 className="font-display text-2xl sm:text-3xl font-black text-ink-primary mt-1">Team activation</h1>
           <p className="text-sm text-ink-primary/65 mt-1.5">
-            Drive every team through the five activation stages. Stamp manually until the Sports Affinity API is wired; some stages auto-fill from existing data.
+            Drive every team through the five activation stages. Stages auto-fill when data exists in the app; stamp the rest manually.
           </p>
         </div>
         <Link

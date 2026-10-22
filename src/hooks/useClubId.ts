@@ -47,7 +47,7 @@ export interface UseClubIdResult {
 
 export function useClubId(): UseClubIdResult {
   const { userData } = useAuth();
-  const availableClubIds: string[] = (() => {
+  const seedClubIds: string[] = (() => {
     const arr = (userData as any)?.clubIds;
     const canonical = (userData as any)?.clubId;
     const set = new Set<string>();
@@ -55,6 +55,15 @@ export function useClubId(): UseClubIdResult {
     if (Array.isArray(arr)) arr.forEach((id: string) => { if (id) set.add(id); });
     return Array.from(set);
   })();
+
+  // Resolved via team-lookup fallback (user has teamIds but no
+  // clubIds/clubId). Patrick 2026-10-22 /admin/teams was empty
+  // because availableClubIds was computed from userData only and
+  // ignored this fallback resolution.
+  const [resolvedFromTeam, setResolvedFromTeam] = useState<string | null>(null);
+  const availableClubIds: string[] = Array.from(new Set(
+    [...seedClubIds, resolvedFromTeam].filter(Boolean) as string[]
+  ));
 
   const [storedActive, setStoredActive] = useState<string | null>(() => readStored());
 
@@ -93,7 +102,15 @@ export function useClubId(): UseClubIdResult {
         for (const tid of teamIds) {
           const tSnap = await getDoc(doc(db, 'teams', tid));
           const tClubId = tSnap.exists() ? (tSnap.data() as any)?.clubId : null;
-          if (tClubId && !cancelled) { setClubId(tClubId); return; }
+          if (tClubId && !cancelled) {
+            setClubId(tClubId);
+            // Also expose this via availableClubIds so pages that
+            // query by `clubId in [...]` (AdminTeams, Reports) see
+            // the team. Without this they'd render empty despite the
+            // user clearly having a team in a club.
+            setResolvedFromTeam(tClubId);
+            return;
+          }
         }
         // No arbitrary-club fallback. If we got here, the user has no
         // club relationship on their user doc or any of their teams —

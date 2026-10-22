@@ -39,10 +39,10 @@ const STAGES: Stage[] = [
   { key: 'tryouts',         short: 'Tryouts',   label: 'Tryouts',           hint: 'Attended the evaluation session.',                  autoNote: 'Mark from /club/tryouts when the kid checks in.' },
   { key: 'offer_sent',      short: 'Offer',     label: 'Get offer',         hint: 'Roster spot offered to the family.',                autoNote: 'Auto-completes when you send an offer from Offer templates.' },
   { key: 'offer_accept',    short: 'Accept',    label: 'Accept offer',      hint: 'Family accepted the roster spot.',                  autoNote: 'Auto-completes when the parent taps Accept on their offer.' },
-  // Manual-only by design: Sports Affinity / USYS has no public API and
-  // our club uploads players to the league portal by hand. If/when the
-  // league opens an API we'd swap the autoNote in and remove this one.
-  { key: 'external_league', short: 'League',    label: 'League registration', hint: 'Registered with the external league (Sports Affinity / USYS).', autoNote: 'Manual-only — flip when you finish the upload in the league portal.' },
+  // Manual-only: league portals (USYS, state associations, etc.) are
+  // off-platform uploads today; coach stamps this when the external
+  // registration is complete.
+  { key: 'external_league', short: 'League',    label: 'League registration', hint: 'Registered with your external league / association.', autoNote: 'Manual-only — flip when you finish the upload in the league portal.' },
   { key: 'club_dues',       short: 'Dues',      label: 'Pay club dues',     hint: 'Season fee paid.',                                  autoNote: 'Auto-completes when the payment confirms.' },
 ];
 

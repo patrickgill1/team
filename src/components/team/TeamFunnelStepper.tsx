@@ -45,7 +45,7 @@ const STAGES: Stage[] = [
   { key: 'tryouts',           short: 'Tryouts',  label: 'Tryouts complete',          hint: 'Tryouts held and evaluation finished.',                              autoNote: 'Manual stamp — flip when the last tryout date is past and selections are made.' },
   { key: 'team_selected',     short: 'Roster',   label: 'Roster locked',             hint: 'Head coach assigned and at least one player on the roster.',         autoNote: 'Auto-completes when team.headCoachId is set AND team.playerIds is non-empty.' },
   { key: 'all_registered',    short: 'Reg',      label: 'All registered',            hint: 'Every player has registration + waivers signed.',                    autoNote: 'Auto-completes when each player has registration done and all required waivers signed.' },
-  { key: 'coaches_certified', short: 'Certs',    label: 'Coaches certified',         hint: 'Every coach has license + background check + concussion + SafeSport.', autoNote: 'Auto-fill when the Sports Affinity API is wired. For now, stamp manually after checking learning.ussoccer.com.' },
+  { key: 'coaches_certified', short: 'Certs',    label: 'Coaches certified',         hint: 'Every coach has license + background check + concussion + SafeSport.', autoNote: 'Stamp manually after checking learning.ussoccer.com for each coach.' },
   { key: 'activated',         short: 'Activate', label: 'Team activated',            hint: 'Final go-live gate. Team is live for the season.',                   autoNote: 'Manual stamp — flip after the other four are green.' },
 ];
 

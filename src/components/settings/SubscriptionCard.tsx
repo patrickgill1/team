@@ -572,7 +572,7 @@ const SubscriptionCard: React.FC = () => {
             Upgrade to Club Pro at goalkickr.com →
           </p>
           <p className="text-ink-primary/50 text-[11px] mt-1 leading-snug">
-            Sports Affinity sync, registration onboarding, dedicated support. $499/yr.
+            Advanced club tooling, registration onboarding, dedicated support. $499/yr.
           </p>
         </button>
       )}

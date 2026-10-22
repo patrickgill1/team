@@ -506,7 +506,7 @@ const CoachCockpit: React.FC = () => {
                   })}
                 </ul>
                 <p className="text-[11px] text-ink-primary/45 mt-3 italic">
-                  Tap a row to confirm you hold that credential. Once the Sports Affinity integration lands, these will auto-confirm from your learning.ussoccer.com record.
+                  Tap a row to confirm you hold that credential. You can also upload a photo of the certificate from your learning.ussoccer.com record for your records.
                 </p>
               </div>
             )}

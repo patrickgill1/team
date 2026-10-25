@@ -110,6 +110,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
             collection(db, 'teams'),
             where('clubId', 'in', userClubIds.slice(0, 30)),
           ));
+          const seen = new Set<string>();
           clubSnaps.forEach((docSnap) => {
             const data = docSnap.data() as any;
             // Passthrough spread so every field on the team doc lands
@@ -137,7 +138,46 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               createdAt: data.createdAt?.toDate?.() || new Date(),
               updatedAt: data.updatedAt?.toDate?.() || undefined,
             });
+            seen.add(docSnap.id);
           });
+          // 2026-10-25 fix: ALSO include teams the user is directly
+          // on but which live in clubs they DON'T admin. Patrick:
+          // "I was writing a post on the indoor team... I can no
+          // longer switch at the top... when I got to club and teams,
+          // I see them all there." Admin-branch previously only
+          // returned teams by clubId, so Patrick's Indoor (adult team
+          // run by someone else's club) and Liverpool (ditto) fell
+          // out of the switcher the moment his isClubAdmin flipped
+          // on. Union the user's own teamIds in on top.
+          const extraTeamIds = (userTeamIds || []).filter((id) => id && !seen.has(id));
+          for (const tid of extraTeamIds) {
+            try {
+              const tSnap = await getDoc(doc(db, 'teams', tid));
+              if (!tSnap.exists()) continue;
+              const data = tSnap.data() as any;
+              teamDocs.push({
+                ...data,
+                id: tSnap.id,
+                name: data.name || 'My Team',
+                description: data.description || '',
+                coachIds: data.coachIds || [],
+                assistantCoachIds: data.assistantCoachIds || [],
+                playerIds: data.playerIds || [],
+                parentIds: data.parentIds || [],
+                season: data.season || '',
+                ageGroup: data.ageGroup || '',
+                isActive: data.isActive !== false,
+                archivedAt: data.archivedAt?.toDate?.() || undefined,
+                isDemo: data.isDemo === true,
+                notificationsDisabled: data.notificationsDisabled === true,
+                createdAt: data.createdAt?.toDate?.() || new Date(),
+                updatedAt: data.updatedAt?.toDate?.() || undefined,
+              });
+              seen.add(tSnap.id);
+            } catch (err) {
+              console.warn(`[teams] side-team load failed ${tid}`, err);
+            }
+          }
           for (let i = 0; i < teamDocs.length; i++) teamDocs[i] = coerceTeamTimestamps(teamDocs[i]) as Team;
         } catch (err) {
           console.error('Error loading club teams for admin:', err);

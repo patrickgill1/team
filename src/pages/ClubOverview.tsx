@@ -291,6 +291,31 @@ const ClubOverview: React.FC = () => {
         }
       }
 
+      // Filter clubIds to only those the user ACTUALLY admins. Patrick
+      // 2026-10-25: "my adult teams shouldnt be part of my club...they
+      // are run by someone else." applyMembership arrayUnion's team.
+      // clubId onto user.clubIds whenever a coach joins a team in
+      // another club (lines 1422/1523/1896 in writeGuards.ts), so
+      // user.clubIds includes clubs the user merely COACHES in, not
+      // just clubs they admin. /club is the admin surface — scope
+      // strictly to ownership + explicit adminUids. One club doc read
+      // per candidate clubId; small set per user.
+      const uid = (userData as any)?.uid;
+      if (uid && clubIds.length > 0) {
+        const verified: string[] = [];
+        await Promise.all(clubIds.slice(0, 30).map(async (cid) => {
+          try {
+            const cSnap = await getDoc(doc(db, 'clubs', cid));
+            if (!cSnap.exists()) return;
+            const cd: any = cSnap.data() || {};
+            const isOwner = cd.ownerUid === uid;
+            const isAdmin = Array.isArray(cd.adminUids) && cd.adminUids.includes(uid);
+            if (isOwner || isAdmin) verified.push(cid);
+          } catch { /* skip on error */ }
+        }));
+        clubIds = verified;
+      }
+
       // Teams: scope to clubIds, exclude archived.
       let teamDocs: any[] = [];
       if (clubIds.length > 0) {

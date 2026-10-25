@@ -8,4 +8,4 @@
 // "what's new" modal — match the modal's "since" check against this.
 
 export const APP_VERSION = '4.0.0';
-export const APP_BUILD = '28';
+export const APP_BUILD = '29';

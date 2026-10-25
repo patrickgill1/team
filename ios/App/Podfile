@@ -41,4 +41,16 @@ end
 
 post_install do |installer|
   assertDeploymentTarget(installer)
+  # Xcode 27 requires iOS deployment target 15.0+. Many pods still
+  # declare 14.0 or lower in their podspec. Force every Pod target to
+  # 15.0 so Xcode 27 doesn't bail with "deployment target 14.0 is
+  # below the supported range" on every build. 2026-10-25.
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      current = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+      if current.nil? || current.to_f < 15.0
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      end
+    end
+  end
 end

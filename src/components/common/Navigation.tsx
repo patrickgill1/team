@@ -597,7 +597,13 @@ const Navigation: React.FC = () => {
           "let the photo bleed through" tension. Chrome reads as
           iOS chrome, end of debate. */}
       <header className="lg:hidden fixed top-0 inset-x-0 z-40 safe-top bg-surface-input">
-        <div className="flex items-center gap-2 px-3 h-14 bg-surface-input">
+        {/* safe-right pads the mobile header's inner row off the right
+            edge so the GoalKickr avatar/bell/search clear iOS's clock +
+            signal pill on the iPhone Fold cover screen (vertical pill
+            that env(safe-area-inset-right) under-reports). No-op on
+            every regular iPhone — safe-right resolves to the native
+            inset there, which is 0. */}
+        <div className="flex items-center gap-2 pl-3 pr-3 h-14 bg-surface-input safe-right">
           {/* Brand — use only checked-in official art. A separate
               light-mode wordmark can be dropped in once the exported
               SVG/PNG contains visible paths/pixels. */}

@@ -33,6 +33,8 @@
 		B8962CFB2FDBE7DA00531815 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		B8962CFC2FDBE7DA00531815 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 14344C64C5624FF5CC5EF33F /* GoogleService-Info.plist */; };
 		B8962CFD2FDBE7DA00531815 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B1A2C3D4E5F60718293A4B5D /* PrivacyInfo.xcprivacy */; };
+		B8E72C82308EB92F00B74E00 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8E72C81308EB92F00B74E00 /* SceneDelegate.swift */; };
+		B8E72C83308EB92F00B74E00 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8E72C81308EB92F00B74E00 /* SceneDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -101,6 +103,7 @@
 		B86716492FF1C9A10083F8F3 /* WidgetBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetBridgePlugin.swift; sourceTree = "<group>"; };
 		B8962D022FDBE7DA00531815 /* App copy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "App copy.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B8962D032FDBE7DA00531815 /* App copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "App copy-Info.plist"; path = "/Users/patrickgill/dev/team/ios/App/App copy-Info.plist"; sourceTree = "<absolute>"; };
+		B8E72C81308EB92F00B74E00 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		C210082811C6067786A13087 /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
 		EEDD7B62AE2A413CCC55CE73 /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -198,6 +201,7 @@
 				B86716492FF1C9A10083F8F3 /* WidgetBridgePlugin.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
+				B8E72C81308EB92F00B74E00 /* SceneDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -443,6 +447,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B8E72C82308EB92F00B74E00 /* SceneDelegate.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				504EC3091FED79650016851F /* AppViewController.swift in Sources */,
 				B867164A2FF1C9A10083F8F3 /* WidgetBridgePlugin.swift in Sources */,
@@ -469,6 +474,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B8962CF22FDBE7DA00531815 /* AppDelegate.swift in Sources */,
+				B8E72C83308EB92F00B74E00 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -44,14 +44,32 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
     ? poll.options.reduce((s, o) => s + o.voters.length, 0)
     : totalVoters.size;
 
-  const labelColor = ownTheme ? 'text-white/85 theme-ok' : 'text-slate-600';
-  const bgInactive = ownTheme ? 'bg-line-default/10 ring-line-default/20 theme-ok' : 'bg-gray-50 ring-gray-200';
-  const bgActive = ownTheme ? 'bg-white text-brand-primary-dim ring-white theme-ok' : 'bg-brand-primary-soft ring-brand-primary-soft text-brand-primary-dim';
-  const fillInactive = ownTheme ? 'bg-line-default/15' : 'bg-brand-primary-soft/60';
-  const fillActive = ownTheme ? 'bg-line-default/35' : 'bg-brand-primary-soft/80';
+  // Two visual variants:
+  //  - ownTheme: lives inside the user's own crimson chat bubble — white
+  //    labels, line tokens tuned for a dark brand ground.
+  //  - non-ownTheme: lives on a page surface (Wall post, incoming chat
+  //    bubble). Must flip with light/dark theme — the previous version
+  //    hardcoded bg-gray-100 / text-slate-900, which in dark mode read
+  //    as a white box with light text on the Wall (Patrick caught this
+  //    on a fresh team: "a poll on the wall when someone votes, the
+  //    percentages are not very legible").
+  const labelColor = ownTheme ? 'text-white/85 theme-ok' : 'text-ink-primary/70';
+  const bgInactive = ownTheme
+    ? 'bg-line-default/10 ring-line-default/20 theme-ok'
+    : 'bg-line-default/[0.05] ring-line-default/15';
+  const bgActive = ownTheme
+    ? 'bg-white text-brand-primary-dim ring-white theme-ok'
+    : 'bg-brand-primary-soft/20 ring-brand-primary-soft/40 text-ink-primary';
+  const fillInactive = ownTheme ? 'bg-line-default/15' : 'bg-line-default/10';
+  const fillActive = ownTheme ? 'bg-line-default/35' : 'bg-brand-primary-soft/35';
 
   return (
-    <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${ownTheme ? 'bg-brand-primary text-white theme-ok' : 'bg-gray-100 text-slate-900 theme-ok'}`}>
+    <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${
+      ownTheme
+        ? 'bg-brand-primary text-white theme-ok'
+        : 'bg-surface-raised text-ink-primary ring-1 ring-line-default/10'
+    }`}>
+
       <div className="flex items-center gap-1.5 mb-2">
         {/* Ascending-bars glyph — matches the New poll modal header
             (feedback_no_emojis: replace 📊). Inherits currentColor
@@ -82,8 +100,14 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
                 style={{ width: `${pct}%` }}
               />
               <div className="relative flex items-center justify-between px-3 py-2 text-sm">
-                <span className="font-semibold truncate">{opt.text}</span>
-                <span className={`flex-shrink-0 text-xs font-bold tabular-nums ${mine ? '' : labelColor}`}>
+                <span className={`font-semibold truncate ${ownTheme ? '' : 'text-ink-primary'}`}>{opt.text}</span>
+                {/* Percentages must stay legible in both themes regardless
+                    of own/mine state. On own-theme we inherit from the
+                    bubble; off own-theme we always force ink-primary so
+                    the number pops over the vote-share fill. */}
+                <span className={`flex-shrink-0 text-xs font-bold tabular-nums ${
+                  ownTheme ? (mine ? '' : labelColor) : 'text-ink-primary'
+                }`}>
                   {opt.voters.length} · {pct}%
                 </span>
               </div>
@@ -103,7 +127,7 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
             className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded-md transition ${
               ownTheme
                 ? 'bg-line-default/15 text-white hover:bg-line-default/25'
-                : 'bg-brand-primary-soft text-brand-primary ring-1 ring-brand-primary-soft hover:bg-brand-primary-soft'
+                : 'bg-line-default/[0.08] text-ink-primary ring-1 ring-line-default/15 hover:bg-line-default/[0.14]'
             }`}
           >
             Voters
@@ -117,35 +141,35 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
           onClick={() => setVotersOpen(false)}
         >
           <div
-            className="bg-white text-slate-900 w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden theme-ok"
+            className="bg-surface-elevated text-ink-primary w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-              <div className="text-xs font-extrabold tracking-widest uppercase text-slate-700 theme-ok">Voters</div>
+            <div className="px-4 py-3 border-b border-line-default/10 flex items-center justify-between">
+              <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/80">Voters</div>
               <button
                 onClick={() => setVotersOpen(false)}
-                className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 hover:text-slate-800 theme-ok"
+                className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 hover:text-ink-primary"
               >
                 Done
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
               {poll.options.map(opt => (
-                <div key={opt.id} className="border-b border-slate-100 last:border-b-0">
+                <div key={opt.id} className="border-b border-line-default/10 last:border-b-0">
                   <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-900 truncate theme-ok">{opt.text}</span>
-                    <span className="text-[11px] font-bold tabular-nums text-slate-600 flex-shrink-0 ml-2 theme-ok">
+                    <span className="text-sm font-bold text-ink-primary truncate">{opt.text}</span>
+                    <span className="text-[11px] font-bold tabular-nums text-ink-primary/65 flex-shrink-0 ml-2">
                       {opt.voters.length}
                     </span>
                   </div>
                   {opt.voters.length === 0 ? (
-                    <div className="px-4 py-2 text-[12px] text-slate-500 italic theme-ok">No votes yet.</div>
+                    <div className="px-4 py-2 text-[12px] text-ink-primary/50 italic">No votes yet.</div>
                   ) : (
                     <ul className="pb-2">
                       {opt.voters.map(uid => (
-                        <li key={uid} className="px-4 py-1 text-sm text-slate-800 theme-ok">
+                        <li key={uid} className="px-4 py-1 text-sm text-ink-primary/85">
                           {(getUserName ? getUserName(uid) : null) || 'Member'}
-                          {uid === currentUserId && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-primary">You</span>}
+                          {uid === currentUserId && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-primary-soft">You</span>}
                         </li>
                       ))}
                     </ul>

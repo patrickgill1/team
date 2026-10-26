@@ -20,8 +20,12 @@ interface Props {
     to?: string;
     onClick?: () => void;
   };
-  /** Surface tone. 'light' = white card (default), 'dark' = glass on
-   *  the dark hero bands so it doesn't pop against the gradient. */
+  /** Surface tone. 'light' = default card on the page surface, 'dark' =
+   *  glass on hero bands so it doesn't pop against the gradient.
+   *  'light' is theme-aware — bg-surface-elevated flips with light/dark
+   *  so the card isn't a white box in dark mode. Previously hardcoded
+   *  bg-white, which Patrick caught as "white box with light text" on
+   *  every empty-state surface (Wall, Reports, Events, …). */
   tone?: 'light' | 'dark';
   /** Compact = smaller padding / type, for use inside small cards. */
   compact?: boolean;
@@ -31,7 +35,7 @@ const EmptyState: React.FC<Props> = ({ icon, title, description, cta, tone = 'li
   const isDark = tone === 'dark';
   const wrapper = isDark
     ? 'bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-2xl'
-    : 'bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 theme-ok';
+    : 'bg-surface-elevated rounded-2xl shadow-sm ring-1 ring-line-default/10';
   const pad = compact ? 'px-5 py-6' : 'px-6 py-10';
   const titleClass = isDark ? 'text-white' : 'text-ink-primary';
   const descClass = isDark ? 'text-white/60' : 'text-ink-primary/65';

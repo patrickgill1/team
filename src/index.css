@@ -193,6 +193,20 @@ body.platform-android {
   --gk-safe-top: 0px;
 }
 
+/* iPhone Fold cover screen (~340px wide) renders iOS's clock + signal
+   as a floating pill in the top-right that env(safe-area-inset-top)
+   under-reports — the GOALKICKR header + avatar paint underneath it.
+   Backstop with a minimum inset on very narrow iOS screens so the
+   chrome stays below the overlay. Scoped tight (max-width: 360px) so
+   iPhone SE (375px) and iPhone mini (375px) are untouched — those
+   report accurate insets already. Only applies on iOS; Android's
+   MainActivity-managed inset is already correct. */
+@media screen and (max-width: 360px) {
+  body.platform-ios {
+    --gk-safe-top: max(env(safe-area-inset-top), 54px);
+  }
+}
+
 .safe-top { padding-top: var(--gk-safe-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 

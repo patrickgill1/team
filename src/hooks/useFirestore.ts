@@ -678,11 +678,28 @@ const getUserData = useCallback(async (uid: string) => {
       ? crypto.randomUUID()
       : `cm_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`);
     const { id: _stripId, ...rest } = messageData as any;
+    // Shared chronology comes from serverTimestamp() — the Firestore
+    // server clock is the only clock every participant agrees on.
+    // Using the sender's device clock (new Date()) let two devices
+    // with drifting clocks interleave messages in the wrong order on
+    // the recipient's screen: a reply typed 10s AFTER the other
+    // person's message could land ABOVE it if the replier's phone
+    // ran a few seconds behind. Patrick caught it 2026-11-10: "when
+    // we are both typing, my response will go before mesaage".
+    //
+    // clientSentAt is the fallback — it preserves the sender's own
+    // view during the brief hasPendingWrites window where
+    // serverTimestamp() is still null locally, and acts as a backstop
+    // if the server field ever ends up missing. Both subscriptions
+    // below prefer `timestamp` (server) and fall back to clientSentAt.
+    const { serverTimestamp } = await import('firebase/firestore');
+    const clientNow = messageData.timestamp || new Date();
     const messageToWrite = {
       ...rest,
       createdAt: new Date(),
       updatedAt: new Date(),
-      timestamp: messageData.timestamp || new Date(),
+      timestamp: serverTimestamp(),
+      clientSentAt: clientNow,
     };
     try {
       const { setDoc, doc: fsDoc } = await import('firebase/firestore');
@@ -720,7 +737,15 @@ const getUserData = useCallback(async (uid: string) => {
           senderId: data.senderId || '',
           senderName: data.senderName || '',
           senderRole: data.senderRole || 'parent',
-          timestamp: data.timestamp?.toDate?.() || (data.timestamp instanceof Date ? data.timestamp : new Date()),
+          // Prefer server timestamp; fall back to clientSentAt for
+          // legacy docs or the pending-write window. Same recipe as
+          // subscribeToChatMessages — keep the two paths aligned.
+          timestamp:
+            data.timestamp?.toDate?.()
+            || (data.timestamp instanceof Date ? data.timestamp : null)
+            || data.clientSentAt?.toDate?.()
+            || (data.clientSentAt instanceof Date ? data.clientSentAt : null)
+            || new Date(),
           edited: data.edited || false,
           editedAt: data.editedAt?.toDate?.() || undefined,
           replyTo: data.replyTo || undefined,
@@ -971,11 +996,17 @@ const getUserData = useCallback(async (uid: string) => {
     // parent doc, so we drop them from the message payload rather
     // than let them go stale.
     const { id: _stripId, threadId: _stripThread, teamId: _stripTeam, ...rest } = messageData as any;
+    // serverTimestamp() for the shared chronology, clientSentAt as the
+    // pending-write fallback. See the long-form rationale on
+    // addChatMessage above — same bug, same fix for group threads.
+    const { serverTimestamp } = await import('firebase/firestore');
+    const clientNow = messageData.timestamp || new Date();
     const messageToWrite = {
       ...rest,
       createdAt: new Date(),
       updatedAt: new Date(),
-      timestamp: messageData.timestamp || new Date(),
+      timestamp: serverTimestamp(),
+      clientSentAt: clientNow,
     };
     try {
       const { setDoc, doc: fsDoc } = await import('firebase/firestore');
@@ -1068,7 +1099,18 @@ const getUserData = useCallback(async (uid: string) => {
           senderId: data.senderId || '',
           senderName: data.senderName || '',
           senderRole: data.senderRole || 'parent',
-          timestamp: data.timestamp?.toDate?.() || (data.timestamp instanceof Date ? data.timestamp : new Date()),
+          // Prefer the server timestamp (shared clock, authoritative).
+          // During the brief hasPendingWrites window the server field
+          // is null — fall back to clientSentAt so the sender's own
+          // view keeps the message in the right slot until the server
+          // echo arrives. Final fallback is Date.now() for pre-fix
+          // legacy docs that don't have clientSentAt.
+          timestamp:
+            data.timestamp?.toDate?.()
+            || (data.timestamp instanceof Date ? data.timestamp : null)
+            || data.clientSentAt?.toDate?.()
+            || (data.clientSentAt instanceof Date ? data.clientSentAt : null)
+            || new Date(),
           edited: data.edited || false,
           editedAt: data.editedAt?.toDate?.() || undefined,
           replyTo: data.replyTo || undefined,
@@ -1107,7 +1149,14 @@ const getUserData = useCallback(async (uid: string) => {
           senderId: data.senderId || '',
           senderName: data.senderName || '',
           senderRole: data.senderRole || 'parent',
-          timestamp: data.timestamp?.toDate?.() || (data.timestamp instanceof Date ? data.timestamp : new Date()),
+          // Prefer server timestamp; fall back to clientSentAt. Same
+          // recipe as the live subscriptions — keep aligned.
+          timestamp:
+            data.timestamp?.toDate?.()
+            || (data.timestamp instanceof Date ? data.timestamp : null)
+            || data.clientSentAt?.toDate?.()
+            || (data.clientSentAt instanceof Date ? data.clientSentAt : null)
+            || new Date(),
           edited: data.edited || false,
           editedAt: data.editedAt?.toDate?.() || undefined,
           replyTo: data.replyTo || undefined,
@@ -1276,7 +1325,18 @@ const getUserData = useCallback(async (uid: string) => {
           senderId: data.senderId || '',
           senderName: data.senderName || '',
           senderRole: data.senderRole || 'parent',
-          timestamp: data.timestamp?.toDate?.() || (data.timestamp instanceof Date ? data.timestamp : new Date()),
+          // Prefer the server timestamp (shared clock, authoritative).
+          // During the brief hasPendingWrites window the server field
+          // is null — fall back to clientSentAt so the sender's own
+          // view keeps the message in the right slot until the server
+          // echo arrives. Final fallback is Date.now() for pre-fix
+          // legacy docs that don't have clientSentAt.
+          timestamp:
+            data.timestamp?.toDate?.()
+            || (data.timestamp instanceof Date ? data.timestamp : null)
+            || data.clientSentAt?.toDate?.()
+            || (data.clientSentAt instanceof Date ? data.clientSentAt : null)
+            || new Date(),
           edited: data.edited || false,
           editedAt: data.editedAt?.toDate?.() || undefined,
           replyTo: data.replyTo || undefined,

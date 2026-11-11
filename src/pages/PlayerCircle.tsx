@@ -253,6 +253,7 @@ const PlayerCircle: React.FC = () => {
         const out: Array<{ voting: any; playerVotes: Array<{ voterName: string; reason?: string }> }> = [];
         snap.forEach(d => {
           const v: any = { id: d.id, ...d.data() };
+          if (v.deletedAt) return;
           const votes: any[] = Array.isArray(v.votes) ? v.votes : [];
           const forThis = votes.filter(x => x?.playerId === playerId && (x?.reason || '').trim());
           if (forThis.length > 0) {

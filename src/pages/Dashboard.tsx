@@ -911,6 +911,7 @@ const Dashboard: React.FC = () => {
         // Gold-hero toggle: 7-day window, keyed on my player.
         const won = snap.docs.some(d => {
           const v = d.data() as any;
+          if (v.deletedAt) return false;
           const closed = v.closedAt?.toDate ? v.closedAt.toDate().getTime() : 0;
           if (!closed || closed < weekAgo) return false;
           const winners: any[] = Array.isArray(v.winners) ? v.winners : [];

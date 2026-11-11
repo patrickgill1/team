@@ -398,7 +398,7 @@ const PlayerMediaPage: React.FC = () => {
         const { where: fsW } = await import('firebase/firestore');
         const mvDocs = await getDocuments('match_votings', [fsW('teamId', '==', selectedTeamId)]);
         const closedWithWinner = (mvDocs as any[])
-          .filter(v => v.isActive === false && (v.winner || (Array.isArray(v.winners) && v.winners.length > 0)));
+          .filter(v => v.isActive === false && !v.deletedAt && (v.winner || (Array.isArray(v.winners) && v.winners.length > 0)));
         setMatchVotings(closedWithWinner);
       } catch (err) {
         console.warn('Could not load match_votings', err);

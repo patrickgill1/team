@@ -55,7 +55,7 @@ interface Vote {
 const PlayerOfMatch: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
-  const { getDocuments, addDocument, updateDocument, deleteDocument, getPlayersByTeam, getEventsByTeam } = useFirestore();
+  const { getDocuments, addDocument, updateDocument, getPlayersByTeam, getEventsByTeam } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [votings, setVotings] = useState<MatchVoting[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -169,8 +169,10 @@ const PlayerOfMatch: React.FC = () => {
     const calendarEvent = calendarEvents.find(e => e.id === resolvedId);
     if (!calendarEvent) return;
 
-    // Check if voting already exists for this calendar event
-    const existingVoting = votings.find(v => v.calendarEventId === resolvedId);
+    // Check if voting already exists for this calendar event.
+    // Ignore soft-deleted sessions so a coach can recreate the vote
+    // for a game they previously removed.
+    const existingVoting = votings.find(v => v.calendarEventId === resolvedId && !(v as any).deletedAt);
     if (existingVoting) {
       alert(`A ${potmTitle} voting already exists for this game.`);
       return;
@@ -362,11 +364,19 @@ const PlayerOfMatch: React.FC = () => {
   const handleDeleteVoting = async () => {
     if (!activeVoting || !isUserCoach) return;
     const confirmed = window.confirm(
-      `Are you sure you want to DELETE this voting session?\n\n"${activeVoting.gameTitle}" — ${activeVoting.votes.length} vote(s) will be permanently lost.\n\nThis cannot be undone.`
+      `Are you sure you want to delete this voting session?\n\n"${activeVoting.gameTitle}" (${activeVoting.votes.length} vote(s)) will be removed from the history.`
     );
     if (!confirmed) return;
     try {
-      await deleteDocument('match_votings', activeVoting.id);
+      // Soft-delete (isActive:false + deletedAt). Firestore rules
+      // block hard deletes on match_votings; readers already filter
+      // deletedAt so the session disappears from history and frees
+      // the game up for a fresh vote.
+      await updateDocument('match_votings', activeVoting.id, {
+        isActive: false,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      });
       setActiveVoting(null);
       setNewVotingId(null);
       loadData();
@@ -597,8 +607,8 @@ const PlayerOfMatch: React.FC = () => {
       return daysDiff >= -1 && daysDiff <= 7; // Games from yesterday to 7 days ago
     });
 
-    return recentGames.filter(game => 
-      !votings.some(voting => voting.calendarEventId === game.id)
+    return recentGames.filter(game =>
+      !votings.some(voting => voting.calendarEventId === game.id && !(voting as any).deletedAt)
     );
   };
 
@@ -1070,7 +1080,7 @@ const PlayerOfMatch: React.FC = () => {
             <h2 className="text-lg font-semibold text-ink-primary">Previous Results</h2>
           </div>
           <div className="p-6">
-            {votings.filter(v => !v.isActive).length === 0 ? (
+            {votings.filter(v => !v.isActive && !(v as any).deletedAt).length === 0 ? (
               <div className="text-center py-8">
                 <div className="text-ink-primary/40 mb-4">
                   <svg className="mx-auto h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1082,7 +1092,7 @@ const PlayerOfMatch: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                {votings.filter(v => !v.isActive).map(voting => {
+                {votings.filter(v => !v.isActive && !(v as any).deletedAt).map(voting => {
                   const results = getVoteResults(voting);
                   const linkedEvent = voting.calendarEventId 
                     ? calendarEvents.find(e => e.id === voting.calendarEventId)

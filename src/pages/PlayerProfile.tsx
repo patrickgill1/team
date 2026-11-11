@@ -574,8 +574,11 @@ const PlayerProfile: React.FC = () => {
       // whose team key had drifted.
       const allWins = (votingsResult.value as any[])
         .filter(v =>
-          (Array.isArray(v.winners) && v.winners.some((w: any) => w?.playerId === playerId))
-          || v.winner?.playerId === playerId
+          !v.deletedAt
+          && (
+            (Array.isArray(v.winners) && v.winners.some((w: any) => w?.playerId === playerId))
+            || v.winner?.playerId === playerId
+          )
         )
         .map(v => ({
           ...v,
@@ -737,7 +740,7 @@ const PlayerProfile: React.FC = () => {
       // "his son has POTM nominations that aren't showing in the
       // trophy case" — root cause was this teamId filter.
       const playerVotings = (votingsResult.value as any[])
-        .filter((v: any) => Array.isArray(v.votes) && v.votes.some((vote: any) => vote.playerId === playerId))
+        .filter((v: any) => !v.deletedAt && Array.isArray(v.votes) && v.votes.some((vote: any) => vote.playerId === playerId))
         .map((v: any) => ({
           voting: {
             ...v,

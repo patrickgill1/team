@@ -200,7 +200,9 @@ const KidDashboard: React.FC = () => {
       try {
         const snap = await getDocs(collection(db, 'match_votings'));
         if (cancelled) return;
-        const allVotings = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        const allVotings = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((v: any) => !v.deletedAt);
         const wins = allVotings.filter((v: any) =>
           (Array.isArray(v.winners) && v.winners.some((w: any) => w?.playerId === activeKidPlayerId))
           || v.winner?.playerId === activeKidPlayerId

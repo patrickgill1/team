@@ -2343,6 +2343,46 @@ const EventDetail: React.FC = () => {
         );
       })()}
 
+      {/* Final score — coach entry for past games against an external
+          opponent. Writes event.ourScore / event.oppScore / event.result
+          so the public "Recent results" (and other readers) surface the
+          final. Live-tracker games populate the same fields on
+          finalizeGame; this panel is the retroactive path. Pickup games
+          skip this (teamSplit present → PickupResultPanel below handles
+          the winning-side flow instead). */}
+      {isUserCoach
+        && event.type === 'game'
+        && !event.isCancelled
+        && !(event as any).teamSplit
+        && eventDate
+        && eventDate.getTime() < now.getTime() && (
+        <FinalScorePanel
+          event={event}
+          teamName={audienceTeamObj?.name || 'Us'}
+          onSave={async (patch) => {
+            await updateDocument('events', event.id, patch);
+            setEvent({ ...event, ...patch } as any);
+          }}
+          onClear={async () => {
+            await updateDocument('events', event.id, {
+              ourScore: null,
+              oppScore: null,
+              result: '',
+              resultRecordedAt: null,
+              resultRecordedBy: null,
+            });
+            setEvent({
+              ...event,
+              ourScore: undefined,
+              oppScore: undefined,
+              result: '',
+              resultRecordedAt: undefined,
+              resultRecordedBy: undefined,
+            } as any);
+          }}
+        />
+      )}
+
       {/* Coach fee summary — discreet card showing net-per-player and
           a running total from paid attendees. Coach-only. */}
       {isUserCoach && Number((event as any).feeCents || 0) > 0 && (() => {
@@ -3147,6 +3187,183 @@ const PickupResultPanel: React.FC<PickupResultPanelProps> = ({ event, userData, 
           className="flex-1 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hov text-brand-primary-fg text-xs font-black uppercase tracking-widest disabled:opacity-40 transition"
         >
           {busy ? 'Saving…' : 'Save result'}
+        </button>
+      </div>
+    </section>
+  );
+};
+
+// Final score entry for coaches on past external-opponent games.
+// Lets a coach record an "us vs them" final after the fact — the
+// retroactive mirror of what finalizeGame writes when a game was
+// tracked live. Persists ourScore / oppScore / result on the event
+// so the public "Recent results" list and trip summaries pick it up.
+interface FinalScorePanelProps {
+  event: CalendarEvent;
+  teamName: string;
+  onSave: (patch: {
+    ourScore: number;
+    oppScore: number;
+    result: string;
+    resultRecordedAt: Date;
+    resultRecordedBy: string;
+  }) => Promise<void>;
+  onClear: () => Promise<void>;
+}
+
+const FinalScorePanel: React.FC<FinalScorePanelProps> = ({ event, teamName, onSave, onClear }) => {
+  const { userData } = useAuth() as any;
+  const opponent = (event as any).opponent || 'Opponent';
+  const existingOur = typeof (event as any).ourScore === 'number' ? (event as any).ourScore : null;
+  const existingOpp = typeof (event as any).oppScore === 'number' ? (event as any).oppScore : null;
+  const hasExisting = existingOur !== null && existingOpp !== null;
+
+  const [ourText, setOurText] = React.useState<string>(hasExisting ? String(existingOur) : '');
+  const [oppText, setOppText] = React.useState<string>(hasExisting ? String(existingOpp) : '');
+  const [busy, setBusy] = React.useState(false);
+  const [editing, setEditing] = React.useState<boolean>(!hasExisting);
+
+  const parseScore = (s: string): number | null => {
+    const n = parseInt(s, 10);
+    return Number.isFinite(n) && n >= 0 && n <= 99 ? n : null;
+  };
+
+  const handleSave = async () => {
+    const ours = parseScore(ourText);
+    const theirs = parseScore(oppText);
+    if (ours === null || theirs === null) {
+      alert('Enter a number for each side (0–99).');
+      return;
+    }
+    const outcome = ours > theirs ? 'W' : ours < theirs ? 'L' : 'D';
+    const result = `${outcome} ${ours}-${theirs}`;
+    setBusy(true);
+    try {
+      await onSave({
+        ourScore: ours,
+        oppScore: theirs,
+        result,
+        resultRecordedAt: new Date(),
+        resultRecordedBy: userData?.uid || 'unknown',
+      });
+      setEditing(false);
+    } catch (err) {
+      console.error('save final score failed', err);
+      alert("Couldn't save the score. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleClear = async () => {
+    if (!window.confirm('Clear the recorded score?')) return;
+    setBusy(true);
+    try {
+      await onClear();
+      setOurText('');
+      setOppText('');
+      setEditing(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Read-only mode when a score is already on the event and the
+  // coach hasn't opened the editor.
+  if (!editing && hasExisting) {
+    const outcome = existingOur! > existingOpp! ? 'W' : existingOur! < existingOpp! ? 'L' : 'D';
+    const chipColor = outcome === 'W'
+      ? 'bg-emerald-500/20 text-emerald-300 ring-emerald-400/30'
+      : outcome === 'L'
+        ? 'bg-rose-500/20 text-rose-300 ring-rose-400/30'
+        : 'bg-amber-500/20 text-amber-300 ring-amber-400/30';
+    return (
+      <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-ink-primary/50">Final score</p>
+          <span className={`text-[10px] font-black tracking-widest px-1.5 py-0.5 rounded ring-1 ${chipColor}`}>{outcome}</span>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-lg font-black text-ink-primary tabular-nums">
+              {teamName} {existingOur} <span className="text-ink-primary/40 mx-1">–</span> {existingOpp} {opponent}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setEditing(true)}
+              disabled={busy}
+              className="text-[11px] font-black uppercase tracking-widest text-ink-primary/60 hover:text-ink-primary px-2 py-1"
+            >
+              Edit
+            </button>
+            <button
+              onClick={handleClear}
+              disabled={busy}
+              className="text-[11px] font-black uppercase tracking-widest text-ink-primary/60 hover:text-ink-primary px-2 py-1"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Edit mode — two number inputs, Save, Cancel-back-to-read-only
+  // (only if there's a prior score to cancel back to).
+  return (
+    <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+      <p className="text-[10px] font-black uppercase tracking-widest text-ink-primary/50 mb-3">Record final score</p>
+      <div className="flex items-end gap-2 mb-3">
+        <label className="flex-1 min-w-0">
+          <span className="block text-[10px] font-black uppercase tracking-widest text-ink-primary/50 mb-1 truncate">{teamName}</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={99}
+            value={ourText}
+            onChange={(e) => setOurText(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg bg-surface-input ring-1 ring-line-default/15 text-ink-primary text-lg font-black tabular-nums text-center focus:outline-none focus:ring-brand-primary"
+            placeholder="0"
+          />
+        </label>
+        <span className="pb-2 text-ink-primary/40 text-xl font-black">–</span>
+        <label className="flex-1 min-w-0">
+          <span className="block text-[10px] font-black uppercase tracking-widest text-ink-primary/50 mb-1 truncate">{opponent}</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={99}
+            value={oppText}
+            onChange={(e) => setOppText(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg bg-surface-input ring-1 ring-line-default/15 text-ink-primary text-lg font-black tabular-nums text-center focus:outline-none focus:ring-brand-primary"
+            placeholder="0"
+          />
+        </label>
+      </div>
+      <div className="flex items-center gap-2">
+        {hasExisting && (
+          <button
+            onClick={() => {
+              setOurText(String(existingOur));
+              setOppText(String(existingOpp));
+              setEditing(false);
+            }}
+            disabled={busy}
+            className="px-3 py-2 rounded-lg bg-line-default/[0.08] hover:bg-line-default/[0.12] text-ink-primary/70 text-xs font-black uppercase tracking-widest"
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          onClick={handleSave}
+          disabled={busy || ourText === '' || oppText === ''}
+          className="flex-1 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hov text-brand-primary-fg text-xs font-black uppercase tracking-widest disabled:opacity-40 transition"
+        >
+          {busy ? 'Saving…' : 'Save score'}
         </button>
       </div>
     </section>

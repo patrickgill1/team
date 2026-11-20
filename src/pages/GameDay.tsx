@@ -409,6 +409,22 @@ const GameDay: React.FC = () => {
     const ours = game.ourScore || 0;
     const theirs = game.oppScore || 0;
     const result = ours > theirs ? 'Win' : ours < theirs ? 'Loss' : 'Draw';
+    // Stamp the structured final onto the event doc so the public
+    // "Recent results" list and any other event.result readers pick
+    // up live-tracked games without needing a second manual entry.
+    // Mirrors the fields FinalScorePanel writes from EventDetail
+    // (the retroactive path). Fire-and-forget; a failure here never
+    // blocks the wall post or stats rollup below.
+    if (event?.id) {
+      const outcome = ours > theirs ? 'W' : ours < theirs ? 'L' : 'D';
+      void updateDoc(doc(db, 'events', event.id), {
+        ourScore: ours,
+        oppScore: theirs,
+        result: `${outcome} ${ours}-${theirs}`,
+        resultRecordedAt: new Date(),
+        resultRecordedBy: userData?.uid || 'live-tracker',
+      }).catch((err) => console.warn('[gameday] event.result stamp failed', err));
+    }
     void notifyGoingParents(`Full time — ${result}`, `${usLabel} ${ours}-${theirs} ${opp}`);
     // Culture engine: auto-write the recap to the team Wall so
     // parents who missed the game get the story without scrolling

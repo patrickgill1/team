@@ -778,6 +778,25 @@ const EventDetail: React.FC = () => {
     }
   };
 
+  // Coach taps the status that's already selected → clear it back to
+  // "no response." Lets a coach undo a mis-tap without having to pick
+  // a different status just to escape (Patrick 2026-11-20: "If a coach
+  // accidentally clicks it, he has to select another option and can't
+  // clear it"). Writes the map with the player's entry omitted.
+  const clearPlayerRsvp = async (playerId: string) => {
+    if (!event || !userData?.uid) return;
+    const prior = ((event as any).playerRsvps || {}) as Record<string, any>;
+    if (!prior[playerId]) return;
+    const { [playerId]: _removed, ...rest } = prior;
+    setEvent({ ...event, playerRsvps: rest } as any);
+    try {
+      await updateDocument('events', event.id, { playerRsvps: rest });
+    } catch (err) {
+      console.error('player rsvp clear failed', err);
+      alert('Failed to clear RSVP.');
+    }
+  };
+
   const setFeedbackDraft = (playerId: string, patch: any) => {
     setFeedbackDrafts(prev => ({ ...prev, [playerId]: { ...(prev[playerId] || {}), ...patch } }));
   };
@@ -2295,7 +2314,8 @@ const EventDetail: React.FC = () => {
                     <button
                       key={status}
                       type="button"
-                      onClick={() => setPlayerRsvp(p.id, p.name, status)}
+                      onClick={() => current === status ? clearPlayerRsvp(p.id) : setPlayerRsvp(p.id, p.name, status)}
+                      title={current === status ? 'Tap again to clear' : undefined}
                       className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[11px] font-bold border transition ${
                         current === status
                           ? `${active} text-white border-transparent shadow-sm`

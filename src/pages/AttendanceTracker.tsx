@@ -186,10 +186,16 @@ const AttendanceTracker: React.FC = () => {
   };
 
   const handleAttendanceChange = (playerId: string, status: string) => {
-    setAttendanceData(prev => ({
-      ...prev,
-      [playerId]: status
-    }));
+    setAttendanceData(prev => {
+      // Toggle-off: tapping the status that's already selected clears
+      // the row back to "no response." Empty string is the explicit-
+      // cleared sentinel (undefined = never touched), handled below in
+      // saveAttendance to actually remove the entry on save. Patrick
+      // 2026-11-20: "If a coach accidentally clicks it, he has to
+      // select another option and can't clear it."
+      const next = prev[playerId] === status ? '' : status;
+      return { ...prev, [playerId]: next };
+    });
   };
 
   // Writes ALL players' RSVPs back to the event's playerRsvps map in
@@ -239,7 +245,14 @@ const AttendanceTracker: React.FC = () => {
 
       for (const player of players) {
         const status = attendanceData[player.id];
-        if (!status) continue; // skip "unset" rows entirely
+        if (status === undefined) continue; // never touched this session
+        if (status === '') {
+          // Explicit toggle-clear: drop the player's entry entirely
+          // so the row returns to "no response." No XP side-effects —
+          // we never granted on a cleared state.
+          delete next[player.id];
+          continue;
+        }
         const prevEntry = existing[player.id] || {};
         const effort = effortData[player.id] === true;
 

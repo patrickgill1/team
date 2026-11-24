@@ -279,7 +279,7 @@ const KidDashboard: React.FC = () => {
           when they need to schedule / configure. pt-safe pushes the
           content clear of the notch / status bar on iOS. */}
       <header className="sticky top-0 z-40 bg-surface-elevated/85 backdrop-blur border-b border-line-default/10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between safe-right">
           <div>
             <p className="text-[10px] uppercase tracking-widest font-bold text-brand-primary-soft">Player view</p>
             <h1 className="text-lg font-black tracking-tight leading-none mt-0.5">Hey, {firstName}</h1>

@@ -329,11 +329,16 @@ const PhotosTab: React.FC<Props> = ({ players, events }) => {
         )}
       </div>
 
-      {/* Floating upload button (visible whenever there are photos) */}
+      {/* Floating upload button (visible whenever there are photos).
+          `right` is calc'd off --gk-safe-right so the FAB sits left of
+          the iPhone Fold cover-screen vertical status pill. Elsewhere
+          --gk-safe-right resolves to 0 and the button sits at the
+          normal 1rem gutter. */}
       {filtered.length > 0 && (
         <button
           onClick={() => setUploadOpen(true)}
-          className="fixed z-30 bottom-24 right-4 w-14 h-14 rounded-full bg-brand-primary hover:bg-brand-primary-hov text-white shadow-2xl flex items-center justify-center transition active:scale-95"
+          style={{ right: 'calc(var(--gk-safe-right) + 1rem)' }}
+          className="fixed z-30 bottom-24 w-14 h-14 rounded-full bg-brand-primary hover:bg-brand-primary-hov text-white shadow-2xl flex items-center justify-center transition active:scale-95"
           aria-label="Upload photos"
           title="Upload photos"
         >

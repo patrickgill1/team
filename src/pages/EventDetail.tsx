@@ -1283,8 +1283,10 @@ const EventDetail: React.FC = () => {
 
         <div className="relative px-4 sm:px-6 pt-4 pb-6">
           {/* Top chrome row: back · countdown pill · edit. Pill is
-              dead-center so it reads as the event's status badge. */}
-          <div className="flex items-center justify-between mb-5">
+              dead-center so it reads as the event's status badge.
+              safe-right keeps the edit button clear of the iPhone
+              Fold cover-screen vertical status pill. */}
+          <div className="flex items-center justify-between mb-5 safe-right">
             <button
               onClick={() => navigate(-1)}
               className="w-9 h-9 rounded-full bg-line-default/10 backdrop-blur ring-1 ring-line-default/15 text-ink-primary/75 flex items-center justify-center hover:bg-line-default/15 hover:text-ink-primary"

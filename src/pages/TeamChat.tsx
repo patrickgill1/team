@@ -2794,8 +2794,11 @@ const TeamChat: React.FC = () => {
     >
       <button
         onClick={(e) => { e.stopPropagation(); setLightboxUrl(null); }}
-        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center theme-ok"
-        style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}
+        className="absolute top-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center theme-ok"
+        style={{
+          top: 'calc(1rem + env(safe-area-inset-top))',
+          right: 'calc(var(--gk-safe-right) + 1rem)',
+        }}
         aria-label="Close"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">

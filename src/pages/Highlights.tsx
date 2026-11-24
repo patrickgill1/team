@@ -254,9 +254,11 @@ const Highlights: React.FC = () => {
 
   return (
     <div className="relative bg-black text-white theme-ok">
-      {/* Sticky filter / nav overlay — sits on top of the reel */}
+      {/* Sticky filter / nav overlay — sits on top of the reel.
+          safe-right on the inner row so the player-filter dropdown
+          stays clear of the iPhone Fold cover-screen vertical pill. */}
       <div className="fixed top-0 left-0 right-0 lg:left-64 z-30 pointer-events-none">
-        <div className="flex items-center gap-2 px-4 pt-3 pb-2 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-auto">
+        <div className="flex items-center gap-2 px-4 pt-3 pb-2 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-auto safe-right">
           <h1 className="text-base sm:text-lg font-bold mr-auto truncate">🎬 Highlights</h1>
           <select
             value={playerFilter}

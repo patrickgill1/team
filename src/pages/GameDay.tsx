@@ -1391,7 +1391,7 @@ const GameDay: React.FC = () => {
           Watch-triggered swap. Renders above the sticky header so it
           isn't hidden by the scoreboard. */}
       {pendingSubUndo && (
-        <div className="sticky top-0 z-30 bg-emerald-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold shadow-lg animate-slide-down">
+        <div className="sticky top-0 z-30 bg-emerald-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold shadow-lg animate-slide-down safe-right">
           <span className="truncate">
             <span className="opacity-80 mr-1">Sub:</span>
             {pendingSubUndo.inName.split(' ')[0]} in for {pendingSubUndo.outName.split(' ')[0]}
@@ -1413,7 +1413,7 @@ const GameDay: React.FC = () => {
       {attributionToast && (
         <div
           role="alert"
-          className="sticky top-0 z-30 bg-amber-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold shadow-lg animate-slide-down"
+          className="sticky top-0 z-30 bg-amber-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold shadow-lg animate-slide-down safe-right"
         >
           <span className="truncate">
             {attributionToast.kind === 'retry'
@@ -1443,7 +1443,7 @@ const GameDay: React.FC = () => {
       )}
       {/* Header / Scoreboard */}
       <header className="sticky top-0 z-20 bg-surface-elevated/85 dark:bg-black/60 backdrop-blur-md border-b border-line-default/10">
-        <div className="max-w-3xl mx-auto px-4 py-3">
+        <div className="max-w-3xl mx-auto px-4 py-3 safe-right">
           <div className="flex items-center justify-between mb-2">
             <Link to="/calendar" className="text-xs text-ink-primary/65 hover:text-ink-primary">← Calendar</Link>
             <div className="flex items-center gap-2 flex-wrap justify-end">

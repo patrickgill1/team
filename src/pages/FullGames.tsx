@@ -611,8 +611,11 @@ const FullGames: React.FC = () => {
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setSelectedGame(null); }}
-            className="fixed right-4 text-white/90 hover:text-white text-3xl w-10 h-10 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 z-[60] theme-ok"
-            style={{ top: 'max(1rem, calc(env(safe-area-inset-top) + 0.5rem))' }}
+            className="fixed text-white/90 hover:text-white text-3xl w-10 h-10 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 z-[60] theme-ok"
+            style={{
+              top: 'max(1rem, calc(env(safe-area-inset-top) + 0.5rem))',
+              right: 'calc(var(--gk-safe-right) + 1rem)',
+            }}
             aria-label="Close"
           >
             ×

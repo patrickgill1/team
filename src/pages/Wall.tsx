@@ -1378,7 +1378,7 @@ const Wall: React.FC = () => {
       {/* Compact mobile header — no big hero strip eating screen real
           estate. Title row + pill filter on a single sticky stack. */}
       <section className="bg-surface-base px-4 sm:px-6 py-3 border-b border-line-default/5">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-2 safe-right">
           <Link to="/dashboard" aria-label="Back" className="inline-flex items-center justify-center w-8 h-8 rounded-full text-brand-primary-soft hover:bg-line-default/10">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           </Link>

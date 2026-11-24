@@ -199,16 +199,31 @@ body.platform-android {
    as a floating VERTICAL pill on the RIGHT EDGE of the screen (not
    as a top horizontal strip like Dynamic Island). env(safe-area-inset-
    right) under-reports and env(safe-area-inset-top) doesn't help at all
-   because the pill is on the side. Backstop both insets on very narrow
-   iOS screens so the GOALKICKR header + user avatar stay clear of the
-   overlay. Scoped tight (max-width: 360px) so iPhone SE / mini (375px)
-   are untouched — those report accurate insets already. Only applies
-   on iOS; Android's MainActivity-managed inset is already correct. */
+   because the pill is on the side.
+
+   Rather than tagging every sticky header, FAB, and action slot with
+   .safe-right (whack-a-mole: Ollie solves it once at the frame), we
+   push the entire app INSIDE the pill: body gets padding-right so no
+   in-flow content can paint under the overlay. Fixed-position elements
+   are viewport-relative and skip the body's padding, so they still read
+   --gk-safe-right directly for their own right offset (lightbox close,
+   upload FAB, etc).
+
+   Scoped tight (max-width: 360px) so iPhone SE / mini (375px) are
+   untouched — those report accurate insets already. Only applies on
+   iOS; Android's MainActivity-managed inset is already correct. */
 @media screen and (max-width: 360px) {
   body.platform-ios {
     --gk-safe-top: max(env(safe-area-inset-top), 54px);
     --gk-safe-right: max(env(safe-area-inset-right), 44px);
+    padding-right: var(--gk-safe-right);
   }
+  /* Any descendant using .safe-right would double-inset now that the
+     body itself is pushed left of the pill. Null the padding class
+     without touching the variable — fixed-position descendants still
+     need the raw value for their own `right: calc(var(--gk-safe-right)
+     + …)` offsets. */
+  body.platform-ios .safe-right { padding-right: 0; }
 }
 
 .safe-top { padding-top: var(--gk-safe-top); }
